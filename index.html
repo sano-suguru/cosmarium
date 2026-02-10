@@ -252,12 +252,12 @@ var drg = false, ds = {x:0,y:0}, cs = {x:0,y:0};
 canvas.addEventListener('wheel', function(e) {
   e.preventDefault();
   if (catalogOpen) return;
-  var wx = cam.tx + (e.clientX - W / 2) / cam.z;
-  var wy = cam.ty + (e.clientY - H / 2) / cam.z;
+  var wx = cam.tx + (e.clientX - W / 2) / cam.tz;
+  var wy = cam.ty - (e.clientY - H / 2) / cam.tz;
   var nz = cam.tz * (e.deltaY > 0 ? 0.9 : 1.1);
   nz = Math.max(0.05, Math.min(8, nz));
   cam.tx = wx - (e.clientX - W / 2) / nz;
-  cam.ty = wy - (e.clientY - H / 2) / nz;
+  cam.ty = wy + (e.clientY - H / 2) / nz;
   cam.tz = nz;
 }, { passive: false });
 
@@ -270,8 +270,8 @@ canvas.addEventListener('mousedown', function(e) {
 });
 canvas.addEventListener('mousemove', function(e) {
   if (drg) {
-    cam.tx = cs.x - (e.clientX - ds.x) / cam.z;
-    cam.ty = cs.y - (e.clientY - ds.y) / cam.z;
+    cam.tx = cs.x - (e.clientX - ds.x) / cam.tz;
+    cam.ty = cs.y + (e.clientY - ds.y) / cam.tz;
   }
 });
 canvas.addEventListener('mouseup', function() { drg = false; });
@@ -1646,7 +1646,7 @@ mmCvs.addEventListener('mousedown', function(e) {
   var mx = e.clientX - rect.left;
   var my = e.clientY - rect.top;
   cam.tx = (mx / mmCvs.width) * (WORLD * 2) - WORLD;
-  cam.ty = (my / mmCvs.height) * (WORLD * 2) - WORLD;
+  cam.ty = WORLD - (my / mmCvs.height) * (WORLD * 2);
   cam.tz = 1;
 });
 mmCvs.addEventListener('wheel', function(e) {
@@ -1661,7 +1661,7 @@ function drawMinimap() {
   for (var i = 0; i < asteroids.length; i++) {
     var a = asteroids[i];
     mmCtx.beginPath();
-    mmCtx.arc((a.x+WORLD)*s, (a.y+WORLD)*s, Math.max(1, a.r*s), 0, 6.28);
+    mmCtx.arc((a.x+WORLD)*s, (WORLD-a.y)*s, Math.max(1, a.r*s), 0, 6.28);
     mmCtx.fill();
   }
   if (gameMode === 2) {
@@ -1669,7 +1669,7 @@ function drawMinimap() {
       var b = bases[i];
       mmCtx.fillStyle = i===0 ? 'rgba(0,200,255,.6)' : 'rgba(255,100,200,.6)';
       mmCtx.beginPath();
-      mmCtx.arc((b.x+WORLD)*s, (b.y+WORLD)*s, 4, 0, 6.28);
+      mmCtx.arc((b.x+WORLD)*s, (WORLD-b.y)*s, 4, 0, 6.28);
       mmCtx.fill();
     }
   }
@@ -1678,11 +1678,11 @@ function drawMinimap() {
     var c = gC(u.type, u.team);
     mmCtx.fillStyle = 'rgba('+(c[0]*255|0)+','+(c[1]*255|0)+','+(c[2]*255|0)+',.7)';
     var sz = Math.max(1, TYPES[u.type].sz * s * 1.5);
-    mmCtx.fillRect((u.x+WORLD)*s - sz/2, (u.y+WORLD)*s - sz/2, sz, sz);
+    mmCtx.fillRect((u.x+WORLD)*s - sz/2, (WORLD-u.y)*s - sz/2, sz, sz);
   }
   mmCtx.strokeStyle = 'rgba(255,255,255,.2)';
   var vw = W / cam.z, vh = H / cam.z;
-  mmCtx.strokeRect((cam.x-vw/2+WORLD)*s, (cam.y-vh/2+WORLD)*s, vw*s, vh*s);
+  mmCtx.strokeRect((cam.x-vw/2+WORLD)*s, (WORLD-cam.y-vh/2)*s, vw*s, vh*s);
 }
 
 /* =========================================================
@@ -1742,9 +1742,10 @@ function frame(now) {
   fc++; ft += dt;
   if (ft >= 0.5) { df = fc / ft | 0; fc = 0; ft = 0; }
 
-  cam.x += (cam.tx - cam.x) * 0.08;
-  cam.y += (cam.ty - cam.y) * 0.08;
-  cam.z += (cam.tz - cam.z) * 0.08;
+  var ct = 1 - Math.pow(0.0005, dt);
+  cam.x += (cam.tx - cam.x) * ct;
+  cam.y += (cam.ty - cam.y) * ct;
+  cam.z += (cam.tz - cam.z) * ct;
 
   if (cam.shk > 0.1) {
     cam.shkx = (Math.random() - 0.5) * cam.shk;
