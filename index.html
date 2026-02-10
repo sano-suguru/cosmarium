@@ -127,6 +127,7 @@ color:#555; font-size:10px; pointer-events:none; letter-spacing:1px;
 #minimap {
 position:fixed; bottom:12px; right:12px; z-index:10;
 border:1px solid rgba(0,255,255,.12); cursor:pointer; border-radius:3px;
+width:160px; height:160px;
 }
 #win {
 position:fixed; inset:0; z-index:80; display:none;
@@ -199,7 +200,7 @@ background:rgba(0,0,0,.85);
   </div>
 </div>
 
-<canvas id="minimap" width="160" height="160" style="display:none"></canvas>
+<div id="minimap" style="display:none"></div>
 
 <div id="win">
   <h2 id="winText"></h2>
@@ -229,10 +230,17 @@ background:rgba(0,0,0,.85);
    WEBGL SETUP
    ========================================================= */
 var canvas = document.getElementById('c');
-var gl = canvas.getContext('webgl', {
+var gl = canvas.getContext('webgl2', {
   alpha: false, antialias: false, premultipliedAlpha: false
 });
-var ext = gl.getExtension('ANGLE_instanced_arrays');
+if (!gl) {
+  var menu = document.getElementById('menu');
+  menu.innerHTML = '<h1 style="color:#f44;font-size:24px;text-shadow:0 0 20px #f44">'
+    + 'WebGL 2 is not supported</h1>'
+    + '<p style="color:#888;margin-top:16px;font-size:13px">'
+    + 'Please update your browser or enable hardware acceleration.</p>';
+  throw new Error('WebGL 2 not available');
+}
 
 var W, H;
 function resize() {
@@ -313,6 +321,8 @@ function CS(s, t) {
   var sh = gl.createShader(t);
   gl.shaderSource(sh, s);
   gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS))
+    console.error(gl.getShaderInfoLog(sh));
   return sh;
 }
 function CP(v, f) {
@@ -320,14 +330,17 @@ function CP(v, f) {
   gl.attachShader(p, CS(v, gl.VERTEX_SHADER));
   gl.attachShader(p, CS(f, gl.FRAGMENT_SHADER));
   gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    console.error(gl.getProgramInfoLog(p));
   return p;
 }
 
 var mainVS = [
-  'attribute vec2 aP,aO;',
-  'attribute float aS,aA,aSh;',
-  'attribute vec4 aC;',
-  'varying vec4 vC; varying vec2 vU; varying float vSh;',
+  '#version 300 es',
+  'in vec2 aP,aO;',
+  'in float aS,aA,aSh;',
+  'in vec4 aC;',
+  'out vec4 vC; out vec2 vU; out float vSh;',
   'uniform vec2 uR,uCam; uniform float uZ;',
   'void main(){',
   '  float c=cos(aA),s=sin(aA);',
@@ -339,24 +352,26 @@ var mainVS = [
 ].join('\n');
 
 var mainFS = [
+  '#version 300 es',
   'precision mediump float;',
-  'varying vec4 vC; varying vec2 vU; varying float vSh;',
+  'in vec4 vC; in vec2 vU; in float vSh;',
+  'out vec4 fragColor;',
   'void main(){',
   '  float d=length(vU), a=0.0;',
   '  int sh=int(vSh+0.5);',
   '  if(sh==0){ a=smoothstep(1.0,0.55,d)+exp(-d*2.5)*0.7; }',
   '  else if(sh==1){ float dd=abs(vU.x)+abs(vU.y); a=smoothstep(1.0,0.7,dd)+exp(-dd*3.0)*0.4; }',
-  '  else if(sh==2){ float t=vU.y*0.5+0.5,w=mix(0.7,0.0,t);',
-  '    a=smoothstep(0.15,0.0,abs(vU.x)-w)*smoothstep(-0.1,0.1,1.0-t)+exp(-d*2.0)*0.3; }',
+  '  else if(sh==2){ float t=vU.x*0.5+0.5,w=mix(0.7,0.0,t);',
+  '    a=smoothstep(0.15,0.0,abs(vU.y)-w)*smoothstep(-0.1,0.1,1.0-t)+exp(-d*2.0)*0.3; }',
   '  else if(sh==3){ vec2 av=abs(vU); float dd=max(av.x*0.866+av.y*0.5,av.y);',
   '    a=smoothstep(1.0,0.8,dd)+exp(-dd*2.5)*0.5; }',
   '  else if(sh==4){ float cx=step(abs(vU.x),0.2)+step(abs(vU.y),0.2);',
   '    a=min(cx,1.0)*smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }',
   '  else if(sh==5){ float ring=abs(d-0.7);',
   '    a=smoothstep(0.2,0.03,ring)+exp(-d*1.5)*0.2; }',
-  '  else if(sh==6){ float t=vU.y*0.5+0.5,w=mix(0.45,0.0,t*t);',
-  '    float body=step(abs(vU.x),0.12)*step(0.0,vU.y+0.6);',
-  '    a=max(smoothstep(0.1,0.0,abs(vU.x)-w)*step(0.35,t),body)*0.9+exp(-d*2.5)*0.4; }',
+  '  else if(sh==6){ float t=vU.x*0.5+0.5,w=mix(0.45,0.0,t*t);',
+  '    float body=step(abs(vU.y),0.12)*step(0.0,vU.x+0.6);',
+  '    a=max(smoothstep(0.1,0.0,abs(vU.y)-w)*step(0.35,t),body)*0.9+exp(-d*2.5)*0.4; }',
   '  else if(sh==7){ float an=atan(vU.y,vU.x),r=0.6+0.35*cos(an*5.0);',
   '    a=smoothstep(r+0.15,r-0.05,d)+exp(-d*2.0)*0.3; }',
   '  else if(sh==8){ float d2=length(vU-vec2(0.3,0.0));',
@@ -375,47 +390,89 @@ var mainFS = [
   '    a=smoothstep(r+0.15,r-0.1,d)+exp(-d*2.0)*0.3; }',
   '  else if(sh==15){ float bx=abs(vU.x-vU.y*0.3),by=abs(vU.y);',
   '    a=exp(-bx*5.0)*0.8*step(by,0.8)+exp(-d*2.0)*0.3; }',
+  '  else if(sh==16){ float an=atan(vU.y,vU.x),se=1.2566,hse=0.6283;',
+  '    float r=0.809/cos(mod(an+6.2832,se)-hse); float dd=d/(r*0.9);',
+  '    a=smoothstep(1.0,0.75,dd)+exp(-dd*2.5)*0.4; }',
   '  else if(sh==20){ vec2 av=abs(vU); float dd=max(av.x*0.866+av.y*0.5,av.y);',
   '    a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }',
   '  else { a=smoothstep(1.0,0.6,d); }',
-  '  gl_FragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));',
+  '  fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));',
   '}'
 ].join('\n');
 
 var qVS = [
-  'attribute vec2 aP; varying vec2 vU;',
+  '#version 300 es',
+  'layout(location=0) in vec2 aP; out vec2 vU;',
   'void main(){ vU=aP*0.5+0.5; gl_Position=vec4(aP,0.0,1.0); }'
 ].join('\n');
 
 var blFS = [
+  '#version 300 es',
   'precision mediump float;',
-  'varying vec2 vU; uniform sampler2D uT; uniform vec2 uD,uR;',
+  'in vec2 vU; uniform sampler2D uT; uniform vec2 uD,uR;',
+  'out vec4 fragColor;',
   'void main(){',
-  '  vec4 s=texture2D(uT,vU)*0.227;',
+  '  vec4 s=texture(uT,vU)*0.227;',
   '  for(int i=1;i<5;i++){',
   '    float w = i==1?0.195 : i==2?0.122 : i==3?0.054 : 0.016;',
   '    vec2 o=uD*float(i)/uR;',
-  '    s+=texture2D(uT,vU+o)*w; s+=texture2D(uT,vU-o)*w;',
+  '    s+=texture(uT,vU+o)*w; s+=texture(uT,vU-o)*w;',
   '  }',
-  '  gl_FragColor=s;',
+  '  fragColor=s;',
   '}'
 ].join('\n');
 
 var coFS = [
+  '#version 300 es',
   'precision mediump float;',
-  'varying vec2 vU; uniform sampler2D uS,uB;',
+  'in vec2 vU; uniform sampler2D uS,uB;',
+  'out vec4 fragColor;',
   'void main(){',
-  '  vec3 s=texture2D(uS,vU).rgb, b=texture2D(uB,vU).rgb;',
+  '  vec3 s=texture(uS,vU).rgb, b=texture(uB,vU).rgb;',
   '  vec3 c=s+b*2.0;',
   '  c*=1.0-length(vU-0.5)*0.6;',
   '  c=c/(c+0.6);',
-  '  gl_FragColor=vec4(c,1.0);',
+  '  fragColor=vec4(c,1.0);',
   '}'
 ].join('\n');
 
 var mP = CP(mainVS, mainFS);
 var blP = CP(qVS, blFS);
 var coP = CP(qVS, coFS);
+
+var mmVS = [
+  '#version 300 es',
+  'in vec2 aP,aO;',
+  'in float aS,aA,aSh;',
+  'in vec4 aC;',
+  'out vec4 vC; out vec2 vU; out float vSh;',
+  'void main(){',
+  '  vec2 sc=aA>0.0?vec2(aS,aA):vec2(aS);', // aA reused as sy; 0=uniform scale
+  '  gl_Position=vec4(aP*sc+aO,0.0,1.0);',
+  '  vC=aC; vU=aP; vSh=aSh;',
+  '}'
+].join('\n');
+
+var mmFS = [
+  '#version 300 es',
+  'precision mediump float;',
+  'in vec4 vC; in vec2 vU; in float vSh;',
+  'out vec4 fragColor;',
+  'void main(){',
+  '  if(int(vSh+0.5)==0 && length(vU)>1.0) discard;',
+  '  fragColor=vC;',
+  '}'
+].join('\n');
+
+var mmP = CP(mmVS, mmFS);
+var mmLoc = {
+  aP:  gl.getAttribLocation(mmP, 'aP'),
+  aO:  gl.getAttribLocation(mmP, 'aO'),
+  aS:  gl.getAttribLocation(mmP, 'aS'),
+  aC:  gl.getAttribLocation(mmP, 'aC'),
+  aA:  gl.getAttribLocation(mmP, 'aA'),
+  aSh: gl.getAttribLocation(mmP, 'aSh')
+};
 
 var Loc = {
   aP:  gl.getAttribLocation(mP, 'aP'),
@@ -436,6 +493,66 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.ST
 var MAX_I = 65000;
 var iD = new Float32Array(MAX_I * 9);
 var iB = gl.createBuffer();
+
+var MM_MAX = 1200;
+var mmD = new Float32Array(MM_MAX * 9);
+var mmB = gl.createBuffer();
+
+/* --- VAOs --- */
+var S_STRIDE = 36;
+
+var mainVAO = gl.createVertexArray();
+gl.bindVertexArray(mainVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, qB);
+gl.enableVertexAttribArray(Loc.aP);
+gl.vertexAttribPointer(Loc.aP, 2, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, iB);
+gl.enableVertexAttribArray(Loc.aO);
+gl.vertexAttribPointer(Loc.aO, 2, gl.FLOAT, false, S_STRIDE, 0);
+gl.vertexAttribDivisor(Loc.aO, 1);
+gl.enableVertexAttribArray(Loc.aS);
+gl.vertexAttribPointer(Loc.aS, 1, gl.FLOAT, false, S_STRIDE, 8);
+gl.vertexAttribDivisor(Loc.aS, 1);
+gl.enableVertexAttribArray(Loc.aC);
+gl.vertexAttribPointer(Loc.aC, 4, gl.FLOAT, false, S_STRIDE, 12);
+gl.vertexAttribDivisor(Loc.aC, 1);
+gl.enableVertexAttribArray(Loc.aA);
+gl.vertexAttribPointer(Loc.aA, 1, gl.FLOAT, false, S_STRIDE, 28);
+gl.vertexAttribDivisor(Loc.aA, 1);
+gl.enableVertexAttribArray(Loc.aSh);
+gl.vertexAttribPointer(Loc.aSh, 1, gl.FLOAT, false, S_STRIDE, 32);
+gl.vertexAttribDivisor(Loc.aSh, 1);
+gl.bindVertexArray(null);
+
+var mmVAO = gl.createVertexArray();
+gl.bindVertexArray(mmVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, qB);
+gl.enableVertexAttribArray(mmLoc.aP);
+gl.vertexAttribPointer(mmLoc.aP, 2, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, mmB);
+gl.enableVertexAttribArray(mmLoc.aO);
+gl.vertexAttribPointer(mmLoc.aO, 2, gl.FLOAT, false, S_STRIDE, 0);
+gl.vertexAttribDivisor(mmLoc.aO, 1);
+gl.enableVertexAttribArray(mmLoc.aS);
+gl.vertexAttribPointer(mmLoc.aS, 1, gl.FLOAT, false, S_STRIDE, 8);
+gl.vertexAttribDivisor(mmLoc.aS, 1);
+gl.enableVertexAttribArray(mmLoc.aC);
+gl.vertexAttribPointer(mmLoc.aC, 4, gl.FLOAT, false, S_STRIDE, 12);
+gl.vertexAttribDivisor(mmLoc.aC, 1);
+gl.enableVertexAttribArray(mmLoc.aA);
+gl.vertexAttribPointer(mmLoc.aA, 1, gl.FLOAT, false, S_STRIDE, 28);
+gl.vertexAttribDivisor(mmLoc.aA, 1);
+gl.enableVertexAttribArray(mmLoc.aSh);
+gl.vertexAttribPointer(mmLoc.aSh, 1, gl.FLOAT, false, S_STRIDE, 32);
+gl.vertexAttribDivisor(mmLoc.aSh, 1);
+gl.bindVertexArray(null);
+
+var qVAO = gl.createVertexArray();
+gl.bindVertexArray(qVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, qB);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
 
 function mkFBO(w, h) {
   var t = gl.createTexture();
@@ -515,7 +632,7 @@ var TYPES = [
    desc:'バランスの良い主力戦闘機。',atk:'連射弾'},
   {nm:'Bomber',sz:10,hp:15,spd:120,tr:2.5,fr:1.8,rng:220,dmg:8,sh:2,trl:.7,mass:4,aoe:70,
    desc:'範囲爆発する大型爆弾を投下。',atk:'AOE爆弾（範囲ダメージ）'},
-  {nm:'Cruiser',sz:15,hp:50,spd:75,tr:1.5,fr:.04,rng:350,dmg:3,sh:2,trl:.9,mass:10,beam:true,
+  {nm:'Cruiser',sz:15,hp:50,spd:75,tr:1.5,fr:.04,rng:350,dmg:3,sh:16,trl:.9,mass:10,beam:true,
    desc:'持続レーザービームで敵を焼く。',atk:'持続レーザービーム'},
   {nm:'Flagship',sz:30,hp:200,spd:35,tr:.5,fr:.5,rng:380,dmg:3,sh:3,trl:1.3,mass:30,
    desc:'5方向同時バーストを放つ艦隊の中核。',atk:'5方向バースト射撃'},
@@ -1626,63 +1743,106 @@ function renderScene(now) {
   return idx;
 }
 
-function dQ(prog) {
-  var p = gl.getAttribLocation(prog, 'aP');
-  gl.bindBuffer(gl.ARRAY_BUFFER, qB);
-  gl.enableVertexAttribArray(p);
-  gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
+function dQ() {
+  gl.bindVertexArray(qVAO);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  gl.disableVertexAttribArray(p);
+  gl.bindVertexArray(null);
 }
 
 /* =========================================================
    MINIMAP
    ========================================================= */
-var mmCvs = document.getElementById('minimap');
-var mmCtx = mmCvs.getContext('2d');
-mmCvs.addEventListener('mousedown', function(e) {
+var mmDiv = document.getElementById('minimap');
+mmDiv.addEventListener('mousedown', function(e) {
   e.stopPropagation();
-  var rect = mmCvs.getBoundingClientRect();
+  var rect = mmDiv.getBoundingClientRect();
   var mx = e.clientX - rect.left;
   var my = e.clientY - rect.top;
-  cam.tx = (mx / mmCvs.width) * (WORLD * 2) - WORLD;
-  cam.ty = WORLD - (my / mmCvs.height) * (WORLD * 2);
+  var cw = rect.width, ch = rect.height;
+  cam.tx = (mx / cw) * (WORLD * 2) - WORLD;
+  cam.ty = WORLD - (my / ch) * (WORLD * 2);
   cam.tz = 1;
 });
-mmCvs.addEventListener('wheel', function(e) {
+mmDiv.addEventListener('wheel', function(e) {
   e.preventDefault();
 }, { passive: false });
 
+/* minimap instance writer. Layout: [x, y, sx, r, g, b, a, sy, shapeID].
+   Slot 7 (aA in main shader) is reused as sy (2nd scale axis) in mmVS.
+   sy=0: uniform scale(sx). sy>0: non-uniform scale(sx, sy). */
+var mmIc = 0;
+function mmW(x, y, sx, sy, r, g, b, a, sh) {
+  if (mmIc >= MM_MAX) return;
+  var B = mmIc * 9;
+  mmD[B]=x; mmD[B+1]=y; mmD[B+2]=sx;
+  mmD[B+3]=r; mmD[B+4]=g; mmD[B+5]=b; mmD[B+6]=a;
+  mmD[B+7]=sy; mmD[B+8]=sh;
+  mmIc++;
+}
+
 function drawMinimap() {
-  mmCtx.fillStyle = 'rgba(0,5,15,.85)';
-  mmCtx.fillRect(0, 0, 160, 160);
-  var s = 160 / (WORLD * 2);
-  mmCtx.fillStyle = 'rgba(80,60,40,.4)';
+  if (!mmDiv.clientWidth) return;
+  mmIc = 0;
+  var S = 1.0 / WORLD;
+
+  // Background
+  mmW(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
+
+  // Asteroids
   for (var i = 0; i < asteroids.length; i++) {
     var a = asteroids[i];
-    mmCtx.beginPath();
-    mmCtx.arc((a.x+WORLD)*s, (WORLD-a.y)*s, Math.max(1, a.r*s), 0, 6.28);
-    mmCtx.fill();
+    mmW(a.x*S, a.y*S, Math.max(0.008, a.r*S), 0, 0.31, 0.235, 0.157, 0.4, 0);
   }
+
+  // Bases
   if (gameMode === 2) {
     for (var i = 0; i < 2; i++) {
       var b = bases[i];
-      mmCtx.fillStyle = i===0 ? 'rgba(0,200,255,.6)' : 'rgba(255,100,200,.6)';
-      mmCtx.beginPath();
-      mmCtx.arc((b.x+WORLD)*s, (WORLD-b.y)*s, 4, 0, 6.28);
-      mmCtx.fill();
+      mmW(b.x*S, b.y*S, 0.05, 0, i===0?0:1, i===0?0.784:0.392, i===0?1:0.784, 0.6, 0);
     }
   }
+
+  // Units
   for (var i = 0; i < PU; i++) {
     var u = uP[i]; if (!u.alive) continue;
     var c = gC(u.type, u.team);
-    mmCtx.fillStyle = 'rgba('+(c[0]*255|0)+','+(c[1]*255|0)+','+(c[2]*255|0)+',.7)';
-    var sz = Math.max(1, TYPES[u.type].sz * s * 1.5);
-    mmCtx.fillRect((u.x+WORLD)*s - sz/2, (WORLD-u.y)*s - sz/2, sz, sz);
+    var sz = Math.max(0.008, TYPES[u.type].sz * S * 1.5);
+    mmW(u.x*S, u.y*S, sz, 0, c[0], c[1], c[2], 0.7, 1);
   }
-  mmCtx.strokeStyle = 'rgba(255,255,255,.2)';
-  var vw = W / cam.z, vh = H / cam.z;
-  mmCtx.strokeRect((cam.x-vw/2+WORLD)*s, (WORLD-cam.y-vh/2)*s, vw*s, vh*s);
+
+  // Camera viewport frame
+  var vw = W / cam.z / (2 * WORLD);
+  var vh = H / cam.z / (2 * WORLD);
+  var cx = cam.x * S, cy = cam.y * S;
+  var lw = 0.008;
+  mmW(cx, cy+vh, vw, lw, 1, 1, 1, 0.2, 1);
+  mmW(cx, cy-vh, vw, lw, 1, 1, 1, 0.2, 1);
+  mmW(cx-vw, cy, lw, vh+lw, 1, 1, 1, 0.2, 1);
+  mmW(cx+vw, cy, lw, vh+lw, 1, 1, 1, 0.2, 1);
+
+  var mmR = mmDiv.getBoundingClientRect();
+  var mmBW = (mmR.width - mmDiv.clientWidth) * 0.5;
+  var mmX = (mmR.left + mmBW) | 0;
+  var mmY = (H - mmR.bottom + mmBW) | 0;
+  var mmSW = mmDiv.clientWidth;
+  var mmSH = mmDiv.clientHeight;
+  gl.enable(gl.SCISSOR_TEST);
+  gl.scissor(mmX, mmY, mmSW, mmSH);
+  gl.viewport(mmX, mmY, mmSW, mmSH);
+
+  gl.useProgram(mmP);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, mmB);
+  gl.bufferData(gl.ARRAY_BUFFER, mmD.subarray(0, mmIc * 9), gl.DYNAMIC_DRAW);
+  gl.bindVertexArray(mmVAO);
+  gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, mmIc);
+  gl.bindVertexArray(null);
+
+  gl.disable(gl.SCISSOR_TEST);
+  gl.disable(gl.BLEND);
+  gl.viewport(0, 0, W, H);
 }
 
 /* =========================================================
@@ -1777,42 +1937,11 @@ function frame(now) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, qB);
-      gl.enableVertexAttribArray(Loc.aP);
-      gl.vertexAttribPointer(Loc.aP, 2, gl.FLOAT, false, 0, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aP, 0);
-
       gl.bindBuffer(gl.ARRAY_BUFFER, iB);
       gl.bufferData(gl.ARRAY_BUFFER, iD.subarray(0, ic * 9), gl.DYNAMIC_DRAW);
-
-      var S = 36;
-      gl.enableVertexAttribArray(Loc.aO);
-      gl.vertexAttribPointer(Loc.aO, 2, gl.FLOAT, false, S, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aO, 1);
-
-      gl.enableVertexAttribArray(Loc.aS);
-      gl.vertexAttribPointer(Loc.aS, 1, gl.FLOAT, false, S, 8);
-      ext.vertexAttribDivisorANGLE(Loc.aS, 1);
-
-      gl.enableVertexAttribArray(Loc.aC);
-      gl.vertexAttribPointer(Loc.aC, 4, gl.FLOAT, false, S, 12);
-      ext.vertexAttribDivisorANGLE(Loc.aC, 1);
-
-      gl.enableVertexAttribArray(Loc.aA);
-      gl.vertexAttribPointer(Loc.aA, 1, gl.FLOAT, false, S, 28);
-      ext.vertexAttribDivisorANGLE(Loc.aA, 1);
-
-      gl.enableVertexAttribArray(Loc.aSh);
-      gl.vertexAttribPointer(Loc.aSh, 1, gl.FLOAT, false, S, 32);
-      ext.vertexAttribDivisorANGLE(Loc.aSh, 1);
-
-      ext.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, ic);
-
-      ext.vertexAttribDivisorANGLE(Loc.aO, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aS, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aC, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aA, 0);
-      ext.vertexAttribDivisorANGLE(Loc.aSh, 0);
+      gl.bindVertexArray(mainVAO);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, ic);
+      gl.bindVertexArray(null);
       gl.disable(gl.BLEND);
     }
 
@@ -1825,13 +1954,13 @@ function frame(now) {
     gl.uniform1i(gl.getUniformLocation(blP, 'uT'), 0);
     gl.uniform2f(gl.getUniformLocation(blP, 'uD'), 2.5, 0);
     gl.uniform2f(gl.getUniformLocation(blP, 'uR'), bF1.w, bF1.h);
-    dQ(blP);
+    dQ();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, bF2.fb);
     gl.viewport(0, 0, bF2.w, bF2.h);
     gl.bindTexture(gl.TEXTURE_2D, bF1.tex);
     gl.uniform2f(gl.getUniformLocation(blP, 'uD'), 0, 2.5);
-    dQ(blP);
+    dQ();
 
     // Render pass 4: composite
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -1843,7 +1972,7 @@ function frame(now) {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, bF2.tex);
     gl.uniform1i(gl.getUniformLocation(coP, 'uB'), 1);
-    dQ(coP);
+    dQ();
 
     // HUD updates
     if (!catalogOpen) {
@@ -1860,7 +1989,7 @@ function frame(now) {
         document.getElementById('bA').textContent = (bases[0].hp / bases[0].mhp * 100 | 0) + '%';
         document.getElementById('bB').textContent = (bases[1].hp / bases[1].mhp * 100 | 0) + '%';
       }
-      if (fc % 3 === 0) drawMinimap();
+      if (fc % 2 === 0) drawMinimap();
     }
   }
 
