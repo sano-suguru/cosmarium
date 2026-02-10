@@ -252,8 +252,13 @@ var drg = false, ds = {x:0,y:0}, cs = {x:0,y:0};
 canvas.addEventListener('wheel', function(e) {
   e.preventDefault();
   if (catalogOpen) return;
-  cam.tz *= e.deltaY > 0 ? 0.9 : 1.1;
-  cam.tz = Math.max(0.05, Math.min(8, cam.tz));
+  var wx = cam.tx + (e.clientX - W / 2) / cam.z;
+  var wy = cam.ty + (e.clientY - H / 2) / cam.z;
+  var nz = cam.tz * (e.deltaY > 0 ? 0.9 : 1.1);
+  nz = Math.max(0.05, Math.min(8, nz));
+  cam.tx = wx - (e.clientX - W / 2) / nz;
+  cam.ty = wy - (e.clientY - H / 2) / nz;
+  cam.tz = nz;
 }, { passive: false });
 
 canvas.addEventListener('mousedown', function(e) {
