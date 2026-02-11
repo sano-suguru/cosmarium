@@ -1,6 +1,6 @@
-import type { Camera } from '../types.ts';
-import { viewport, canvas } from '../renderer/webgl-setup.ts';
+import { canvas, viewport } from '../renderer/webgl-setup.ts';
 import { catalogOpen, gameState } from '../state.ts';
+import type { Camera } from '../types.ts';
 
 export var cam: Camera = { x: 0, y: 0, z: 1, tz: 1, tx: 0, ty: 0, shkx: 0, shky: 0, shk: 0 };
 var drg = false,
@@ -15,7 +15,7 @@ export function addShake(v: number) {
 export function initCamera() {
   canvas.addEventListener(
     'wheel',
-    function (e) {
+    (e) => {
       e.preventDefault();
       if (catalogOpen) return;
       var W = viewport.W,
@@ -31,27 +31,27 @@ export function initCamera() {
     { passive: false },
   );
 
-  canvas.addEventListener('mousedown', function (e) {
+  canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0 && !catalogOpen) {
       drg = true;
       ds = { x: e.clientX, y: e.clientY };
       cs = { x: cam.tx, y: cam.ty };
     }
   });
-  canvas.addEventListener('mousemove', function (e) {
+  canvas.addEventListener('mousemove', (e) => {
     if (drg) {
       cam.tx = cs.x - (e.clientX - ds.x) / cam.tz;
       cam.ty = cs.y + (e.clientY - ds.y) / cam.tz;
     }
   });
-  canvas.addEventListener('mouseup', function () {
+  canvas.addEventListener('mouseup', () => {
     drg = false;
   });
-  canvas.addEventListener('mouseleave', function () {
+  canvas.addEventListener('mouseleave', () => {
     drg = false;
   });
 
-  addEventListener('keydown', function (e: KeyboardEvent) {
+  addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space' && gameState === 'play' && !catalogOpen) {
       cam.tx = 0;
       cam.ty = 0;

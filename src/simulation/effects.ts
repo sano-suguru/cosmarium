@@ -1,10 +1,10 @@
-import { uP } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
 import { gC, gTr } from '../colors.ts';
-import { gN, _nb, kb } from './spatial-hash.ts';
-import { spP, killU, addBeam } from './spawn.ts';
 import { addShake } from '../input/camera.ts';
+import { uP } from '../pools.ts';
 import type { Color3, Team, Unit } from '../types.ts';
+import { TYPES } from '../unit-types.ts';
+import { _nb, gN, kb } from './spatial-hash.ts';
+import { addBeam, killU, spP } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
   var sz = TYPES[type]!.sz;

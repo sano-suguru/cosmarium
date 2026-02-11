@@ -1,10 +1,10 @@
-import { gl, viewport } from './webgl-setup.ts';
-import { mP, blP, coP, Loc, blLoc, coLoc } from './shaders.ts';
-import { fbos } from './fbo.ts';
-import { iB, iD, mainVAO, qVAO } from './buffers.ts';
-import { renderScene } from './render-scene.ts';
-import { catalogOpen } from '../state.ts';
 import { cam } from '../input/camera.ts';
+import { catalogOpen } from '../state.ts';
+import { iB, iD, mainVAO, qVAO } from './buffers.ts';
+import { fbos } from './fbo.ts';
+import { renderScene } from './render-scene.ts';
+import { blLoc, blP, coLoc, coP, Loc, mP } from './shaders.ts';
+import { gl, viewport } from './webgl-setup.ts';
 
 function dQ() {
   gl.bindVertexArray(qVAO);

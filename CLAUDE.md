@@ -12,39 +12,42 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`, `knip`, `jscpd`.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `@biomejs/biome`, `simple-git-hooks`, `knip`, `jscpd`.
 
-**Linting & Formatting**: ESLint (flat config) + Prettier configured. Pre-commit hook via `simple-git-hooks` + `lint-staged` runs ESLint and Prettier on staged files.
+**Linting & Formatting**: [Biome](https://biomejs.dev/) (Rust製の統合lint+formatter)。Pre-commit hook via `simple-git-hooks` + `biome check --staged` でステージされたファイルのみlint+format。
 
 ```bash
 bun install          # Install dependencies
 bun run dev          # Dev server at http://localhost:5173
 bun run build        # Production build to dist/
 bun run typecheck    # Type check (strict mode, but noUnusedLocals/noUnusedParameters off)
-bun run lint         # ESLint (src/)
-bun run lint:fix     # ESLint with auto-fix
-bun run format       # Prettier format (write)
-bun run format:check # Prettier format (check only)
+bun run lint         # Biome lint (src/)
+bun run lint:fix     # Biome lint with auto-fix
+bun run format       # Biome format (write)
+bun run format:check # Biome format (check only)
 bun run knip         # Unused export detection (knip)
 bun run cpd          # Copy-paste detection (jscpd)
-bun run check        # All checks combined (typecheck + lint + format:check + knip + cpd)
+bun run check        # All checks combined (typecheck + biome ci + knip + cpd)
 ```
 
 No test framework is configured. There are no automated tests.
 
-**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`.
+**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`. `bun run check` は `biome ci .`（lint+format一括チェック）を使用。
 
-**ESLint key rules** (flat config in `eslint.config.js`):
-- `no-var: off`, `prefer-const: off` — `var` is used throughout; don't convert to `let`/`const`
-- `no-redeclare: off` — TypeScript の型と同名の変数宣言を許可
-- `no-console: warn` — only `console.error` and `console.warn` are allowed
-- `@typescript-eslint/no-explicit-any: warn` — avoid `any` where possible
-- `@typescript-eslint/no-non-null-assertion: off` — non-null assertions (`!`) are allowed
-- `@typescript-eslint/no-unused-vars: warn` — `_` prefix variables/args are ignored
-- `src/shaders/**` is excluded from ESLint
-- **lint-staged uses `--max-warnings=0`**: ESLint warnings will fail the pre-commit hook
+**Biome key rules** (config in `biome.json`):
+- `noVar: off`, `useConst: off` — `var` is used throughout; don't convert to `let`/`const`
+- `noRedeclare: off` — TypeScript の型と同名の変数宣言を許可
+- `noConsole: warn` — only `console.error` and `console.warn` are allowed
+- `noExplicitAny: warn` — avoid `any` where possible
+- `noNonNullAssertion: off` — non-null assertions (`!`) are allowed
+- `noUnusedVariables: warn` — `_` prefix variables/args are ignored (Biome default)
+- `noUnusedImports: warn` — unused imports are warned
+- `noInnerDeclarations: off` — `var` inside blocks is allowed
+- `useTemplate: off` — template literal conversion not enforced
+- `src/shaders/**` is excluded from Biome (linter + formatter)
+- Pre-commit hook は `biome check --staged --write` でエラーのみブロック（警告は許容）
 
-**Prettier**: singleQuote, printWidth=120, trailingComma=all (config in `.prettierrc.json`). GLSL files are excluded from Prettier.
+**Biome formatter**: singleQuote, lineWidth=120, trailingCommas=all (config in `biome.json`). GLSL files are excluded.
 
 GLSL shaders are imported via `vite-plugin-glsl` which supports `#include` directives for shared chunks. Shared SDF functions live in `src/shaders/includes/sdf.glsl`.
 

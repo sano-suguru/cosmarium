@@ -1,5 +1,5 @@
-import { gl, viewport } from './webgl-setup.ts';
 import type { FBO } from '../types.ts';
+import { gl, viewport } from './webgl-setup.ts';
 
 export var fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
   sF: null,

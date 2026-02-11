@@ -1,5 +1,5 @@
-import type { Unit, Particle, Projectile } from './types.ts';
-import { PU, PP, PPR } from './constants.ts';
+import { PP, PPR, PU } from './constants.ts';
+import type { Particle, Projectile, Unit } from './types.ts';
 
 export var uP: Unit[] = [];
 export var pP: Particle[] = [];

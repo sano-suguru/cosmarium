@@ -1,8 +1,8 @@
-import { PU, PP, PPR } from '../constants.ts';
-import { uP, pP, prP, poolCounts } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
+import { PP, PPR, PU } from '../constants.ts';
+import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { Team } from '../types.ts';
+import { TYPES } from '../unit-types.ts';
 
 export function spU(team: Team, type: number, x: number, y: number): number {
   for (var i = 0; i < PU; i++) {

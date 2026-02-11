@@ -1,11 +1,11 @@
-import { PPR } from '../constants.ts';
-import { uP, prP } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
 import { gC } from '../colors.ts';
-import { gN, _nb, kb } from './spatial-hash.ts';
-import { spU, killU, spP, spPr, addBeam } from './spawn.ts';
-import { explosion, chainLightning } from './effects.ts';
+import { PPR } from '../constants.ts';
+import { prP, uP } from '../pools.ts';
 import type { Unit } from '../types.ts';
+import { TYPES } from '../unit-types.ts';
+import { chainLightning, explosion } from './effects.ts';
+import { _nb, gN, kb } from './spatial-hash.ts';
+import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
 
 export function combat(u: Unit, ui: number, dt: number, _now: number) {
   var t = TYPES[u.type]!;

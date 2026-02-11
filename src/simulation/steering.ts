@@ -1,9 +1,9 @@
-import { PU, WORLD, PI, TAU } from '../constants.ts';
+import { PI, PU, TAU, WORLD } from '../constants.ts';
 import { uP } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
-import { gameMode, asteroids, bases } from '../state.ts';
-import { gN, _nb } from './spatial-hash.ts';
+import { asteroids, bases, gameMode } from '../state.ts';
 import type { Unit } from '../types.ts';
+import { TYPES } from '../unit-types.ts';
+import { _nb, gN } from './spatial-hash.ts';
 
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {

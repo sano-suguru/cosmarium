@@ -1,21 +1,21 @@
-import {
-  winTeam,
-  timeScale,
-  gameState,
-  setGameState,
-  setGameMode,
-  setWinTeam,
-  setCatalogOpen,
-  setTimeScale,
-} from '../state.ts';
 import { cam } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
-import { toggleCat } from './catalog.ts';
+import {
+  gameState,
+  setCatalogOpen,
+  setGameMode,
+  setGameState,
+  setTimeScale,
+  setWinTeam,
+  timeScale,
+  winTeam,
+} from '../state.ts';
 import type { GameMode } from '../types.ts';
+import { toggleCat } from './catalog.ts';
 
 function setSpd(v: number) {
   setTimeScale(v);
-  document.querySelectorAll('.sbtn').forEach(function (b) {
+  document.querySelectorAll('.sbtn').forEach((b) => {
     b.classList.toggle('active', parseFloat(b.textContent || '') === v);
   });
   document.getElementById('spdV')!.textContent = v + 'x';
@@ -56,45 +56,45 @@ function backToMenu() {
   document.getElementById('catalog')!.classList.remove('open');
   document.getElementById('menu')!.style.display = 'flex';
   var ids = ['hud', 'catBtn', 'minimap', 'controls', 'objective', 'win', 'speed'];
-  ids.forEach(function (id) {
+  ids.forEach((id) => {
     document.getElementById(id)!.style.display = 'none';
   });
 }
 
 export function initUI() {
   // Menu buttons
-  document.getElementById('btnInfinite')!.addEventListener('click', function () {
+  document.getElementById('btnInfinite')!.addEventListener('click', () => {
     startGame(0);
   });
-  document.getElementById('btnAnnihilation')!.addEventListener('click', function () {
+  document.getElementById('btnAnnihilation')!.addEventListener('click', () => {
     startGame(1);
   });
-  document.getElementById('btnBaseAssault')!.addEventListener('click', function () {
+  document.getElementById('btnBaseAssault')!.addEventListener('click', () => {
     startGame(2);
   });
 
   // Catalog buttons
-  document.getElementById('catBtn')!.addEventListener('click', function () {
+  document.getElementById('catBtn')!.addEventListener('click', () => {
     toggleCat();
   });
-  document.getElementById('catClose')!.addEventListener('click', function () {
+  document.getElementById('catClose')!.addEventListener('click', () => {
     toggleCat();
   });
 
   // Win screen
-  document.getElementById('btnMenu')!.addEventListener('click', function () {
+  document.getElementById('btnMenu')!.addEventListener('click', () => {
     backToMenu();
   });
 
   // Speed buttons
-  document.querySelectorAll<HTMLElement>('.sbtn[data-spd]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
+  document.querySelectorAll<HTMLElement>('.sbtn[data-spd]').forEach((btn) => {
+    btn.addEventListener('click', () => {
       setSpd(parseFloat(btn.dataset.spd || '0.55'));
     });
   });
 
   // Keyboard shortcuts for catalog and speed
-  addEventListener('keydown', function (e: KeyboardEvent) {
+  addEventListener('keydown', (e: KeyboardEvent) => {
     if ((e.code === 'Tab' || e.code === 'Escape') && gameState === 'play') {
       e.preventDefault();
       toggleCat();

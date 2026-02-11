@@ -1,11 +1,10 @@
-import { iD } from './buffers.ts';
-import { MAX_I } from '../constants.ts';
-import { PP, PPR, PU } from '../constants.ts';
-import { uP, pP, prP } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
 import { gC } from '../colors.ts';
+import { MAX_I, PP, PPR, PU } from '../constants.ts';
+import { pP, prP, uP } from '../pools.ts';
+import { asteroids, bases, beams, catalogOpen, gameMode } from '../state.ts';
 import type { Color3 } from '../types.ts';
-import { catalogOpen, gameMode, asteroids, bases, beams } from '../state.ts';
+import { TYPES } from '../unit-types.ts';
+import { iD } from './buffers.ts';
 
 export function renderScene(now: number): number {
   var idx = 0;

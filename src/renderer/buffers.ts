@@ -1,6 +1,6 @@
-import { gl } from './webgl-setup.ts';
-import { Loc, mmLoc } from './shaders.ts';
 import { MAX_I, MM_MAX, S_STRIDE } from '../constants.ts';
+import { Loc, mmLoc } from './shaders.ts';
+import { gl } from './webgl-setup.ts';
 
 var qB: WebGLBuffer;
 export var iD: Float32Array;

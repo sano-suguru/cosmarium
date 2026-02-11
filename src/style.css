@@ -9,7 +9,7 @@ html {
 body {
   background: #000;
   overflow: hidden;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 canvas#c {
   display: block;

@@ -1,16 +1,16 @@
 import './style.css';
 
-import { initWebGL, resize } from './renderer/webgl-setup.ts';
-import { initShaders } from './renderer/shaders.ts';
-import { mkFBOs } from './renderer/fbo.ts';
-import { initBuffers } from './renderer/buffers.ts';
-import { renderFrame } from './renderer/render-pass.ts';
-import { initMinimap, drawMinimap } from './renderer/minimap.ts';
 import { cam, initCamera } from './input/camera.ts';
+import { initBuffers } from './renderer/buffers.ts';
+import { mkFBOs } from './renderer/fbo.ts';
+import { drawMinimap, initMinimap } from './renderer/minimap.ts';
+import { renderFrame } from './renderer/render-pass.ts';
+import { initShaders } from './renderer/shaders.ts';
+import { initWebGL, resize } from './renderer/webgl-setup.ts';
+import { update } from './simulation/update.ts';
+import { catalogOpen, gameState, timeScale } from './state.ts';
 import { initUI } from './ui/game-control.ts';
 import { updateHUD } from './ui/hud.ts';
-import { update } from './simulation/update.ts';
-import { gameState, catalogOpen, timeScale } from './state.ts';
 
 // Initialize renderer (order matters)
 initWebGL();
@@ -19,7 +19,7 @@ mkFBOs();
 initBuffers();
 
 // Resize handler
-addEventListener('resize', function () {
+addEventListener('resize', () => {
   resize();
   mkFBOs();
 });
@@ -48,7 +48,7 @@ function frame(now: number) {
     ft = 0;
   }
 
-  var ct = 1 - Math.pow(0.0005, dt);
+  var ct = 1 - 0.0005 ** dt;
   cam.x += (cam.tx - cam.x) * ct;
   cam.y += (cam.ty - cam.y) * ct;
   cam.z += (cam.tz - cam.z) * ct;

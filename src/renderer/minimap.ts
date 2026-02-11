@@ -1,13 +1,12 @@
-import { gl, viewport } from './webgl-setup.ts';
-import { mmP } from './shaders.ts';
-import { mmB, mmD, mmVAO } from './buffers.ts';
-import { MM_MAX } from '../constants.ts';
-import { WORLD, PU } from '../constants.ts';
-import { uP } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
 import { gC } from '../colors.ts';
-import { gameMode, asteroids, bases } from '../state.ts';
+import { MM_MAX, PU, WORLD } from '../constants.ts';
 import { cam } from '../input/camera.ts';
+import { uP } from '../pools.ts';
+import { asteroids, bases, gameMode } from '../state.ts';
+import { TYPES } from '../unit-types.ts';
+import { mmB, mmD, mmVAO } from './buffers.ts';
+import { mmP } from './shaders.ts';
+import { gl, viewport } from './webgl-setup.ts';
 
 var mmDiv: HTMLElement;
 var mmIc = 0;
@@ -29,7 +28,7 @@ function mmW(x: number, y: number, sx: number, sy: number, r: number, g: number,
 
 export function initMinimap() {
   mmDiv = document.getElementById('minimap')!;
-  mmDiv.addEventListener('mousedown', function (e) {
+  mmDiv.addEventListener('mousedown', (e) => {
     e.stopPropagation();
     var rect = mmDiv.getBoundingClientRect();
     var mx = e.clientX - rect.left;
@@ -42,7 +41,7 @@ export function initMinimap() {
   });
   mmDiv.addEventListener(
     'wheel',
-    function (e) {
+    (e) => {
       e.preventDefault();
     },
     { passive: false },

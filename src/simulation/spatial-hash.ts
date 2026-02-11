@@ -1,4 +1,4 @@
-import { PU, CELL } from '../constants.ts';
+import { CELL, PU } from '../constants.ts';
 import { uP } from '../pools.ts';
 
 var hM = new Map<number, number[]>();

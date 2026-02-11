@@ -1,9 +1,9 @@
-import { PP, PPR } from '../constants.ts';
-import { uP, pP, prP, poolCounts } from '../pools.ts';
-import { TYPES } from '../unit-types.ts';
 import { gC } from '../colors.ts';
-import { catalogOpen, catSelected, beams, setCatalogOpen, setCatSelected } from '../state.ts';
-import { spU, killU } from '../simulation/spawn.ts';
+import { PP, PPR } from '../constants.ts';
+import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { killU, spU } from '../simulation/spawn.ts';
+import { beams, catalogOpen, catSelected, setCatalogOpen, setCatSelected } from '../state.ts';
+import { TYPES } from '../unit-types.ts';
 
 var catDemoUnits: number[] = [];
 var catDemoTimer = 0;
@@ -24,7 +24,7 @@ function setupCatDemo(typeIdx: number) {
     }
   }
   beams.length = 0;
-  catDemoUnits.forEach(function (idx) {
+  catDemoUnits.forEach((idx) => {
     if (uP[idx]!.alive) killU(idx);
   });
   catDemoUnits = [];
@@ -102,13 +102,13 @@ export function updateCatDemo(dt: number) {
   if (catDemoTimer > 3) {
     catDemoTimer = 0;
     var ec = 0;
-    catDemoUnits.forEach(function (idx) {
+    catDemoUnits.forEach((idx) => {
       var unit = uP[idx]!;
       if (unit.alive && unit.team === 1) ec++;
     });
     if (ec < 2) setupCatDemo(catSelected);
   }
-  catDemoUnits.forEach(function (idx) {
+  catDemoUnits.forEach((idx) => {
     var u = uP[idx]!;
     if (!u.alive) return;
     if (u.team === 0 && !TYPES[u.type]!.rams) {
@@ -129,7 +129,7 @@ function updateCatPanel() {
   document.getElementById('cpName')!.style.color = col;
   document.getElementById('cpDesc')!.textContent = t.desc;
 
-  var mkBar = function (label: string, val: number, max: number, color: string): DocumentFragment {
+  var mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
     var frag = document.createDocumentFragment();
     var lbl = document.createElement('div');
     lbl.textContent = label + ': ' + val;
@@ -175,7 +175,7 @@ function updateCatPanel() {
 function buildCatUI() {
   var list = document.getElementById('catList')!;
   list.textContent = '';
-  TYPES.forEach(function (t, i) {
+  TYPES.forEach((t, i) => {
     var item = document.createElement('div');
     item.className = 'catItem' + (i === catSelected ? ' active' : '');
     var c = gC(i, 0);
@@ -196,13 +196,11 @@ function buildCatUI() {
     typeDiv.textContent = t.atk;
     info.appendChild(typeDiv);
     item.appendChild(info);
-    item.onclick = (function (idx: number) {
-      return function () {
-        setCatSelected(idx);
-        buildCatUI();
-        setupCatDemo(idx);
-        updateCatPanel();
-      };
+    item.onclick = ((idx: number) => () => {
+      setCatSelected(idx);
+      buildCatUI();
+      setupCatDemo(idx);
+      updateCatPanel();
     })(i);
     list.appendChild(item);
   });

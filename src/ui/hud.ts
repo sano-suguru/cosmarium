@@ -1,6 +1,6 @@
 import { PU } from '../constants.ts';
-import { uP, poolCounts } from '../pools.ts';
-import { gameMode, bases } from '../state.ts';
+import { poolCounts, uP } from '../pools.ts';
+import { bases, gameMode } from '../state.ts';
 
 export function updateHUD(df: number) {
   var ca = 0,

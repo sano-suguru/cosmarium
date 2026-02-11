@@ -1,17 +1,16 @@
-import { PU, PP, PPR, PI, TAU } from '../constants.ts';
-import { uP, pP, prP, poolCounts } from '../pools.ts';
+import { PI, PP, PPR, PU, TAU } from '../constants.ts';
+import { addShake } from '../input/camera.ts';
+import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { asteroids, bases, beams, catalogOpen, gameMode, setWinTeam } from '../state.ts';
+import { updateCatDemo } from '../ui/catalog.ts';
+import { showWin } from '../ui/game-control.ts';
 import { TYPES } from '../unit-types.ts';
-import { catalogOpen, gameMode, asteroids, bases, beams, setWinTeam } from '../state.ts';
-import { bHash } from './spatial-hash.ts';
-import { gN, _nb, kb } from './spatial-hash.ts';
-import { killU, spP } from './spawn.ts';
-import { steer } from './steering.ts';
 import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
-import { addShake } from '../input/camera.ts';
-import { showWin } from '../ui/game-control.ts';
-import { updateCatDemo } from '../ui/catalog.ts';
+import { _nb, bHash, gN, kb } from './spatial-hash.ts';
+import { killU, spP } from './spawn.ts';
+import { steer } from './steering.ts';
 
 export function update(dt: number, now: number) {
   dt = Math.min(dt, 0.033);

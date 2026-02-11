@@ -1,4 +1,4 @@
-import type { GameState, GameMode, Beam, Asteroid, Base } from './types.ts';
+import type { Asteroid, Base, Beam, GameMode, GameState } from './types.ts';
 
 export var gameState: GameState = 'menu';
 export var gameMode: GameMode = 0;
