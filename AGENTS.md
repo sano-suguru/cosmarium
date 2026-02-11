@@ -7,9 +7,10 @@
 - **言語**: 日本語で返答
 - **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` off
 - **ビルド**: `bun run build` — dist/へ出力
-- **全チェック**: `bun run check` — typecheck + lint + format:check を一括実行
+- **全チェック**: `bun run check` — typecheck + lint + format:check + knip を一括実行
+- **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **テスト**: なし（手動確認のみ）
-- **リンター**: ESLint（flat config）— `no-var: off`, `prefer-const: off`。`src/shaders/**`は除外
+- **リンター**: ESLint（flat config）— `no-var: off`, `prefer-const: off`。`src/shaders/**`は除外。`eslint-config-prettier`で競合ルール無効化
 - **フォーマッター**: Prettier — singleQuote, printWidth=120。GLSLは除外（`.prettierignore`）
 - **Pre-commit**: `simple-git-hooks` + `lint-staged`（`bunx lint-staged`）。ESLintは`--max-warnings=0`で警告もブロック
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check
@@ -18,12 +19,14 @@
 ## Dependency Graph (変更影響マップ)
 
 ```
-types.ts ← 全ファイルが依存（型定義の変更は全体に波及）
-constants.ts ← pools.ts, simulation/*, renderer/*
-state.ts ← main.ts, simulation/update.ts, ui/game-control.ts, renderer/render-pass.ts, input/camera.ts
-pools.ts ← simulation/spawn.ts, simulation/update.ts, renderer/render-scene.ts, ui/catalog.ts
-colors.ts ← renderer/render-scene.ts, simulation/spawn.ts
-unit-types.ts ← simulation/init.ts, simulation/reinforcements.ts, simulation/combat.ts, ui/catalog.ts
+types.ts     ← 全ファイルが依存（型定義の変更は全体に波及）
+constants.ts ← pools.ts, simulation/*, renderer/*, ui/catalog.ts, ui/hud.ts
+state.ts     ← main.ts, simulation/*, renderer/render-pass.ts, renderer/render-scene.ts,
+               renderer/minimap.ts, input/camera.ts, ui/*
+pools.ts     ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts, ui/hud.ts
+colors.ts    ← simulation/combat.ts, simulation/effects.ts, renderer/render-scene.ts,
+               renderer/minimap.ts, ui/catalog.ts
+unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts
 
 main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
          （初期化順序: initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap）

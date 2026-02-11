@@ -19,7 +19,7 @@
 
 - `vite-plugin-glsl`が`#include path;`を展開（Cプリプロセッサではない）
 - `removeDuplicatedImports: true`設定 → 複数ファイルから同じincludeしても重複しない
-- ESLint・Prettierの対象外（`.eslintrc`と`.prettierignore`で除外済み）
+- ESLint・Prettierの対象外（`eslint.config.js`と`.prettierignore`で除外済み）
 - **GPUコンパイルはランタイムのみ** — CI/typecheckでは検出不可。ブラウザで確認必須
 
 ## Shape ID → SDF マッピング
