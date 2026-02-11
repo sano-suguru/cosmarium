@@ -1,0 +1,10 @@
+export var PU = 800;
+export var PP = 35000;
+export var PPR = 6000;
+export var WORLD = 4000;
+export var CELL = 100;
+export var MAX_I = 65000;
+export var MM_MAX = 1200;
+export var S_STRIDE = 36;
+export var PI = Math.PI;
+export var TAU = Math.PI * 2;

@@ -2,18 +2,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Language
+
+Always respond in **Japanese** (日本語で返答すること).
+
 ## Project Overview
 
-**COSMIC WARFARE** — a real-time space strategy/combat simulation game. The entire project is a single self-contained `index.html` file (~1,870 lines) using vanilla JavaScript (ES5), HTML5 Canvas, and WebGL. Zero external dependencies.
+**COSMIC WARFARE** — a real-time space strategy/combat simulation game using vanilla TypeScript, HTML5 Canvas, and WebGL 2. Built with Vite + bun. No UI framework.
 
-## Running the Game
+## Development
+
+Uses **Bun** as package manager. Zero production dependencies — only `vite` and `@types/bun` as dev deps. No linter, formatter, or test framework configured.
 
 ```bash
-python3 -m http.server 8000
-# Open http://localhost:8000/index.html
+bun install        # Install dependencies
+bunx vite          # Dev server at http://localhost:5173
+bunx vite build    # Production build to dist/
+bunx tsc --noEmit  # Type check (strict mode, but noUnusedLocals/noUnusedParameters off)
 ```
 
-No build step, package manager, linting, or test suite exists. To test changes, reload the browser.
+GLSL shaders are imported as raw strings via Vite's `?raw` suffix (type-declared in `vite-env.d.ts`).
 
 ## Controls
 
@@ -24,58 +32,82 @@ No build step, package manager, linting, or test suite exists. To test changes, 
 - `+`/`-`: Adjust simulation speed (0.2x–2.5x, default 0.55x)
 - Minimap click: Navigate to location
 
-## Architecture (line ranges approximate)
+## Architecture
 
-Single-file structure, top to bottom:
+```
+src/
+  main.ts                     # Entry point + main loop (frame())
+  style.css                   # All CSS
+  vite-env.d.ts               # Vite type declarations + .glsl?raw module
+  types.ts                    # All TypeScript interfaces (Unit, Particle, Projectile, etc.)
+  constants.ts                # Pool limits (PU/PP/PPR), WORLD, CELL, MAX_I, MM_MAX
+  state.ts                    # Game state + setter functions (gameState, gameMode, beams, etc.)
+  pools.ts                    # Object pools (uP/pP/prP) + poolCounts object
+  colors.ts                   # TC[15][2], TrC[15][2], gC(), gTr()
+  unit-types.ts               # TYPES[15] unit definitions
+  shaders/                    # GLSL source files (imported as ?raw)
+    main.vert.glsl, main.frag.glsl, quad.vert.glsl,
+    bloom.frag.glsl, composite.frag.glsl,
+    minimap.vert.glsl, minimap.frag.glsl
+  renderer/
+    webgl-setup.ts            # gl, canvas, viewport={W,H}, resize()
+    shaders.ts                # CS(), CP(), program creation, Loc/mmLoc
+    fbo.ts                    # mkFBO(), mkFBOs(), fbos={sF,bF1,bF2}
+    buffers.ts                # qB, iB/iD, mmB/mmD, mainVAO/mmVAO/qVAO
+    render-scene.ts           # renderScene() — writes instance data
+    render-pass.ts            # 4-pass bloom pipeline
+    minimap.ts                # mmW(), drawMinimap(), minimap events
+  simulation/
+    spatial-hash.ts           # hM, _nb, bHash(), gN(), kb()
+    spawn.ts                  # spU(), killU(), spP(), spPr(), addBeam()
+    effects.ts                # explosion(), trail(), chainLightning()
+    steering.ts               # steer() — boids + target AI
+    combat.ts                 # combat() — 9 attack pattern types
+    reinforcements.ts         # reinforce()
+    init.ts                   # initUnits(), genAsteroids()
+    update.ts                 # update() — main simulation tick
+  input/
+    camera.ts                 # cam object, mouse/wheel/drag, addShake()
+  ui/
+    catalog.ts                # setupCatDemo(), updateCatDemo(), buildCatUI(), toggleCat()
+    game-control.ts           # setSpd(), startGame(), showWin(), backToMenu(), initUI()
+    hud.ts                    # updateHUD()
+```
 
-| Lines | Section | Key globals/functions |
-|---|---|---|
-| 1–222 | **HTML/CSS** | Menu UI, HUD, catalog modal, minimap canvas, speed controls |
-| 225–461 | **WebGL setup + Shaders** | `gl`, `ext` (ANGLE_instanced_arrays), `mP`/`blP`/`coP` (programs), `sF`/`bF1`/`bF2` (FBOs) |
-| 463–486 | **Object pools** | `uP[800]`, `pP[35000]`, `prP[6000]` — units, particles, projectiles |
-| 488–506 | **Color tables** | `TC[15][2]` (team colors), `TrC[15][2]` (trail colors) |
-| 508–542 | **Unit type definitions** | `TYPES[15]` — all unit stats, flags, and descriptions |
-| 544–570 | **World/game state** | `WORLD=4000`, `asteroids[]`, `bases[2]`, `beams[]`, `gameState`, `gameMode` |
-| 572–628 | **Spawn helpers** | `spU()`, `killU()`, `spP()`, `spPr()`, `addBeam()` |
-| 630–673 | **Spatial hash** | `bHash()` (rebuild), `gN()` (query neighbors), `kb()` (knockback) |
-| 675–762 | **Effects** | `explosion()`, `trail()`, `chainLightning()` |
-| 764–894 | **Steering/AI** | `steer()` — boid separation/alignment/cohesion + target acquisition |
-| 896–1148 | **Combat** | `combat()` — per-type attack patterns (ram, heal, reflect, carrier, EMP, teleport, chain, beam, normal fire) |
-| 1150–1220 | **Reinforcements + Init** | `reinforce()`, `initUnits()` |
-| 1222–1366 | **Catalog** | Demo system, UI builder |
-| 1368–1528 | **Main update** | `update()` — physics, projectiles, particles, beams, base damage, win checks |
-| 1530–1636 | **Render** | `renderScene()` — writes instance data; `dQ()` — draws fullscreen quad |
-| 1638–1686 | **Minimap** | 160×160 2D canvas overlay, `drawMinimap()` |
-| 1688–1870 | **Game control + Main loop** | `startGame()`, `showWin()`, `backToMenu()`, `frame()` |
+**Initialization order** (in main.ts): initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap
 
 ## Coding Conventions
 
-- **ES5 strict**: `var`, no arrow functions, no destructuring, no classes, no template literals
-- **Abbreviated names** (performance/code-golf style):
-  - Pools: `uP`=units, `pP`=particles, `prP`=projectiles; `uC`/`pC`/`prC`=active counts
+- **Abbreviated names** (preserved from original — renaming is a separate task):
+  - Pools: `uP`=units, `pP`=particles, `prP`=projectiles; `poolCounts.uC/pC/prC`=active counts
   - Pool limits: `PU=800`, `PP=35000`, `PPR=6000`
   - Spawners: `spU`=spawn unit, `spP`=spawn particle, `spPr`=spawn projectile
   - Spatial: `bHash`=build hash, `gN`=get neighbors, `kb`=knockback, `_nb`=neighbor buffer
   - Camera: `cam` object with `tx/ty/tz` (targets), `x/y/z` (interpolated), `shk/shkx/shky` (screen shake)
-  - Rendering: `mP`=main program, `blP`=bloom program, `coP`=composite program
-  - FBOs: `sF`=scene, `bF1`/`bF2`=bloom ping-pong
+  - Rendering: `mP`=main program, `blP`=bloom program, `coP`=composite program, `mmP`=minimap program
+  - VAOs: `mainVAO` (scene), `mmVAO` (minimap), `qVAO` (fullscreen quad)
+  - FBOs: `fbos.sF`=scene, `fbos.bF1`/`fbos.bF2`=bloom ping-pong
+  - Instance data: `iD`/`iB`=scene, `mmD`/`mmB`=minimap
+  - Locations: `Loc`=main program attribs/uniforms, `mmLoc`=minimap program attribs, `blLoc`=bloom program uniforms, `coLoc`=composite program uniforms
   - Colors: `gC(typeIdx, team)` → [r,g,b], `gTr(typeIdx, team)` → trail color
-  - Shaders: `CS`=create shader, `CP`=create program
-  - Time: `dt`=delta, `lt`=last time, `fc`=frame count, `ft`=frame timer, `df`=display FPS
-- **Functional/procedural**: No classes; game objects are plain property bags
-- **Global state**: Everything lives at module scope
+  - State: `rT`=reinforcement timer (2.5秒間隔で `reinforce()` を発火)
+- **State mutation**: Mutable state in `state.ts` uses `export var` + setter functions (e.g., `setGameState()`) because ES module `let` re-exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
+- **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 
 ## Key Performance Patterns
 
 - **Object pooling**: All units/particles/projectiles pre-allocated; `.alive` flag controls active state. Spawn functions scan for first dead slot.
-- **Instanced rendering**: Single `drawArraysInstancedANGLE` call. Instance buffer is 9 floats per instance: `[x, y, size, r, g, b, alpha, angle, shapeID]` (stride = 36 bytes).
+- **Instanced rendering (WebGL 2)**: Native `gl.drawArraysInstanced()` with VAOs. Instance buffer is 9 floats per instance: `[x, y, size, r, g, b, alpha, angle, shapeID]` (stride = 36 bytes). All shaders use GLSL `#version 300 es` with `in`/`out` instead of `attribute`/`varying`.
 - **Spatial hash**: `bHash()` rebuilds every frame using hash `(x/100 * 73856093) ^ (y/100 * 19349663)`. `gN(x,y,radius,buffer)` returns neighbor count. `_nb` is a shared 350-element buffer.
 - **Bloom pipeline**: 4-pass rendering: scene FBO → horizontal blur (half-res) → vertical blur (half-res) → composite with vignette + Reinhard tone mapping.
+- **Minimap**: WebGL-rendered via dedicated `mmP` shader program and `mmVAO`, drawn into a scissored viewport region. Uses instanced quads with a simplified vertex shader that reuses the `aA` slot for non-uniform Y scaling.
+- **Render order** (in `renderScene()`): asteroids → bases → particles → beams → projectiles → units (later = drawn on top).
+- **Simulation tick order** (in `update()`): bHash → steer+combat per unit → reflector shields → projectile movement+collision → particle/projectile lifetime decay.
 
 ## Shader Shape IDs
 
-The fragment shader (`mainFS`) dispatches SDF patterns by integer shape ID:
+The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape ID:
 - 0: Circle (default particle/projectile)
 - 1: Diamond
 - 2: Triangle (pointed up)
@@ -92,6 +124,7 @@ The fragment shader (`mainFS`) dispatches SDF patterns by integer shape ID:
 - 13: Diamond ring (hollow)
 - 14: Trefoil (3-lobe)
 - 15: Lightning bolt
+- 16: Pentagon
 - 20: Large hexagon (bases)
 
 ## Unit Type Index

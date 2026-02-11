@@ -1,0 +1,19 @@
+import { PU } from '../constants.ts';
+import { uP, poolCounts } from '../pools.ts';
+import { gameMode, bases } from '../state.ts';
+
+export function updateHUD(df: number) {
+  var ca = 0, cb = 0;
+  for (var i = 0; i < PU; i++) {
+    if (!uP[i].alive) continue;
+    if (uP[i].team === 0) ca++; else cb++;
+  }
+  document.getElementById('cA')!.textContent = '' + ca;
+  document.getElementById('cB')!.textContent = '' + cb;
+  document.getElementById('pN')!.textContent = '' + (poolCounts.pC + poolCounts.prC);
+  document.getElementById('fps')!.textContent = '' + df;
+  if (gameMode === 2) {
+    document.getElementById('bA')!.textContent = (bases[0].hp / bases[0].mhp * 100 | 0) + '%';
+    document.getElementById('bB')!.textContent = (bases[1].hp / bases[1].mhp * 100 | 0) + '%';
+  }
+}
