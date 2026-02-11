@@ -12,8 +12,8 @@ import { _nb, bHash, gN, kb } from './spatial-hash.ts';
 import { killU, spP } from './spawn.ts';
 import { steer } from './steering.ts';
 
-export function update(dt: number, now: number) {
-  dt = Math.min(dt, 0.033);
+export function update(rawDt: number, now: number) {
+  var dt = Math.min(rawDt, 0.033);
   bHash();
 
   for (var i = 0, urem = poolCounts.uC; i < PU && urem > 0; i++) {

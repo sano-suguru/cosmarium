@@ -89,7 +89,10 @@ function setupCatDemo(typeIdx: number) {
     }
     if (mi >= 0) uP[mi]!.x = -200;
   } else {
-    var cnt = t.sh === 3 ? 6 : t.sh === 8 ? 2 : 4;
+    var cnt: number;
+    if (t.sh === 3) cnt = 6;
+    else if (t.sh === 8) cnt = 2;
+    else cnt = 4;
     for (var i = 0; i < cnt; i++) {
       var ei = spU(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
       if (ei >= 0) catDemoUnits.push(ei);

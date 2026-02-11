@@ -30,23 +30,45 @@
       "style": {
         "useConst": "off",
         "noNonNullAssertion": "off",
-        "useTemplate": "off"
+        "useTemplate": "off",
+        "noNestedTernary": "warn",
+        "noParameterAssign": "warn",
+        "useNumberNamespace": "warn",
+        "useCollapsedElseIf": "warn",
+        "noYodaExpression": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noRedeclare": "off",
         "noConsole": {
-          "level": "warn",
+          "level": "error",
           "options": {
             "allow": ["error", "warn"]
           }
         },
-        "noVar": "off"
+        "noVar": "off",
+        "noEvolvingTypes": "error",
+        "noEmptyBlockStatements": "error"
       },
       "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedImports": "warn",
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
         "noInnerDeclarations": "off"
+      },
+      "performance": {
+        "noDelete": "error",
+        "noBarrelFile": "error",
+        "noReExportAll": "error"
+      },
+      "complexity": {
+        "noForEach": "warn",
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": {
+            "maxAllowedComplexity": 25
+          }
+        },
+        "noUselessStringConcat": "warn"
       }
     }
   },

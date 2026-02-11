@@ -85,7 +85,11 @@ export function renderScene(now: number): number {
   for (var i = 0; i < PPR; i++) {
     var pr = prP[i]!;
     if (!pr.alive) continue;
-    wr(pr.x, pr.y, pr.sz, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), pr.hom ? 6 : pr.aoe > 0 ? 0 : 1);
+    var shape: number;
+    if (pr.hom) shape = 6;
+    else if (pr.aoe > 0) shape = 0;
+    else shape = 1;
+    wr(pr.x, pr.y, pr.sz, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 
   // Units

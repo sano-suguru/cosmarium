@@ -92,5 +92,4 @@ beam系・通常攻撃ともに `u.tgt >= 0` でターゲット保持を確認�
 | `gN()`は`bHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
 | Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
 | beamOn ramp-up/down | 上昇: `+dt*2`（0.5s）、下降: `-dt*3`（0.33s）。幅: `(sz≥15 ? 6 : 4) * beamOn` |
-| `Team`型（`0 \| 1`）を引数に使う | `gC`/`gTr`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
-| `bases`は`[Base, Base]`タプル | リテラル`0`/`1`または`Team`型でインデックスすれば`!`不要 |
+

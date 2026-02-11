@@ -5,15 +5,14 @@
 ## Quick Reference
 
 - **言語**: 日本語で返答
-- **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` off
+- **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` on
 - **ビルド**: `bun run build` — dist/へ出力
 - **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
 - **テスト**: なし（手動確認のみ）
-- **リンター**: ESLint（flat config）— `no-var: off`, `prefer-const: off`。`src/shaders/**`は除外。`eslint-config-prettier`で競合ルール無効化
-- **フォーマッター**: Prettier — singleQuote, printWidth=120。GLSLは除外（`.prettierignore`）
-- **Pre-commit**: `simple-git-hooks` + `lint-staged`（`bunx lint-staged`）。ESLintは`--max-warnings=0`で警告もブロック
+- **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: off`, `useConst: off`, singleQuote, lineWidth=120
+- **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 
@@ -152,14 +151,14 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 
 ## UI・Input概要
 
-| ファイル | 責務 | 備考 |
-|----------|------|------|
-| `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット(Tab/Esc/+/-/Space) | `startGame()` → `setGameState('play')` + `initUnits()` |
-| `ui/catalog.ts` | ユニットカタログDOM構築、デモ用spawn/update | `setupCatDemo()`が`spU()`経由でプールを消費 |
-| `ui/hud.ts` | HUD数値更新（ユニット数/fps/base HP） | DOM直接更新。`gameState==='play'`時のみ |
-| `input/camera.ts` | カメラ(pan/zoom/shake)、canvas上のマウスイベント | `catalogOpen`時は入力無効化。zoom範囲: 0.05〜8 |
+→ `src/ui/AGENTS.md` 参照（カタログのプール副作用、デモシナリオ等）
 
-**カタログ注意**: カタログは実際のプールにユニットを`spU()`で生成するため、`PU`上限に影響する。`catalogOpen`時は`update()`内で`updateCatDemo()`に切替わる。
+| ファイル | 責務 |
+|----------|------|
+| `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット |
+| `ui/catalog.ts` | ユニットカタログ。**`spU()`で実プールにspawn** |
+| `ui/hud.ts` | HUD数値更新（DOM直接操作） |
+| `input/camera.ts` | カメラ(pan/zoom/shake)。`catalogOpen`時は無効化 |
 
 ## Critical Gotchas
 
@@ -171,7 +170,7 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | `iD`/`mmD`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_I*9` |
 | シェーダは`vite-plugin-glsl`経由でimport | `import src from '../shaders/x.glsl'`。`#include`展開もplugin側で処理 |
 | `poolCounts`オブジェクト内のカウンタ手動管理 | spawn/kill時に必ずインクリメント/デクリメント |
-| lint-stagedは`--max-warnings=0` | ESLint警告が残るとコミット失敗 |
+| pre-commitはエラーのみブロック | Biome警告はコミット通過。`biome check --staged --write` |
 | GLSLのGPUコンパイルはランタイム | CIでは検出不可。ブラウザで確認必須 |
 | `catalogOpen`は複数層に影響 | simulation(steps 1-6は常時実行、7-10のみスキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
 | `Team`型（`0 \| 1`）を引数に使う | `gC`/`gTr`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
@@ -184,5 +183,5 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | `src/renderer/` | あり | WebGL2パイプライン、FBO、インスタンスバッファ、描画パス |
 | `src/simulation/` | あり | ゲームロジック、AI、戦闘、空間ハッシュ |
 | `src/shaders/` | あり | GLSLシェーダ群、SDF関数、Shape IDマップ、#includeパターン |
-| `src/ui/` | なし | 3ファイル。上記「UI・Input概要」参照 |
+| `src/ui/` | あり | カタログのプール副作用、DOM構築、HUD更新 |
 | `src/input/` | なし | camera.ts 1ファイルのみ。上記参照 |

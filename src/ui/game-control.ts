@@ -16,7 +16,7 @@ import { toggleCat } from './catalog.ts';
 function setSpd(v: number) {
   setTimeScale(v);
   document.querySelectorAll('.sbtn').forEach((b) => {
-    b.classList.toggle('active', parseFloat(b.textContent || '') === v);
+    b.classList.toggle('active', Number.parseFloat(b.textContent || '') === v);
   });
   document.getElementById('spdV')!.textContent = v + 'x';
 }
@@ -38,7 +38,8 @@ function startGame(mode: GameMode) {
   document.getElementById('baseHP')!.style.display = mode === 2 ? 'block' : 'none';
   var obj = document.getElementById('objective')!;
   obj.style.display = 'block';
-  obj.textContent = mode === 0 ? 'INFINITE WAR' : mode === 1 ? 'ANNIHILATE ALL ENEMIES' : 'DESTROY ENEMY BASE';
+  var labels: Record<GameMode, string> = { 0: 'INFINITE WAR', 1: 'ANNIHILATE ALL ENEMIES', 2: 'DESTROY ENEMY BASE' };
+  obj.textContent = labels[mode];
   initUnits();
 }
 
@@ -59,6 +60,18 @@ function backToMenu() {
   ids.forEach((id) => {
     document.getElementById(id)!.style.display = 'none';
   });
+}
+
+var speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
+
+function stepSpd(dir: number) {
+  var i = speeds.indexOf(timeScale);
+  var def = speeds.indexOf(0.55);
+  if (dir < 0) {
+    if (i > 0) setSpd(speeds[i - 1]!);
+    else if (i < 0) setSpd(speeds[def - 1]!);
+  } else if (i >= 0 && i < speeds.length - 1) setSpd(speeds[i + 1]!);
+  else if (i < 0) setSpd(speeds[def + 1]!);
 }
 
 export function initUI() {
@@ -89,7 +102,7 @@ export function initUI() {
   // Speed buttons
   document.querySelectorAll<HTMLElement>('.sbtn[data-spd]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      setSpd(parseFloat(btn.dataset.spd || '0.55'));
+      setSpd(Number.parseFloat(btn.dataset.spd || '0.55'));
     });
   });
 
@@ -100,17 +113,12 @@ export function initUI() {
       toggleCat();
     }
     if (gameState === 'play') {
-      var speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
       if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
-        var i = speeds.indexOf(timeScale);
-        if (i > 0) setSpd(speeds[i - 1]!);
-        else if (i < 0) setSpd(0.4);
+        stepSpd(-1);
         e.preventDefault();
       }
       if (e.code === 'Equal' || e.code === 'NumpadAdd') {
-        var i = speeds.indexOf(timeScale);
-        if (i < speeds.length - 1) setSpd(speeds[i + 1]!);
-        else if (i < 0) setSpd(0.75);
+        stepSpd(1);
         e.preventDefault();
       }
     }

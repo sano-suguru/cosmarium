@@ -7,6 +7,16 @@ import { chainLightning, explosion } from './effects.ts';
 import { _nb, gN, kb } from './spatial-hash.ts';
 import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
 
+function tgtDistOrClear(u: Unit): number {
+  if (u.tgt < 0) return -1;
+  var o = uP[u.tgt]!;
+  if (!o.alive) {
+    u.tgt = -1;
+    return -1;
+  }
+  return Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+}
+
 export function combat(u: Unit, ui: number, dt: number, _now: number) {
   var t = TYPES[u.type]!;
   if (u.stun > 0) return;
@@ -163,13 +173,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   }
 
   // --- EMP ---
-  if (t.emp && u.aCd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt]!;
-    if (!o.alive) {
-      u.tgt = -1;
-      return;
-    }
-    var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+  if (t.emp && u.aCd <= 0) {
+    var d = tgtDistOrClear(u);
+    if (d < 0) return;
     if (d < t.rng) {
       u.aCd = t.fr;
       var nn = gN(u.x, u.y, t.rng, _nb);
@@ -242,13 +248,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   }
 
   // --- CHAIN LIGHTNING ---
-  if (t.chain && u.cd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt]!;
-    if (!o.alive) {
-      u.tgt = -1;
-      return;
-    }
-    var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+  if (t.chain && u.cd <= 0) {
+    var d = tgtDistOrClear(u);
+    if (d < 0) return;
     if (d < t.rng) {
       u.cd = t.fr;
       chainLightning(u.x, u.y, u.team, t.dmg * vd, 5, c);

@@ -36,9 +36,9 @@ var lt = 0,
   df = 0;
 
 function frame(now: number) {
-  now *= 0.001;
-  var dt = Math.min(now - lt, 0.05);
-  lt = now;
+  var t = now * 0.001;
+  var dt = Math.min(t - lt, 0.05);
+  lt = t;
 
   fc++;
   ft += dt;
@@ -64,9 +64,9 @@ function frame(now: number) {
   }
 
   if (gameState === 'play') {
-    update(dt * timeScale, now);
+    update(dt * timeScale, t);
 
-    renderFrame(now);
+    renderFrame(t);
 
     // HUD updates
     if (!catalogOpen) {

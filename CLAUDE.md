@@ -20,7 +20,7 @@ Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`,
 bun install          # Install dependencies
 bun run dev          # Dev server at http://localhost:5173
 bun run build        # Production build to dist/
-bun run typecheck    # Type check (strict mode, but noUnusedLocals/noUnusedParameters off)
+bun run typecheck    # Type check (strict mode)
 bun run lint         # Biome lint (src/)
 bun run lint:fix     # Biome lint with auto-fix
 bun run format       # Biome format (write)
@@ -37,13 +37,18 @@ No test framework is configured. There are no automated tests.
 **Biome key rules** (config in `biome.json`):
 - `noVar: off`, `useConst: off` — `var` is used throughout; don't convert to `let`/`const`
 - `noRedeclare: off` — TypeScript の型と同名の変数宣言を許可
-- `noConsole: warn` — only `console.error` and `console.warn` are allowed
-- `noExplicitAny: warn` — avoid `any` where possible
+- `noConsole: error` — only `console.error` and `console.warn` are allowed
+- `noExplicitAny: error` — avoid `any` where possible
 - `noNonNullAssertion: off` — non-null assertions (`!`) are allowed
-- `noUnusedVariables: warn` — `_` prefix variables/args are ignored (Biome default)
-- `noUnusedImports: warn` — unused imports are warned
+- `noUnusedVariables: error` — `_` prefix variables/args are ignored (Biome default)
+- `noUnusedImports: error` — unused imports are errors
 - `noInnerDeclarations: off` — `var` inside blocks is allowed
 - `useTemplate: off` — template literal conversion not enforced
+- `noEvolvingTypes: error`, `noEmptyBlockStatements: error` — 型推論の不安定化と空ブロックを禁止
+- `noDelete: error`, `noBarrelFile: error`, `noReExportAll: error` — パフォーマンス系ルール
+- `noForEach: warn` — `for...of` 推奨だが既存 DOM API 利用は許容
+- `noExcessiveCognitiveComplexity: warn (max 25)` — 複雑度警告（CI非ブロック）
+- style系 warn: `noNestedTernary`, `noParameterAssign`, `noYodaExpression`
 - `src/shaders/**` is excluded from Biome (linter + formatter)
 - Pre-commit hook は `biome check --staged --write` でエラーのみブロック（警告は許容）
 
