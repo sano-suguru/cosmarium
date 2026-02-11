@@ -1,3 +1,6 @@
+html {
+  visibility: visible;
+}
 * {
   margin: 0;
   padding: 0;

@@ -1,4 +1,4 @@
-# AGENTS.md — COSMIC WARFARE
+# AGENTS.md — COSMARIUM
 
 > AI向けナビゲーションガイド。CLAUDE.mdの構造・略称・メカニクス情報を前提とし、**変更作業時の判断指針**を補完する。
 
@@ -7,13 +7,14 @@
 - **言語**: 日本語で返答
 - **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` off
 - **ビルド**: `bun run build` — dist/へ出力
-- **全チェック**: `bun run check` — typecheck + lint + format:check + knip を一括実行
+- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
+- **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
 - **テスト**: なし（手動確認のみ）
 - **リンター**: ESLint（flat config）— `no-var: off`, `prefer-const: off`。`src/shaders/**`は除外。`eslint-config-prettier`で競合ルール無効化
 - **フォーマッター**: Prettier — singleQuote, printWidth=120。GLSLは除外（`.prettierignore`）
 - **Pre-commit**: `simple-git-hooks` + `lint-staged`（`bunx lint-staged`）。ESLintは`--max-warnings=0`で警告もブロック
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 
 ## Dependency Graph (変更影響マップ)

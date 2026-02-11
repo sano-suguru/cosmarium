@@ -8,7 +8,7 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Project Overview
 
-**COSMIC WARFARE** — a real-time space strategy/combat simulation game using vanilla TypeScript, HTML5 Canvas, and WebGL 2. Built with Vite + bun. No UI framework.
+**COSMARIUM** — a real-time space strategy/combat simulation game using vanilla TypeScript, HTML5 Canvas, and WebGL 2. Built with Vite + bun. No UI framework.
 
 ## Development
 
