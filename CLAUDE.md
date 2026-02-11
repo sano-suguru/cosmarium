@@ -12,7 +12,7 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`, `knip`.
 
 **Linting & Formatting**: ESLint (flat config) + Prettier configured. Pre-commit hook via `simple-git-hooks` + `lint-staged` runs ESLint and Prettier on staged files.
 
@@ -25,7 +25,8 @@ bun run lint         # ESLint (src/)
 bun run lint:fix     # ESLint with auto-fix
 bun run format       # Prettier format (write)
 bun run format:check # Prettier format (check only)
-bun run check        # All checks combined (typecheck + lint + format:check)
+bun run knip         # Unused export detection (knip)
+bun run check        # All checks combined (typecheck + lint + format:check + knip)
 ```
 
 No test framework is configured. There are no automated tests.
@@ -100,6 +101,8 @@ src/
 
 **Initialization order** (in main.ts): initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap
 
+**変更作業の詳細ガイド**: 各領域の変更指針・影響範囲・注意点は AGENTS.md を参照（ルート `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`）。
+
 ## Coding Conventions
 
 - **Abbreviated names** (preserved from original — renaming is a separate task):
@@ -118,6 +121,7 @@ src/
 - **State mutation**: Mutable state in `state.ts` uses `export var` + setter functions (e.g., `setGameState()`) because ES module `let` re-exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
+- **Import規約**: 相対パス + `.ts` 拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし、barrel export（index.ts）なし
 
 ## Key Performance Patterns
 
