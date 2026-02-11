@@ -11,7 +11,7 @@
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
 - **テスト**: なし（手動確認のみ）
-- **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: off`, `useConst: off`, singleQuote, lineWidth=120
+- **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
 - **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
@@ -118,15 +118,15 @@ main loop (main.ts) — gameState==='play' 時のみ実行
 ## State管理パターン
 
 ```typescript
-// state.ts の var + setter パターン（ESM制約による）
-export var gameState: GameState = 'menu';
+// state.ts の let + setter パターン（ESMバインディングは外部から代入不可のため）
+export let gameState: GameState = 'menu';
 export function setGameState(v: GameState) { gameState = v; }
 
 // 使用側
 import { gameState, setGameState } from './state';
 if (gameState === 'play') { ... }
-setGameState('win'); // ✅ setter経由
-// gameState = 'win'; // ❌ ESM再エクスポートでは代入不可
+setGameState('win'); // ✅ setter経由（モジュール内からの再代入なので問題ない）
+// gameState = 'win'; // ❌ ESMバインディングは外部モジュールから代入不可
 
 // poolCounts はオブジェクトなのでプロパティ直接変更可
 poolCounts.uC++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
@@ -164,7 +164,7 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 
 | 罠 | 理由 |
 |----|------|
-| `let`でstate変数をexportしない | ESMの再エクスポートは読取専用。`var` + setter必須 |
+| state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
 | プール上限変更時は`constants.ts`と`pools.ts`両方 | `PU`定数とプール配列初期化が別ファイル |
 | `_nb`バッファは共有（350要素） | `gN()`の戻り値=バッファ内の有効数。コピーせず即使用 |
 | `iD`/`mmD`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_I*9` |

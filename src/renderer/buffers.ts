@@ -2,14 +2,14 @@ import { MAX_I, MM_MAX, S_STRIDE } from '../constants.ts';
 import { Loc, mmLoc } from './shaders.ts';
 import { gl } from './webgl-setup.ts';
 
-var qB: WebGLBuffer;
-export var iD: Float32Array;
-export var iB: WebGLBuffer;
-export var mmD: Float32Array;
-export var mmB: WebGLBuffer;
-export var mainVAO: WebGLVertexArrayObject;
-export var mmVAO: WebGLVertexArrayObject;
-export var qVAO: WebGLVertexArrayObject;
+let qB: WebGLBuffer;
+export let iD: Float32Array;
+export let iB: WebGLBuffer;
+export let mmD: Float32Array;
+export let mmB: WebGLBuffer;
+export let mainVAO: WebGLVertexArrayObject;
+export let mmVAO: WebGLVertexArrayObject;
+export let qVAO: WebGLVertexArrayObject;
 
 export function initBuffers() {
   qB = gl.createBuffer()!;

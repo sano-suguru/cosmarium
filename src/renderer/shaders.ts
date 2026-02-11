@@ -7,12 +7,12 @@ import minimapVertSrc from '../shaders/minimap.vert.glsl';
 import quadVertSrc from '../shaders/quad.vert.glsl';
 import { gl } from './webgl-setup.ts';
 
-export var mP: WebGLProgram;
-export var blP: WebGLProgram;
-export var coP: WebGLProgram;
-export var mmP: WebGLProgram;
+export let mP: WebGLProgram;
+export let blP: WebGLProgram;
+export let coP: WebGLProgram;
+export let mmP: WebGLProgram;
 
-export var Loc: {
+export let Loc: {
   aP: number;
   aO: number;
   aS: number;
@@ -24,7 +24,7 @@ export var Loc: {
   uZ: WebGLUniformLocation | null;
 };
 
-export var mmLoc: {
+export let mmLoc: {
   aP: number;
   aO: number;
   aS: number;
@@ -33,19 +33,19 @@ export var mmLoc: {
   aSh: number;
 };
 
-export var blLoc: {
+export let blLoc: {
   uT: WebGLUniformLocation | null;
   uD: WebGLUniformLocation | null;
   uR: WebGLUniformLocation | null;
 };
 
-export var coLoc: {
+export let coLoc: {
   uS: WebGLUniformLocation | null;
   uB: WebGLUniformLocation | null;
 };
 
 function CS(s: string, t: number) {
-  var sh = gl.createShader(t)!;
+  const sh = gl.createShader(t)!;
   gl.shaderSource(sh, s);
   gl.compileShader(sh);
   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
@@ -53,7 +53,7 @@ function CS(s: string, t: number) {
 }
 
 function CP(v: string, f: string) {
-  var p = gl.createProgram()!;
+  const p = gl.createProgram()!;
   gl.attachShader(p, CS(v, gl.VERTEX_SHADER));
   gl.attachShader(p, CS(f, gl.FRAGMENT_SHADER));
   gl.linkProgram(p);
@@ -100,7 +100,7 @@ export function initShaders() {
   };
 
   if (import.meta.env.DEV) {
-    var locs: Record<string, WebGLUniformLocation | null> = {
+    const locs: Record<string, WebGLUniformLocation | null> = {
       'Loc.uR': Loc.uR,
       'Loc.uCam': Loc.uCam,
       'Loc.uZ': Loc.uZ,
@@ -110,6 +110,6 @@ export function initShaders() {
       'coLoc.uS': coLoc.uS,
       'coLoc.uB': coLoc.uB,
     };
-    for (var name in locs) if (locs[name] === null) console.warn('Uniform location is null:', name);
+    for (const name in locs) if (locs[name] === null) console.warn('Uniform location is null:', name);
   }
 }

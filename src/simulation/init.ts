@@ -6,7 +6,7 @@ import { spU } from './spawn.ts';
 
 function genAsteroids() {
   asteroids.length = 0;
-  for (var i = 0; i < 40; i++) {
+  for (let i = 0; i < 40; i++) {
     asteroids.push({
       x: (Math.random() - 0.5) * WORLD * 1.4,
       y: (Math.random() - 0.5) * WORLD * 1.4,
@@ -18,28 +18,28 @@ function genAsteroids() {
 }
 
 export function initUnits() {
-  for (var i = 0; i < PU; i++) uP[i]!.alive = false;
+  for (let i = 0; i < PU; i++) uP[i]!.alive = false;
   poolCounts.uC = 0;
-  for (var i = 0; i < PP; i++) pP[i]!.alive = false;
+  for (let i = 0; i < PP; i++) pP[i]!.alive = false;
   poolCounts.pC = 0;
-  for (var i = 0; i < PPR; i++) prP[i]!.alive = false;
+  for (let i = 0; i < PPR; i++) prP[i]!.alive = false;
   poolCounts.prC = 0;
   beams.length = 0;
   bases[0].hp = bases[0].mhp;
   bases[1].hp = bases[1].mhp;
   genAsteroids();
 
-  var n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
+  const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
   if (gameMode === 1) {
-    for (var i = 0; i < n.length; i++) n[i] = Math.ceil(n[i]! * 0.7);
+    for (let i = 0; i < n.length; i++) n[i] = Math.ceil(n[i]! * 0.7);
   }
 
-  for (var ti = 0; ti < 2; ti++) {
-    var team = ti as Team;
-    var cx = team === 0 ? -1200 : 1200;
-    var cy = team === 0 ? -300 : 300;
-    var s = (tp: number, count: number, spread: number) => {
-      for (var j = 0; j < count; j++) {
+  for (let ti = 0; ti < 2; ti++) {
+    const team = ti as Team;
+    const cx = team === 0 ? -1200 : 1200;
+    const cy = team === 0 ? -300 : 300;
+    const s = (tp: number, count: number, spread: number) => {
+      for (let j = 0; j < count; j++) {
         spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       }
     };

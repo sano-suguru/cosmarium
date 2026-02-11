@@ -13,11 +13,11 @@ import { killU, spP } from './spawn.ts';
 import { steer } from './steering.ts';
 
 export function update(rawDt: number, now: number) {
-  var dt = Math.min(rawDt, 0.033);
+  const dt = Math.min(rawDt, 0.033);
   bHash();
 
-  for (var i = 0, urem = poolCounts.uC; i < PU && urem > 0; i++) {
-    var u = uP[i]!;
+  for (let i = 0, urem = poolCounts.uC; i < PU && urem > 0; i++) {
+    const u = uP[i]!;
     if (!u.alive) continue;
     urem--;
     u.shielded = false;
@@ -31,34 +31,34 @@ export function update(rawDt: number, now: number) {
   }
 
   // Reflector shields
-  for (var i = 0, urem2 = poolCounts.uC; i < PU && urem2 > 0; i++) {
-    var u = uP[i]!;
+  for (let i = 0, urem2 = poolCounts.uC; i < PU && urem2 > 0; i++) {
+    const u = uP[i]!;
     if (!u.alive) continue;
     urem2--;
     if (TYPES[u.type]!.nm !== 'Reflector') continue;
-    var nn = gN(u.x, u.y, 100, _nb);
-    for (var j = 0; j < nn; j++) {
-      var o = uP[_nb[j]!]!;
+    const nn = gN(u.x, u.y, 100, _nb);
+    for (let j = 0; j < nn; j++) {
+      const o = uP[_nb[j]!]!;
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
 
   // Projectiles
-  for (var i = 0, prem = poolCounts.prC; i < PPR && prem > 0; i++) {
-    var p = prP[i]!;
+  for (let i = 0, prem = poolCounts.prC; i < PPR && prem > 0; i++) {
+    const p = prP[i]!;
     if (!p.alive) continue;
     prem--;
 
     if (p.hom && p.tx >= 0) {
-      var tg = uP[p.tx]!;
+      const tg = uP[p.tx]!;
       if (tg.alive) {
-        var ca = Math.atan2(p.vy, p.vx);
-        var da = Math.atan2(tg.y - p.y, tg.x - p.x);
-        var diff = da - ca;
+        let ca = Math.atan2(p.vy, p.vx);
+        const da = Math.atan2(tg.y - p.y, tg.x - p.x);
+        let diff = da - ca;
         if (diff > PI) diff -= TAU;
         if (diff < -PI) diff += TAU;
         ca += diff * 4 * dt;
-        var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
         p.vx = Math.cos(ca) * sp;
         p.vy = Math.sin(ca) * sp;
       }
@@ -87,15 +87,15 @@ export function update(rawDt: number, now: number) {
 
     if (p.life <= 0) {
       if (p.aoe > 0) {
-        var nn = gN(p.x, p.y, p.aoe, _nb);
-        for (var j = 0; j < nn; j++) {
-          var oi = _nb[j]!,
+        const nn = gN(p.x, p.y, p.aoe, _nb);
+        for (let j = 0; j < nn; j++) {
+          const oi = _nb[j]!,
             o = uP[oi]!;
           if (!o.alive || o.team === p.team) continue;
-          var ddx = o.x - p.x,
+          const ddx = o.x - p.x,
             ddy = o.y - p.y;
           if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
-            var dd = Math.sqrt(ddx * ddx + ddy * ddy);
+            const dd = Math.sqrt(ddx * ddx + ddy * ddy);
             o.hp -= p.dmg * (1 - dd / (p.aoe * 1.2));
             kb(oi, p.x, p.y, 220);
             if (o.hp <= 0) {
@@ -104,8 +104,8 @@ export function update(rawDt: number, now: number) {
             }
           }
         }
-        for (var j = 0; j < 16; j++) {
-          var a = Math.random() * 6.283;
+        for (let j = 0; j < 16; j++) {
+          const a = Math.random() * 6.283;
           spP(
             p.x,
             p.y,
@@ -128,15 +128,15 @@ export function update(rawDt: number, now: number) {
     }
 
     // Hit detection
-    var nn2 = gN(p.x, p.y, 30, _nb);
-    var hit = false;
-    for (var j = 0; j < nn2; j++) {
-      var oi = _nb[j]!,
+    const nn2 = gN(p.x, p.y, 30, _nb);
+    let hit = false;
+    for (let j = 0; j < nn2; j++) {
+      const oi = _nb[j]!,
         o = uP[oi]!;
       if (!o.alive || o.team === p.team) continue;
-      var hs = TYPES[o.type]!.sz;
+      const hs = TYPES[o.type]!.sz;
       if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
-        var dmg = p.dmg;
+        let dmg = p.dmg;
         if (o.shielded) dmg *= 0.3;
         o.hp -= dmg;
         kb(oi, p.x, p.y, p.dmg * 12);
@@ -153,8 +153,8 @@ export function update(rawDt: number, now: number) {
     }
 
     if (!hit && !catalogOpen) {
-      for (var j = 0; j < asteroids.length; j++) {
-        var ast = asteroids[j]!;
+      for (let j = 0; j < asteroids.length; j++) {
+        const ast = asteroids[j]!;
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.r * ast.r) {
           spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           p.alive = false;
@@ -166,8 +166,8 @@ export function update(rawDt: number, now: number) {
   }
 
   // Particles
-  for (var i = 0, rem = poolCounts.pC; i < PP && rem > 0; i++) {
-    var pp = pP[i]!;
+  for (let i = 0, rem = poolCounts.pC; i < PP && rem > 0; i++) {
+    const pp = pP[i]!;
     if (!pp.alive) continue;
     rem--;
     pp.x += pp.vx * dt;
@@ -182,8 +182,8 @@ export function update(rawDt: number, now: number) {
   }
 
   // Beams
-  for (var i = beams.length - 1; i >= 0; i--) {
-    var bm = beams[i]!;
+  for (let i = beams.length - 1; i >= 0; i--) {
+    const bm = beams[i]!;
     bm.life -= dt;
     if (bm.life <= 0) beams.splice(i, 1);
   }
@@ -191,12 +191,12 @@ export function update(rawDt: number, now: number) {
   if (!catalogOpen) {
     // Base damage
     if (gameMode === 2) {
-      for (var i = 0, urem3 = poolCounts.uC; i < PU && urem3 > 0; i++) {
-        var u = uP[i]!;
+      for (let i = 0, urem3 = poolCounts.uC; i < PU && urem3 > 0; i++) {
+        const u = uP[i]!;
         if (!u.alive) continue;
         urem3--;
-        var eb = bases[u.team === 0 ? 1 : 0];
-        var d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
+        const eb = bases[u.team === 0 ? 1 : 0];
+        const d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
         if (d < 80) {
           eb.hp -= TYPES[u.type]!.dmg * dt * 3;
           if (eb.hp < 0) eb.hp = 0;
@@ -204,18 +204,18 @@ export function update(rawDt: number, now: number) {
       }
     }
 
-    for (var i = 0; i < asteroids.length; i++) {
-      var ast = asteroids[i]!;
+    for (let i = 0; i < asteroids.length; i++) {
+      const ast = asteroids[i]!;
       ast.ang += ast.va * dt;
     }
     reinforce(dt);
 
     // Win checks
     if (gameMode === 1) {
-      var ac = 0,
+      let ac = 0,
         bc = 0;
-      for (var i = 0, urem4 = poolCounts.uC; i < PU && urem4 > 0; i++) {
-        var u = uP[i]!;
+      for (let i = 0, urem4 = poolCounts.uC; i < PU && urem4 > 0; i++) {
+        const u = uP[i]!;
         if (!u.alive) continue;
         urem4--;
         if (u.team === 0) ac++;

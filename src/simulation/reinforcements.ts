@@ -14,23 +14,23 @@ export function reinforce(dt: number) {
   setRT(rT + dt);
   if (rT < 2.5) return;
   setRT(0);
-  for (var ti = 0; ti < 2; ti++) {
-    var team = ti as Team;
-    var cnt = 0;
-    for (var i = 0; i < PU; i++) {
-      var u = uP[i]!;
+  for (let ti = 0; ti < 2; ti++) {
+    const team = ti as Team;
+    let cnt = 0;
+    for (let i = 0; i < PU; i++) {
+      const u = uP[i]!;
       if (u.alive && u.team === team) cnt++;
     }
-    var lim = gameMode === 2 ? 100 : 130;
+    const lim = gameMode === 2 ? 100 : 130;
     if (cnt < lim) {
-      var cx = team === 0 ? -WORLD * 0.6 : WORLD * 0.6;
-      var cy = (Math.random() - 0.5) * WORLD;
-      var r = Math.random();
-      var s = (tp: number, spread: number) => {
+      const cx = team === 0 ? -WORLD * 0.6 : WORLD * 0.6;
+      const cy = (Math.random() - 0.5) * WORLD;
+      const r = Math.random();
+      const s = (tp: number, spread: number) => {
         spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       };
-      for (var i = 0; i < 5; i++) s(0, 100); // Drone ×5 — always
-      for (var i = 0; i < 2; i++) s(1, 80); // Fighter ×2 — always
+      for (let i = 0; i < 5; i++) s(0, 100); // Drone ×5 — always
+      for (let i = 0; i < 2; i++) s(1, 80); // Fighter ×2 — always
       if (r < 0.5) s(2, 80); // Bomber — 50%
       if (r < 0.4) s(3, 80); // Cruiser — 40%
       if (cnt < 50 && r < 0.1) s(4, 80); // Flagship — 10% (only when losing)

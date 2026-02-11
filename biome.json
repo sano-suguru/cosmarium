@@ -28,7 +28,7 @@
     "rules": {
       "recommended": true,
       "style": {
-        "useConst": "off",
+        "useConst": "error",
         "noNonNullAssertion": "off",
         "useTemplate": "off",
         "noNestedTernary": "warn",
@@ -46,7 +46,7 @@
             "allow": ["error", "warn"]
           }
         },
-        "noVar": "off",
+        "noVar": "error",
         "noEvolvingTypes": "error",
         "noEmptyBlockStatements": "error"
       },

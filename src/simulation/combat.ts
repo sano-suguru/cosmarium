@@ -9,7 +9,7 @@ import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
   if (u.tgt < 0) return -1;
-  var o = uP[u.tgt]!;
+  const o = uP[u.tgt]!;
   if (!o.alive) {
     u.tgt = -1;
     return -1;
@@ -18,29 +18,29 @@ function tgtDistOrClear(u: Unit): number {
 }
 
 export function combat(u: Unit, ui: number, dt: number, _now: number) {
-  var t = TYPES[u.type]!;
+  const t = TYPES[u.type]!;
   if (u.stun > 0) return;
   u.cd -= dt;
   u.aCd -= dt;
-  var c = gC(u.type, u.team);
-  var vd = 1 + u.vet * 0.2;
+  const c = gC(u.type, u.team);
+  const vd = 1 + u.vet * 0.2;
 
   // --- RAM ---
   if (t.rams) {
-    var nn = gN(u.x, u.y, t.sz * 2, _nb);
-    for (var i = 0; i < nn; i++) {
-      var oi = _nb[i]!,
+    const nn = gN(u.x, u.y, t.sz * 2, _nb);
+    for (let i = 0; i < nn; i++) {
+      const oi = _nb[i]!,
         o = uP[oi]!;
       if (!o.alive || o.team === u.team) continue;
-      var dx = o.x - u.x,
+      const dx = o.x - u.x,
         dy = o.y - u.y;
-      var d = Math.sqrt(dx * dx + dy * dy);
+      const d = Math.sqrt(dx * dx + dy * dy);
       if (d < t.sz + TYPES[o.type]!.sz) {
         o.hp -= Math.ceil(u.mass * 3 * vd);
         kb(oi, u.x, u.y, u.mass * 55);
         u.hp -= Math.ceil(TYPES[o.type]!.mass);
-        for (var k = 0; k < 10; k++) {
-          var a = Math.random() * 6.283;
+        for (let k = 0; k < 10; k++) {
+          const a = Math.random() * 6.283;
           spP(
             (u.x + o.x) / 2,
             (u.y + o.y) / 2,
@@ -71,9 +71,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- HEALER ---
   if (t.heals && u.aCd <= 0) {
     u.aCd = 0.35;
-    var nn = gN(u.x, u.y, 160, _nb);
-    for (var i = 0; i < nn; i++) {
-      var oi = _nb[i]!,
+    const nn = gN(u.x, u.y, 160, _nb);
+    for (let i = 0; i < nn; i++) {
+      const oi = _nb[i]!,
         o = uP[oi]!;
       if (!o.alive || o.team !== u.team || oi === ui) continue;
       if (o.hp < o.mhp) {
@@ -86,9 +86,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- REFLECTOR ---
   if (t.reflects) {
-    var rr = t.rng;
-    for (var i = 0; i < PPR; i++) {
-      var p = prP[i]!;
+    const rr = t.rng;
+    for (let i = 0; i < PPR; i++) {
+      const p = prP[i]!;
       if (!p.alive || p.team === u.team) continue;
       if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {
         p.vx *= -1.2;
@@ -102,16 +102,16 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       }
     }
     if (u.cd <= 0 && u.tgt >= 0) {
-      var o = uP[u.tgt]!;
+      const o = uP[u.tgt]!;
       if (!o.alive) {
         u.tgt = -1;
       } else {
-        var dx = o.x - u.x,
+        const dx = o.x - u.x,
           dy = o.y - u.y;
-        var d = Math.sqrt(dx * dx + dy * dy);
+        const d = Math.sqrt(dx * dx + dy * dy);
         if (d < rr) {
           u.cd = t.fr;
-          var ang = Math.atan2(dy, dx);
+          const ang = Math.atan2(dy, dx);
           spPr(
             u.x,
             u.y,
@@ -150,12 +150,12 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     u.sCd -= dt;
     if (u.sCd <= 0) {
       u.sCd = 4 + Math.random() * 2;
-      for (var i = 0; i < 4; i++) {
-        var a = Math.random() * 6.283;
+      for (let i = 0; i < 4; i++) {
+        const a = Math.random() * 6.283;
         spU(u.team, 0, u.x + Math.cos(a) * t.sz * 2, u.y + Math.sin(a) * t.sz * 2);
       }
-      for (var i = 0; i < 10; i++) {
-        var a = Math.random() * 6.283;
+      for (let i = 0; i < 10; i++) {
+        const a = Math.random() * 6.283;
         spP(
           u.x + Math.cos(a) * t.sz,
           u.y + Math.sin(a) * t.sz,
@@ -174,13 +174,13 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- EMP ---
   if (t.emp && u.aCd <= 0) {
-    var d = tgtDistOrClear(u);
+    const d = tgtDistOrClear(u);
     if (d < 0) return;
     if (d < t.rng) {
       u.aCd = t.fr;
-      var nn = gN(u.x, u.y, t.rng, _nb);
-      for (var i = 0; i < nn; i++) {
-        var oi = _nb[i]!,
+      const nn = gN(u.x, u.y, t.rng, _nb);
+      for (let i = 0; i < nn; i++) {
+        const oi = _nb[i]!,
           oo = uP[oi]!;
         if (!oo.alive || oo.team === u.team) continue;
         if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.rng * t.rng) {
@@ -192,8 +192,8 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           }
         }
       }
-      for (var i = 0; i < 20; i++) {
-        var a = (i / 20) * 6.283,
+      for (let i = 0; i < 20; i++) {
+        const a = (i / 20) * 6.283,
           r = t.rng * 0.8;
         spP(
           u.x + Math.cos(a) * r,
@@ -217,29 +217,29 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.teleports) {
     u.tp -= dt;
     if (u.tp <= 0 && u.tgt >= 0) {
-      var o = uP[u.tgt]!;
+      const o = uP[u.tgt]!;
       if (!o.alive) {
         u.tgt = -1;
       } else {
-        var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+        const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < 500 && d > 80) {
           u.tp = 3 + Math.random() * 2;
-          for (var i = 0; i < 8; i++) {
-            var a = Math.random() * 6.283;
+          for (let i = 0; i < 8; i++) {
+            const a = Math.random() * 6.283;
             spP(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
           }
           spP(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
-          var ta = Math.random() * 6.283,
+          const ta = Math.random() * 6.283,
             td = 55 + Math.random() * 35;
           u.x = o.x + Math.cos(ta) * td;
           u.y = o.y + Math.sin(ta) * td;
-          for (var i = 0; i < 8; i++) {
-            var a = Math.random() * 6.283;
+          for (let i = 0; i < 8; i++) {
+            const a = Math.random() * 6.283;
             spP(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
           }
           spP(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
-          for (var i = 0; i < 5; i++) {
-            var ba = Math.random() * 6.283;
+          for (let i = 0; i < 5; i++) {
+            const ba = Math.random() * 6.283;
             spPr(u.x, u.y, Math.cos(ba) * 430, Math.sin(ba) * 430, 0.3, t.dmg * vd, u.team, 2, c[0], c[1], c[2]);
           }
         }
@@ -249,7 +249,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- CHAIN LIGHTNING ---
   if (t.chain && u.cd <= 0) {
-    var d = tgtDistOrClear(u);
+    const d = tgtDistOrClear(u);
     if (d < 0) return;
     if (d < t.rng) {
       u.cd = t.fr;
@@ -262,19 +262,19 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- BEAM ---
   if (t.beam) {
     if (u.tgt >= 0) {
-      var o = uP[u.tgt]!;
+      const o = uP[u.tgt]!;
       if (o.alive) {
-        var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+        const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < t.rng) {
           u.beamOn = Math.min(u.beamOn + dt * 2, 1);
           u.cd -= dt;
           if (u.cd <= 0) {
             u.cd = t.fr;
-            var dmg = t.dmg * u.beamOn * vd;
+            let dmg = t.dmg * u.beamOn * vd;
             if (o.shielded) dmg *= 0.4; // 60% reduction under reflector shield
             o.hp -= dmg;
             kb(u.tgt, u.x, u.y, dmg * 5);
-            for (var i = 0; i < 2; i++) {
+            for (let i = 0; i < 2; i++) {
               spP(
                 o.x + (Math.random() - 0.5) * 8,
                 o.y + (Math.random() - 0.5) * 8,
@@ -294,7 +294,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
               u.beamOn = 0;
             }
           }
-          var bw = (t.sz >= 15 ? 6 : 4) * u.beamOn;
+          const bw = (t.sz >= 15 ? 6 : 4) * u.beamOn;
           addBeam(
             u.x + Math.cos(u.ang) * t.sz * 0.5,
             u.y + Math.sin(u.ang) * t.sz * 0.5,
@@ -321,17 +321,17 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- NORMAL FIRE ---
   if (u.cd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt]!;
+    const o = uP[u.tgt]!;
     if (!o.alive) {
       u.tgt = -1;
       return;
     }
-    var dx = o.x - u.x,
+    const dx = o.x - u.x,
       dy = o.y - u.y;
-    var d = Math.sqrt(dx * dx + dy * dy);
+    const d = Math.sqrt(dx * dx + dy * dy);
     if (d < t.rng) {
       u.cd = t.fr;
-      var ang = Math.atan2(dy, dx);
+      const ang = Math.atan2(dy, dx);
 
       if (t.homing) {
         spPr(
@@ -367,8 +367,8 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           t.aoe,
         );
       } else if (t.sh === 3) {
-        for (var i = -2; i <= 2; i++) {
-          var ba = ang + i * 0.25;
+        for (let i = -2; i <= 2; i++) {
+          const ba = ang + i * 0.25;
           spPr(
             u.x + Math.cos(ba) * t.sz,
             u.y + Math.sin(ba) * t.sz,
@@ -398,8 +398,8 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           c[2] * 0.5 + 0.5,
         );
         addBeam(u.x, u.y, u.x + Math.cos(ang) * t.rng, u.y + Math.sin(ang) * t.rng, c[0], c[1], c[2], 0.1, 1.5);
-        for (var i = 0; i < 4; i++) {
-          var a2 = ang + (Math.random() - 0.5) * 0.4;
+        for (let i = 0; i < 4; i++) {
+          const a2 = ang + (Math.random() - 0.5) * 0.4;
           spP(
             u.x + Math.cos(ang) * t.sz * 1.5,
             u.y + Math.sin(ang) * t.sz * 1.5,
@@ -414,7 +414,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           );
         }
       } else {
-        var sp = 480 + t.dmg * 12;
+        const sp = 480 + t.dmg * 12;
         spPr(
           u.x + Math.cos(u.ang) * t.sz,
           u.y + Math.sin(u.ang) * t.sz,
@@ -431,7 +431,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       }
 
       if (!t.homing && !t.aoe && t.sh !== 8) {
-        for (var i = 0; i < 2; i++) {
+        for (let i = 0; i < 2; i++) {
           spP(
             u.x + Math.cos(u.ang) * t.sz,
             u.y + Math.sin(u.ang) * t.sz,

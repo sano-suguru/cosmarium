@@ -1,16 +1,16 @@
 import type { Asteroid, Base, Beam, GameMode, GameState } from './types.ts';
 
-export var gameState: GameState = 'menu';
-export var gameMode: GameMode = 0;
-export var winTeam = -1;
-export var catalogOpen = false;
-export var catSelected = 0;
-export var timeScale = 0.55;
-export var rT = 0;
+export let gameState: GameState = 'menu';
+export let gameMode: GameMode = 0;
+export let winTeam = -1;
+export let catalogOpen = false;
+export let catSelected = 0;
+export let timeScale = 0.55;
+export let rT = 0;
 
-export var beams: Beam[] = [];
-export var asteroids: Asteroid[] = [];
-export var bases: [Base, Base] = [
+export const beams: Beam[] = [];
+export const asteroids: Asteroid[] = [];
+export const bases: [Base, Base] = [
   { x: -1800, y: 0, hp: 500, mhp: 500 },
   { x: 1800, y: 0, hp: 500, mhp: 500 },
 ];

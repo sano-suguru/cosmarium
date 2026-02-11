@@ -13,15 +13,15 @@ function dQ() {
 }
 
 export function renderFrame(now: number) {
-  var sF = fbos.sF!;
-  var bF1 = fbos.bF1!;
-  var bF2 = fbos.bF2!;
-  var W = viewport.W,
+  const sF = fbos.sF!;
+  const bF1 = fbos.bF1!;
+  const bF2 = fbos.bF2!;
+  const W = viewport.W,
     H = viewport.H;
 
-  var cx = catalogOpen ? 0 : cam.x + cam.shkx;
-  var cy = catalogOpen ? 0 : cam.y + cam.shky;
-  var cz = catalogOpen ? 2.5 : cam.z;
+  const cx = catalogOpen ? 0 : cam.x + cam.shkx;
+  const cy = catalogOpen ? 0 : cam.y + cam.shky;
+  const cz = catalogOpen ? 2.5 : cam.z;
 
   // Render pass 1: scene
   gl.bindFramebuffer(gl.FRAMEBUFFER, sF.fb);
@@ -29,7 +29,7 @@ export function renderFrame(now: number) {
   gl.clearColor(0.007, 0.003, 0.013, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  var ic = renderScene(now);
+  const ic = renderScene(now);
   if (ic > 0) {
     gl.useProgram(mP);
     gl.uniform2f(Loc.uR, W, H);

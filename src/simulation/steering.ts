@@ -14,11 +14,11 @@ export function steer(u: Unit, dt: number) {
     u.y += u.vy * dt;
     return;
   }
-  var t = TYPES[u.type]!;
-  var fx = 0,
+  const t = TYPES[u.type]!;
+  let fx = 0,
     fy = 0;
-  var nn = gN(u.x, u.y, 200, _nb);
-  var sx = 0,
+  const nn = gN(u.x, u.y, 200, _nb);
+  let sx = 0,
     sy = 0,
     ax = 0,
     ay = 0,
@@ -26,17 +26,17 @@ export function steer(u: Unit, dt: number) {
     chx = 0,
     chy = 0,
     cc = 0;
-  var sd = t.sz * 4;
+  const sd = t.sz * 4;
 
-  for (var i = 0; i < nn; i++) {
-    var oi = _nb[i]!,
+  for (let i = 0; i < nn; i++) {
+    const oi = _nb[i]!,
       o = uP[oi]!;
     if (!o.alive || o === u) continue;
-    var dx = u.x - o.x,
+    const dx = u.x - o.x,
       dy = u.y - o.y;
-    var d2 = dx * dx + dy * dy;
+    const d2 = dx * dx + dy * dy;
     if (d2 < 1) continue;
-    var d = Math.sqrt(d2);
+    const d = Math.sqrt(d2);
     if (d < sd) {
       sx += (dx / d / d2) * 200;
       sy += (dy / d / d2) * 200;
@@ -66,11 +66,11 @@ export function steer(u: Unit, dt: number) {
   }
 
   // Avoid asteroids
-  for (var i = 0; i < asteroids.length; i++) {
-    var a = asteroids[i]!;
-    var dx = u.x - a.x,
+  for (let i = 0; i < asteroids.length; i++) {
+    const a = asteroids[i]!;
+    const dx = u.x - a.x,
       dy = u.y - a.y;
-    var d = Math.sqrt(dx * dx + dy * dy);
+    const d = Math.sqrt(dx * dx + dy * dy);
     if (d < a.r + t.sz * 2) {
       fx += ((dx / d) * 300) / (d + 1);
       fy += ((dy / d) * 300) / (d + 1);
@@ -78,15 +78,15 @@ export function steer(u: Unit, dt: number) {
   }
 
   // Find target
-  var tgt = u.tgt >= 0 && uP[u.tgt]!.alive ? u.tgt : -1;
+  let tgt = u.tgt >= 0 && uP[u.tgt]!.alive ? u.tgt : -1;
   if (tgt < 0) {
-    var bd = t.rng * 3,
+    let bd = t.rng * 3,
       bi = -1;
-    for (var i = 0; i < nn; i++) {
-      var oi = _nb[i]!,
+    for (let i = 0; i < nn; i++) {
+      const oi = _nb[i]!,
         o = uP[oi]!;
       if (o.team === u.team || !o.alive) continue;
-      var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+      const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
       if (d < bd) {
         bd = d;
         bi = oi;
@@ -94,10 +94,10 @@ export function steer(u: Unit, dt: number) {
     }
     if (bi < 0 && Math.random() < 0.012) {
       bd = 1e18;
-      for (var i = 0; i < PU; i++) {
-        var o = uP[i]!;
+      for (let i = 0; i < PU; i++) {
+        const o = uP[i]!;
         if (!o.alive || o.team === u.team) continue;
-        var d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
+        const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
         if (d2 < bd) {
           bd = d2;
           bi = i;
@@ -109,16 +109,16 @@ export function steer(u: Unit, dt: number) {
   u.tgt = tgt;
 
   if (gameMode === 2 && tgt < 0) {
-    var eb = bases[u.team === 0 ? 1 : 0];
+    const eb = bases[u.team === 0 ? 1 : 0];
     fx += (eb.x - u.x) * 0.03;
     fy += (eb.y - u.y) * 0.03;
   }
 
   if (tgt >= 0) {
-    var o = uP[tgt]!;
-    var dx = o.x - u.x,
+    const o = uP[tgt]!;
+    const dx = o.x - u.x,
       dy = o.y - u.y;
-    var d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (t.rams) {
       fx += (dx / d) * t.spd * 3;
       fy += (dy / d) * t.spd * 3;
@@ -140,10 +140,10 @@ export function steer(u: Unit, dt: number) {
 
   // Healer follows big ally
   if (t.heals) {
-    var bm = 0,
+    let bm = 0,
       bi2 = -1;
-    for (var i = 0; i < nn; i++) {
-      var oi = _nb[i]!,
+    for (let i = 0; i < nn; i++) {
+      const oi = _nb[i]!,
         o = uP[oi]!;
       if (o.team !== u.team || !o.alive || o === u) continue;
       if (TYPES[o.type]!.mass > bm) {
@@ -152,25 +152,25 @@ export function steer(u: Unit, dt: number) {
       }
     }
     if (bi2 >= 0) {
-      var o = uP[bi2]!;
+      const o = uP[bi2]!;
       fx += (o.x - u.x) * 0.05;
       fy += (o.y - u.y) * 0.05;
     }
   }
 
-  var m = WORLD * 0.8;
+  const m = WORLD * 0.8;
   if (u.x < -m) fx += 120;
   if (u.x > m) fx -= 120;
   if (u.y < -m) fy += 120;
   if (u.y > m) fy -= 120;
 
-  var da = Math.atan2(fy, fx);
-  var ad = da - u.ang;
+  const da = Math.atan2(fy, fx);
+  let ad = da - u.ang;
   if (ad > PI) ad -= TAU;
   if (ad < -PI) ad += TAU;
   u.ang += ad * t.tr * dt;
 
-  var spd = t.spd * (1 + u.vet * 0.12);
+  const spd = t.spd * (1 + u.vet * 0.12);
   u.vx += (Math.cos(u.ang) * spd - u.vx) * dt * 3;
   u.vy += (Math.sin(u.ang) * spd - u.vy) * dt * 3;
   u.vx *= 1 - dt * 0.5;
@@ -179,13 +179,13 @@ export function steer(u: Unit, dt: number) {
   u.y += u.vy * dt;
 
   // Asteroid collision
-  for (var i = 0; i < asteroids.length; i++) {
-    var a = asteroids[i]!;
-    var dx = u.x - a.x,
+  for (let i = 0; i < asteroids.length; i++) {
+    const a = asteroids[i]!;
+    const dx = u.x - a.x,
       dy = u.y - a.y;
-    var d = Math.sqrt(dx * dx + dy * dy);
+    const d = Math.sqrt(dx * dx + dy * dy);
     if (d < a.r + t.sz) {
-      var pen = a.r + t.sz - d;
+      const pen = a.r + t.sz - d;
       u.x += (dx / d) * pen;
       u.y += (dy / d) * pen;
       u.vx += (dx / d) * 50;

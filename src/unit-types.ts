@@ -1,6 +1,6 @@
 import type { UnitType } from './types.ts';
 
-export var TYPES: UnitType[] = [
+export const TYPES: UnitType[] = [
   {
     nm: 'Drone',
     sz: 4,

@@ -5,9 +5,9 @@ import type { Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
 export function spU(team: Team, type: number, x: number, y: number): number {
-  for (var i = 0; i < PU; i++) {
+  for (let i = 0; i < PU; i++) {
     if (!uP[i]!.alive) {
-      var u = uP[i]!,
+      const u = uP[i]!,
         t = TYPES[type]!;
       u.alive = true;
       u.team = team;
@@ -58,9 +58,9 @@ export function spP(
   b: number,
   sh: number,
 ): number {
-  for (var i = 0; i < PP; i++) {
+  for (let i = 0; i < PP; i++) {
     if (!pP[i]!.alive) {
-      var p = pP[i]!;
+      const p = pP[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -96,9 +96,9 @@ export function spPr(
   aoe?: number,
   tx?: number,
 ): number {
-  for (var i = 0; i < PPR; i++) {
+  for (let i = 0; i < PPR; i++) {
     if (!prP[i]!.alive) {
-      var p = prP[i]!;
+      const p = prP[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;

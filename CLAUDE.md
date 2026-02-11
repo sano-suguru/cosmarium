@@ -35,14 +35,14 @@ No test framework is configured. There are no automated tests.
 **CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`. `bun run check` は `biome ci .`（lint+format一括チェック）を使用。
 
 **Biome key rules** (config in `biome.json`):
-- `noVar: off`, `useConst: off` — `var` is used throughout; don't convert to `let`/`const`
+- `noVar: error`, `useConst: error` — `let`/`const` を使用（`var` は禁止）
 - `noRedeclare: off` — TypeScript の型と同名の変数宣言を許可
 - `noConsole: error` — only `console.error` and `console.warn` are allowed
 - `noExplicitAny: error` — avoid `any` where possible
 - `noNonNullAssertion: off` — non-null assertions (`!`) are allowed
 - `noUnusedVariables: error` — `_` prefix variables/args are ignored (Biome default)
 - `noUnusedImports: error` — unused imports are errors
-- `noInnerDeclarations: off` — `var` inside blocks is allowed
+- `noInnerDeclarations: off` — function declarations inside blocks are allowed
 - `useTemplate: off` — template literal conversion not enforced
 - `noEvolvingTypes: error`, `noEmptyBlockStatements: error` — 型推論の不安定化と空ブロックを禁止
 - `noDelete: error`, `noBarrelFile: error`, `noReExportAll: error` — パフォーマンス系ルール
@@ -141,7 +141,7 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
   - Locations: `Loc`=main program attribs/uniforms, `mmLoc`=minimap program attribs, `blLoc`=bloom program uniforms, `coLoc`=composite program uniforms
   - Colors: `gC(typeIdx, team)` → [r,g,b], `gTr(typeIdx, team)` → trail color
   - State: `rT`=reinforcement timer (2.5秒間隔で `reinforce()` を発火)
-- **State mutation**: Mutable state in `state.ts` uses `export var` + setter functions (e.g., `setGameState()`) because ES module `let` re-exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
+- **State mutation**: Mutable state in `state.ts` uses `export let` + setter functions (e.g., `setGameState()`) because ES module exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import規約**: 相対パス + `.ts` 拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし、barrel export（index.ts）なし

@@ -1,11 +1,11 @@
 import { PP, PPR, PU } from './constants.ts';
 import type { Particle, Projectile, Unit } from './types.ts';
 
-export var uP: Unit[] = [];
-export var pP: Particle[] = [];
-export var prP: Projectile[] = [];
+export const uP: Unit[] = [];
+export const pP: Particle[] = [];
+export const prP: Projectile[] = [];
 
-export var poolCounts = { uC: 0, pC: 0, prC: 0 };
+export const poolCounts = { uC: 0, pC: 0, prC: 0 };
 
 for (let i = 0; i < PU; i++) {
   uP[i] = {

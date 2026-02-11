@@ -1,7 +1,7 @@
 import type { FBO } from '../types.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
-export var fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
+export const fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
   sF: null,
   bF1: null,
   bF2: null,
@@ -14,14 +14,14 @@ function delFBO(fbo: FBO | null) {
 }
 
 function mkFBO(w: number, h: number): FBO {
-  var t = gl.createTexture()!;
+  const t = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  var f = gl.createFramebuffer()!;
+  const f = gl.createFramebuffer()!;
   gl.bindFramebuffer(gl.FRAMEBUFFER, f);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) console.error('FBO incomplete:', w, h);

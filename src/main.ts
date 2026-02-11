@@ -30,14 +30,14 @@ initCamera();
 initMinimap();
 
 // Main loop state
-var lt = 0,
+let lt = 0,
   fc = 0,
   ft = 0,
   df = 0;
 
 function frame(now: number) {
-  var t = now * 0.001;
-  var dt = Math.min(t - lt, 0.05);
+  const t = now * 0.001;
+  const dt = Math.min(t - lt, 0.05);
   lt = t;
 
   fc++;
@@ -48,7 +48,7 @@ function frame(now: number) {
     ft = 0;
   }
 
-  var ct = 1 - 0.0005 ** dt;
+  const ct = 1 - 0.0005 ** dt;
   cam.x += (cam.tx - cam.x) * ct;
   cam.y += (cam.ty - cam.y) * ct;
   cam.z += (cam.tz - cam.z) * ct;

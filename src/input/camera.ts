@@ -2,8 +2,8 @@ import { canvas, viewport } from '../renderer/webgl-setup.ts';
 import { catalogOpen, gameState } from '../state.ts';
 import type { Camera } from '../types.ts';
 
-export var cam: Camera = { x: 0, y: 0, z: 1, tz: 1, tx: 0, ty: 0, shkx: 0, shky: 0, shk: 0 };
-var drg = false,
+export const cam: Camera = { x: 0, y: 0, z: 1, tz: 1, tx: 0, ty: 0, shkx: 0, shky: 0, shk: 0 };
+let drg = false,
   ds = { x: 0, y: 0 },
   cs = { x: 0, y: 0 };
 
@@ -18,11 +18,11 @@ export function initCamera() {
     (e) => {
       e.preventDefault();
       if (catalogOpen) return;
-      var W = viewport.W,
+      const W = viewport.W,
         H = viewport.H;
-      var wx = cam.tx + (e.clientX - W / 2) / cam.tz;
-      var wy = cam.ty - (e.clientY - H / 2) / cam.tz;
-      var nz = cam.tz * (e.deltaY > 0 ? 0.9 : 1.1);
+      const wx = cam.tx + (e.clientX - W / 2) / cam.tz;
+      const wy = cam.ty - (e.clientY - H / 2) / cam.tz;
+      let nz = cam.tz * (e.deltaY > 0 ? 0.9 : 1.1);
       nz = Math.max(0.05, Math.min(8, nz));
       cam.tx = wx - (e.clientX - W / 2) / nz;
       cam.ty = wy + (e.clientY - H / 2) / nz;

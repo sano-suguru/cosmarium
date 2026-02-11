@@ -3,10 +3,10 @@ import { poolCounts, uP } from '../pools.ts';
 import { bases, gameMode } from '../state.ts';
 
 export function updateHUD(df: number) {
-  var ca = 0,
+  let ca = 0,
     cb = 0;
-  for (var i = 0; i < PU; i++) {
-    var u = uP[i]!;
+  for (let i = 0; i < PU; i++) {
+    const u = uP[i]!;
     if (!u.alive) continue;
     if (u.team === 0) ca++;
     else cb++;

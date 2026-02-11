@@ -36,9 +36,9 @@ function startGame(mode: GameMode) {
   document.getElementById('speed')!.style.display = 'flex';
   document.getElementById('win')!.style.display = 'none';
   document.getElementById('baseHP')!.style.display = mode === 2 ? 'block' : 'none';
-  var obj = document.getElementById('objective')!;
+  const obj = document.getElementById('objective')!;
   obj.style.display = 'block';
-  var labels: Record<GameMode, string> = { 0: 'INFINITE WAR', 1: 'ANNIHILATE ALL ENEMIES', 2: 'DESTROY ENEMY BASE' };
+  const labels: Record<GameMode, string> = { 0: 'INFINITE WAR', 1: 'ANNIHILATE ALL ENEMIES', 2: 'DESTROY ENEMY BASE' };
   obj.textContent = labels[mode];
   initUnits();
 }
@@ -46,7 +46,7 @@ function startGame(mode: GameMode) {
 export function showWin() {
   setGameState('win');
   document.getElementById('win')!.style.display = 'flex';
-  var t = document.getElementById('winText')!;
+  const t = document.getElementById('winText')!;
   t.textContent = winTeam === 0 ? 'CYAN VICTORY' : 'MAGENTA VICTORY';
   t.style.color = winTeam === 0 ? '#0ff' : '#f0f';
 }
@@ -56,17 +56,17 @@ function backToMenu() {
   setCatalogOpen(false);
   document.getElementById('catalog')!.classList.remove('open');
   document.getElementById('menu')!.style.display = 'flex';
-  var ids = ['hud', 'catBtn', 'minimap', 'controls', 'objective', 'win', 'speed'];
+  const ids = ['hud', 'catBtn', 'minimap', 'controls', 'objective', 'win', 'speed'];
   ids.forEach((id) => {
     document.getElementById(id)!.style.display = 'none';
   });
 }
 
-var speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
+const speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
 
 function stepSpd(dir: number) {
-  var i = speeds.indexOf(timeScale);
-  var def = speeds.indexOf(0.55);
+  const i = speeds.indexOf(timeScale);
+  const def = speeds.indexOf(0.55);
   if (dir < 0) {
     if (i > 0) setSpd(speeds[i - 1]!);
     else if (i < 0) setSpd(speeds[def - 1]!);
