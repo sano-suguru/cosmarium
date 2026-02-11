@@ -19,7 +19,10 @@ mkFBOs();
 initBuffers();
 
 // Resize handler
-addEventListener('resize', function() { resize(); mkFBOs(); });
+addEventListener('resize', function () {
+  resize();
+  mkFBOs();
+});
 
 // Initialize UI and input
 initUI();
@@ -27,15 +30,23 @@ initCamera();
 initMinimap();
 
 // Main loop state
-var lt = 0, fc = 0, ft = 0, df = 0;
+var lt = 0,
+  fc = 0,
+  ft = 0,
+  df = 0;
 
 function frame(now: number) {
   now *= 0.001;
   var dt = Math.min(now - lt, 0.05);
   lt = now;
 
-  fc++; ft += dt;
-  if (ft >= 0.5) { df = fc / ft | 0; fc = 0; ft = 0; }
+  fc++;
+  ft += dt;
+  if (ft >= 0.5) {
+    df = (fc / ft) | 0;
+    fc = 0;
+    ft = 0;
+  }
 
   var ct = 1 - Math.pow(0.0005, dt);
   cam.x += (cam.tx - cam.x) * ct;
@@ -47,7 +58,9 @@ function frame(now: number) {
     cam.shky = (Math.random() - 0.5) * cam.shk;
     cam.shk *= 0.82;
   } else {
-    cam.shkx = 0; cam.shky = 0; cam.shk = 0;
+    cam.shkx = 0;
+    cam.shky = 0;
+    cam.shk = 0;
   }
 
   if (gameState === 'play') {

@@ -14,7 +14,7 @@ export var qVAO: WebGLVertexArrayObject;
 export function initBuffers() {
   qB = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, qB);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
 
   iD = new Float32Array(MAX_I * 9);
   iB = gl.createBuffer()!;

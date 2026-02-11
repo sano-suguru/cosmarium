@@ -4,7 +4,7 @@ import type { FBO } from '../types.ts';
 export var fbos = {
   sF: null as FBO | null,
   bF1: null as FBO | null,
-  bF2: null as FBO | null
+  bF2: null as FBO | null,
 };
 
 function delFBO(fbo: FBO | null) {
@@ -24,10 +24,9 @@ export function mkFBO(w: number, h: number): FBO {
   var f = gl.createFramebuffer()!;
   gl.bindFramebuffer(gl.FRAMEBUFFER, f);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
-  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE)
-    console.error('FBO incomplete:', w, h);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) console.error('FBO incomplete:', w, h);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  return { fb:f, tex:t, w:w, h:h };
+  return { fb: f, tex: t, w: w, h: h };
 }
 
 export function mkFBOs() {

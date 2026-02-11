@@ -5,10 +5,14 @@
 ## Quick Reference
 
 - **言語**: 日本語で返答
-- **型チェック**: `bunx tsc --noEmit` — strict mode、未使用変数警告なし
-- **ビルド**: `bunx vite build` — dist/へ出力
+- **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` off
+- **ビルド**: `bun run build` — dist/へ出力
+- **全チェック**: `bun run check` — typecheck + lint + format:check を一括実行
 - **テスト**: なし（手動確認のみ）
-- **リンター/フォーマッター**: なし — 既存スタイルに合わせること
+- **リンター**: ESLint（flat config）— `no-var: off`, `prefer-const: off`。`src/shaders/**`は除外
+- **フォーマッター**: Prettier — singleQuote, printWidth=120。GLSLは除外
+- **Pre-commit**: `simple-git-hooks` + `lint-staged`（ステージ済みファイルにESLint + Prettier実行）
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境でtypecheck + lint + format:check
 
 ## Dependency Graph (変更影響マップ)
 

@@ -12,14 +12,31 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies — only `vite` and `@types/bun` as dev deps. No linter, formatter, or test framework configured.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`.
+
+**Linting & Formatting**: ESLint (flat config) + Prettier configured. Pre-commit hook via `simple-git-hooks` + `lint-staged` runs ESLint and Prettier on staged files.
 
 ```bash
-bun install        # Install dependencies
-bunx vite          # Dev server at http://localhost:5173
-bunx vite build    # Production build to dist/
-bunx tsc --noEmit  # Type check (strict mode, but noUnusedLocals/noUnusedParameters off)
+bun install          # Install dependencies
+bun run dev          # Dev server at http://localhost:5173
+bun run build        # Production build to dist/
+bun run typecheck    # Type check (strict mode, but noUnusedLocals/noUnusedParameters off)
+bun run lint         # ESLint (src/)
+bun run lint:fix     # ESLint with auto-fix
+bun run format       # Prettier format (write)
+bun run format:check # Prettier format (check only)
+bun run check        # All checks combined (typecheck + lint + format:check)
 ```
+
+No test framework is configured. There are no automated tests.
+
+**ESLint key rules** (flat config in `eslint.config.js`):
+- `no-var: off`, `prefer-const: off` — `var` is used throughout; don't convert to `let`/`const`
+- `no-console: warn` — only `console.error` and `console.warn` are allowed
+- `@typescript-eslint/no-explicit-any: warn` — avoid `any` where possible
+- `src/shaders/**` is excluded from ESLint
+
+**Prettier**: singleQuote, printWidth=120, trailingComma=all (config in `.prettierrc.json`). GLSL files are excluded from Prettier.
 
 GLSL shaders are imported as raw strings via Vite's `?raw` suffix (type-declared in `vite-env.d.ts`).
 

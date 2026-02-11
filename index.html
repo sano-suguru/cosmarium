@@ -1,96 +1,97 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COSMIC WARFARE</title>
-</head>
-<body>
-
-<div id="menu">
-  <h1>COSMIC WARFARE</h1>
-  <div class="sub">SPACE BATTLE SIMULATION</div>
-  <button class="mbtn" id="btnInfinite">
-    INFINITE<div class="desc">永遠に続く戦争。増援が自動で到着</div>
-  </button>
-  <button class="mbtn" id="btnAnnihilation">
-    ANNIHILATION<div class="desc">相手の全ユニットを殲滅せよ</div>
-  </button>
-  <button class="mbtn" id="btnBaseAssault">
-    BASE ASSAULT<div class="desc">敵の拠点を破壊しつつ自拠点を守れ</div>
-  </button>
-</div>
-
-<div id="hud" style="display:none">
-  <div>
-    <span class="hl">UNITS:</span>
-    <span class="hc" id="cA">0</span>
-    <span class="hl">vs</span>
-    <span class="hm" id="cB">0</span>
-  </div>
-  <div><span class="hl">PARTICLES:</span> <span id="pN">0</span></div>
-  <div>
-    <span class="hl">FPS:</span> <span id="fps">0</span>
-    <span class="hl" style="margin-left:8px">SPD:</span> <span id="spdV">0.55x</span>
-  </div>
-  <div id="baseHP" style="display:none">
-    <span class="hl">BASE:</span>
-    <span class="hc" id="bA">100%</span>
-    <span class="hl">vs</span>
-    <span class="hm" id="bB">100%</span>
-  </div>
-</div>
-
-<div id="objective" style="display:none"></div>
-<button id="catBtn" style="display:none">TAB: CATALOG</button>
-
-<div id="catalog">
-  <div id="catSide">
-    <h3>UNIT CATALOG</h3>
-    <div id="catList"></div>
-  </div>
-  <div id="catInfo">
-    <div id="catDemo">
-      <div id="catHint">ユニットの攻撃パターンをライブプレビュー</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COSMIC WARFARE</title>
+  </head>
+  <body>
+    <div id="menu">
+      <h1>COSMIC WARFARE</h1>
+      <div class="sub">SPACE BATTLE SIMULATION</div>
+      <button class="mbtn" id="btnInfinite">
+        INFINITE
+        <div class="desc">永遠に続く戦争。増援が自動で到着</div>
+      </button>
+      <button class="mbtn" id="btnAnnihilation">
+        ANNIHILATION
+        <div class="desc">相手の全ユニットを殲滅せよ</div>
+      </button>
+      <button class="mbtn" id="btnBaseAssault">
+        BASE ASSAULT
+        <div class="desc">敵の拠点を破壊しつつ自拠点を守れ</div>
+      </button>
     </div>
-    <div id="catPanel">
-      <div class="cpLeft">
-        <div class="cpName" id="cpName">-</div>
-        <div class="cpDesc" id="cpDesc"></div>
+
+    <div id="hud" style="display: none">
+      <div>
+        <span class="hl">UNITS:</span>
+        <span class="hc" id="cA">0</span>
+        <span class="hl">vs</span>
+        <span class="hm" id="cB">0</span>
       </div>
-      <div class="cpRight">
-        <div class="cpStats" id="cpStats"></div>
+      <div><span class="hl">PARTICLES:</span> <span id="pN">0</span></div>
+      <div>
+        <span class="hl">FPS:</span> <span id="fps">0</span> <span class="hl" style="margin-left: 8px">SPD:</span>
+        <span id="spdV">0.55x</span>
+      </div>
+      <div id="baseHP" style="display: none">
+        <span class="hl">BASE:</span>
+        <span class="hc" id="bA">100%</span>
+        <span class="hl">vs</span>
+        <span class="hm" id="bB">100%</span>
       </div>
     </div>
-    <button id="catClose">ESC</button>
-  </div>
-</div>
 
-<div id="minimap" style="display:none"></div>
+    <div id="objective" style="display: none"></div>
+    <button id="catBtn" style="display: none">TAB: CATALOG</button>
 
-<div id="win">
-  <h2 id="winText"></h2>
-  <button class="mbtn" id="btnMenu">MENU</button>
-</div>
+    <div id="catalog">
+      <div id="catSide">
+        <h3>UNIT CATALOG</h3>
+        <div id="catList"></div>
+      </div>
+      <div id="catInfo">
+        <div id="catDemo">
+          <div id="catHint">ユニットの攻撃パターンをライブプレビュー</div>
+        </div>
+        <div id="catPanel">
+          <div class="cpLeft">
+            <div class="cpName" id="cpName">-</div>
+            <div class="cpDesc" id="cpDesc"></div>
+          </div>
+          <div class="cpRight">
+            <div class="cpStats" id="cpStats"></div>
+          </div>
+        </div>
+        <button id="catClose">ESC</button>
+      </div>
+    </div>
 
-<div id="controls" style="display:none">
-  [ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ TAB: Catalog ] [ +/-: Speed ]
-</div>
-<div id="speed" style="display:none">
-  <span>SPEED</span>
-  <button class="sbtn" data-spd="0.2">0.2x</button>
-  <button class="sbtn" data-spd="0.4">0.4x</button>
-  <button class="sbtn active" data-spd="0.55">0.55x</button>
-  <button class="sbtn" data-spd="0.75">0.75x</button>
-  <button class="sbtn" data-spd="1">1x</button>
-  <button class="sbtn" data-spd="1.5">1.5x</button>
-  <button class="sbtn" data-spd="2.5">2.5x</button>
-</div>
+    <div id="minimap" style="display: none"></div>
 
-<canvas id="c"></canvas>
+    <div id="win">
+      <h2 id="winText"></h2>
+      <button class="mbtn" id="btnMenu">MENU</button>
+    </div>
 
-<script type="module" src="./src/main.ts"></script>
+    <div id="controls" style="display: none">
+      [ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ TAB: Catalog ] [ +/-: Speed ]
+    </div>
+    <div id="speed" style="display: none">
+      <span>SPEED</span>
+      <button class="sbtn" data-spd="0.2">0.2x</button>
+      <button class="sbtn" data-spd="0.4">0.4x</button>
+      <button class="sbtn active" data-spd="0.55">0.55x</button>
+      <button class="sbtn" data-spd="0.75">0.75x</button>
+      <button class="sbtn" data-spd="1">1x</button>
+      <button class="sbtn" data-spd="1.5">1.5x</button>
+      <button class="sbtn" data-spd="2.5">2.5x</button>
+    </div>
 
-</body>
+    <canvas id="c"></canvas>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
 </html>

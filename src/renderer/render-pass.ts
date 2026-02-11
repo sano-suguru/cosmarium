@@ -16,7 +16,8 @@ export function renderFrame(now: number) {
   var sF = fbos.sF!;
   var bF1 = fbos.bF1!;
   var bF2 = fbos.bF2!;
-  var W = viewport.W, H = viewport.H;
+  var W = viewport.W,
+    H = viewport.H;
 
   var cx = catalogOpen ? 0 : cam.x + cam.shkx;
   var cy = catalogOpen ? 0 : cam.y + cam.shky;
