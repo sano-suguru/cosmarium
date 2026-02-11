@@ -102,6 +102,20 @@ src/
 
 **Initialization order** (in main.ts): initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap
 
+**Main loop (per frame)**:
+```
+frame() → dt clamp(0.05) → camera lerp + shake decay
+  → update(dt * timeScale)  — dt再clamp(0.033)
+      bHash() → per unit: steer()+combat() → reflector pass
+      → projectile pass → particle/beam pass  ← 常時実行
+      [!catalogOpen時のみ: reinforce() → win check]
+      [catalogOpen時: updateCatDemo(dt)]
+  → renderFrame()
+      renderScene() → iD[]書込み → GPU upload → drawArraysInstanced
+      → bloom H/V → composite + drawMinimap()
+      [catalogOpen時: カメラ→原点z=2.5固定、HUD/minimap省略]
+```
+
 **変更作業の詳細ガイド**: 各領域の変更指針・影響範囲・注意点は AGENTS.md を参照（ルート `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`）。
 
 ## Coding Conventions
@@ -123,6 +137,11 @@ src/
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import規約**: 相対パス + `.ts` 拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし、barrel export（index.ts）なし
+- **TypeScript strict settings** (コーディングに影響する設定):
+  - `verbatimModuleSyntax: true` — 型のみのインポートには `import type { X }` を使用必須
+  - `exactOptionalPropertyTypes: true` — optional プロパティに直接 `undefined` 代入不可（`prop?: string | undefined` と宣言する必要あり）
+  - `noUncheckedIndexedAccess: true` — 配列/辞書のインデックスアクセスは `T | undefined` 型になる
+  - `noImplicitReturns: true` — 戻り値のある関数は全分岐で明示的に return 必須
 
 ## Key Performance Patterns
 
@@ -184,7 +203,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 
 ## Game Mechanics
 
-- **Veteran system**: 3+ kills → `vet=1` (12% speed/damage bonus); 8+ kills → `vet=2` (24% bonus)
+- **Veteran system**: 3+ kills → `vet=1`, 8+ kills → `vet=2`。速度ボーナス `+vet*12%`（vet2=+24%）、ダメージボーナス `+vet*20%`（vet2=+40%）
 - **Team colors**: 15 unique color pairs per unit type (indexed by type, not team)
 - **Reflector shield**: Nearby allies get `shielded=true` → projectiles deal 30% damage, beams reduced 60%
 - **Catalog demo**: Spawns a controlled scenario per unit type for live preview in the catalog screen

@@ -10,41 +10,43 @@ var catDemoTimer = 0;
 
 function setupCatDemo(typeIdx: number) {
   for (var i = 0; i < PP; i++) {
-    if (pP[i].alive) {
-      pP[i].alive = false;
+    var p = pP[i]!;
+    if (p.alive) {
+      p.alive = false;
       poolCounts.pC--;
     }
   }
   for (var i = 0; i < PPR; i++) {
-    if (prP[i].alive) {
-      prP[i].alive = false;
+    var pr = prP[i]!;
+    if (pr.alive) {
+      pr.alive = false;
       poolCounts.prC--;
     }
   }
   beams.length = 0;
   catDemoUnits.forEach(function (idx) {
-    if (uP[idx].alive) killU(idx);
+    if (uP[idx]!.alive) killU(idx);
   });
   catDemoUnits = [];
   catDemoTimer = 0;
 
-  var t = TYPES[typeIdx];
+  var t = TYPES[typeIdx]!;
   var mi = spU(0, typeIdx, 0, 0);
   if (mi >= 0) {
     catDemoUnits.push(mi);
-    uP[mi].ang = 0;
+    uP[mi]!.ang = 0;
   }
 
   if (t.heals) {
     var ai = spU(0, 1, -60, 0);
     if (ai >= 0) {
       catDemoUnits.push(ai);
-      uP[ai].hp = 3;
+      uP[ai]!.hp = 3;
     }
     var ai2 = spU(0, 0, 60, -40);
     if (ai2 >= 0) {
       catDemoUnits.push(ai2);
-      uP[ai2].hp = 1;
+      uP[ai2]!.hp = 1;
     }
     for (var i = 0; i < 3; i++) {
       var ei = spU(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
@@ -55,7 +57,7 @@ function setupCatDemo(typeIdx: number) {
       var ei = spU(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
       if (ei >= 0) {
         catDemoUnits.push(ei);
-        uP[ei].tgt = mi;
+        uP[ei]!.tgt = mi;
       }
     }
   } else if (t.spawns) {
@@ -85,7 +87,7 @@ function setupCatDemo(typeIdx: number) {
       var ei = spU(1, 3, 250, (i - 1) * 80);
       if (ei >= 0) catDemoUnits.push(ei);
     }
-    if (mi >= 0) uP[mi].x = -200;
+    if (mi >= 0) uP[mi]!.x = -200;
   } else {
     var cnt = t.sh === 3 ? 6 : t.sh === 8 ? 2 : 4;
     for (var i = 0; i < cnt; i++) {
@@ -101,14 +103,15 @@ export function updateCatDemo(dt: number) {
     catDemoTimer = 0;
     var ec = 0;
     catDemoUnits.forEach(function (idx) {
-      if (uP[idx].alive && uP[idx].team === 1) ec++;
+      var unit = uP[idx]!;
+      if (unit.alive && unit.team === 1) ec++;
     });
     if (ec < 2) setupCatDemo(catSelected);
   }
   catDemoUnits.forEach(function (idx) {
-    if (!uP[idx].alive) return;
-    var u = uP[idx];
-    if (u.team === 0 && !TYPES[u.type].rams) {
+    var u = uP[idx]!;
+    if (!u.alive) return;
+    if (u.team === 0 && !TYPES[u.type]!.rams) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
@@ -117,13 +120,13 @@ export function updateCatDemo(dt: number) {
 }
 
 function updateCatPanel() {
-  var t = TYPES[catSelected];
+  var t = TYPES[catSelected]!;
   var c0 = gC(catSelected, 0),
     c1 = gC(catSelected, 1);
   var col = 'rgb(' + ((c0[0] * 255) | 0) + ',' + ((c0[1] * 255) | 0) + ',' + ((c0[2] * 255) | 0) + ')';
   var col2 = 'rgb(' + ((c1[0] * 255) | 0) + ',' + ((c1[1] * 255) | 0) + ',' + ((c1[2] * 255) | 0) + ')';
   document.getElementById('cpName')!.textContent = t.nm;
-  (document.getElementById('cpName') as HTMLElement).style.color = col;
+  document.getElementById('cpName')!.style.color = col;
   document.getElementById('cpDesc')!.textContent = t.desc;
 
   var mkBar = function (label: string, val: number, max: number, color: string): DocumentFragment {

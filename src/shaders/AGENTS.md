@@ -24,26 +24,29 @@
 
 ## Shape ID → SDF マッピング
 
-| ID | 形状 | SDF手法 | 使用ユニット例 |
+| ID | 形状 | SDF手法 | 実際の使用箇所 |
 |----|------|---------|---------------|
-| 0 | circle | `length(vU)` | particle, basic |
-| 1 | diamond | `manDist` | — |
+| 0 | circle | `length(vU)` | particle、projectile(aoe/default)、HP bar、stun spark |
+| 1 | diamond | `manDist` | projectile(通常弾)、minimap背景rect、minimap unit |
 | 2 | triangle | 横グラデーション幅 | — |
-| 3 | hexagon | `hexDist` | — |
+| 3 | hexagon | `hexDist` | asteroid |
 | 4 | cross | step(x)+step(y) | — |
-| 5 | ring | `abs(d-0.7)` | — |
-| 6 | arrow | 三角+矩形body | — |
-| 7 | star(5) | `polarR(5)` | — |
+| 5 | ring | `abs(d-0.7)` | reflector shield表示 |
+| 6 | arrow | 三角+矩形body | homing projectile、minimap unit（別VAO） |
+| 7 | star(5) | `polarR(5)` | vet星バッジ（vet≥1: 1個、vet≥2: 2個） |
 | 8 | crescent | 2円の差分 | — |
 | 9 | square | `max(abs.x,abs.y)` | — |
-| 10 | glow ring | `exp(-ring*8)` | — |
+| 10 | glow ring | `exp(-ring*8)` | explosion ring、vet glow、EMP ring、shield aura、base glow |
 | 11 | chevron | `step(by,bx*0.8)` | — |
-| 12 | beam | `exp(-by*6)` | beam |
+| 12 | beam | `exp(-by*6)` | beam segments |
 | 13 | diamond ring | `manDist`中空 | — |
 | 14 | trefoil | `polarR(3)` | — |
 | 15 | lightning | 斜めexp | — |
 | 16 | pentagon | 5角形cos分割 | — |
-| 20 | large hexagon | `hexDist`+強glow | base |
+| 17-19 | — | — | **未定義**（gap） |
+| 20 | large hexagon | `hexDist`+強glow | base(mode=2) |
+
+**particle shape 10**: 拡大リング — `sz = p.sz * (2.2 - al * 1.7)`（lifeが減るほど拡大）
 
 ## 新Shape追加手順
 

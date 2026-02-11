@@ -35,7 +35,7 @@ function startGame(mode: GameMode) {
   document.getElementById('controls')!.style.display = 'block';
   document.getElementById('speed')!.style.display = 'flex';
   document.getElementById('win')!.style.display = 'none';
-  (document.getElementById('baseHP') as HTMLElement).style.display = mode === 2 ? 'block' : 'none';
+  document.getElementById('baseHP')!.style.display = mode === 2 ? 'block' : 'none';
   var obj = document.getElementById('objective')!;
   obj.style.display = 'block';
   obj.textContent = mode === 0 ? 'INFINITE WAR' : mode === 1 ? 'ANNIHILATE ALL ENEMIES' : 'DESTROY ENEMY BASE';
@@ -47,7 +47,7 @@ export function showWin() {
   document.getElementById('win')!.style.display = 'flex';
   var t = document.getElementById('winText')!;
   t.textContent = winTeam === 0 ? 'CYAN VICTORY' : 'MAGENTA VICTORY';
-  (t as HTMLElement).style.color = winTeam === 0 ? '#0ff' : '#f0f';
+  t.style.color = winTeam === 0 ? '#0ff' : '#f0f';
 }
 
 function backToMenu() {
@@ -57,7 +57,7 @@ function backToMenu() {
   document.getElementById('menu')!.style.display = 'flex';
   var ids = ['hud', 'catBtn', 'minimap', 'controls', 'objective', 'win', 'speed'];
   ids.forEach(function (id) {
-    (document.getElementById(id) as HTMLElement).style.display = 'none';
+    document.getElementById(id)!.style.display = 'none';
   });
 }
 
@@ -87,9 +87,9 @@ export function initUI() {
   });
 
   // Speed buttons
-  document.querySelectorAll('.sbtn[data-spd]').forEach(function (btn) {
+  document.querySelectorAll<HTMLElement>('.sbtn[data-spd]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      setSpd(parseFloat((btn as HTMLElement).dataset.spd || '0.55'));
+      setSpd(parseFloat(btn.dataset.spd || '0.55'));
     });
   });
 
@@ -103,13 +103,13 @@ export function initUI() {
       var speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
       if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
         var i = speeds.indexOf(timeScale);
-        if (i > 0) setSpd(speeds[i - 1]);
+        if (i > 0) setSpd(speeds[i - 1]!);
         else if (i < 0) setSpd(0.4);
         e.preventDefault();
       }
       if (e.code === 'Equal' || e.code === 'NumpadAdd') {
         var i = speeds.indexOf(timeScale);
-        if (i < speeds.length - 1) setSpd(speeds[i + 1]);
+        if (i < speeds.length - 1) setSpd(speeds[i + 1]!);
         else if (i < 0) setSpd(0.75);
         e.preventDefault();
       }

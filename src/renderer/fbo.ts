@@ -1,10 +1,10 @@
 import { gl, viewport } from './webgl-setup.ts';
 import type { FBO } from '../types.ts';
 
-export var fbos = {
-  sF: null as FBO | null,
-  bF1: null as FBO | null,
-  bF2: null as FBO | null,
+export var fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
+  sF: null,
+  bF1: null,
+  bF2: null,
 };
 
 function delFBO(fbo: FBO | null) {

@@ -1,6 +1,6 @@
 export interface Unit {
   alive: boolean;
-  team: number;
+  team: Team;
   type: number;
   x: number;
   y: number;
@@ -47,7 +47,7 @@ export interface Projectile {
   vy: number;
   life: number;
   dmg: number;
-  team: number;
+  team: Team;
   sz: number;
   r: number;
   g: number;
@@ -134,3 +134,4 @@ export type Color3 = [number, number, number];
 
 export type GameState = 'menu' | 'play' | 'win';
 export type GameMode = 0 | 1 | 2;
+export type Team = 0 | 1;

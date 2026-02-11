@@ -4,10 +4,10 @@ import { gC, gTr } from '../colors.ts';
 import { gN, _nb, kb } from './spatial-hash.ts';
 import { spP, killU, addBeam } from './spawn.ts';
 import { addShake } from '../input/camera.ts';
-import type { Unit } from '../types.ts';
+import type { Color3, Team, Unit } from '../types.ts';
 
-export function explosion(x: number, y: number, team: number, type: number, killer: number) {
-  var sz = TYPES[type].sz;
+export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
+  var sz = TYPES[type]!.sz;
   var c = gC(type, team);
   var cnt = Math.min((18 + sz * 3) | 0, 50);
 
@@ -55,22 +55,25 @@ export function explosion(x: number, y: number, team: number, type: number, kill
 
   var nn = gN(x, y, sz * 8, _nb);
   for (var i = 0; i < nn; i++) {
-    var o = uP[_nb[i]];
+    var o = uP[_nb[i]!]!;
     if (!o.alive) continue;
     var ddx = o.x - x,
       ddy = o.y - y;
     var dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < sz * 8) kb(_nb[i], x, y, (sz * 50) / (dd * 0.1 + 1));
+    if (dd < sz * 8) kb(_nb[i]!, x, y, (sz * 50) / (dd * 0.1 + 1));
   }
-  if (killer >= 0 && uP[killer].alive) {
-    uP[killer].kills++;
-    if (uP[killer].kills >= 3) uP[killer].vet = 1;
-    if (uP[killer].kills >= 8) uP[killer].vet = 2;
+  if (killer >= 0 && killer < uP.length) {
+    var ku = uP[killer]!;
+    if (ku.alive) {
+      ku.kills++;
+      if (ku.kills >= 3) ku.vet = 1;
+      if (ku.kills >= 8) ku.vet = 2;
+    }
   }
 }
 
 export function trail(u: Unit) {
-  var t = TYPES[u.type],
+  var t = TYPES[u.type]!,
     c = gTr(u.type, u.team);
   var bx = u.x - Math.cos(u.ang) * t.sz * 0.8;
   var by = u.y - Math.sin(u.ang) * t.sz * 0.8;
@@ -88,7 +91,7 @@ export function trail(u: Unit) {
   );
 }
 
-export function chainLightning(sx: number, sy: number, team: number, dmg: number, max: number, col: number[]) {
+export function chainLightning(sx: number, sy: number, team: Team, dmg: number, max: number, col: Color3) {
   var cx = sx,
     cy = sy;
   var hit = new Set();
@@ -97,8 +100,8 @@ export function chainLightning(sx: number, sy: number, team: number, dmg: number
     var bd = 200,
       bi = -1;
     for (var i = 0; i < nn; i++) {
-      var oi = _nb[i],
-        o = uP[oi];
+      var oi = _nb[i]!,
+        o = uP[oi]!;
       if (!o.alive || o.team === team || hit.has(oi)) continue;
       var d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
       if (d < bd) {
@@ -108,7 +111,7 @@ export function chainLightning(sx: number, sy: number, team: number, dmg: number
     }
     if (bi < 0) break;
     hit.add(bi);
-    var o = uP[bi];
+    var o = uP[bi]!;
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
     for (var i = 0; i < 3; i++) {
       spP(

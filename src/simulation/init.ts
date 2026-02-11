@@ -2,6 +2,7 @@ import { PU, PP, PPR, WORLD } from '../constants.ts';
 import { uP, pP, prP, poolCounts } from '../pools.ts';
 import { gameMode, beams, asteroids, bases } from '../state.ts';
 import { spU } from './spawn.ts';
+import type { Team } from '../types.ts';
 
 function genAsteroids() {
   asteroids.length = 0;
@@ -17,11 +18,11 @@ function genAsteroids() {
 }
 
 export function initUnits() {
-  for (var i = 0; i < PU; i++) uP[i].alive = false;
+  for (var i = 0; i < PU; i++) uP[i]!.alive = false;
   poolCounts.uC = 0;
-  for (var i = 0; i < PP; i++) pP[i].alive = false;
+  for (var i = 0; i < PP; i++) pP[i]!.alive = false;
   poolCounts.pC = 0;
-  for (var i = 0; i < PPR; i++) prP[i].alive = false;
+  for (var i = 0; i < PPR; i++) prP[i]!.alive = false;
   poolCounts.prC = 0;
   beams.length = 0;
   bases[0].hp = bases[0].mhp;
@@ -30,10 +31,11 @@ export function initUnits() {
 
   var n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
   if (gameMode === 1) {
-    for (var i = 0; i < n.length; i++) n[i] = Math.ceil(n[i] * 0.7);
+    for (var i = 0; i < n.length; i++) n[i] = Math.ceil(n[i]! * 0.7);
   }
 
-  for (var team = 0; team < 2; team++) {
+  for (var ti = 0; ti < 2; ti++) {
+    var team = ti as Team;
     var cx = team === 0 ? -1200 : 1200;
     var cy = team === 0 ? -300 : 300;
     var s = function (tp: number, count: number, spread: number) {
@@ -41,20 +43,20 @@ export function initUnits() {
         spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       }
     };
-    s(4, n[0], 200);
-    s(7, n[1], 150);
-    s(3, n[2], 500);
-    s(2, n[3], 400);
-    s(1, n[4], 700);
-    s(0, n[5], 900);
-    s(5, n[6], 400);
-    s(6, n[7], 300);
-    s(8, n[8], 600);
-    s(9, n[9], 400);
-    s(10, n[10], 500);
-    s(11, n[11], 400);
-    s(12, n[12], 400);
-    s(13, n[13], 400);
-    s(14, n[14], 400);
+    s(4, n[0]!, 200);
+    s(7, n[1]!, 150);
+    s(3, n[2]!, 500);
+    s(2, n[3]!, 400);
+    s(1, n[4]!, 700);
+    s(0, n[5]!, 900);
+    s(5, n[6]!, 400);
+    s(6, n[7]!, 300);
+    s(8, n[8]!, 600);
+    s(9, n[9]!, 400);
+    s(10, n[10]!, 500);
+    s(11, n[11]!, 400);
+    s(12, n[12]!, 400);
+    s(13, n[13]!, 400);
+    s(14, n[14]!, 400);
   }
 }

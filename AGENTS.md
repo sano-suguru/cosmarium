@@ -17,6 +17,33 @@
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 
+## Game Modes
+
+| mode | 名前 | 勝利条件 | 増援 |
+|------|------|----------|------|
+| 0 | Infinite | なし（永続戦闘） | あり（2.5秒ごと） |
+| 1 | Annihilation | 敵チーム全滅 | なし |
+| 2 | Base Assault | 敵基地HP=0 | あり（上限100） |
+
+## Pool定数
+
+| 定数 | 値 | 用途 |
+|------|-----|------|
+| `PU` | 800 | ユニット上限 |
+| `PP` | 35000 | パーティクル上限 |
+| `PPR` | 6000 | 弾(projectile)上限 |
+| `WORLD` | 4000 | ワールド半径（-4000〜+4000） |
+| `CELL` | 100 | 空間ハッシュのセルサイズ |
+| `MAX_I` | 65000 | 描画instance上限 |
+| `MM_MAX` | 1200 | ミニマップinstance上限 |
+
+## Vet(ベテラン)システム
+
+kills ≥ 3 → vet=1、kills ≥ 8 → vet=2。効果:
+- ダメージ × `(1 + vet * 0.2)`
+- 速度 × `(1 + vet * 0.12)`
+- vet≥1: 星バッジ表示（shape 7）、vet≥2: 星2個
+
 ## Dependency Graph (変更影響マップ)
 
 ```
@@ -28,6 +55,7 @@ pools.ts     ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui
 colors.ts    ← simulation/combat.ts, simulation/effects.ts, renderer/render-scene.ts,
                renderer/minimap.ts, ui/catalog.ts
 unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts
+input/camera.ts → addShake: simulation/effects.ts, simulation/update.ts からインポート
 
 main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
          （初期化順序: initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap）
@@ -36,19 +64,31 @@ main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
 ## Data Flow（フレーム単位）
 
 ```
-main loop (main.ts)
-  ├─ update(dt, now)                    ← simulation/update.ts
+main loop (main.ts) — gameState==='play' 時のみ実行
+  ├─ dt = min(now-lt, 0.05)             ← main.tsのクランプ（0.05s）
+  ├─ camera lerp + shake decay          ← cam.shk *= 0.82（閾値0.1で停止）、cap=min(shk,60)
+  ├─ update(dt * timeScale, now)        ← simulation/update.ts
+  │   ├─ dt = min(dt, 0.033)            ← update.ts内で再クランプ（0.033s）
   │   ├─ bHash()                        ← 空間ハッシュ再構築
-  │   ├─ per unit: steer() → combat()   ← AI + 攻撃
-  │   ├─ reflector pass                 ← シールド付与（次フレームで有効）
-  │   ├─ projectile/particle/beam pass  ← 移動 + 衝突 + 寿命
-  │   └─ reinforce() + win checks
-  └─ renderFrame(now)                   ← renderer/render-pass.ts
-      ├─ renderScene(now)               ← pools → iD[] (Float32Array) 書込み
-      ├─ gl.bufferData(iD.subarray)     ← GPU upload
-      ├─ drawArraysInstanced            ← scene FBO
-      ├─ bloom H/V pass                 ← 半解像度FBO
-      └─ composite + drawMinimap()      ← 最終出力
+  │   ├─ per unit: steer() → combat()   ← AI + 攻撃（常時実行）
+  │   ├─ reflector pass                 ← シールド付与（次フレームで有効、常時実行）
+  │   ├─ projectile pass                ← 移動 + homing + 衝突（常時実行。小惑星衝突のみcatalogOpen時スキップ）
+  │   ├─ particle/beam pass             ← 移動 + 寿命管理（常時実行）
+  │   ├─ if (!catalogOpen):
+  │   │   ├─ base damage (mode=2)       ← 80px内ユニットがダメージ
+  │   │   ├─ asteroid rotation
+  │   │   ├─ reinforce(dt)              ← 2.5秒ごと
+  │   │   └─ win checks                ← mode=1:全滅、mode=2:基地HP=0
+  │   └─ else: updateCatDemo(dt)
+  ├─ renderFrame(now)                   ← renderer/render-pass.ts
+  │   ├─ [catalogOpen時: カメラ → (0,0,z=2.5)に固定]
+  │   ├─ renderScene(now)               ← pools → iD[] (Float32Array) 書込み
+  │   ├─ scene pass (additive blend)    ← scene FBO
+  │   ├─ bloom H/V pass                 ← 半解像度FBO、blur radius=2.5
+  │   └─ composite                      ← vignette + Reinhard tonemap
+  └─ if (!catalogOpen):
+      ├─ updateHUD(fps)
+      └─ drawMinimap()                  ← fc%2===0 のとき（毎フレームではない）
 ```
 
 ## ファイル変更ガイド
@@ -114,10 +154,10 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 
 | ファイル | 責務 | 備考 |
 |----------|------|------|
-| `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット(Tab/Esc/+/-) | `startGame()` → `setGameState('play')` + `initUnits()` |
+| `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット(Tab/Esc/+/-/Space) | `startGame()` → `setGameState('play')` + `initUnits()` |
 | `ui/catalog.ts` | ユニットカタログDOM構築、デモ用spawn/update | `setupCatDemo()`が`spU()`経由でプールを消費 |
 | `ui/hud.ts` | HUD数値更新（ユニット数/fps/base HP） | DOM直接更新。`gameState==='play'`時のみ |
-| `input/camera.ts` | カメラ(pan/zoom/shake)、canvas上のマウスイベント | `catalogOpen`時は入力無効化 |
+| `input/camera.ts` | カメラ(pan/zoom/shake)、canvas上のマウスイベント | `catalogOpen`時は入力無効化。zoom範囲: 0.05〜8 |
 
 **カタログ注意**: カタログは実際のプールにユニットを`spU()`で生成するため、`PU`上限に影響する。`catalogOpen`時は`update()`内で`updateCatDemo()`に切替わる。
 
@@ -133,7 +173,9 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | `poolCounts`オブジェクト内のカウンタ手動管理 | spawn/kill時に必ずインクリメント/デクリメント |
 | lint-stagedは`--max-warnings=0` | ESLint警告が残るとコミット失敗 |
 | GLSLのGPUコンパイルはランタイム | CIでは検出不可。ブラウザで確認必須 |
-| `catalogOpen`は複数層に影響 | simulation(tick切替)、renderer(カメラ切替)、input(操作無効化)に波及 |
+| `catalogOpen`は複数層に影響 | simulation(steps 1-6は常時実行、7-10のみスキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
+| `Team`型（`0 \| 1`）を引数に使う | `gC`/`gTr`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
+| `bases`は`[Base, Base]`タプル | リテラル`0`/`1`または`Team`型でインデックスすれば`!`不要 |
 
 ## Subdirectory Knowledge
 

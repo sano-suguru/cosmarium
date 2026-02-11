@@ -61,24 +61,24 @@ export function drawMinimap() {
 
   // Asteroids
   for (var i = 0; i < asteroids.length; i++) {
-    var a = asteroids[i];
+    var a = asteroids[i]!;
     mmW(a.x * S, a.y * S, Math.max(0.008, a.r * S), 0, 0.31, 0.235, 0.157, 0.4, 0);
   }
 
   // Bases
   if (gameMode === 2) {
     for (var i = 0; i < 2; i++) {
-      var b = bases[i];
+      var b = bases[i]!;
       mmW(b.x * S, b.y * S, 0.05, 0, i === 0 ? 0 : 1, i === 0 ? 0.784 : 0.392, i === 0 ? 1 : 0.784, 0.6, 0);
     }
   }
 
   // Units
   for (var i = 0; i < PU; i++) {
-    var u = uP[i];
+    var u = uP[i]!;
     if (!u.alive) continue;
     var c = gC(u.type, u.team);
-    var sz = Math.max(0.008, TYPES[u.type].sz * S * 1.5);
+    var sz = Math.max(0.008, TYPES[u.type]!.sz * S * 1.5);
     mmW(u.x * S, u.y * S, sz, 0, c[0], c[1], c[2], 0.7, 1);
   }
 

@@ -18,7 +18,7 @@ export function update(dt: number, now: number) {
   bHash();
 
   for (var i = 0, urem = poolCounts.uC; i < PU && urem > 0; i++) {
-    var u = uP[i];
+    var u = uP[i]!;
     if (!u.alive) continue;
     urem--;
     u.shielded = false;
@@ -33,26 +33,26 @@ export function update(dt: number, now: number) {
 
   // Reflector shields
   for (var i = 0, urem2 = poolCounts.uC; i < PU && urem2 > 0; i++) {
-    var u = uP[i];
+    var u = uP[i]!;
     if (!u.alive) continue;
     urem2--;
-    if (TYPES[u.type].nm !== 'Reflector') continue;
+    if (TYPES[u.type]!.nm !== 'Reflector') continue;
     var nn = gN(u.x, u.y, 100, _nb);
     for (var j = 0; j < nn; j++) {
-      var o = uP[_nb[j]];
+      var o = uP[_nb[j]!]!;
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
 
   // Projectiles
   for (var i = 0, prem = poolCounts.prC; i < PPR && prem > 0; i++) {
-    var p = prP[i];
+    var p = prP[i]!;
     if (!p.alive) continue;
     prem--;
 
     if (p.hom && p.tx >= 0) {
-      var tg = uP[p.tx];
-      if (tg && tg.alive) {
+      var tg = uP[p.tx]!;
+      if (tg.alive) {
         var ca = Math.atan2(p.vy, p.vx);
         var da = Math.atan2(tg.y - p.y, tg.x - p.x);
         var diff = da - ca;
@@ -90,8 +90,8 @@ export function update(dt: number, now: number) {
       if (p.aoe > 0) {
         var nn = gN(p.x, p.y, p.aoe, _nb);
         for (var j = 0; j < nn; j++) {
-          var oi = _nb[j],
-            o = uP[oi];
+          var oi = _nb[j]!,
+            o = uP[oi]!;
           if (!o.alive || o.team === p.team) continue;
           var ddx = o.x - p.x,
             ddy = o.y - p.y;
@@ -132,10 +132,10 @@ export function update(dt: number, now: number) {
     var nn2 = gN(p.x, p.y, 30, _nb);
     var hit = false;
     for (var j = 0; j < nn2; j++) {
-      var oi = _nb[j],
-        o = uP[oi];
+      var oi = _nb[j]!,
+        o = uP[oi]!;
       if (!o.alive || o.team === p.team) continue;
-      var hs = TYPES[o.type].sz;
+      var hs = TYPES[o.type]!.sz;
       if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
         var dmg = p.dmg;
         if (o.shielded) dmg *= 0.3;
@@ -155,7 +155,7 @@ export function update(dt: number, now: number) {
 
     if (!hit && !catalogOpen) {
       for (var j = 0; j < asteroids.length; j++) {
-        var ast = asteroids[j];
+        var ast = asteroids[j]!;
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.r * ast.r) {
           spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           p.alive = false;
@@ -168,7 +168,7 @@ export function update(dt: number, now: number) {
 
   // Particles
   for (var i = 0, rem = poolCounts.pC; i < PP && rem > 0; i++) {
-    var pp = pP[i];
+    var pp = pP[i]!;
     if (!pp.alive) continue;
     rem--;
     pp.x += pp.vx * dt;
@@ -184,28 +184,30 @@ export function update(dt: number, now: number) {
 
   // Beams
   for (var i = beams.length - 1; i >= 0; i--) {
-    beams[i].life -= dt;
-    if (beams[i].life <= 0) beams.splice(i, 1);
+    var bm = beams[i]!;
+    bm.life -= dt;
+    if (bm.life <= 0) beams.splice(i, 1);
   }
 
   if (!catalogOpen) {
     // Base damage
     if (gameMode === 2) {
       for (var i = 0, urem3 = poolCounts.uC; i < PU && urem3 > 0; i++) {
-        var u = uP[i];
+        var u = uP[i]!;
         if (!u.alive) continue;
         urem3--;
-        var eb = bases[1 - u.team];
+        var eb = bases[u.team === 0 ? 1 : 0];
         var d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
         if (d < 80) {
-          eb.hp -= TYPES[u.type].dmg * dt * 3;
+          eb.hp -= TYPES[u.type]!.dmg * dt * 3;
           if (eb.hp < 0) eb.hp = 0;
         }
       }
     }
 
     for (var i = 0; i < asteroids.length; i++) {
-      asteroids[i].ang += asteroids[i].va * dt;
+      var ast = asteroids[i]!;
+      ast.ang += ast.va * dt;
     }
     reinforce(dt);
 
@@ -214,9 +216,10 @@ export function update(dt: number, now: number) {
       var ac = 0,
         bc = 0;
       for (var i = 0, urem4 = poolCounts.uC; i < PU && urem4 > 0; i++) {
-        if (!uP[i].alive) continue;
+        var u = uP[i]!;
+        if (!u.alive) continue;
         urem4--;
-        if (uP[i].team === 0) ac++;
+        if (u.team === 0) ac++;
         else bc++;
       }
       if (ac === 0 || bc === 0) {

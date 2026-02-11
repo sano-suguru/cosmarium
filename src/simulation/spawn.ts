@@ -2,12 +2,13 @@ import { PU, PP, PPR } from '../constants.ts';
 import { uP, pP, prP, poolCounts } from '../pools.ts';
 import { TYPES } from '../unit-types.ts';
 import { beams } from '../state.ts';
+import type { Team } from '../types.ts';
 
-export function spU(team: number, type: number, x: number, y: number): number {
+export function spU(team: Team, type: number, x: number, y: number): number {
   for (var i = 0; i < PU; i++) {
-    if (!uP[i].alive) {
-      var u = uP[i],
-        t = TYPES[type];
+    if (!uP[i]!.alive) {
+      var u = uP[i]!,
+        t = TYPES[type]!;
       u.alive = true;
       u.team = team;
       u.type = type;
@@ -39,8 +40,8 @@ export function spU(team: number, type: number, x: number, y: number): number {
 }
 
 export function killU(i: number) {
-  if (uP[i].alive) {
-    uP[i].alive = false;
+  if (uP[i]!.alive) {
+    uP[i]!.alive = false;
     poolCounts.uC--;
   }
 }
@@ -58,8 +59,8 @@ export function spP(
   sh: number,
 ): number {
   for (var i = 0; i < PP; i++) {
-    if (!pP[i].alive) {
-      var p = pP[i];
+    if (!pP[i]!.alive) {
+      var p = pP[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -86,7 +87,7 @@ export function spPr(
   vy: number,
   life: number,
   dmg: number,
-  team: number,
+  team: Team,
   sz: number,
   r: number,
   g: number,
@@ -96,8 +97,8 @@ export function spPr(
   tx?: number,
 ): number {
   for (var i = 0; i < PPR; i++) {
-    if (!prP[i].alive) {
-      var p = prP[i];
+    if (!prP[i]!.alive) {
+      var p = prP[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;

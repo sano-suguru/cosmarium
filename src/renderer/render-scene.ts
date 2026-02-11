@@ -4,6 +4,7 @@ import { PP, PPR, PU } from '../constants.ts';
 import { uP, pP, prP } from '../pools.ts';
 import { TYPES } from '../unit-types.ts';
 import { gC } from '../colors.ts';
+import type { Color3 } from '../types.ts';
 import { catalogOpen, gameMode, asteroids, bases, beams } from '../state.ts';
 
 export function renderScene(now: number): number {
@@ -27,15 +28,15 @@ export function renderScene(now: number): number {
   if (!catalogOpen) {
     // Asteroids
     for (var i = 0; i < asteroids.length; i++) {
-      var a = asteroids[i];
+      var a = asteroids[i]!;
       wr(a.x, a.y, a.r, 0.12, 0.1, 0.08, 0.7, a.ang, 3);
     }
     // Bases
     if (gameMode === 2) {
       for (var i = 0; i < 2; i++) {
-        var b = bases[i],
+        var b = bases[i]!,
           hr = b.hp / b.mhp;
-        var bc = i === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
+        var bc: Color3 = i === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
         wr(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
         wr(b.x, b.y, 60, bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3, 0.2 + Math.sin(now * 3) * 0.1, now * -0.1, 10);
         var bw = 50;
@@ -46,7 +47,7 @@ export function renderScene(now: number): number {
 
   // Particles
   for (var i = 0; i < PP; i++) {
-    var p = pP[i];
+    var p = pP[i]!;
     if (!p.alive) continue;
     var al = Math.min(1, p.life / p.ml);
     var sz = p.sz * (0.5 + al * 0.5);
@@ -57,7 +58,7 @@ export function renderScene(now: number): number {
 
   // Beams
   for (var i = 0; i < beams.length; i++) {
-    var bm = beams[i];
+    var bm = beams[i]!;
     var al = bm.life / bm.ml;
     var dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
@@ -83,16 +84,16 @@ export function renderScene(now: number): number {
 
   // Projectiles
   for (var i = 0; i < PPR; i++) {
-    var pr = prP[i];
+    var pr = prP[i]!;
     if (!pr.alive) continue;
     wr(pr.x, pr.y, pr.sz, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), pr.hom ? 6 : pr.aoe > 0 ? 0 : 1);
   }
 
   // Units
   for (var i = 0; i < PU; i++) {
-    var u = uP[i];
+    var u = uP[i]!;
     if (!u.alive) continue;
-    var ut = TYPES[u.type];
+    var ut = TYPES[u.type]!;
     var c = gC(u.type, u.team);
     var hr = u.hp / u.mhp;
     var flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;

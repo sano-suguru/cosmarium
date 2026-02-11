@@ -3,7 +3,7 @@ export var gl: WebGL2RenderingContext;
 export var viewport = { W: 0, H: 0 };
 
 export function initWebGL() {
-  canvas = document.getElementById('c') as HTMLCanvasElement;
+  canvas = document.querySelector<HTMLCanvasElement>('#c')!;
   var ctx = canvas.getContext('webgl2', {
     alpha: false,
     antialias: false,

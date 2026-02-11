@@ -8,7 +8,7 @@ import { explosion, chainLightning } from './effects.ts';
 import type { Unit } from '../types.ts';
 
 export function combat(u: Unit, ui: number, dt: number, _now: number) {
-  var t = TYPES[u.type];
+  var t = TYPES[u.type]!;
   if (u.stun > 0) return;
   u.cd -= dt;
   u.aCd -= dt;
@@ -19,16 +19,16 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.rams) {
     var nn = gN(u.x, u.y, t.sz * 2, _nb);
     for (var i = 0; i < nn; i++) {
-      var oi = _nb[i],
-        o = uP[oi];
+      var oi = _nb[i]!,
+        o = uP[oi]!;
       if (!o.alive || o.team === u.team) continue;
       var dx = o.x - u.x,
         dy = o.y - u.y;
       var d = Math.sqrt(dx * dx + dy * dy);
-      if (d < t.sz + TYPES[o.type].sz) {
+      if (d < t.sz + TYPES[o.type]!.sz) {
         o.hp -= Math.ceil(u.mass * 3 * vd);
         kb(oi, u.x, u.y, u.mass * 55);
-        u.hp -= Math.ceil(TYPES[o.type].mass);
+        u.hp -= Math.ceil(TYPES[o.type]!.mass);
         for (var k = 0; k < 10; k++) {
           var a = Math.random() * 6.283;
           spP(
@@ -63,8 +63,8 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     u.aCd = 0.35;
     var nn = gN(u.x, u.y, 160, _nb);
     for (var i = 0; i < nn; i++) {
-      var oi = _nb[i],
-        o = uP[oi];
+      var oi = _nb[i]!,
+        o = uP[oi]!;
       if (!o.alive || o.team !== u.team || oi === ui) continue;
       if (o.hp < o.mhp) {
         o.hp = Math.min(o.mhp, o.hp + 3);
@@ -78,7 +78,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.reflects) {
     var rr = t.rng;
     for (var i = 0; i < PPR; i++) {
-      var p = prP[i];
+      var p = prP[i]!;
       if (!p.alive || p.team === u.team) continue;
       if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {
         p.vx *= -1.2;
@@ -92,8 +92,10 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       }
     }
     if (u.cd <= 0 && u.tgt >= 0) {
-      var o = uP[u.tgt];
-      if (o && o.alive) {
+      var o = uP[u.tgt]!;
+      if (!o.alive) {
+        u.tgt = -1;
+      } else {
         var dx = o.x - u.x,
           dy = o.y - u.y;
         var d = Math.sqrt(dx * dx + dy * dy);
@@ -162,14 +164,18 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- EMP ---
   if (t.emp && u.aCd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt];
+    var o = uP[u.tgt]!;
+    if (!o.alive) {
+      u.tgt = -1;
+      return;
+    }
     var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
     if (d < t.rng) {
       u.aCd = t.fr;
       var nn = gN(u.x, u.y, t.rng, _nb);
       for (var i = 0; i < nn; i++) {
-        var oi = _nb[i],
-          oo = uP[oi];
+        var oi = _nb[i]!,
+          oo = uP[oi]!;
         if (!oo.alive || oo.team === u.team) continue;
         if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.rng * t.rng) {
           oo.stun = 1.5;
@@ -205,27 +211,31 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.teleports) {
     u.tp -= dt;
     if (u.tp <= 0 && u.tgt >= 0) {
-      var o = uP[u.tgt];
-      var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
-      if (d < 500 && d > 80) {
-        u.tp = 3 + Math.random() * 2;
-        for (var i = 0; i < 8; i++) {
-          var a = Math.random() * 6.283;
-          spP(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
-        }
-        spP(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
-        var ta = Math.random() * 6.283,
-          td = 55 + Math.random() * 35;
-        u.x = o.x + Math.cos(ta) * td;
-        u.y = o.y + Math.sin(ta) * td;
-        for (var i = 0; i < 8; i++) {
-          var a = Math.random() * 6.283;
-          spP(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
-        }
-        spP(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
-        for (var i = 0; i < 5; i++) {
-          var ba = Math.random() * 6.283;
-          spPr(u.x, u.y, Math.cos(ba) * 430, Math.sin(ba) * 430, 0.3, t.dmg * vd, u.team, 2, c[0], c[1], c[2]);
+      var o = uP[u.tgt]!;
+      if (!o.alive) {
+        u.tgt = -1;
+      } else {
+        var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+        if (d < 500 && d > 80) {
+          u.tp = 3 + Math.random() * 2;
+          for (var i = 0; i < 8; i++) {
+            var a = Math.random() * 6.283;
+            spP(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
+          }
+          spP(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
+          var ta = Math.random() * 6.283,
+            td = 55 + Math.random() * 35;
+          u.x = o.x + Math.cos(ta) * td;
+          u.y = o.y + Math.sin(ta) * td;
+          for (var i = 0; i < 8; i++) {
+            var a = Math.random() * 6.283;
+            spP(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
+          }
+          spP(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
+          for (var i = 0; i < 5; i++) {
+            var ba = Math.random() * 6.283;
+            spPr(u.x, u.y, Math.cos(ba) * 430, Math.sin(ba) * 430, 0.3, t.dmg * vd, u.team, 2, c[0], c[1], c[2]);
+          }
         }
       }
     }
@@ -233,7 +243,11 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- CHAIN LIGHTNING ---
   if (t.chain && u.cd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt];
+    var o = uP[u.tgt]!;
+    if (!o.alive) {
+      u.tgt = -1;
+      return;
+    }
     var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
     if (d < t.rng) {
       u.cd = t.fr;
@@ -246,7 +260,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- BEAM ---
   if (t.beam) {
     if (u.tgt >= 0) {
-      var o = uP[u.tgt];
+      var o = uP[u.tgt]!;
       if (o.alive) {
         var d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < t.rng) {
@@ -294,6 +308,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           u.beamOn = Math.max(0, u.beamOn - dt * 3);
         }
       } else {
+        u.tgt = -1;
         u.beamOn = Math.max(0, u.beamOn - dt * 3);
       }
     } else {
@@ -304,7 +319,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- NORMAL FIRE ---
   if (u.cd <= 0 && u.tgt >= 0) {
-    var o = uP[u.tgt];
+    var o = uP[u.tgt]!;
     if (!o.alive) {
       u.tgt = -1;
       return;

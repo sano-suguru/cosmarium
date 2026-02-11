@@ -9,10 +9,28 @@
 | `webgl-setup.ts` | GL context取得、canvas、viewport、resize | 低 |
 | `shaders.ts` | シェーダコンパイル、全program・location定義 | 中（新attrib/uniform追加時） |
 | `fbo.ts` | FBO生成・リサイズ（scene + bloom×2） | 低 |
-| `buffers.ts` | VAO×3、instance/minimapバッファ | 中（attrib追加時） |
+| `buffers.ts` | VAO×3（`mainVAO`/`mmVAO`/`qVAO`）、instance/minimapバッファ | 中（attrib追加時） |
 | `render-scene.ts` | instanceデータ書込み（`wr()`で`iD[]`へ9floats） | 高（描画追加時） |
 | `render-pass.ts` | 4パスレンダリング（scene→bloom H→bloom V→composite） | 低 |
-| `minimap.ts` | ミニマップ描画（scissor viewport内にinstanced quads） | 低 |
+| `minimap.ts` | ミニマップ描画（scissor viewport内にinstanced quads）。クリックでカメラ移動 | 低 |
+
+### WebGL context
+
+`getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false })`
+
+### VAO構成
+
+| VAO | 用途 | バッファ |
+|-----|------|----------|
+| `mainVAO` | シーン描画（instanced quad + instance attribs） | `iB` |
+| `mmVAO` | ミニマップ描画（instanced quad + minimap attribs） | `mmB` |
+| `qVAO` | フルスクリーンquad（bloom/composite）。`dQ()`で描画 | 頂点のみ |
+
+### catalogOpen時のカメラオーバーライド
+
+`renderFrame()`冒頭で`catalogOpen`判定:
+- `cx/cy` → 0（原点固定）、`cz` → 2.5（ズーム固定）
+- 通常時はカメラ位置+シェイク値を使用
 
 ## Instance Data Layout (9 floats, stride=36 bytes)
 
@@ -59,6 +77,8 @@ offset 32: shapeID   (aSh)
 - `mkFBOs()`はリサイズ時に再呼出しされる（`resize()`経由）
 - bloomのFBOはfull解像度の半分（`>> 1`）
 - フォーマットは`RGBA / UNSIGNED_BYTE` — HDRが必要なら`gl.RGBA16F`/`gl.FLOAT`に変更
+- scene clear color: `(0.007, 0.003, 0.013, 1)` — ほぼ黒に微かな紫
+- bloom blur半径: `uD` = `(2.5, 0)` horizontal → `(0, 2.5)` vertical
 
 ## Critical Gotchas
 

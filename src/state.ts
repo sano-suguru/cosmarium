@@ -10,7 +10,7 @@ export var rT = 0;
 
 export var beams: Beam[] = [];
 export var asteroids: Asteroid[] = [];
-export var bases: Base[] = [
+export var bases: [Base, Base] = [
   { x: -1800, y: 0, hp: 500, mhp: 500 },
   { x: 1800, y: 0, hp: 500, mhp: 500 },
 ];

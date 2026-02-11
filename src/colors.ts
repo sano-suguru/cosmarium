@@ -1,4 +1,4 @@
-import type { Color3 } from './types.ts';
+import type { Color3, Team } from './types.ts';
 
 var TC: Color3[][] = [
   [
@@ -126,9 +126,9 @@ var TrC: Color3[][] = [
   ],
 ];
 
-export function gC(t: number, tm: number): Color3 {
-  return TC[t][tm];
+export function gC(t: number, tm: Team): Color3 {
+  return TC[t]![tm]!;
 }
-export function gTr(t: number, tm: number): Color3 {
-  return TrC[t][tm];
+export function gTr(t: number, tm: Team): Color3 {
+  return TrC[t]![tm]!;
 }

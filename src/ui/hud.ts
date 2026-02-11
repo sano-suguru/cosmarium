@@ -6,8 +6,9 @@ export function updateHUD(df: number) {
   var ca = 0,
     cb = 0;
   for (var i = 0; i < PU; i++) {
-    if (!uP[i].alive) continue;
-    if (uP[i].team === 0) ca++;
+    var u = uP[i]!;
+    if (!u.alive) continue;
+    if (u.team === 0) ca++;
     else cb++;
   }
   document.getElementById('cA')!.textContent = '' + ca;
