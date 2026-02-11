@@ -1,7 +1,7 @@
 import { PU, CELL } from '../constants.ts';
 import { uP } from '../pools.ts';
 
-export var hM = new Map<number, number[]>();
+var hM = new Map<number, number[]>();
 export var _nb = new Array(350);
 
 var _pooled: number[][] = [];

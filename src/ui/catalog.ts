@@ -169,7 +169,7 @@ function updateCatPanel() {
   stats.appendChild(teamDiv);
 }
 
-export function buildCatUI() {
+function buildCatUI() {
   var list = document.getElementById('catList')!;
   list.textContent = '';
   TYPES.forEach(function (t, i) {

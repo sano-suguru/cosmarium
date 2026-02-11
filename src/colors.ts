@@ -1,6 +1,6 @@
 import type { Color3 } from './types.ts';
 
-export var TC: Color3[][] = [
+var TC: Color3[][] = [
   [
     [0.2, 1, 0.55],
     [1, 0.45, 0.25],
@@ -63,7 +63,7 @@ export var TC: Color3[][] = [
   ],
 ];
 
-export var TrC: Color3[][] = [
+var TrC: Color3[][] = [
   [
     [0.1, 0.6, 0.35],
     [0.6, 0.25, 0.12],

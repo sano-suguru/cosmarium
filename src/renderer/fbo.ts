@@ -13,7 +13,7 @@ function delFBO(fbo: FBO | null) {
   gl.deleteTexture(fbo.tex);
 }
 
-export function mkFBO(w: number, h: number): FBO {
+function mkFBO(w: number, h: number): FBO {
   var t = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);

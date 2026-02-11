@@ -13,7 +13,7 @@ import { initUnits } from '../simulation/init.ts';
 import { toggleCat } from './catalog.ts';
 import type { GameMode } from '../types.ts';
 
-export function setSpd(v: number) {
+function setSpd(v: number) {
   setTimeScale(v);
   document.querySelectorAll('.sbtn').forEach(function (b) {
     b.classList.toggle('active', parseFloat(b.textContent || '') === v);
@@ -21,7 +21,7 @@ export function setSpd(v: number) {
   document.getElementById('spdV')!.textContent = v + 'x';
 }
 
-export function startGame(mode: GameMode) {
+function startGame(mode: GameMode) {
   setGameMode(mode);
   setGameState('play');
   setWinTeam(-1);
@@ -50,7 +50,7 @@ export function showWin() {
   (t as HTMLElement).style.color = winTeam === 0 ? '#0ff' : '#f0f';
 }
 
-export function backToMenu() {
+function backToMenu() {
   setGameState('menu');
   setCatalogOpen(false);
   document.getElementById('catalog')!.classList.remove('open');
