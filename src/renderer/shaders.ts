@@ -1,12 +1,12 @@
 import { gl } from './webgl-setup.ts';
 
-import mainVertSrc from '../shaders/main.vert.glsl?raw';
-import mainFragSrc from '../shaders/main.frag.glsl?raw';
-import quadVertSrc from '../shaders/quad.vert.glsl?raw';
-import bloomFragSrc from '../shaders/bloom.frag.glsl?raw';
-import compositeFragSrc from '../shaders/composite.frag.glsl?raw';
-import minimapVertSrc from '../shaders/minimap.vert.glsl?raw';
-import minimapFragSrc from '../shaders/minimap.frag.glsl?raw';
+import mainVertSrc from '../shaders/main.vert.glsl';
+import mainFragSrc from '../shaders/main.frag.glsl';
+import quadVertSrc from '../shaders/quad.vert.glsl';
+import bloomFragSrc from '../shaders/bloom.frag.glsl';
+import compositeFragSrc from '../shaders/composite.frag.glsl';
+import minimapVertSrc from '../shaders/minimap.vert.glsl';
+import minimapFragSrc from '../shaders/minimap.frag.glsl';
 
 export var mP: WebGLProgram;
 export var blP: WebGLProgram;

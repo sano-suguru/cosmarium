@@ -12,7 +12,7 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`.
 
 **Linting & Formatting**: ESLint (flat config) + Prettier configured. Pre-commit hook via `simple-git-hooks` + `lint-staged` runs ESLint and Prettier on staged files.
 
@@ -30,15 +30,21 @@ bun run check        # All checks combined (typecheck + lint + format:check)
 
 No test framework is configured. There are no automated tests.
 
+**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` on push/PR to `main`.
+
 **ESLint key rules** (flat config in `eslint.config.js`):
 - `no-var: off`, `prefer-const: off` — `var` is used throughout; don't convert to `let`/`const`
+- `no-redeclare: off` — TypeScript の型と同名の変数宣言を許可
 - `no-console: warn` — only `console.error` and `console.warn` are allowed
 - `@typescript-eslint/no-explicit-any: warn` — avoid `any` where possible
+- `@typescript-eslint/no-non-null-assertion: off` — non-null assertions (`!`) are allowed
+- `@typescript-eslint/no-unused-vars: warn` — `_` prefix variables/args are ignored
 - `src/shaders/**` is excluded from ESLint
+- **lint-staged uses `--max-warnings=0`**: ESLint warnings will fail the pre-commit hook
 
 **Prettier**: singleQuote, printWidth=120, trailingComma=all (config in `.prettierrc.json`). GLSL files are excluded from Prettier.
 
-GLSL shaders are imported as raw strings via Vite's `?raw` suffix (type-declared in `vite-env.d.ts`).
+GLSL shaders are imported via `vite-plugin-glsl` which supports `#include` directives for shared chunks. Shared SDF functions live in `src/shaders/includes/sdf.glsl`.
 
 ## Controls
 
@@ -55,14 +61,15 @@ GLSL shaders are imported as raw strings via Vite's `?raw` suffix (type-declared
 src/
   main.ts                     # Entry point + main loop (frame())
   style.css                   # All CSS
-  vite-env.d.ts               # Vite type declarations + .glsl?raw module
+  vite-env.d.ts               # Vite type declarations + .glsl module
   types.ts                    # All TypeScript interfaces (Unit, Particle, Projectile, etc.)
-  constants.ts                # Pool limits (PU/PP/PPR), WORLD, CELL, MAX_I, MM_MAX
+  constants.ts                # Pool limits (PU/PP/PPR), WORLD, CELL, MAX_I, MM_MAX, S_STRIDE
   state.ts                    # Game state + setter functions (gameState, gameMode, beams, etc.)
   pools.ts                    # Object pools (uP/pP/prP) + poolCounts object
   colors.ts                   # TC[15][2], TrC[15][2], gC(), gTr()
   unit-types.ts               # TYPES[15] unit definitions
-  shaders/                    # GLSL source files (imported as ?raw)
+  shaders/                    # GLSL source files (imported via vite-plugin-glsl)
+    includes/sdf.glsl           # Shared SDF functions (hexDist, manDist, polarR)
     main.vert.glsl, main.frag.glsl, quad.vert.glsl,
     bloom.frag.glsl, composite.frag.glsl,
     minimap.vert.glsl, minimap.frag.glsl
