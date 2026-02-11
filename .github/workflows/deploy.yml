@@ -20,7 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bun run build
+      - run: bun run check
+      - run: bun run build -- --base=/cosmarium/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
