@@ -12,7 +12,7 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`, `knip`.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `eslint`, `typescript-eslint`, `prettier`, `lint-staged`, `simple-git-hooks`, `knip`, `jscpd`.
 
 **Linting & Formatting**: ESLint (flat config) + Prettier configured. Pre-commit hook via `simple-git-hooks` + `lint-staged` runs ESLint and Prettier on staged files.
 
@@ -26,12 +26,13 @@ bun run lint:fix     # ESLint with auto-fix
 bun run format       # Prettier format (write)
 bun run format:check # Prettier format (check only)
 bun run knip         # Unused export detection (knip)
-bun run check        # All checks combined (typecheck + lint + format:check + knip)
+bun run cpd          # Copy-paste detection (jscpd)
+bun run check        # All checks combined (typecheck + lint + format:check + knip + cpd)
 ```
 
 No test framework is configured. There are no automated tests.
 
-**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` on push/PR to `main`.
+**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`.
 
 **ESLint key rules** (flat config in `eslint.config.js`):
 - `no-var: off`, `prefer-const: off` — `var` is used throughout; don't convert to `let`/`const`
