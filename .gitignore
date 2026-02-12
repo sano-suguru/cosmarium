@@ -38,3 +38,6 @@ report/
 
 # Migration backup
 index.original.html
+
+# Claude Code personal settings
+.claude/settings.local.json

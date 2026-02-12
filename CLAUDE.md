@@ -14,7 +14,7 @@ Always respond in **Japanese** (日本語で返答すること).
 
 Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `@biomejs/biome`, `simple-git-hooks`, `knip`, `jscpd`.
 
-**Linting & Formatting**: [Biome](https://biomejs.dev/) (Rust製の統合lint+formatter)。Pre-commit hook via `simple-git-hooks` + `biome check --staged` でステージされたファイルのみlint+format。
+**Linting & Formatting**: [Biome](https://biomejs.dev/) (Rust-based unified linter + formatter). Pre-commit hook via `simple-git-hooks` + `biome check --staged` runs lint + format on staged files only.
 
 ```bash
 bun install          # Install dependencies
@@ -32,11 +32,11 @@ bun run check        # All checks combined (typecheck + biome ci + knip + cpd)
 
 No test framework is configured. There are no automated tests.
 
-**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`. `bun run check` は `biome ci .`（lint+format一括チェック）を使用。
+**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`. `bun run check` uses `biome ci .` (combined lint + format check).
 
 **Biome key rules** (config in `biome.json`):
-- `noVar: error`, `useConst: error` — `let`/`const` を使用（`var` は禁止）
-- `noRedeclare: off` — TypeScript の型と同名の変数宣言を許可
+- `noVar: error`, `useConst: error` — use `let`/`const` (`var` is forbidden)
+- `noRedeclare: off` — allows variables with the same name as TypeScript types
 - `noConsole: error` — only `console.error` and `console.warn` are allowed
 - `noExplicitAny: error` — avoid `any` where possible
 - `noNonNullAssertion: off` — non-null assertions (`!`) are allowed
@@ -44,13 +44,13 @@ No test framework is configured. There are no automated tests.
 - `noUnusedImports: error` — unused imports are errors
 - `noInnerDeclarations: off` — function declarations inside blocks are allowed
 - `useTemplate: off` — template literal conversion not enforced
-- `noEvolvingTypes: error`, `noEmptyBlockStatements: error` — 型推論の不安定化と空ブロックを禁止
-- `noDelete: error`, `noBarrelFile: error`, `noReExportAll: error` — パフォーマンス系ルール
-- `noForEach: warn` — `for...of` 推奨だが既存 DOM API 利用は許容
-- `noExcessiveCognitiveComplexity: warn (max 25)` — 複雑度警告（CI非ブロック）
-- style系 warn: `noNestedTernary`, `noParameterAssign`, `noYodaExpression`
+- `noEvolvingTypes: error`, `noEmptyBlockStatements: error` — forbids unstable type inference and empty blocks
+- `noDelete: error`, `noBarrelFile: error`, `noReExportAll: error` — performance-related rules
+- `noForEach: warn` — `for...of` preferred, but existing DOM API usage is tolerated
+- `noExcessiveCognitiveComplexity: warn (max 25)` — complexity warning (non-blocking in CI)
+- style warnings: `noNestedTernary`, `noParameterAssign`, `noYodaExpression`
 - `src/shaders/**` is excluded from Biome (linter + formatter)
-- Pre-commit hook は `biome check --staged --write` でエラーのみブロック（警告は許容）
+- Pre-commit hook uses `biome check --staged --write` — only errors block commit (warnings are tolerated)
 
 **Biome formatter**: singleQuote, lineWidth=120, trailingCommas=all (config in `biome.json`). GLSL files are excluded.
 
@@ -113,18 +113,18 @@ src/
 **Main loop (per frame)**:
 ```
 frame() → dt clamp(0.05) → camera lerp + shake decay
-  → update(dt * timeScale)  — dt再clamp(0.033)
+  → update(dt * timeScale)  — dt re-clamped to 0.033
       bHash() → per unit: steer()+combat() → reflector pass
-      → projectile pass → particle/beam pass  ← 常時実行
-      [!catalogOpen時のみ: reinforce() → win check]
-      [catalogOpen時: updateCatDemo(dt)]
+      → projectile pass → particle/beam pass  ← always runs
+      [when !catalogOpen: reinforce() → win check]
+      [when catalogOpen: updateCatDemo(dt)]
   → renderFrame()
-      renderScene() → iD[]書込み → GPU upload → drawArraysInstanced
+      renderScene() → write iD[] → GPU upload → drawArraysInstanced
       → bloom H/V → composite + drawMinimap()
-      [catalogOpen時: カメラ→原点z=2.5固定、HUD/minimap省略]
+      [when catalogOpen: camera locked to origin z=2.5, HUD/minimap hidden]
 ```
 
-**変更作業の詳細ガイド**: 各領域の変更指針・影響範囲・注意点は AGENTS.md を参照（ルート `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`）。
+**Detailed change guide**: See AGENTS.md for per-area guidelines, impact scope, and caveats (root `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`).
 
 ## Coding Conventions
 
@@ -140,16 +140,16 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
   - Instance data: `iD`/`iB`=scene, `mmD`/`mmB`=minimap
   - Locations: `Loc`=main program attribs/uniforms, `mmLoc`=minimap program attribs, `blLoc`=bloom program uniforms, `coLoc`=composite program uniforms
   - Colors: `gC(typeIdx, team)` → [r,g,b], `gTr(typeIdx, team)` → trail color
-  - State: `rT`=reinforcement timer (2.5秒間隔で `reinforce()` を発火)
+  - State: `rT`=reinforcement timer (fires `reinforce()` every 2.5s)
 - **State mutation**: Mutable state in `state.ts` uses `export let` + setter functions (e.g., `setGameState()`) because ES module exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
 - **Functional/procedural**: No classes; game objects are plain typed objects
-- **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
-- **Import規約**: 相対パス + `.ts` 拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし、barrel export（index.ts）なし
-- **TypeScript strict settings** (コーディングに影響する設定):
-  - `verbatimModuleSyntax: true` — 型のみのインポートには `import type { X }` を使用必須
-  - `exactOptionalPropertyTypes: true` — optional プロパティに直接 `undefined` 代入不可（`prop?: string | undefined` と宣言する必要あり）
-  - `noUncheckedIndexedAccess: true` — 配列/辞書のインデックスアクセスは `T | undefined` 型になる
-  - `noImplicitReturns: true` — 戻り値のある関数は全分岐で明示的に return 必須
+- **Japanese UI text**: Menu descriptions and unit abilities are in Japanese (日本語)
+- **Import conventions**: Relative paths + explicit `.ts` extension (`allowImportingTsExtensions: true`). No path aliases, no barrel exports (`index.ts`)
+- **TypeScript strict settings** (settings that affect coding):
+  - `verbatimModuleSyntax: true` — type-only imports must use `import type { X }`
+  - `exactOptionalPropertyTypes: true` — cannot assign `undefined` directly to optional properties (must declare as `prop?: string | undefined`)
+  - `noUncheckedIndexedAccess: true` — array/record index access returns `T | undefined`
+  - `noImplicitReturns: true` — all branches in functions with return values must explicitly return
 
 ## Key Performance Patterns
 
@@ -211,7 +211,44 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 
 ## Game Mechanics
 
-- **Veteran system**: 3+ kills → `vet=1`, 8+ kills → `vet=2`。速度ボーナス `+vet*12%`（vet2=+24%）、ダメージボーナス `+vet*20%`（vet2=+40%）
+- **Veteran system**: 3+ kills → `vet=1`, 8+ kills → `vet=2`. Speed bonus `+vet*12%` (vet2=+24%), damage bonus `+vet*20%` (vet2=+40%)
 - **Team colors**: 15 unique color pairs per unit type (indexed by type, not team)
 - **Reflector shield**: Nearby allies get `shielded=true` → projectiles deal 30% damage, beams reduced 60%
 - **Catalog demo**: Spawns a controlled scenario per unit type for live preview in the catalog screen
+
+## MCP Tools Guide
+
+This project integrates AST-grep and LSP (TypeScript Language Server) MCP servers (configured in `.mcp.json`).
+
+### AST-grep Tools (Structural Pattern Search)
+
+| Tool | Purpose |
+|------|---------|
+| `mcp__ast-grep__find_code` | Simple pattern matching (e.g. `spU($$$)`) |
+| `mcp__ast-grep__find_code_by_rule` | Advanced structural search via YAML rules |
+| `mcp__ast-grep__dump_syntax_tree` | Inspect AST node structure |
+| `mcp__ast-grep__test_match_code_rule` | Test rules before use |
+
+### LSP Tools (Semantic Analysis)
+
+| Tool | Purpose |
+|------|---------|
+| `mcp__lsp-ts__definition` | Jump to symbol definition |
+| `mcp__lsp-ts__references` | Find all references to a symbol |
+| `mcp__lsp-ts__hover` | Get type info and signatures |
+| `mcp__lsp-ts__diagnostics` | Get TypeScript errors/warnings for a file |
+
+### When to Use Which
+
+- **"Where is this function used?"** → LSP `mcp__lsp-ts__references`
+- **"Where is this function defined?"** → LSP `mcp__lsp-ts__definition`
+- **"Show all call patterns of `spU()`"** → AST-grep `mcp__ast-grep__find_code`
+- **"Detect a specific syntax pattern across the codebase"** → AST-grep `mcp__ast-grep__find_code_by_rule`
+- **"Assess refactoring impact"** → Combine both (see `refactor-safe` skill)
+
+### Recommended Refactoring Workflow
+
+1. **Impact analysis**: Use LSP `mcp__lsp-ts__references` + AST-grep `mcp__ast-grep__find_code` to identify all reference sites
+2. **Planning**: Determine target files and change order
+3. **Execution**: Change in order: type definitions → implementations → usage sites
+4. **Verification**: Confirm correctness with LSP `mcp__lsp-ts__diagnostics` + `bun run check`

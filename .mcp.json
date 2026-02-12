@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ast-grep": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/ast-grep/ast-grep-mcp", "ast-grep-server"]
+    },
+    "lsp-ts": {
+      "command": "mcp-language-server",
+      "args": ["--workspace", "${PWD}", "--lsp", "typescript-language-server", "--", "--stdio"]
+    }
+  }
+}
