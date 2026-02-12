@@ -1,6 +1,6 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { asteroids, bases, beams, catalogOpen, gameMode, setWinTeam } from '../state.ts';
 import { updateCatDemo } from '../ui/catalog.ts';
 import { showWin } from '../ui/game-control.ts';
@@ -16,8 +16,8 @@ export function update(rawDt: number, now: number) {
   const dt = Math.min(rawDt, 0.033);
   bHash();
 
-  for (let i = 0, urem = poolCounts.uC; i < POOL_UNITS && urem > 0; i++) {
-    const u = uP[i]!;
+  for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
+    const u = unitPool[i]!;
     if (!u.alive) continue;
     urem--;
     u.shielded = false;
@@ -31,26 +31,26 @@ export function update(rawDt: number, now: number) {
   }
 
   // Reflector shields
-  for (let i = 0, urem2 = poolCounts.uC; i < POOL_UNITS && urem2 > 0; i++) {
-    const u = uP[i]!;
+  for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
+    const u = unitPool[i]!;
     if (!u.alive) continue;
     urem2--;
     if (TYPES[u.type]!.name !== 'Reflector') continue;
     const nn = gN(u.x, u.y, 100, _nb);
     for (let j = 0; j < nn; j++) {
-      const o = uP[_nb[j]!]!;
+      const o = unitPool[_nb[j]!]!;
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
 
   // Projectiles
-  for (let i = 0, prem = poolCounts.prC; i < POOL_PROJECTILES && prem > 0; i++) {
-    const p = prP[i]!;
+  for (let i = 0, prem = poolCounts.projectileCount; i < POOL_PROJECTILES && prem > 0; i++) {
+    const p = projectilePool[i]!;
     if (!p.alive) continue;
     prem--;
 
     if (p.homing && p.targetIndex >= 0) {
-      const tg = uP[p.targetIndex]!;
+      const tg = unitPool[p.targetIndex]!;
       if (tg.alive) {
         let ca = Math.atan2(p.vy, p.vx);
         const da = Math.atan2(tg.y - p.y, tg.x - p.x);
@@ -90,7 +90,7 @@ export function update(rawDt: number, now: number) {
         const nn = gN(p.x, p.y, p.aoe, _nb);
         for (let j = 0; j < nn; j++) {
           const oi = _nb[j]!,
-            o = uP[oi]!;
+            o = unitPool[oi]!;
           if (!o.alive || o.team === p.team) continue;
           const ddx = o.x - p.x,
             ddy = o.y - p.y;
@@ -123,7 +123,7 @@ export function update(rawDt: number, now: number) {
         addShake(3);
       }
       p.alive = false;
-      poolCounts.prC--;
+      poolCounts.projectileCount--;
       continue;
     }
 
@@ -132,7 +132,7 @@ export function update(rawDt: number, now: number) {
     let hit = false;
     for (let j = 0; j < nn2; j++) {
       const oi = _nb[j]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (!o.alive || o.team === p.team) continue;
       const hs = TYPES[o.type]!.size;
       if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
@@ -146,7 +146,7 @@ export function update(rawDt: number, now: number) {
           explosion(o.x, o.y, o.team, o.type, -1);
         }
         p.alive = false;
-        poolCounts.prC--;
+        poolCounts.projectileCount--;
         hit = true;
         break;
       }
@@ -158,7 +158,7 @@ export function update(rawDt: number, now: number) {
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
           spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           p.alive = false;
-          poolCounts.prC--;
+          poolCounts.projectileCount--;
           break;
         }
       }
@@ -166,8 +166,8 @@ export function update(rawDt: number, now: number) {
   }
 
   // Particles
-  for (let i = 0, rem = poolCounts.pC; i < POOL_PARTICLES && rem > 0; i++) {
-    const pp = pP[i]!;
+  for (let i = 0, rem = poolCounts.particleCount; i < POOL_PARTICLES && rem > 0; i++) {
+    const pp = particlePool[i]!;
     if (!pp.alive) continue;
     rem--;
     pp.x += pp.vx * dt;
@@ -177,7 +177,7 @@ export function update(rawDt: number, now: number) {
     pp.life -= dt;
     if (pp.life <= 0) {
       pp.alive = false;
-      poolCounts.pC--;
+      poolCounts.particleCount--;
     }
   }
 
@@ -191,8 +191,8 @@ export function update(rawDt: number, now: number) {
   if (!catalogOpen) {
     // Base damage
     if (gameMode === 2) {
-      for (let i = 0, urem3 = poolCounts.uC; i < POOL_UNITS && urem3 > 0; i++) {
-        const u = uP[i]!;
+      for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
+        const u = unitPool[i]!;
         if (!u.alive) continue;
         urem3--;
         const eb = bases[u.team === 0 ? 1 : 0];
@@ -214,8 +214,8 @@ export function update(rawDt: number, now: number) {
     if (gameMode === 1) {
       let ac = 0,
         bc = 0;
-      for (let i = 0, urem4 = poolCounts.uC; i < POOL_UNITS && urem4 > 0; i++) {
-        const u = uP[i]!;
+      for (let i = 0, urem4 = poolCounts.unitCount; i < POOL_UNITS && urem4 > 0; i++) {
+        const u = unitPool[i]!;
         if (!u.alive) continue;
         urem4--;
         if (u.team === 0) ac++;

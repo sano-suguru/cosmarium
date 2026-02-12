@@ -1,5 +1,5 @@
 import { CELL_SIZE, POOL_UNITS } from '../constants.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 
 const hM = new Map<number, number[]>();
 export const _nb: number[] = new Array(350);
@@ -16,7 +16,7 @@ export function bHash() {
   _used.length = 0;
   hM.clear();
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = uP[i]!;
+    const u = unitPool[i]!;
     if (!u.alive) continue;
     const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
     let a = hM.get(k);
@@ -48,7 +48,7 @@ export function gN(x: number, y: number, r: number, buf: number[]): number {
 }
 
 export function kb(ti: number, fx: number, fy: number, force: number) {
-  const u = uP[ti]!;
+  const u = unitPool[ti]!;
   const dx = u.x - fx,
     dy = u.y - fy;
   const d = Math.sqrt(dx * dx + dy * dy) || 1;

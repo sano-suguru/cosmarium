@@ -1,6 +1,6 @@
 import { gC } from '../colors.ts';
 import { POOL_PROJECTILES } from '../constants.ts';
-import { prP, uP } from '../pools.ts';
+import { projectilePool, unitPool } from '../pools.ts';
 import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
@@ -9,7 +9,7 @@ import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
   if (u.target < 0) return -1;
-  const o = uP[u.target]!;
+  const o = unitPool[u.target]!;
   if (!o.alive) {
     u.target = -1;
     return -1;
@@ -30,7 +30,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     const nn = gN(u.x, u.y, t.size * 2, _nb);
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (!o.alive || o.team === u.team) continue;
       const dx = o.x - u.x,
         dy = o.y - u.y;
@@ -74,7 +74,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     const nn = gN(u.x, u.y, 160, _nb);
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (!o.alive || o.team !== u.team || oi === ui) continue;
       if (o.hp < o.maxHp) {
         o.hp = Math.min(o.maxHp, o.hp + 3);
@@ -88,7 +88,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.reflects) {
     const rr = t.range;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      const p = prP[i]!;
+      const p = projectilePool[i]!;
       if (!p.alive || p.team === u.team) continue;
       if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {
         p.vx *= -1.2;
@@ -102,7 +102,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       }
     }
     if (u.cooldown <= 0 && u.target >= 0) {
-      const o = uP[u.target]!;
+      const o = unitPool[u.target]!;
       if (!o.alive) {
         u.target = -1;
       } else {
@@ -181,7 +181,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       const nn = gN(u.x, u.y, t.range, _nb);
       for (let i = 0; i < nn; i++) {
         const oi = _nb[i]!,
-          oo = uP[oi]!;
+          oo = unitPool[oi]!;
         if (!oo.alive || oo.team === u.team) continue;
         if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
           oo.stun = 1.5;
@@ -217,7 +217,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (t.teleports) {
     u.teleportTimer -= dt;
     if (u.teleportTimer <= 0 && u.target >= 0) {
-      const o = uP[u.target]!;
+      const o = unitPool[u.target]!;
       if (!o.alive) {
         u.target = -1;
       } else {
@@ -262,7 +262,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- BEAM ---
   if (t.beam) {
     if (u.target >= 0) {
-      const o = uP[u.target]!;
+      const o = unitPool[u.target]!;
       if (o.alive) {
         const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < t.range) {
@@ -321,7 +321,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- NORMAL FIRE ---
   if (u.cooldown <= 0 && u.target >= 0) {
-    const o = uP[u.target]!;
+    const o = unitPool[u.target]!;
     if (!o.alive) {
       u.target = -1;
       return;

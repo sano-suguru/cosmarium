@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { spU } from '../simulation/spawn.ts';
 import {
   asteroids,
@@ -17,7 +17,7 @@ import {
 
 export function resetPools() {
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = uP[i]!;
+    const u = unitPool[i]!;
     u.alive = false;
     u.team = 0;
     u.type = 0;
@@ -43,7 +43,7 @@ export function resetPools() {
     u.vet = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = pP[i]!;
+    const p = particlePool[i]!;
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -58,7 +58,7 @@ export function resetPools() {
     p.shape = 0;
   }
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const p = prP[i]!;
+    const p = projectilePool[i]!;
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -75,9 +75,9 @@ export function resetPools() {
     p.aoe = 0;
     p.targetIndex = -1;
   }
-  poolCounts.uC = 0;
-  poolCounts.pC = 0;
-  poolCounts.prC = 0;
+  poolCounts.unitCount = 0;
+  poolCounts.particleCount = 0;
+  poolCounts.projectileCount = 0;
   beams.length = 0;
 }
 

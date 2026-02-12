@@ -1,5 +1,5 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 import { asteroids, bases, gameMode } from '../state.ts';
 import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
@@ -30,7 +30,7 @@ export function steer(u: Unit, dt: number) {
 
   for (let i = 0; i < nn; i++) {
     const oi = _nb[i]!,
-      o = uP[oi]!;
+      o = unitPool[oi]!;
     if (!o.alive || o === u) continue;
     const dx = u.x - o.x,
       dy = u.y - o.y;
@@ -78,13 +78,13 @@ export function steer(u: Unit, dt: number) {
   }
 
   // Find target
-  let tgt = u.target >= 0 && uP[u.target]!.alive ? u.target : -1;
+  let tgt = u.target >= 0 && unitPool[u.target]!.alive ? u.target : -1;
   if (tgt < 0) {
     let bd = t.range * 3,
       bi = -1;
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (o.team === u.team || !o.alive) continue;
       const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
       if (d < bd) {
@@ -95,7 +95,7 @@ export function steer(u: Unit, dt: number) {
     if (bi < 0 && Math.random() < 0.012) {
       bd = 1e18;
       for (let i = 0; i < POOL_UNITS; i++) {
-        const o = uP[i]!;
+        const o = unitPool[i]!;
         if (!o.alive || o.team === u.team) continue;
         const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
         if (d2 < bd) {
@@ -115,7 +115,7 @@ export function steer(u: Unit, dt: number) {
   }
 
   if (tgt >= 0) {
-    const o = uP[tgt]!;
+    const o = unitPool[tgt]!;
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -144,7 +144,7 @@ export function steer(u: Unit, dt: number) {
       bi2 = -1;
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (o.team !== u.team || !o.alive || o === u) continue;
       if (TYPES[o.type]!.mass > bm) {
         bm = TYPES[o.type]!.mass;
@@ -152,7 +152,7 @@ export function steer(u: Unit, dt: number) {
       }
     }
     if (bi2 >= 0) {
-      const o = uP[bi2]!;
+      const o = unitPool[bi2]!;
       fx += (o.x - u.x) * 0.05;
       fy += (o.y - u.y) * 0.05;
     }

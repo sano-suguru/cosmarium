@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 import { _nb, bHash, gN, kb } from './spatial-hash.ts';
 import { killU, spU } from './spawn.ts';
 
@@ -66,8 +66,8 @@ describe('bHash + gN', () => {
     let n = gN(50, 50, 100, _nb);
     expect(n).toBe(1);
 
-    uP[idx]!.x = 2000;
-    uP[idx]!.y = 2000;
+    unitPool[idx]!.x = 2000;
+    unitPool[idx]!.y = 2000;
     bHash();
     n = gN(50, 50, 100, _nb);
     expect(n).toBe(0);
@@ -79,44 +79,44 @@ describe('bHash + gN', () => {
 describe('kb', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 0);
-    uP[idx]!.vx = 0;
-    uP[idx]!.vy = 0;
+    unitPool[idx]!.vx = 0;
+    unitPool[idx]!.vy = 0;
     kb(idx, 0, 0, 50);
-    expect(uP[idx]!.vx).toBeGreaterThan(0);
-    expect(uP[idx]!.vy).toBeCloseTo(0);
+    expect(unitPool[idx]!.vx).toBeGreaterThan(0);
+    expect(unitPool[idx]!.vy).toBeCloseTo(0);
   });
 
   it('斜め方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 100);
-    uP[idx]!.vx = 0;
-    uP[idx]!.vy = 0;
+    unitPool[idx]!.vx = 0;
+    unitPool[idx]!.vy = 0;
     kb(idx, 0, 0, 50);
-    expect(uP[idx]!.vx).toBeGreaterThan(0);
-    expect(uP[idx]!.vy).toBeGreaterThan(0);
-    expect(uP[idx]!.vx).toBeCloseTo(uP[idx]!.vy);
+    expect(unitPool[idx]!.vx).toBeGreaterThan(0);
+    expect(unitPool[idx]!.vy).toBeGreaterThan(0);
+    expect(unitPool[idx]!.vx).toBeCloseTo(unitPool[idx]!.vy);
   });
 
   it('既存速度に加算される', () => {
     const idx = spawnAt(0, 100, 0);
-    uP[idx]!.vx = 10;
-    uP[idx]!.vy = 5;
+    unitPool[idx]!.vx = 10;
+    unitPool[idx]!.vy = 5;
     kb(idx, 0, 0, 50);
-    expect(uP[idx]!.vx).toBeGreaterThan(10);
-    expect(uP[idx]!.vy).toBeCloseTo(5);
+    expect(unitPool[idx]!.vx).toBeGreaterThan(10);
+    expect(unitPool[idx]!.vy).toBeCloseTo(5);
   });
 
   it('mass が大きいほどノックバックが小さい', () => {
     const i1 = spawnAt(0, 100, 0);
-    uP[i1]!.vx = 0;
-    uP[i1]!.mass = 1;
+    unitPool[i1]!.vx = 0;
+    unitPool[i1]!.mass = 1;
     kb(i1, 0, 0, 50);
-    const lightKB = uP[i1]!.vx;
+    const lightKB = unitPool[i1]!.vx;
 
     const i2 = spawnAt(1, 100, 0);
-    uP[i2]!.vx = 0;
-    uP[i2]!.mass = 10;
+    unitPool[i2]!.vx = 0;
+    unitPool[i2]!.mass = 10;
     kb(i2, 0, 0, 50);
-    const heavyKB = uP[i2]!.vx;
+    const heavyKB = unitPool[i2]!.vx;
 
     expect(lightKB).toBeGreaterThan(heavyKB);
   });

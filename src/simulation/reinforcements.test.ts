@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, uP } from '../pools.ts';
+import { poolCounts, unitPool } from '../pools.ts';
 import { rT, setGameMode, setRT } from '../state.ts';
 import { reinforce } from './reinforcements.ts';
 
@@ -17,7 +17,7 @@ describe('reinforce', () => {
     setRT(3.0);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     reinforce(1.0);
-    expect(poolCounts.uC).toBe(0);
+    expect(poolCounts.unitCount).toBe(0);
     // gameMode===1 では rT 更新前に即 return
     expect(rT).toBe(3.0);
   });
@@ -28,7 +28,7 @@ describe('reinforce', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     reinforce(1.0);
     expect(rT).toBe(1.0);
-    expect(poolCounts.uC).toBe(0);
+    expect(poolCounts.unitCount).toBe(0);
   });
 
   it('dt累積で2.5sに到達 → スポーン発動', () => {
@@ -36,11 +36,11 @@ describe('reinforce', () => {
     setRT(0);
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(1.0);
-    expect(poolCounts.uC).toBe(0);
+    expect(poolCounts.unitCount).toBe(0);
     reinforce(1.0);
-    expect(poolCounts.uC).toBe(0);
+    expect(poolCounts.unitCount).toBe(0);
     reinforce(1.0); // rT = 3.0 >= 2.5
-    expect(poolCounts.uC).toBeGreaterThan(0);
+    expect(poolCounts.unitCount).toBeGreaterThan(0);
   });
 
   it('rT >= 2.5 → タイマーリセット + スポーン実行', () => {
@@ -49,7 +49,7 @@ describe('reinforce', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(0.6); // rT = 2.6 >= 2.5
     expect(rT).toBe(0);
-    expect(poolCounts.uC).toBeGreaterThan(0);
+    expect(poolCounts.unitCount).toBeGreaterThan(0);
   });
 
   // 以下のテストは reinforce() 内の確率テーブルに依存（r の閾値でユニット種が決定される）
@@ -61,7 +61,7 @@ describe('reinforce', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(0.1);
     // 各チーム: Drone×5 + Fighter×2 + ChainBolt×1 = 8, 両チーム = 16
-    expect(poolCounts.uC).toBe(16);
+    expect(poolCounts.unitCount).toBe(16);
   });
 
   it('r < 0.1 かつ cnt < 50 で Flagship がスポーンする', () => {
@@ -73,11 +73,11 @@ describe('reinforce', () => {
     // r=0.05: Drone×5, Fighter×2, Bomber(r<0.5), Cruiser(r<0.4),
     //   Flagship(r<0.1 && cnt<50), Carrier(r<0.18 && cnt<40)
     // 各チーム: 5+2+1+1+1+1 = 11, 両チーム = 22
-    expect(poolCounts.uC).toBe(22);
+    expect(poolCounts.unitCount).toBe(22);
     // Flagship (type=4) が存在することを確認
     let hasFlagship = false;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (uP[i]!.alive && uP[i]!.type === 4) {
+      if (unitPool[i]!.alive && unitPool[i]!.type === 4) {
         hasFlagship = true;
         break;
       }
@@ -95,7 +95,7 @@ describe('reinforce', () => {
     reinforce(0.1);
     // チーム0は閾値以上なのでスポーンなし、チーム1は0体なのでスポーンあり
     // チーム1: Drone×5 + Fighter×2 + ChainBolt×1 = 8
-    expect(poolCounts.uC).toBe(130 + 8);
+    expect(poolCounts.unitCount).toBe(130 + 8);
   });
 
   it('gameMode===2 → 閾値100（100体以上でスポーンなし）', () => {
@@ -106,7 +106,7 @@ describe('reinforce', () => {
     for (let i = 0; i < 100; i++) spawnAt(0, 0, i * 20, 0);
     reinforce(0.1);
     // チーム0は閾値以上、チーム1だけスポーン
-    expect(poolCounts.uC).toBe(100 + 8);
+    expect(poolCounts.unitCount).toBe(100 + 8);
   });
 
   it('両チーム (0, 1) にそれぞれスポーンされる', () => {
@@ -117,8 +117,8 @@ describe('reinforce', () => {
     let team0 = 0;
     let team1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (!uP[i]!.alive) continue;
-      if (uP[i]!.team === 0) team0++;
+      if (!unitPool[i]!.alive) continue;
+      if (unitPool[i]!.team === 0) team0++;
       else team1++;
     }
     expect(team0).toBeGreaterThan(0);

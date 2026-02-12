@@ -1,14 +1,14 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
 import type { Particle, Projectile, Unit } from './types.ts';
 
-export const uP: Unit[] = [];
-export const pP: Particle[] = [];
-export const prP: Projectile[] = [];
+export const unitPool: Unit[] = [];
+export const particlePool: Particle[] = [];
+export const projectilePool: Projectile[] = [];
 
-export const poolCounts = { uC: 0, pC: 0, prC: 0 };
+export const poolCounts = { unitCount: 0, particleCount: 0, projectileCount: 0 };
 
 for (let i = 0; i < POOL_UNITS; i++) {
-  uP[i] = {
+  unitPool[i] = {
     alive: false,
     team: 0,
     type: 0,
@@ -35,10 +35,23 @@ for (let i = 0; i < POOL_UNITS; i++) {
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {
-  pP[i] = { alive: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 0, size: 0, r: 0, g: 0, b: 0, shape: 0 };
+  particlePool[i] = {
+    alive: false,
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    life: 0,
+    maxLife: 0,
+    size: 0,
+    r: 0,
+    g: 0,
+    b: 0,
+    shape: 0,
+  };
 }
 for (let i = 0; i < POOL_PROJECTILES; i++) {
-  prP[i] = {
+  projectilePool[i] = {
     alive: false,
     x: 0,
     y: 0,

@@ -1,13 +1,13 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
 export function spU(team: Team, type: number, x: number, y: number): number {
   for (let i = 0; i < POOL_UNITS; i++) {
-    if (!uP[i]!.alive) {
-      const u = uP[i]!,
+    if (!unitPool[i]!.alive) {
+      const u = unitPool[i]!,
         t = TYPES[type]!;
       u.alive = true;
       u.team = team;
@@ -32,7 +32,7 @@ export function spU(team: Team, type: number, x: number, y: number): number {
       u.beamOn = 0;
       u.kills = 0;
       u.vet = 0;
-      poolCounts.uC++;
+      poolCounts.unitCount++;
       return i;
     }
   }
@@ -40,9 +40,9 @@ export function spU(team: Team, type: number, x: number, y: number): number {
 }
 
 export function killU(i: number) {
-  if (uP[i]!.alive) {
-    uP[i]!.alive = false;
-    poolCounts.uC--;
+  if (unitPool[i]!.alive) {
+    unitPool[i]!.alive = false;
+    poolCounts.unitCount--;
   }
 }
 
@@ -59,8 +59,8 @@ export function spP(
   sh: number,
 ): number {
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    if (!pP[i]!.alive) {
-      const p = pP[i]!;
+    if (!particlePool[i]!.alive) {
+      const p = particlePool[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -73,7 +73,7 @@ export function spP(
       p.g = g;
       p.b = b;
       p.shape = sh || 0;
-      poolCounts.pC++;
+      poolCounts.particleCount++;
       return i;
     }
   }
@@ -97,8 +97,8 @@ export function spPr(
   tx?: number,
 ): number {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    if (!prP[i]!.alive) {
-      const p = prP[i]!;
+    if (!projectilePool[i]!.alive) {
+      const p = projectilePool[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -114,7 +114,7 @@ export function spPr(
       p.homing = hom ?? false;
       p.aoe = aoe ?? 0;
       p.targetIndex = tx ?? -1;
-      poolCounts.prC++;
+      poolCounts.projectileCount++;
       return i;
     }
   }

@@ -1,5 +1,5 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 import { gameMode, rT, setRT } from '../state.ts';
 import type { Team } from '../types.ts';
 import { spU } from './spawn.ts';
@@ -18,7 +18,7 @@ export function reinforce(dt: number) {
     const team = ti as Team;
     let cnt = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      const u = uP[i]!;
+      const u = unitPool[i]!;
       if (u.alive && u.team === team) cnt++;
     }
     const lim = gameMode === 2 ? 100 : 130;

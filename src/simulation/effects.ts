@@ -1,6 +1,6 @@
 import { gC, gTr } from '../colors.ts';
 import { addShake } from '../input/camera.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 import type { Color3, Team, Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { _nb, gN, kb } from './spatial-hash.ts';
@@ -55,15 +55,15 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
   const nn = gN(x, y, sz * 8, _nb);
   for (let i = 0; i < nn; i++) {
-    const o = uP[_nb[i]!]!;
+    const o = unitPool[_nb[i]!]!;
     if (!o.alive) continue;
     const ddx = o.x - x,
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
     if (dd < sz * 8) kb(_nb[i]!, x, y, (sz * 50) / (dd * 0.1 + 1));
   }
-  if (killer >= 0 && killer < uP.length) {
-    const ku = uP[killer]!;
+  if (killer >= 0 && killer < unitPool.length) {
+    const ku = unitPool[killer]!;
     if (ku.alive) {
       ku.kills++;
       if (ku.kills >= 3) ku.vet = 1;
@@ -101,7 +101,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
       bi = -1;
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
-        o = uP[oi]!;
+        o = unitPool[oi]!;
       if (!o.alive || o.team === team || hit.has(oi)) continue;
       const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
       if (d < bd) {
@@ -111,7 +111,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
     }
     if (bi < 0) break;
     hit.add(bi);
-    const o = uP[bi]!;
+    const o = unitPool[bi]!;
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
     for (let i = 0; i < 3; i++) {
       spP(

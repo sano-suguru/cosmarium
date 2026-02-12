@@ -1,7 +1,7 @@
 import { gC } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
-import { uP } from '../pools.ts';
+import { unitPool } from '../pools.ts';
 import { asteroids, bases, gameMode } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { mmB, mmD, mmVAO } from './buffers.ts';
@@ -74,7 +74,7 @@ export function drawMinimap() {
 
   // Units
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = uP[i]!;
+    const u = unitPool[i]!;
     if (!u.alive) continue;
     const c = gC(u.type, u.team);
     const sz = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);

@@ -1,5 +1,5 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { asteroids, bases, beams, gameMode } from '../state.ts';
 import type { Team } from '../types.ts';
 import { spU } from './spawn.ts';
@@ -18,12 +18,12 @@ function genAsteroids() {
 }
 
 export function initUnits() {
-  for (let i = 0; i < POOL_UNITS; i++) uP[i]!.alive = false;
-  poolCounts.uC = 0;
-  for (let i = 0; i < POOL_PARTICLES; i++) pP[i]!.alive = false;
-  poolCounts.pC = 0;
-  for (let i = 0; i < POOL_PROJECTILES; i++) prP[i]!.alive = false;
-  poolCounts.prC = 0;
+  for (let i = 0; i < POOL_UNITS; i++) unitPool[i]!.alive = false;
+  poolCounts.unitCount = 0;
+  for (let i = 0; i < POOL_PARTICLES; i++) particlePool[i]!.alive = false;
+  poolCounts.particleCount = 0;
+  for (let i = 0; i < POOL_PROJECTILES; i++) projectilePool[i]!.alive = false;
+  poolCounts.projectileCount = 0;
   beams.length = 0;
   bases[0].hp = bases[0].maxHp;
   bases[1].hp = bases[1].maxHp;

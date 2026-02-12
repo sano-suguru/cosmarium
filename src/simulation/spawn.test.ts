@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
@@ -14,8 +14,8 @@ describe('spP', () => {
   it('パーティクルを生成し poolCounts.pC が増加する', () => {
     const idx = spP(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
     expect(idx).toBe(0);
-    expect(poolCounts.pC).toBe(1);
-    const p = pP[0]!;
+    expect(poolCounts.particleCount).toBe(1);
+    const p = particlePool[0]!;
     expect(p.alive).toBe(true);
     expect(p.x).toBe(10);
     expect(p.y).toBe(20);
@@ -35,7 +35,7 @@ describe('spP', () => {
     const i2 = spP(5, 5, 0, 0, 1, 1, 1, 1, 1, 0);
     expect(i1).toBe(0);
     expect(i2).toBe(1);
-    expect(poolCounts.pC).toBe(2);
+    expect(poolCounts.particleCount).toBe(2);
   });
 });
 
@@ -43,8 +43,8 @@ describe('spPr', () => {
   it('プロジェクタイルを生成する', () => {
     const idx = spPr(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(idx).toBe(0);
-    expect(poolCounts.prC).toBe(1);
-    const p = prP[0]!;
+    expect(poolCounts.projectileCount).toBe(1);
+    const p = projectilePool[0]!;
     expect(p.alive).toBe(true);
     expect(p.x).toBe(100);
     expect(p.y).toBe(200);
@@ -58,7 +58,7 @@ describe('spPr', () => {
   it('オプション引数が反映される', () => {
     const idx = spPr(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42);
     expect(idx).toBe(0);
-    const p = prP[0]!;
+    const p = projectilePool[0]!;
     expect(p.homing).toBe(true);
     expect(p.aoe).toBe(70);
     expect(p.targetIndex).toBe(42);
@@ -70,8 +70,8 @@ describe('spU', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spU(0, 1, 100, 200);
     expect(idx).toBe(0);
-    expect(poolCounts.uC).toBe(1);
-    const u = uP[0]!;
+    expect(poolCounts.unitCount).toBe(1);
+    const u = unitPool[0]!;
     const fighter = TYPES[1]!;
     expect(u.alive).toBe(true);
     expect(u.team).toBe(0);
@@ -89,12 +89,12 @@ describe('spU', () => {
 
   it('プール満杯時に -1 を返す', () => {
     for (let i = 0; i < POOL_UNITS; i++) {
-      uP[i]!.alive = true;
+      unitPool[i]!.alive = true;
     }
-    poolCounts.uC = POOL_UNITS;
+    poolCounts.unitCount = POOL_UNITS;
     const overflow = spU(0, 0, 0, 0);
     expect(overflow).toBe(-1);
-    expect(poolCounts.uC).toBe(POOL_UNITS);
+    expect(poolCounts.unitCount).toBe(POOL_UNITS);
   });
 
   it('dead スロットを再利用する', () => {
@@ -104,8 +104,8 @@ describe('spU', () => {
     killU(0);
     const reused = spU(1, 1, 50, 50);
     expect(reused).toBe(0);
-    expect(uP[0]!.team).toBe(1);
-    expect(uP[0]!.x).toBe(50);
+    expect(unitPool[0]!.team).toBe(1);
+    expect(unitPool[0]!.x).toBe(50);
   });
 });
 
@@ -113,10 +113,10 @@ describe('killU', () => {
   it('ユニットを無効化し poolCounts.uC を減少させる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     spU(0, 0, 0, 0);
-    expect(poolCounts.uC).toBe(1);
+    expect(poolCounts.unitCount).toBe(1);
     killU(0);
-    expect(uP[0]!.alive).toBe(false);
-    expect(poolCounts.uC).toBe(0);
+    expect(unitPool[0]!.alive).toBe(false);
+    expect(poolCounts.unitCount).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
@@ -124,7 +124,7 @@ describe('killU', () => {
     spU(0, 0, 0, 0);
     killU(0);
     killU(0);
-    expect(poolCounts.uC).toBe(0);
+    expect(poolCounts.unitCount).toBe(0);
   });
 });
 

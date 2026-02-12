@@ -1,6 +1,6 @@
 import { gC } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { pP, prP, uP } from '../pools.ts';
+import { particlePool, projectilePool, unitPool } from '../pools.ts';
 import { asteroids, bases, beams, catalogOpen, gameMode } from '../state.ts';
 import type { Color3 } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
@@ -46,7 +46,7 @@ export function renderScene(now: number): number {
 
   // Particles
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = pP[i]!;
+    const p = particlePool[i]!;
     if (!p.alive) continue;
     const al = Math.min(1, p.life / p.maxLife);
     let sz = p.size * (0.5 + al * 0.5);
@@ -83,7 +83,7 @@ export function renderScene(now: number): number {
 
   // Projectiles
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const pr = prP[i]!;
+    const pr = projectilePool[i]!;
     if (!pr.alive) continue;
     let shape: number;
     if (pr.homing) shape = 6;
@@ -94,7 +94,7 @@ export function renderScene(now: number): number {
 
   // Units
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = uP[i]!;
+    const u = unitPool[i]!;
     if (!u.alive) continue;
     const ut = TYPES[u.type]!;
     const c = gC(u.type, u.team);
