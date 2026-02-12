@@ -11,8 +11,10 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "knip": "knip",
+    "test": "vitest",
+    "test:run": "vitest run",
     "cpd": "jscpd src/",
-    "check": "tsc --noEmit && biome ci . && knip && jscpd src/",
+    "check": "tsc --noEmit && biome ci . && knip && jscpd src/ && vitest run",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {
@@ -26,6 +28,7 @@
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5",
     "vite": "^7.3.1",
-    "vite-plugin-glsl": "~1.5.5"
+    "vite-plugin-glsl": "~1.5.5",
+    "vitest": "^4.0.18"
   }
 }

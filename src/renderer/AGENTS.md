@@ -12,7 +12,7 @@
 | `buffers.ts` | VAO×3（`mainVAO`/`mmVAO`/`qVAO`）、instance/minimapバッファ | 中（attrib追加時） |
 | `render-scene.ts` | instanceデータ書込み（`wr()`で`iD[]`へ9floats） | 高（描画追加時） |
 | `render-pass.ts` | 4パスレンダリング（scene→bloom H→bloom V→composite） | 低 |
-| `minimap.ts` | ミニマップ描画（scissor viewport内にinstanced quads）。クリックでカメラ移動 | 低 |
+| `minimap.ts` | ミニマップ描画（scissor viewport内にinstanced quads）。クリックでカメラ移動（cam.tz=1にリセット） | 低 |
 
 ### WebGL context
 
@@ -89,3 +89,5 @@ offset 32: shapeID   (aSh)
 | `iD`はサブ配列で転送 | `bufferData(iD.subarray(0, ic*9))` — 全体送信しない |
 | attrib divisor=1 | instance属性は全て`vertexAttribDivisor(loc, 1)`必須。忘れると全instanceが同じ値に |
 | DEV環境のみnullチェック | `import.meta.env.DEV`ガードでuniform location警告 |
+| minimap描画後のGL状態復帰 | scissor/viewport/blendを元に戻す。新UIオーバーレイ追加時は状態復帰順に注意 |
+| `bufferData`は毎フレームDYNAMIC_DRAW | `subarray`で必要分のみ送信。`MAX_I`増加時は`buffers.ts`の`iD`確保も変更 |

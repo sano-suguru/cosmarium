@@ -3,6 +3,6 @@
   "minLines": 7,
   "minTokens": 50,
   "reporters": ["consoleFull"],
-  "ignore": ["src/shaders/**"],
+  "ignore": ["src/shaders/**", "**/*.test.ts", "src/__test__/**"],
   "gitignore": true
 }

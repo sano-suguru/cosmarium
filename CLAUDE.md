@@ -12,9 +12,9 @@ Always respond in **Japanese** (日本語で返答すること).
 
 ## Development
 
-Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `@biomejs/biome`, `simple-git-hooks`, `knip`, `jscpd`.
+Uses **Bun** as package manager. Zero production dependencies. Dev deps: `vite`, `vite-plugin-glsl`, `@types/bun`, `@biomejs/biome`, `simple-git-hooks`, `knip`, `jscpd`, `vitest`.
 
-**Linting & Formatting**: [Biome](https://biomejs.dev/) (Rust-based unified linter + formatter). Pre-commit hook via `simple-git-hooks` + `biome check --staged` runs lint + format on staged files only.
+**Linting & Formatting**: [Biome](https://biomejs.dev/) (Rust-based unified linter + formatter). Pre-commit hook via `simple-git-hooks` runs `bunx biome check --staged --no-errors-on-unmatched --write && git update-index --again` on staged files only.
 
 ```bash
 bun install          # Install dependencies
@@ -27,12 +27,14 @@ bun run format       # Biome format (write)
 bun run format:check # Biome format (check only)
 bun run knip         # Unused export detection (knip)
 bun run cpd          # Copy-paste detection (jscpd)
-bun run check        # All checks combined (typecheck + biome ci + knip + cpd)
+bun run test         # Vitest watch mode
+bun run test:run     # Vitest single run (used in CI)
+bun run check        # All checks combined (typecheck + biome ci + knip + cpd + vitest run)
 ```
 
-No test framework is configured. There are no automated tests.
+**Testing**: [Vitest](https://vitest.dev/) for unit tests. Test files: `src/**/*.test.ts`. Helper utilities in `src/__test__/` (e.g., `resetPools()` for pool initialization). Test files have `noConsole: off` in Biome config.
 
-**CI**: GitHub Actions runs `typecheck` + `lint` + `format:check` + `knip` + `cpd` on push/PR to `main`. `bun run check` uses `biome ci .` (combined lint + format check).
+**CI**: GitHub Actions runs `typecheck` → `biome ci .` → `knip` → `cpd` → `vitest run` on push/PR to `main`. Deploy workflow builds with `--base=/cosmarium/` and publishes to GitHub Pages.
 
 **Biome key rules** (config in `biome.json`):
 - `noVar: error`, `useConst: error` — use `let`/`const` (`var` is forbidden)
@@ -50,9 +52,10 @@ No test framework is configured. There are no automated tests.
 - `noExcessiveCognitiveComplexity: warn (max 25)` — complexity warning (non-blocking in CI)
 - style warnings: `noNestedTernary`, `noParameterAssign`, `noYodaExpression`
 - `src/shaders/**` is excluded from Biome (linter + formatter)
-- Pre-commit hook uses `biome check --staged --write` — only errors block commit (warnings are tolerated)
+- Pre-commit hook uses `biome check --staged --no-errors-on-unmatched --write` — only errors block commit (warnings are tolerated)
+- Test file overrides (`**/*.test.ts`, `src/__test__/**`): `noConsole: off`
 
-**Biome formatter**: singleQuote, lineWidth=120, trailingCommas=all (config in `biome.json`). GLSL files are excluded.
+**Biome formatter**: 2-space indent, LF line endings, singleQuote, lineWidth=120, trailingCommas=all, semicolons=always, bracketSpacing=true, arrowParentheses=always (config in `biome.json`). GLSL files are excluded.
 
 GLSL shaders are imported via `vite-plugin-glsl` which supports `#include` directives for shared chunks. Shared SDF functions live in `src/shaders/includes/sdf.glsl`.
 
@@ -137,7 +140,12 @@ unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, u
 input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをインポート）
 ```
 
-**Detailed change guide**: See AGENTS.md for per-area guidelines, impact scope, and caveats (root `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`).
+**Detailed change guide**: See AGENTS.md for per-area guidelines, impact scope, and caveats:
+- Root `AGENTS.md` — pool constants, vet system, data flow, state management patterns
+- `src/renderer/AGENTS.md` — VAO/FBO structure, instance data layout, new uniform/entity procedures
+- `src/simulation/AGENTS.md` — tick order (10 steps), combat branching, reinforcement probability table
+- `src/shaders/AGENTS.md` — `#include` mechanism, shape ID→SDF mapping, minimap attribute reuse
+- `src/ui/AGENTS.md` — catalog pool side effects, demo scenario branching, speed presets
 
 ## Coding Conventions
 

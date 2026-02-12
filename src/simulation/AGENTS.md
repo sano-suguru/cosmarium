@@ -15,6 +15,8 @@
 | `reinforcements.ts` | 増援スポーン（確率分布テーブル） | 低 |
 | `init.ts` | ゲーム開始時のユニット配置 + 小惑星生成 | 低 |
 
+テスト: `spatial-hash.test.ts`, `spawn.test.ts`（`vitest run`で実行）
+
 ## Tick Order（update.ts内）
 
 ```

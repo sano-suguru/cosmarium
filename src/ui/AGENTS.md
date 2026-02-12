@@ -10,6 +10,14 @@
 | `game-control.ts` | メニュー、ゲーム開始/終了、速度制御、キーボードショートカット | 中 |
 | `hud.ts` | HUD数値更新（ユニット数/fps/基地HP）。DOM直接更新 | 低 |
 
+## キーボードショートカット（game-control.ts + camera.ts）
+
+| キー | 条件 | 動作 |
+|------|------|------|
+| `Tab` / `Escape` | play中 | カタログ開閉（`toggleCat()`） |
+| `-` / `=` | play中 | 速度1段階下げ/上げ（`stepSpd()`） |
+| `Space` | play中 & !catalogOpen | カメラリセット（tx=0, ty=0, tz=1） |
+
 ## カタログのプール副作用（最重要）
 
 カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spU()` で実際のプールに生ユニットを生成する。
@@ -54,3 +62,4 @@
 | `setupCatDemo()`冒頭で全particle/projectile/beam消去 | カタログ切替時にパーティクルが全消滅するのは仕様 |
 | DOM要素IDはハードコード | `getElementById('cpName')!`等。HTML側のID変更で即壊れる |
 | `showWin()`は`game-control.ts` | カタログではなくgame-control側にある。勝利画面変更時は注意 |
+| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。PU全走査(O(800))もあり |

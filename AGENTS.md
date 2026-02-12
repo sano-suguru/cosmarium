@@ -10,10 +10,10 @@
 - **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
-- **テスト**: なし（手動確認のみ）
+- **テスト**: `bun run test` (`vitest run`) — `src/__test__/`配下。spawn/spatial-hash/colorsのユニットテスト
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
 - **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd + vitest run
 - **Deploy**: GitHub Actions（`.github/workflows/deploy.yml`）— main push時に`bun run check` → `vite build --base=/cosmarium/` → GitHub Pages deploy
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 - **Knip設定**: `knip.json` — `src/**/*.ts`のみ対象、`src/vite-env.d.ts`は除外
@@ -160,7 +160,7 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット |
 | `ui/catalog.ts` | ユニットカタログ。**`spU()`で実プールにspawn** |
 | `ui/hud.ts` | HUD数値更新（DOM直接操作） |
-| `input/camera.ts` | カメラ(pan/zoom/shake)。`catalogOpen`時は無効化 |
+| `input/camera.ts` | カメラ(pan/zoom/shake)。`catalogOpen`時は無効化。zoom=[0.05,8]制限あり、panは境界clampなし |
 
 ## Critical Gotchas
 

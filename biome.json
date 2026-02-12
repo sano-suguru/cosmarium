@@ -77,6 +77,16 @@
       "includes": ["src/shaders/**"],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
+    },
+    {
+      "includes": ["**/*.test.ts", "src/__test__/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ]
 }
