@@ -1,4 +1,4 @@
-import { gC } from '../colors.ts';
+import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { unitPool } from '../pools.ts';
@@ -76,7 +76,7 @@ export function drawMinimap() {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unitPool[i]!;
     if (!u.alive) continue;
-    const c = gC(u.type, u.team);
+    const c = getColor(u.type, u.team);
     const sz = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);
     mmW(u.x * S, u.y * S, sz, 0, c[0], c[1], c[2], 0.7, 1);
   }

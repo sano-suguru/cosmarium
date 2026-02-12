@@ -10,7 +10,7 @@ import {
   setCatSelected,
   setGameMode,
   setGameState,
-  setRT,
+  setReinforcementTimer,
   setTimeScale,
   setWinTeam,
 } from '../state.ts';
@@ -88,7 +88,7 @@ export function resetState() {
   setCatalogOpen(false);
   setCatSelected(0);
   setTimeScale(0.55);
-  setRT(0);
+  setReinforcementTimer(0);
   asteroids.length = 0;
   beams.length = 0;
   // bases の x/y は state.ts で const オブジェクトの初期値として固定されており、テスト中に変更されないためリセット不要

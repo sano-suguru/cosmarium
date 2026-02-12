@@ -1,4 +1,4 @@
-import { gC } from '../colors.ts';
+import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES } from '../constants.ts';
 import { projectilePool, unitPool } from '../pools.ts';
 import type { Unit } from '../types.ts';
@@ -22,7 +22,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   if (u.stun > 0) return;
   u.cooldown -= dt;
   u.abilityCooldown -= dt;
-  const c = gC(u.type, u.team);
+  const c = getColor(u.type, u.team);
   const vd = 1 + u.vet * 0.2;
 
   // --- RAM ---

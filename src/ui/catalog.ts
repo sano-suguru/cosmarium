@@ -1,4 +1,4 @@
-import { gC } from '../colors.ts';
+import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { killUnit, spawnUnit } from '../simulation/spawn.ts';
@@ -124,8 +124,8 @@ export function updateCatDemo(dt: number) {
 
 function updateCatPanel() {
   const t = TYPES[catSelected]!;
-  const c0 = gC(catSelected, 0),
-    c1 = gC(catSelected, 1);
+  const c0 = getColor(catSelected, 0),
+    c1 = getColor(catSelected, 1);
   const col = 'rgb(' + ((c0[0] * 255) | 0) + ',' + ((c0[1] * 255) | 0) + ',' + ((c0[2] * 255) | 0) + ')';
   const col2 = 'rgb(' + ((c1[0] * 255) | 0) + ',' + ((c1[1] * 255) | 0) + ',' + ((c1[2] * 255) | 0) + ')';
   document.getElementById('cpName')!.textContent = t.name;
@@ -181,7 +181,7 @@ function buildCatUI() {
   TYPES.forEach((t, i) => {
     const item = document.createElement('div');
     item.className = 'catItem' + (i === catSelected ? ' active' : '');
-    const c = gC(i, 0);
+    const c = getColor(i, 0);
     const rgb = 'rgb(' + ((c[0] * 255) | 0) + ',' + ((c[1] * 255) | 0) + ',' + ((c[2] * 255) | 0) + ')';
     const dot = document.createElement('div');
     dot.className = 'ciDot';

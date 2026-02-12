@@ -3,7 +3,7 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 // winTeam は export let → ESM live binding で読取可能（setter 不要）
-import { asteroids, bases, beams, setCatalogOpen, setGameMode, setRT, winTeam } from '../state.ts';
+import { asteroids, bases, beams, setCatalogOpen, setGameMode, setReinforcementTimer, winTeam } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -298,7 +298,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
 
   it('reinforce が呼び出され両チームにユニットが増える', () => {
     setGameMode(0);
-    setRT(2.49);
+    setReinforcementTimer(2.49);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0); // rT = 2.49 + 0.016 = 2.506 >= 2.5
     let t0 = 0;
@@ -353,7 +353,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
 
   it('Mode0 (INFINITE): 片方のみでも勝利判定なし', () => {
     setGameMode(0);
-    setRT(0);
+    setReinforcementTimer(0);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     unitPool[idx]!.trailTimer = 99;

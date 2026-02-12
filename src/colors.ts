@@ -1,6 +1,6 @@
 import type { Color3, Team } from './types.ts';
 
-const TC: Color3[][] = [
+const teamColors: Color3[][] = [
   [
     [0.2, 1, 0.55],
     [1, 0.45, 0.25],
@@ -63,7 +63,7 @@ const TC: Color3[][] = [
   ],
 ];
 
-const TrC: Color3[][] = [
+const trailColors: Color3[][] = [
   [
     [0.1, 0.6, 0.35],
     [0.6, 0.25, 0.12],
@@ -126,9 +126,9 @@ const TrC: Color3[][] = [
   ],
 ];
 
-export function gC(t: number, tm: Team): Color3 {
-  return TC[t]![tm]!;
+export function getColor(t: number, tm: Team): Color3 {
+  return teamColors[t]![tm]!;
 }
-export function gTr(t: number, tm: Team): Color3 {
-  return TrC[t]![tm]!;
+export function getTrailColor(t: number, tm: Team): Color3 {
+  return trailColors[t]![tm]!;
 }

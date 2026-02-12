@@ -1,4 +1,4 @@
-import { gC } from '../colors.ts';
+import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particlePool, projectilePool, unitPool } from '../pools.ts';
 import { asteroids, bases, beams, catalogOpen, gameMode } from '../state.ts';
@@ -97,7 +97,7 @@ export function renderScene(now: number): number {
     const u = unitPool[i]!;
     if (!u.alive) continue;
     const ut = TYPES[u.type]!;
-    const c = gC(u.type, u.team);
+    const c = getColor(u.type, u.team);
     const hr = u.hp / u.maxHp;
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;

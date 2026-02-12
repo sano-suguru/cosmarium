@@ -1,4 +1,4 @@
-import { gC, gTr } from '../colors.ts';
+import { getColor, getTrailColor } from '../colors.ts';
 import { addShake } from '../input/camera.ts';
 import { unitPool } from '../pools.ts';
 import type { Color3, Team, Unit } from '../types.ts';
@@ -8,7 +8,7 @@ import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
   const sz = TYPES[type]!.size;
-  const c = gC(type, team);
+  const c = getColor(type, team);
   const cnt = Math.min((18 + sz * 3) | 0, 50);
 
   for (let i = 0; i < cnt; i++) {
@@ -85,7 +85,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
 export function trail(u: Unit) {
   const t = TYPES[u.type]!,
-    c = gTr(u.type, u.team);
+    c = getTrailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
   spawnParticle(

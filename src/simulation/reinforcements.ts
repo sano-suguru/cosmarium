@@ -1,6 +1,6 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
-import { gameMode, rT, setRT } from '../state.ts';
+import { gameMode, reinforcementTimer, setReinforcementTimer } from '../state.ts';
 import type { Team } from '../types.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -11,9 +11,9 @@ import { spawnUnit } from './spawn.ts';
 // powerful units appear only when the team is losing.
 export function reinforce(dt: number) {
   if (gameMode === 1) return;
-  setRT(rT + dt);
-  if (rT < 2.5) return;
-  setRT(0);
+  setReinforcementTimer(reinforcementTimer + dt);
+  if (reinforcementTimer < 2.5) return;
+  setReinforcementTimer(0);
   for (let ti = 0; ti < 2; ti++) {
     const team = ti as Team;
     let cnt = 0;

@@ -8,12 +8,12 @@ import {
   catSelected,
   gameMode,
   gameState,
-  rT,
+  reinforcementTimer,
   setCatalogOpen,
   setCatSelected,
   setGameMode,
   setGameState,
-  setRT,
+  setReinforcementTimer,
   setTimeScale,
   setWinTeam,
   timeScale,
@@ -50,7 +50,7 @@ describe('初期値', () => {
   });
 
   it('rT は 0', () => {
-    expect(rT).toBe(0);
+    expect(reinforcementTimer).toBe(0);
   });
 });
 
@@ -94,8 +94,8 @@ describe('setter関数', () => {
   });
 
   it('setRT が rT を更新する', () => {
-    setRT(1.5);
-    expect(rT).toBe(1.5);
+    setReinforcementTimer(1.5);
+    expect(reinforcementTimer).toBe(1.5);
   });
 });
 
