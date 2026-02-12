@@ -1,4 +1,4 @@
-import { PU, WORLD } from '../constants.ts';
+import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { uP } from '../pools.ts';
 import { gameMode, rT, setRT } from '../state.ts';
 import type { Team } from '../types.ts';
@@ -17,14 +17,14 @@ export function reinforce(dt: number) {
   for (let ti = 0; ti < 2; ti++) {
     const team = ti as Team;
     let cnt = 0;
-    for (let i = 0; i < PU; i++) {
+    for (let i = 0; i < POOL_UNITS; i++) {
       const u = uP[i]!;
       if (u.alive && u.team === team) cnt++;
     }
     const lim = gameMode === 2 ? 100 : 130;
     if (cnt < lim) {
-      const cx = team === 0 ? -WORLD * 0.6 : WORLD * 0.6;
-      const cy = (Math.random() - 0.5) * WORLD;
+      const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
+      const cy = (Math.random() - 0.5) * WORLD_SIZE;
       const r = Math.random();
       const s = (tp: number, spread: number) => {
         spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);

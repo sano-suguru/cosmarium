@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { PU } from '../constants.ts';
+import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 // winTeam は export let → ESM live binding で読取可能（setter 不要）
 import { asteroids, bases, beams, setCatalogOpen, setGameMode, setRT, winTeam } from '../state.ts';
@@ -303,7 +303,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
     update(0.016, 0); // rT = 2.49 + 0.016 = 2.506 >= 2.5
     let t0 = 0;
     let t1 = 0;
-    for (let i = 0; i < PU; i++) {
+    for (let i = 0; i < POOL_UNITS; i++) {
       if (uP[i]!.alive) {
         if (uP[i]!.team === 0) t0++;
         else t1++;

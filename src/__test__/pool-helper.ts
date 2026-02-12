@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { PP, PPR, PU } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { spU } from '../simulation/spawn.ts';
 import {
@@ -16,7 +16,7 @@ import {
 } from '../state.ts';
 
 export function resetPools() {
-  for (let i = 0; i < PU; i++) {
+  for (let i = 0; i < POOL_UNITS; i++) {
     const u = uP[i]!;
     u.alive = false;
     u.team = 0;
@@ -42,7 +42,7 @@ export function resetPools() {
     u.kills = 0;
     u.vet = 0;
   }
-  for (let i = 0; i < PP; i++) {
+  for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = pP[i]!;
     p.alive = false;
     p.x = 0;
@@ -57,7 +57,7 @@ export function resetPools() {
     p.b = 0;
     p.sh = 0;
   }
-  for (let i = 0; i < PPR; i++) {
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = prP[i]!;
     p.alive = false;
     p.x = 0;

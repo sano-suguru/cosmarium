@@ -1,5 +1,5 @@
 import { gC } from '../colors.ts';
-import { PPR } from '../constants.ts';
+import { POOL_PROJECTILES } from '../constants.ts';
 import { prP, uP } from '../pools.ts';
 import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
@@ -87,7 +87,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- REFLECTOR ---
   if (t.reflects) {
     const rr = t.rng;
-    for (let i = 0; i < PPR; i++) {
+    for (let i = 0; i < POOL_PROJECTILES; i++) {
       const p = prP[i]!;
       if (!p.alive || p.team === u.team) continue;
       if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
-import { PU } from '../constants.ts';
+import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { beams } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
@@ -88,13 +88,13 @@ describe('spU', () => {
   });
 
   it('プール満杯時に -1 を返す', () => {
-    for (let i = 0; i < PU; i++) {
+    for (let i = 0; i < POOL_UNITS; i++) {
       uP[i]!.alive = true;
     }
-    poolCounts.uC = PU;
+    poolCounts.uC = POOL_UNITS;
     const overflow = spU(0, 0, 0, 0);
     expect(overflow).toBe(-1);
-    expect(poolCounts.uC).toBe(PU);
+    expect(poolCounts.uC).toBe(POOL_UNITS);
   });
 
   it('dead スロットを再利用する', () => {

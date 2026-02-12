@@ -1,5 +1,5 @@
 import { gC } from '../colors.ts';
-import { PP, PPR } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { killU, spU } from '../simulation/spawn.ts';
 import { beams, catalogOpen, catSelected, setCatalogOpen, setCatSelected } from '../state.ts';
@@ -9,14 +9,14 @@ let catDemoUnits: number[] = [];
 let catDemoTimer = 0;
 
 function setupCatDemo(typeIdx: number) {
-  for (let i = 0; i < PP; i++) {
+  for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = pP[i]!;
     if (p.alive) {
       p.alive = false;
       poolCounts.pC--;
     }
   }
-  for (let i = 0; i < PPR; i++) {
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
     const pr = prP[i]!;
     if (pr.alive) {
       pr.alive = false;

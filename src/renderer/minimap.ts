@@ -1,5 +1,5 @@
 import { gC } from '../colors.ts';
-import { MM_MAX, PU, WORLD } from '../constants.ts';
+import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { uP } from '../pools.ts';
 import { asteroids, bases, gameMode } from '../state.ts';
@@ -12,7 +12,7 @@ let mmDiv: HTMLElement;
 let mmIc = 0;
 
 function mmW(x: number, y: number, sx: number, sy: number, r: number, g: number, b: number, a: number, sh: number) {
-  if (mmIc >= MM_MAX) return;
+  if (mmIc >= MINIMAP_MAX) return;
   const B = mmIc * 9;
   mmD[B] = x;
   mmD[B + 1] = y;
@@ -35,8 +35,8 @@ export function initMinimap() {
     const my = e.clientY - rect.top;
     const cw = rect.width,
       ch = rect.height;
-    cam.tx = (mx / cw) * (WORLD * 2) - WORLD;
-    cam.ty = WORLD - (my / ch) * (WORLD * 2);
+    cam.tx = (mx / cw) * (WORLD_SIZE * 2) - WORLD_SIZE;
+    cam.ty = WORLD_SIZE - (my / ch) * (WORLD_SIZE * 2);
     cam.tz = 1;
   });
   mmDiv.addEventListener(
@@ -51,7 +51,7 @@ export function initMinimap() {
 export function drawMinimap() {
   if (!mmDiv.clientWidth) return;
   mmIc = 0;
-  const S = 1.0 / WORLD;
+  const S = 1.0 / WORLD_SIZE;
   const W = viewport.W,
     H = viewport.H;
 
@@ -73,7 +73,7 @@ export function drawMinimap() {
   }
 
   // Units
-  for (let i = 0; i < PU; i++) {
+  for (let i = 0; i < POOL_UNITS; i++) {
     const u = uP[i]!;
     if (!u.alive) continue;
     const c = gC(u.type, u.team);
@@ -82,8 +82,8 @@ export function drawMinimap() {
   }
 
   // Camera viewport frame
-  const vw = W / cam.z / (2 * WORLD);
-  const vh = H / cam.z / (2 * WORLD);
+  const vw = W / cam.z / (2 * WORLD_SIZE);
+  const vh = H / cam.z / (2 * WORLD_SIZE);
   const cx = cam.x * S,
     cy = cam.y * S;
   const lw = 0.008;

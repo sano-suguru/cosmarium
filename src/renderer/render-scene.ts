@@ -1,5 +1,5 @@
 import { gC } from '../colors.ts';
-import { MAX_I, PP, PPR, PU } from '../constants.ts';
+import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { pP, prP, uP } from '../pools.ts';
 import { asteroids, bases, beams, catalogOpen, gameMode } from '../state.ts';
 import type { Color3 } from '../types.ts';
@@ -10,7 +10,7 @@ export function renderScene(now: number): number {
   let idx = 0;
 
   function wr(x: number, y: number, sz: number, r: number, g: number, b: number, a: number, ang: number, sh: number) {
-    if (idx >= MAX_I) return;
+    if (idx >= MAX_INSTANCES) return;
     const B = idx * 9;
     iD[B] = x;
     iD[B + 1] = y;
@@ -45,7 +45,7 @@ export function renderScene(now: number): number {
   }
 
   // Particles
-  for (let i = 0; i < PP; i++) {
+  for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = pP[i]!;
     if (!p.alive) continue;
     const al = Math.min(1, p.life / p.ml);
@@ -82,7 +82,7 @@ export function renderScene(now: number): number {
   }
 
   // Projectiles
-  for (let i = 0; i < PPR; i++) {
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
     const pr = prP[i]!;
     if (!pr.alive) continue;
     let shape: number;
@@ -93,7 +93,7 @@ export function renderScene(now: number): number {
   }
 
   // Units
-  for (let i = 0; i < PU; i++) {
+  for (let i = 0; i < POOL_UNITS; i++) {
     const u = uP[i]!;
     if (!u.alive) continue;
     const ut = TYPES[u.type]!;

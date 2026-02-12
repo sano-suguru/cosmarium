@@ -1,4 +1,4 @@
-import { CELL, PU } from '../constants.ts';
+import { CELL_SIZE, POOL_UNITS } from '../constants.ts';
 import { uP } from '../pools.ts';
 
 const hM = new Map<number, number[]>();
@@ -15,10 +15,10 @@ export function bHash() {
   }
   _used.length = 0;
   hM.clear();
-  for (let i = 0; i < PU; i++) {
+  for (let i = 0; i < POOL_UNITS; i++) {
     const u = uP[i]!;
     if (!u.alive) continue;
-    const k = (((u.x / CELL) | 0) * 73856093) ^ (((u.y / CELL) | 0) * 19349663);
+    const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
     let a = hM.get(k);
     if (!a) {
       a = _pooled.length > 0 ? _pooled.pop()! : [];
@@ -31,9 +31,9 @@ export function bHash() {
 
 export function gN(x: number, y: number, r: number, buf: number[]): number {
   let n = 0;
-  const cr = Math.ceil(r / CELL);
-  const cx = (x / CELL) | 0,
-    cy = (y / CELL) | 0;
+  const cr = Math.ceil(r / CELL_SIZE);
+  const cx = (x / CELL_SIZE) | 0,
+    cy = (y / CELL_SIZE) | 0;
   for (let dx = -cr; dx <= cr; dx++) {
     for (let dy = -cr; dy <= cr; dy++) {
       const a = hM.get(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663));

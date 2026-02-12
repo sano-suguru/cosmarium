@@ -1,11 +1,11 @@
-import { PP, PPR, PU } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
 export function spU(team: Team, type: number, x: number, y: number): number {
-  for (let i = 0; i < PU; i++) {
+  for (let i = 0; i < POOL_UNITS; i++) {
     if (!uP[i]!.alive) {
       const u = uP[i]!,
         t = TYPES[type]!;
@@ -58,7 +58,7 @@ export function spP(
   b: number,
   sh: number,
 ): number {
-  for (let i = 0; i < PP; i++) {
+  for (let i = 0; i < POOL_PARTICLES; i++) {
     if (!pP[i]!.alive) {
       const p = pP[i]!;
       p.alive = true;
@@ -96,7 +96,7 @@ export function spPr(
   aoe?: number,
   tx?: number,
 ): number {
-  for (let i = 0; i < PPR; i++) {
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
     if (!prP[i]!.alive) {
       const p = prP[i]!;
       p.alive = true;

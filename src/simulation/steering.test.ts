@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { WORLD } from '../constants.ts';
+import { WORLD_SIZE } from '../constants.ts';
 import { uP } from '../pools.ts';
 import { asteroids, setGameMode } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
@@ -184,8 +184,8 @@ describe('steer — ヒーラー追従', () => {
 });
 
 describe('steer — ワールド境界', () => {
-  it('|x| > WORLD*0.8 → 内向き力', () => {
-    const idx = spawnAt(0, 1, WORLD * 0.85, 0);
+  it('|x| > WORLD_SIZE*0.8 → 内向き力', () => {
+    const idx = spawnAt(0, 1, WORLD_SIZE * 0.85, 0);
     const u = uP[idx]!;
     u.vx = 0;
     u.vy = 0;
@@ -194,11 +194,11 @@ describe('steer — ワールド境界', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
     // 境界の外側にいるので内側（左方向）に力
-    expect(u.x).toBeLessThan(WORLD * 0.85);
+    expect(u.x).toBeLessThan(WORLD_SIZE * 0.85);
   });
 
-  it('|y| > WORLD*0.8 → 内向き力', () => {
-    const idx = spawnAt(0, 1, 0, -WORLD * 0.85);
+  it('|y| > WORLD_SIZE*0.8 → 内向き力', () => {
+    const idx = spawnAt(0, 1, 0, -WORLD_SIZE * 0.85);
     const u = uP[idx]!;
     u.vx = 0;
     u.vy = 0;
@@ -206,7 +206,7 @@ describe('steer — ワールド境界', () => {
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
-    // y < -WORLD*0.8 なので上方向（yが増える方向）に力
-    expect(u.y).toBeGreaterThan(-WORLD * 0.85);
+    // y < -WORLD_SIZE*0.8 なので上方向（yが増える方向）に力
+    expect(u.y).toBeGreaterThan(-WORLD_SIZE * 0.85);
   });
 });

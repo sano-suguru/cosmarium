@@ -1,4 +1,4 @@
-import { PI, PP, PPR, PU, TAU } from '../constants.ts';
+import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { asteroids, bases, beams, catalogOpen, gameMode, setWinTeam } from '../state.ts';
@@ -16,7 +16,7 @@ export function update(rawDt: number, now: number) {
   const dt = Math.min(rawDt, 0.033);
   bHash();
 
-  for (let i = 0, urem = poolCounts.uC; i < PU && urem > 0; i++) {
+  for (let i = 0, urem = poolCounts.uC; i < POOL_UNITS && urem > 0; i++) {
     const u = uP[i]!;
     if (!u.alive) continue;
     urem--;
@@ -31,7 +31,7 @@ export function update(rawDt: number, now: number) {
   }
 
   // Reflector shields
-  for (let i = 0, urem2 = poolCounts.uC; i < PU && urem2 > 0; i++) {
+  for (let i = 0, urem2 = poolCounts.uC; i < POOL_UNITS && urem2 > 0; i++) {
     const u = uP[i]!;
     if (!u.alive) continue;
     urem2--;
@@ -44,7 +44,7 @@ export function update(rawDt: number, now: number) {
   }
 
   // Projectiles
-  for (let i = 0, prem = poolCounts.prC; i < PPR && prem > 0; i++) {
+  for (let i = 0, prem = poolCounts.prC; i < POOL_PROJECTILES && prem > 0; i++) {
     const p = prP[i]!;
     if (!p.alive) continue;
     prem--;
@@ -166,7 +166,7 @@ export function update(rawDt: number, now: number) {
   }
 
   // Particles
-  for (let i = 0, rem = poolCounts.pC; i < PP && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.pC; i < POOL_PARTICLES && rem > 0; i++) {
     const pp = pP[i]!;
     if (!pp.alive) continue;
     rem--;
@@ -191,7 +191,7 @@ export function update(rawDt: number, now: number) {
   if (!catalogOpen) {
     // Base damage
     if (gameMode === 2) {
-      for (let i = 0, urem3 = poolCounts.uC; i < PU && urem3 > 0; i++) {
+      for (let i = 0, urem3 = poolCounts.uC; i < POOL_UNITS && urem3 > 0; i++) {
         const u = uP[i]!;
         if (!u.alive) continue;
         urem3--;
@@ -214,7 +214,7 @@ export function update(rawDt: number, now: number) {
     if (gameMode === 1) {
       let ac = 0,
         bc = 0;
-      for (let i = 0, urem4 = poolCounts.uC; i < PU && urem4 > 0; i++) {
+      for (let i = 0, urem4 = poolCounts.uC; i < POOL_UNITS && urem4 > 0; i++) {
         const u = uP[i]!;
         if (!u.alive) continue;
         urem4--;

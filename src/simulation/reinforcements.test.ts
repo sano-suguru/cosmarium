@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { PU } from '../constants.ts';
+import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, uP } from '../pools.ts';
 import { rT, setGameMode, setRT } from '../state.ts';
 import { reinforce } from './reinforcements.ts';
@@ -76,7 +76,7 @@ describe('reinforce', () => {
     expect(poolCounts.uC).toBe(22);
     // Flagship (type=4) が存在することを確認
     let hasFlagship = false;
-    for (let i = 0; i < PU; i++) {
+    for (let i = 0; i < POOL_UNITS; i++) {
       if (uP[i]!.alive && uP[i]!.type === 4) {
         hasFlagship = true;
         break;
@@ -116,7 +116,7 @@ describe('reinforce', () => {
     reinforce(0.1);
     let team0 = 0;
     let team1 = 0;
-    for (let i = 0; i < PU; i++) {
+    for (let i = 0; i < POOL_UNITS; i++) {
       if (!uP[i]!.alive) continue;
       if (uP[i]!.team === 0) team0++;
       else team1++;

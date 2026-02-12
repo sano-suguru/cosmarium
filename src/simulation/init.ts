@@ -1,4 +1,4 @@
-import { PP, PPR, PU, WORLD } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
 import { asteroids, bases, beams, gameMode } from '../state.ts';
 import type { Team } from '../types.ts';
@@ -8,8 +8,8 @@ function genAsteroids() {
   asteroids.length = 0;
   for (let i = 0; i < 40; i++) {
     asteroids.push({
-      x: (Math.random() - 0.5) * WORLD * 1.4,
-      y: (Math.random() - 0.5) * WORLD * 1.4,
+      x: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
+      y: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
       r: 20 + Math.random() * 60,
       ang: Math.random() * 6.28,
       va: (0.02 + Math.random() * 0.03) * (Math.random() < 0.5 ? 1 : -1),
@@ -18,11 +18,11 @@ function genAsteroids() {
 }
 
 export function initUnits() {
-  for (let i = 0; i < PU; i++) uP[i]!.alive = false;
+  for (let i = 0; i < POOL_UNITS; i++) uP[i]!.alive = false;
   poolCounts.uC = 0;
-  for (let i = 0; i < PP; i++) pP[i]!.alive = false;
+  for (let i = 0; i < POOL_PARTICLES; i++) pP[i]!.alive = false;
   poolCounts.pC = 0;
-  for (let i = 0; i < PPR; i++) prP[i]!.alive = false;
+  for (let i = 0; i < POOL_PROJECTILES; i++) prP[i]!.alive = false;
   poolCounts.prC = 0;
   beams.length = 0;
   bases[0].hp = bases[0].mhp;

@@ -1,4 +1,4 @@
-import { PI, PU, TAU, WORLD } from '../constants.ts';
+import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
 import { uP } from '../pools.ts';
 import { asteroids, bases, gameMode } from '../state.ts';
 import type { Unit } from '../types.ts';
@@ -94,7 +94,7 @@ export function steer(u: Unit, dt: number) {
     }
     if (bi < 0 && Math.random() < 0.012) {
       bd = 1e18;
-      for (let i = 0; i < PU; i++) {
+      for (let i = 0; i < POOL_UNITS; i++) {
         const o = uP[i]!;
         if (!o.alive || o.team === u.team) continue;
         const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
@@ -158,7 +158,7 @@ export function steer(u: Unit, dt: number) {
     }
   }
 
-  const m = WORLD * 0.8;
+  const m = WORLD_SIZE * 0.8;
   if (u.x < -m) fx += 120;
   if (u.x > m) fx -= 120;
   if (u.y < -m) fy += 120;
