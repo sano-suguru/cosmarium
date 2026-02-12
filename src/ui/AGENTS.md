@@ -20,11 +20,11 @@
 
 ## カタログのプール副作用（最重要）
 
-カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spU()` で実際のプールに生ユニットを生成する。
+カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spawnUnit()` で実際のプールに生ユニットを生成する。
 
-- `toggleCat()` → `setupCatDemo(catSelected)`: 旧デモユニットを`killU()`で破棄後、新シナリオをspawn
+- `toggleCat()` → `setupCatDemo(catSelected)`: 旧デモユニットを`killUnit()`で破棄後、新シナリオをspawn
 - `updateCatDemo(dt)`: 3秒タイマーで敵残数<2なら再spawn。味方は原点に引き寄せ（rams除く）、敵はHP自動回復
-- **影響**: `PU`上限を消費。カタログ中もsteps 1-6（steer/combat/projectile/particle/beam）は実行される
+- **影響**: `POOL_UNITS`上限を消費。カタログ中もsteps 1-6（steer/combat/projectile/particle/beam）は実行される
 
 ### デモシナリオ分岐
 
@@ -58,8 +58,8 @@
 
 | 罠 | 理由 |
 |----|------|
-| カタログがプールを消費 | `spU()`で実ユニット生成。`PU`上限に影響。`killU()`での破棄漏れ注意 |
+| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
 | `setupCatDemo()`冒頭で全particle/projectile/beam消去 | カタログ切替時にパーティクルが全消滅するのは仕様 |
 | DOM要素IDはハードコード | `getElementById('cpName')!`等。HTML側のID変更で即壊れる |
 | `showWin()`は`game-control.ts` | カタログではなくgame-control側にある。勝利画面変更時は注意 |
-| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。PU全走査(O(800))もあり |
+| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。POOL_UNITS全走査(O(800))もあり |

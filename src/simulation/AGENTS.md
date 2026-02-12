@@ -9,8 +9,8 @@
 | `update.ts` | メインtick: hash構築→ユニット更新→弾→パーティクル→勝利判定 | 中 |
 | `combat.ts` | 9攻撃パターン分岐（最大ファイル） | 高 |
 | `steering.ts` | Boids + ターゲットAI + 小惑星回避 | 中 |
-| `spatial-hash.ts` | 空間ハッシュ（`bHash`/`gN`/`kb`） | 低 |
-| `spawn.ts` | `spU`/`spP`/`spPr`/`addBeam` — プール割当 | 低 |
+| `spatial-hash.ts` | 空間ハッシュ（`buildHash`/`getNeighbors`/`knockback`） | 低 |
+| `spawn.ts` | `spawnUnit`/`spawnParticle`/`spawnProjectile`/`addBeam` — プール割当 | 低 |
 | `effects.ts` | `explosion`/`trail`/`chainLightning` | 中 |
 | `reinforcements.ts` | 増援スポーン（確率分布テーブル） | 低 |
 | `init.ts` | ゲーム開始時のユニット配置 + 小惑星生成 | 低 |
@@ -28,7 +28,7 @@
 ## Tick Order（update.ts内）
 
 ```
-1. bHash()                — 空間ハッシュ再構築
+1. buildHash()                — 空間ハッシュ再構築
 2. per unit:
    a. shielded = false    — リセット
    b. steer(u, dt)        — 移動AI
@@ -74,7 +74,7 @@ beam系・通常攻撃ともに `tgtDistOrClear(u)` でターゲット有効性�
 1. `types.ts` — `UnitType`に新フラグ追加（例: `drains?: boolean`）
 2. `unit-types.ts` — 該当エントリにフラグ追加
 3. `combat.ts` — NORMAL FIREの前に`if (t.newFlag)`分岐挿入
-4. `spawn.ts` — 新Unitプロパティがあれば`spU()`の初期化に追加
+4. `spawn.ts` — 新Unitプロパティがあれば`spawnUnit()`の初期化に追加
 5. return要否を判断: 排他パターンならreturn、他と共存するならreturnなし
 
 ### steering変更
@@ -119,12 +119,12 @@ beam系・通常攻撃ともに `tgtDistOrClear(u)` でターゲット有効性�
 | 罠 | 理由 |
 |----|------|
 | `dt`は0.033でクランプ | `update()`冒頭。大きすぎるdtで物理が壊れるのを防止 |
-| `killU()`はindexで呼ぶ | `killU(oi)` — Unit参照ではなくプール配列index |
+| `killUnit()`はindexで呼ぶ | `killUnit(oi)` — Unit参照ではなくプール配列index |
 | `u.tgt`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
 | beamsは`.splice()`で削除 | プールではなく動的配列。逆順ループ必須 |
 | `explosion()`のkiller引数 | -1=キラー不明。有効indexならvet/killsを加算 |
 | combat内の`vd` | `1 + u.vet * 0.2` — ダメージ乗算。vet変更時は確認 |
-| `gN()`は`bHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
+| `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
 | Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
 | beamOn ramp-up/down | 上昇: `+dt*2`（0.5s）、下降: `-dt*3`（0.33s）。幅: `(sz≥15 ? 6 : 4) * beamOn` |
 

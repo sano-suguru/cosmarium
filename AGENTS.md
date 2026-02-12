@@ -30,14 +30,14 @@
 
 | 定数 | 値 | 用途 |
 |------|-----|------|
-| `PU` | 800 | ユニット上限 |
-| `PP` | 35000 | パーティクル上限 |
-| `PPR` | 6000 | 弾(projectile)上限 |
+| `POOL_UNITS` | 800 | ユニット上限 |
+| `POOL_PARTICLES` | 35000 | パーティクル上限 |
+| `POOL_PROJECTILES` | 6000 | 弾(projectile)上限 |
 | `WORLD` | 4000 | ワールド半径（-4000〜+4000） |
-| `CELL` | 100 | 空間ハッシュのセルサイズ |
-| `MAX_I` | 65000 | 描画instance上限 |
-| `MM_MAX` | 1200 | ミニマップinstance上限 |
-| `S_STRIDE` | 36 | instanceデータのバイトストライド（9 floats × 4） |
+| `CELL_SIZE` | 100 | 空間ハッシュのセルサイズ |
+| `MAX_INSTANCES` | 65000 | 描画instance上限 |
+| `MINIMAP_MAX` | 1200 | ミニマップinstance上限 |
+| `STRIDE` | 36 | instanceデータのバイトストライド（9 floats × 4） |
 
 ## Vet(ベテラン)システム
 
@@ -60,18 +60,18 @@ unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, u
 input/camera.ts → addShake: simulation/effects.ts, simulation/update.ts からインポート
 
 main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
-         （初期化順序: initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap）
+         （初期化順序: initWebGL → initShaders → createFBOs → initBuffers → initUI → initCamera → initMinimap）
 ```
 
 ## Data Flow（フレーム単位）
 
 ```
 main loop (main.ts) — gameState==='play' 時のみ実行
-  ├─ dt = min(now-lt, 0.05)             ← main.tsのクランプ（0.05s）
-  ├─ camera lerp + shake decay          ← cam.shk *= 0.82（閾値0.1で停止）、cap=min(shk,60)
+  ├─ dt = min(now-lastTime, 0.05)       ← main.tsのクランプ（0.05s）
+  ├─ camera lerp + shake decay          ← cam.shake *= 0.82（閾値0.1で停止）、cap=min(shake,60)
   ├─ update(dt * timeScale, now)        ← simulation/update.ts
   │   ├─ dt = min(dt, 0.033)            ← update.ts内で再クランプ（0.033s）
-  │   ├─ bHash()                        ← 空間ハッシュ再構築
+  │   ├─ buildHash()                    ← 空間ハッシュ再構築
   │   ├─ per unit: steer() → combat()   ← AI + 攻撃（常時実行）
   │   ├─ reflector pass                 ← シールド付与（次フレームで有効、常時実行）
   │   ├─ projectile pass                ← 移動 + homing + 衝突（常時実行。小惑星衝突のみcatalogOpen時スキップ）
@@ -84,13 +84,13 @@ main loop (main.ts) — gameState==='play' 時のみ実行
   │   └─ else: updateCatDemo(dt)
   ├─ renderFrame(now)                   ← renderer/render-pass.ts
   │   ├─ [catalogOpen時: カメラ → (0,0,z=2.5)に固定]
-  │   ├─ renderScene(now)               ← pools → iD[] (Float32Array) 書込み
+  │   ├─ renderScene(now)               ← pools → instanceData[] (Float32Array) 書込み
   │   ├─ scene pass (additive blend)    ← scene FBO
   │   ├─ bloom H/V pass                 ← 半解像度FBO、blur radius=2.5
   │   └─ composite                      ← vignette + Reinhard tonemap
   └─ if (!catalogOpen):
       ├─ updateHUD(fps)
-      └─ drawMinimap()                  ← fc%2===0 のとき（毎フレームではない）
+      └─ drawMinimap()                  ← frameCount%2===0 のとき（毎フレームではない）
 ```
 
 ## ファイル変更ガイド
@@ -98,15 +98,15 @@ main loop (main.ts) — gameState==='play' 時のみ実行
 ### 新ユニット追加
 1. `unit-types.ts` — `TYPES[]`に定義追加（既存15エントリのフォーマットに従う）
 2. `types.ts` — 新フラグが必要なら`Unit`インターフェースに追加
-3. `colors.ts` — `TC[]`と`TrC[]`に色ペア追加（index=ユニットtype番号）
+3. `colors.ts` — `teamColors[]`と`trailColors[]`に色ペア追加（index=ユニットtype番号）
 4. `simulation/combat.ts` — 新攻撃パターンの分岐を`combat()`に追加（排他なら`return`、非排他ならreturnなし）
 5. `simulation/steering.ts` — 特殊移動ロジックがあれば`steer()`に追加
-6. `simulation/spawn.ts` — 新プロパティがあれば`spU()`の初期化に追加
+6. `simulation/spawn.ts` — 新プロパティがあれば`spawnUnit()`の初期化に追加
 7. `ui/catalog.ts` — カタログデモに対応シナリオ追加（`setupCatDemo()`）
 8. `src/shaders/main.frag.glsl` — 新シェイプが必要ならSDF追加（次の空きID使用）→ `src/shaders/AGENTS.md` 参照
 
 ### 新パーティクルエフェクト追加
-1. `simulation/effects.ts` — エフェクト関数を追加（`spP()`でパーティクル生成）
+1. `simulation/effects.ts` — エフェクト関数を追加（`spawnParticle()`でパーティクル生成）
 2. 呼び出し元（`combat.ts`や`update.ts`）からインポート
 
 ### レンダリング変更
@@ -132,22 +132,22 @@ setGameState('win'); // ✅ setter経由（モジュール内からの再代入�
 // gameState = 'win'; // ❌ ESMバインディングは外部モジュールから代入不可
 
 // poolCounts はオブジェクトなのでプロパティ直接変更可
-poolCounts.uC++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
+poolCounts.units++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
 ```
 
 ## プールパターン（spawn/kill）
 
 ```typescript
 // 生成: 最初の dead スロットを線形スキャン
-function spU(team, type, x, y, ...): number {
-  for (let i = 0; i < PU; i++) {
-    if (!uP[i].alive) { /* 初期化して return i */ }
+function spawnUnit(team, type, x, y, ...): number {
+  for (let i = 0; i < POOL_UNITS; i++) {
+    if (!unitPool[i].alive) { /* 初期化して return i */ }
   }
   return -1; // プール満杯
 }
 
 // 破棄: alive=false + カウンタデクリメント
-function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
+function killUnit(i: number) { unitPool[i].alive = false; poolCounts.units--; }
 ```
 
 新オブジェクト種追加時: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加。
@@ -159,7 +159,7 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | ファイル | 責務 |
 |----------|------|
 | `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット |
-| `ui/catalog.ts` | ユニットカタログ。**`spU()`で実プールにspawn** |
+| `ui/catalog.ts` | ユニットカタログ。**`spawnUnit()`で実プールにspawn** |
 | `ui/hud.ts` | HUD数値更新（DOM直接操作） |
 | `input/camera.ts` | カメラ(pan/zoom/shake)。`catalogOpen`時は無効化。zoom=[0.05,8]制限あり、panは境界clampなし |
 
@@ -168,15 +168,15 @@ function killU(i: number) { uP[i].alive = false; poolCounts.uC--; }
 | 罠 | 理由 |
 |----|------|
 | state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
-| プール上限変更時は`constants.ts`と`pools.ts`両方 | `PU`定数とプール配列初期化が別ファイル |
-| `_nb`バッファは共有（350要素） | `gN()`の戻り値=バッファ内の有効数。コピーせず即使用 |
-| `iD`/`mmD`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_I*9` |
+| プール上限変更時は`constants.ts`と`pools.ts`両方 | `POOL_UNITS`定数とプール配列初期化が別ファイル |
+| `neighborBuffer`バッファは共有（350要素） | `getNeighbors()`の戻り値=バッファ内の有効数。コピーせず即使用 |
+| `instanceData`/`minimapData`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_INSTANCES*9` |
 | シェーダは`vite-plugin-glsl`経由でimport | `import src from '../shaders/x.glsl'`。`#include`展開もplugin側で処理 |
 | `poolCounts`オブジェクト内のカウンタ手動管理 | spawn/kill時に必ずインクリメント/デクリメント |
 | pre-commitはエラーのみブロック | Biome警告はコミット通過。`biome check --staged --write` |
 | GLSLのGPUコンパイルはランタイム | CIでは検出不可。ブラウザで確認必須 |
 | `catalogOpen`は複数層に影響 | simulation(steps 1-6は常時実行、7-10のみスキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
-| `Team`型（`0 \| 1`）を引数に使う | `gC`/`gTr`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
+| `Team`型（`0 \| 1`）を引数に使う | `getColor`/`getTrailColor`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
 | `bases`は`[Base, Base]`タプル | リテラル`0`/`1`または`Team`型でインデックスすれば`!`不要 |
 
 ## Subdirectory Knowledge

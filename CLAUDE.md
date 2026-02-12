@@ -35,7 +35,7 @@ bun run check        # All checks combined (typecheck + biome ci + knip + cpd + 
 **Testing**: [Vitest](https://vitest.dev/) for unit tests. Test files: `src/**/*.test.ts`. Vitest config: `environment: 'node'` (no DOM), `restoreMocks: true` (mocks auto-restored between tests). Test files have `noConsole: off` in Biome config. Run a single test: `bunx vitest run src/path/to.test.ts`.
 
 Helper utilities in `src/__test__/pool-helper.ts`:
-- `resetPools()` — resets all pools (uP/pP/prP) to dead state and zeroes poolCounts
+- `resetPools()` — resets all pools (unitPool/particlePool/projectilePool) to dead state and zeroes poolCounts
 - `resetState()` — resets game state to menu defaults (gameState→menu, gameMode→0, bases HP→500, etc.)
 - `spawnAt(team, type, x, y)` — mocks `Math.random` for deterministic unit spawning (ang/cd/wn fixed to 0)
 
@@ -87,10 +87,10 @@ src/
   style.css                   # All CSS
   vite-env.d.ts               # Vite type declarations + .glsl module
   types.ts                    # All TypeScript interfaces (Unit, Particle, Projectile, etc.)
-  constants.ts                # Pool limits (PU/PP/PPR), WORLD, CELL, MAX_I, MM_MAX, S_STRIDE
+  constants.ts                # Pool limits (POOL_UNITS/POOL_PARTICLES/POOL_PROJECTILES), WORLD, CELL_SIZE, MAX_INSTANCES, MINIMAP_MAX, STRIDE
   state.ts                    # Game state + setter functions (gameState, gameMode, beams, etc.)
-  pools.ts                    # Object pools (uP/pP/prP) + poolCounts object
-  colors.ts                   # TC[15][2], TrC[15][2], gC(), gTr()
+  pools.ts                    # Object pools (unitPool/particlePool/projectilePool) + poolCounts object
+  colors.ts                   # teamColors[15][2], trailColors[15][2], getColor(), getTrailColor()
   unit-types.ts               # TYPES[15] unit definitions
   shaders/                    # GLSL source files (imported via vite-plugin-glsl)
     includes/sdf.glsl           # Shared SDF functions (hexDist, manDist, polarR)
@@ -99,15 +99,15 @@ src/
     minimap.vert.glsl, minimap.frag.glsl
   renderer/
     webgl-setup.ts            # gl, canvas, viewport={W,H}, resize()
-    shaders.ts                # CS(), CP(), program creation, Loc/mmLoc
-    fbo.ts                    # mkFBO(), mkFBOs(), fbos={sF,bF1,bF2}
-    buffers.ts                # qB, iB/iD, mmB/mmD, mainVAO/mmVAO/qVAO
+    shaders.ts                # compileShader(), createProgram(), program creation, mainLocations/minimapLocations
+    fbo.ts                    # createFBO(), createFBOs(), fbos={scene,bloom1,bloom2}
+    buffers.ts                # quadBuffer, instanceBuffer/instanceData, minimapBuffer/minimapData, mainVAO/mmVAO/qVAO
     render-scene.ts           # renderScene() — writes instance data
     render-pass.ts            # 4-pass bloom pipeline
-    minimap.ts                # mmW(), drawMinimap(), minimap events
+    minimap.ts                # writeMinimapInstance(), drawMinimap(), minimap events
   simulation/
-    spatial-hash.ts           # hM, _nb, bHash(), gN(), kb()
-    spawn.ts                  # spU(), killU(), spP(), spPr(), addBeam()
+    spatial-hash.ts           # hashMap, neighborBuffer, buildHash(), getNeighbors(), knockback()
+    spawn.ts                  # spawnUnit(), killUnit(), spawnParticle(), spawnProjectile(), addBeam()
     effects.ts                # explosion(), trail(), chainLightning()
     steering.ts               # steer() — boids + target AI
     combat.ts                 # combat() — 9 attack pattern types
@@ -122,18 +122,18 @@ src/
     hud.ts                    # updateHUD()
 ```
 
-**Initialization order** (in main.ts): initWebGL → initShaders → mkFBOs → initBuffers → initUI → initCamera → initMinimap
+**Initialization order** (in main.ts): initWebGL → initShaders → createFBOs → initBuffers → initUI → initCamera → initMinimap
 
 **Main loop (per frame)**:
 ```
 frame() → dt clamp(0.05) → camera lerp + shake decay
   → update(dt * timeScale)  — dt re-clamped to 0.033
-      bHash() → per unit: steer()+combat() → reflector pass
+      buildHash() → per unit: steer()+combat() → reflector pass
       → projectile pass → particle/beam pass  ← always runs
       [when !catalogOpen: reinforce() → win check]
       [when catalogOpen: updateCatDemo(dt)]
   → renderFrame()
-      renderScene() → write iD[] → GPU upload → drawArraysInstanced
+      renderScene() → write instanceData[] → GPU upload → drawArraysInstanced
       → bloom H/V → composite + drawMinimap()
       [when catalogOpen: camera locked to origin z=2.5, HUD/minimap hidden]
 ```
@@ -161,18 +161,18 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 ## Coding Conventions
 
 - **Abbreviated names** (preserved from original — renaming is a separate task):
-  - Pools: `uP`=units, `pP`=particles, `prP`=projectiles; `poolCounts.uC/pC/prC`=active counts
-  - Pool/World: `PU=800`, `PP=35000`, `PPR=6000`, `WORLD=4000`, `CELL=100`, `MAX_I=65000`, `MM_MAX=1200`, `S_STRIDE=36`
-  - Spawners: `spU`=spawn unit, `spP`=spawn particle, `spPr`=spawn projectile
-  - Spatial: `bHash`=build hash, `gN`=get neighbors, `kb`=knockback, `_nb`=neighbor buffer
-  - Camera: `cam` object with `tx/ty/tz` (targets), `x/y/z` (interpolated), `shk/shkx/shky` (screen shake)
-  - Rendering: `mP`=main program, `blP`=bloom program, `coP`=composite program, `mmP`=minimap program
+  - Pools: `unitPool`=units, `particlePool`=particles, `projectilePool`=projectiles; `poolCounts.units/particles/projectiles`=active counts
+  - Pool/World: `POOL_UNITS=800`, `POOL_PARTICLES=35000`, `POOL_PROJECTILES=6000`, `WORLD=4000`, `CELL_SIZE=100`, `MAX_INSTANCES=65000`, `MINIMAP_MAX=1200`, `STRIDE=36`
+  - Spawners: `spawnUnit`=spawn unit, `spawnParticle`=spawn particle, `spawnProjectile`=spawn projectile
+  - Spatial: `buildHash`=build hash, `getNeighbors`=get neighbors, `knockback`=knockback, `neighborBuffer`=neighbor buffer
+  - Camera: `cam` object with `targetX/targetY/targetZ` (targets), `x/y/z` (interpolated), `shake/shakeX/shakeY` (screen shake)
+  - Rendering: `mainProgram`=main program, `bloomProgram`=bloom program, `compositeProgram`=composite program, `minimapProgram`=minimap program
   - VAOs: `mainVAO` (scene), `mmVAO` (minimap), `qVAO` (fullscreen quad)
-  - FBOs: `fbos.sF`=scene, `fbos.bF1`/`fbos.bF2`=bloom ping-pong
-  - Instance data: `iD`/`iB`=scene, `mmD`/`mmB`=minimap
-  - Locations: `Loc`=main program attribs/uniforms, `mmLoc`=minimap program attribs, `blLoc`=bloom program uniforms, `coLoc`=composite program uniforms
-  - Colors: `gC(typeIdx, team)` → [r,g,b], `gTr(typeIdx, team)` → trail color
-  - State: `rT`=reinforcement timer (fires `reinforce()` every 2.5s)
+  - FBOs: `fbos.scene`=scene, `fbos.bloom1`/`fbos.bloom2`=bloom ping-pong
+  - Instance data: `instanceData`/`instanceBuffer`=scene, `minimapData`/`minimapBuffer`=minimap
+  - Locations: `mainLocations`=main program attribs/uniforms, `minimapLocations`=minimap program attribs, `bloomLocations`=bloom program uniforms, `compositeLocations`=composite program uniforms
+  - Colors: `getColor(typeIdx, team)` → [r,g,b], `getTrailColor(typeIdx, team)` → trail color
+  - State: `reinforcementTimer`=reinforcement timer (fires `reinforce()` every 2.5s)
 - **State mutation**: Mutable state in `state.ts` uses `export let` + setter functions (e.g., `setGameState()`) because ES module exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese (日本語)
@@ -187,11 +187,11 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 
 - **Object pooling**: All units/particles/projectiles pre-allocated; `.alive` flag controls active state. Spawn functions scan for first dead slot.
 - **Instanced rendering (WebGL 2)**: Native `gl.drawArraysInstanced()` with VAOs. Instance buffer is 9 floats per instance: `[x, y, size, r, g, b, alpha, angle, shapeID]` (stride = 36 bytes). All shaders use GLSL `#version 300 es` with `in`/`out` instead of `attribute`/`varying`.
-- **Spatial hash**: `bHash()` rebuilds every frame using hash `(x/100 * 73856093) ^ (y/100 * 19349663)`. `gN(x,y,radius,buffer)` returns neighbor count. `_nb` is a shared 350-element buffer.
+- **Spatial hash**: `buildHash()` rebuilds every frame using hash `(x/100 * 73856093) ^ (y/100 * 19349663)`. `getNeighbors(x,y,radius,buffer)` returns neighbor count. `neighborBuffer` is a shared 350-element buffer.
 - **Bloom pipeline**: 4-pass rendering: scene FBO → horizontal blur (half-res) → vertical blur (half-res) → composite with vignette + Reinhard tone mapping.
-- **Minimap**: WebGL-rendered via dedicated `mmP` shader program and `mmVAO`, drawn into a scissored viewport region. Uses instanced quads with a simplified vertex shader that reuses the `aA` slot for non-uniform Y scaling.
+- **Minimap**: WebGL-rendered via dedicated `minimapProgram` shader program and `mmVAO`, drawn into a scissored viewport region. Uses instanced quads with a simplified vertex shader that reuses the `aA` slot for non-uniform Y scaling.
 - **Render order** (in `renderScene()`): asteroids → bases → particles → beams → projectiles → units (later = drawn on top).
-- **Simulation tick order** (in `update()`): bHash → steer+combat per unit → reflector shields → projectile movement+collision → particle/projectile lifetime decay.
+- **Simulation tick order** (in `update()`): buildHash → steer+combat per unit → reflector shields → projectile movement+collision → particle/projectile lifetime decay.
 
 ## Shader Shape IDs
 
@@ -262,10 +262,10 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 ### 新ユニット追加
 1. `unit-types.ts` — `TYPES[]`に定義追加
 2. `types.ts` — 新フラグがあれば`Unit`に追加
-3. `colors.ts` — `TC[]`+`TrC[]`に色ペア追加
+3. `colors.ts` — `teamColors[]`+`trailColors[]`に色ペア追加
 4. `simulation/combat.ts` — 攻撃パターン分岐追加（排他なら`return`）
 5. `simulation/steering.ts` — 特殊移動があれば`steer()`に追加
-6. `simulation/spawn.ts` — 新プロパティがあれば`spU()`初期化に追加
+6. `simulation/spawn.ts` — 新プロパティがあれば`spawnUnit()`初期化に追加
 7. `ui/catalog.ts` — `setupCatDemo()`にデモシナリオ追加
 8. `src/shaders/main.frag.glsl` — 新シェイプが必要ならSDF追加
 
@@ -273,10 +273,10 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 1. `types.ts` — `UnitType`に新フラグ追加
 2. `unit-types.ts` — 該当エントリにフラグ追加
 3. `combat.ts` — NORMAL FIREの前に`if (t.newFlag)`分岐挿入
-4. `spawn.ts` — 新Unitプロパティがあれば`spU()`初期化に追加
+4. `spawn.ts` — 新Unitプロパティがあれば`spawnUnit()`初期化に追加
 
 ### 新パーティクルエフェクト追加
-1. `simulation/effects.ts` — エフェクト関数追加（`spP()`でパーティクル生成）
+1. `simulation/effects.ts` — エフェクト関数追加（`spawnParticle()`でパーティクル生成）
 2. 呼び出し元（`combat.ts`/`update.ts`）からインポート
 
 ### 新Shape追加
@@ -293,15 +293,15 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | `catalogOpen`は複数層に影響 | simulation(steps 1-6常時実行、7-10スキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
 | state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
 | `poolCounts`のカウンタは手動管理 | spawn/kill時に必ずインクリメント/デクリメント。漏れるとHUD・増援ロジックが狂う |
-| `_nb`バッファは共有（350要素） | `gN()`の戻り値=バッファ内の有効数。コピーせず即使用 |
+| `neighborBuffer`バッファは共有（350要素） | `getNeighbors()`の戻り値=バッファ内の有効数。コピーせず即使用 |
 | GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
-| カタログがプールを消費 | `spU()`で実ユニット生成。`PU`上限に影響。`killU()`での破棄漏れ注意 |
+| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
 | `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止 |
-| `killU()`はindexで呼ぶ | `killU(oi)` — Unit参照ではなくプール配列index |
+| `killUnit()`はindexで呼ぶ | `killUnit(oi)` — Unit参照ではなくプール配列index |
 | `u.tgt`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
 | `beams`は`.splice()`で削除 | プールではなく動的配列。逆順ループ必須 |
-| `gN()`は`bHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
-| `wr()`のidx上限 | `MAX_I`を超えるとサイレントに描画省略。描画消え→`MAX_I`増加を検討 |
+| `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
+| `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略。描画消え→`MAX_INSTANCES`増加を検討 |
 | プール上限変更時は2ファイル | `constants.ts`の定数と`pools.ts`の配列初期化を両方変更 |
 | Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
 
@@ -313,7 +313,7 @@ This project integrates AST-grep and LSP (TypeScript Language Server) MCP server
 
 | Tool | Purpose |
 |------|---------|
-| `mcp__ast-grep__find_code` | Simple pattern matching (e.g. `spU($$$)`) |
+| `mcp__ast-grep__find_code` | Simple pattern matching (e.g. `spawnUnit($$$)`) |
 | `mcp__ast-grep__find_code_by_rule` | Advanced structural search via YAML rules |
 | `mcp__ast-grep__dump_syntax_tree` | Inspect AST node structure |
 | `mcp__ast-grep__test_match_code_rule` | Test rules before use |
@@ -331,7 +331,7 @@ This project integrates AST-grep and LSP (TypeScript Language Server) MCP server
 
 - **"Where is this function used?"** → LSP `mcp__lsp-ts__references`
 - **"Where is this function defined?"** → LSP `mcp__lsp-ts__definition`
-- **"Show all call patterns of `spU()`"** → AST-grep `mcp__ast-grep__find_code`
+- **"Show all call patterns of `spawnUnit()`"** → AST-grep `mcp__ast-grep__find_code`
 - **"Detect a specific syntax pattern across the codebase"** → AST-grep `mcp__ast-grep__find_code_by_rule`
 - **"Assess refactoring impact"** → Combine both (see `refactor-safe` skill)
 
