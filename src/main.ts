@@ -30,22 +30,22 @@ initCamera();
 initMinimap();
 
 // Main loop state
-let lt = 0,
-  fc = 0,
-  ft = 0,
-  df = 0;
+let lastTime = 0,
+  frameCount = 0,
+  fpsTime = 0,
+  displayFps = 0;
 
 function frame(now: number) {
   const t = now * 0.001;
-  const dt = Math.min(t - lt, 0.05);
-  lt = t;
+  const dt = Math.min(t - lastTime, 0.05);
+  lastTime = t;
 
-  fc++;
-  ft += dt;
-  if (ft >= 0.5) {
-    df = (fc / ft) | 0;
-    fc = 0;
-    ft = 0;
+  frameCount++;
+  fpsTime += dt;
+  if (fpsTime >= 0.5) {
+    displayFps = (frameCount / fpsTime) | 0;
+    frameCount = 0;
+    fpsTime = 0;
   }
 
   const ct = 1 - 0.0005 ** dt;
@@ -70,8 +70,8 @@ function frame(now: number) {
 
     // HUD updates
     if (!catalogOpen) {
-      updateHUD(df);
-      if (fc % 2 === 0) drawMinimap();
+      updateHUD(displayFps);
+      if (frameCount % 2 === 0) drawMinimap();
     }
   }
 

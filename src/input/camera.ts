@@ -3,9 +3,9 @@ import { catalogOpen, gameState } from '../state.ts';
 import type { Camera } from '../types.ts';
 
 export const cam: Camera = { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 };
-let drg = false,
-  ds = { x: 0, y: 0 },
-  cs = { x: 0, y: 0 };
+let dragging = false,
+  dragStart = { x: 0, y: 0 },
+  cameraStart = { x: 0, y: 0 };
 
 export function addShake(v: number) {
   cam.shake += v;
@@ -33,22 +33,22 @@ export function initCamera() {
 
   canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0 && !catalogOpen) {
-      drg = true;
-      ds = { x: e.clientX, y: e.clientY };
-      cs = { x: cam.targetX, y: cam.targetY };
+      dragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      cameraStart = { x: cam.targetX, y: cam.targetY };
     }
   });
   canvas.addEventListener('mousemove', (e) => {
-    if (drg) {
-      cam.targetX = cs.x - (e.clientX - ds.x) / cam.targetZ;
-      cam.targetY = cs.y + (e.clientY - ds.y) / cam.targetZ;
+    if (dragging) {
+      cam.targetX = cameraStart.x - (e.clientX - dragStart.x) / cam.targetZ;
+      cam.targetY = cameraStart.y + (e.clientY - dragStart.y) / cam.targetZ;
     }
   });
   canvas.addEventListener('mouseup', () => {
-    drg = false;
+    dragging = false;
   });
   canvas.addEventListener('mouseleave', () => {
-    drg = false;
+    dragging = false;
   });
 
   addEventListener('keydown', (e: KeyboardEvent) => {
