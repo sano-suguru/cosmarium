@@ -8,7 +8,7 @@ When renaming a state variable:
 1. Rename the variable declaration in `state.ts`
 2. Rename the corresponding setter function (e.g., `setGameState()`)
 3. Update all import sites — both the variable and the setter
-4. Verify with `find_references` on both the variable and setter
+4. Verify with `references` on both the variable and setter
 
 ## Pool System Constraints
 
@@ -47,7 +47,7 @@ import { spU } from './spawn.ts';
 import type { Unit } from '../types.ts';
 ```
 
-When moving files, update all import paths accordingly. Use `find_references` to locate all importers.
+When moving files, update all import paths accordingly. Use `references` to locate all importers.
 
 ## Type-Only Imports
 

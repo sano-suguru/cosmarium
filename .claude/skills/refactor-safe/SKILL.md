@@ -14,7 +14,7 @@ Perform safe code refactoring by combining AST-grep (structural pattern matching
 
 Before changing any code, assess the full impact:
 
-1. **LSP `find_references`** — Find all reference sites of the target symbol
+1. **LSP `references`** — Find all reference sites of the target symbol
 2. **AST-grep `find_code`** — Search for structural patterns that may be affected (e.g., dynamic access, string references)
 3. **Grep** — Catch string literals, comments, and non-code references
 4. Document the complete list of affected files and locations

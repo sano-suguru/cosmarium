@@ -1,6 +1,6 @@
 # COSMARIUM Key Symbols Reference
 
-Frequently investigated symbols organized by module. Use LSP `find_references` and `read_definition` to navigate these.
+Frequently investigated symbols organized by module. Use LSP `references` and `definition` to navigate these.
 
 ## Pool Functions (src/pools.ts, src/simulation/spawn.ts)
 

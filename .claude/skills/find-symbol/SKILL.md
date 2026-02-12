@@ -17,11 +17,11 @@ Perform semantic code analysis using the TypeScript Language Server via mcp-lang
 
 ## Tool Usage
 
-### `read_definition` — Go to Definition
+### `definition` — Go to Definition
 
-Jump to where a symbol is defined. Provide the file path and position (line/character) of the symbol usage.
+Jump to where a symbol is defined. Provide the symbol name to look up its definition.
 
-### `find_references` — Find All References
+### `references` — Find All References
 
 Locate every usage of a symbol across the entire codebase. Essential before renaming or removing symbols.
 
@@ -37,8 +37,8 @@ Get TypeScript errors and warnings for a specific file. Use after making edits t
 
 | Task | Use AST-grep | Use LSP |
 |------|-------------|---------|
-| Find all calls to `spU()` | Pattern: `spU($$$)` | `find_references` on `spU` definition |
-| Find where `spU` is defined | - | `read_definition` |
+| Find all calls to `spU()` | Pattern: `spU($$$)` | `references` on `spU` |
+| Find where `spU` is defined | - | `definition` |
 | Check return type of `gN()` | - | `hover` on `gN` |
 | Find all `export function` patterns | Pattern search | - |
 | Rename safety check | Both: pattern for structure, references for completeness | |
@@ -55,12 +55,12 @@ Refer to `references/key-symbols.md` for a list of frequently investigated symbo
 
 1. Identify the symbol to investigate
 2. Use Grep or Glob to find the file containing the symbol
-3. Use `read_definition` or `hover` to understand the symbol
-4. Use `find_references` to see all usage sites
+3. Use `definition` or `hover` to understand the symbol
+4. Use `references` to see all usage sites
 5. Combine with AST-grep (`analyze-ast` skill) for structural pattern analysis if needed
 
 ## Notes
 
 - mcp-language-server is pre-beta software; if it fails, fall back to Grep-based search
 - File paths must be absolute
-- Line/character positions are 0-indexed
+- Line/column positions are 1-indexed (for `hover` and `rename_symbol` tools)
