@@ -7,7 +7,21 @@ describe('TYPES 配列', () => {
   });
 
   it('全タイプに必須プロパティが存在する', () => {
-    const required = ['nm', 'sz', 'hp', 'spd', 'tr', 'fr', 'rng', 'dmg', 'sh', 'trl', 'mass', 'desc', 'atk'];
+    const required = [
+      'name',
+      'size',
+      'hp',
+      'speed',
+      'turnRate',
+      'fireRate',
+      'range',
+      'damage',
+      'shape',
+      'trailInterval',
+      'mass',
+      'description',
+      'attackDesc',
+    ];
     for (const t of TYPES) {
       for (const key of required) {
         expect(t).toHaveProperty(key);
@@ -16,21 +30,21 @@ describe('TYPES 配列', () => {
   });
 
   it('nm が全て一意', () => {
-    const names = TYPES.map((t) => t.nm);
+    const names = TYPES.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
   it('数値プロパティが妥当な範囲内', () => {
     for (const t of TYPES) {
       expect(t.hp).toBeGreaterThan(0);
-      expect(t.spd).toBeGreaterThan(0);
+      expect(t.speed).toBeGreaterThan(0);
       expect(t.mass).toBeGreaterThan(0);
-      expect(t.sz).toBeGreaterThan(0);
-      expect(t.sh).toBeGreaterThanOrEqual(0);
-      expect(t.sh % 1).toBe(0); // 整数
-      expect(t.sh).toBeLessThanOrEqual(20);
-      expect(t.trl).toBeGreaterThan(0);
-      expect(t.fr).toBeGreaterThan(0);
+      expect(t.size).toBeGreaterThan(0);
+      expect(t.shape).toBeGreaterThanOrEqual(0);
+      expect(t.shape % 1).toBe(0); // 整数
+      expect(t.shape).toBeLessThanOrEqual(20);
+      expect(t.trailInterval).toBeGreaterThan(0);
+      expect(t.fireRate).toBeGreaterThan(0);
     }
   });
 

@@ -35,9 +35,9 @@ export function initMinimap() {
     const my = e.clientY - rect.top;
     const cw = rect.width,
       ch = rect.height;
-    cam.tx = (mx / cw) * (WORLD_SIZE * 2) - WORLD_SIZE;
-    cam.ty = WORLD_SIZE - (my / ch) * (WORLD_SIZE * 2);
-    cam.tz = 1;
+    cam.targetX = (mx / cw) * (WORLD_SIZE * 2) - WORLD_SIZE;
+    cam.targetY = WORLD_SIZE - (my / ch) * (WORLD_SIZE * 2);
+    cam.targetZ = 1;
   });
   mmDiv.addEventListener(
     'wheel',
@@ -61,7 +61,7 @@ export function drawMinimap() {
   // Asteroids
   for (let i = 0; i < asteroids.length; i++) {
     const a = asteroids[i]!;
-    mmW(a.x * S, a.y * S, Math.max(0.008, a.r * S), 0, 0.31, 0.235, 0.157, 0.4, 0);
+    mmW(a.x * S, a.y * S, Math.max(0.008, a.radius * S), 0, 0.31, 0.235, 0.157, 0.4, 0);
   }
 
   // Bases
@@ -77,7 +77,7 @@ export function drawMinimap() {
     const u = uP[i]!;
     if (!u.alive) continue;
     const c = gC(u.type, u.team);
-    const sz = Math.max(0.008, TYPES[u.type]!.sz * S * 1.5);
+    const sz = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);
     mmW(u.x * S, u.y * S, sz, 0, c[0], c[1], c[2], 0.7, 1);
   }
 

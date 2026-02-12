@@ -26,7 +26,7 @@ export function steer(u: Unit, dt: number) {
     chx = 0,
     chy = 0,
     cc = 0;
-  const sd = t.sz * 4;
+  const sd = t.size * 4;
 
   for (let i = 0; i < nn; i++) {
     const oi = _nb[i]!,
@@ -71,16 +71,16 @@ export function steer(u: Unit, dt: number) {
     const dx = u.x - a.x,
       dy = u.y - a.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < a.r + t.sz * 2) {
+    if (d < a.radius + t.size * 2) {
       fx += ((dx / d) * 300) / (d + 1);
       fy += ((dy / d) * 300) / (d + 1);
     }
   }
 
   // Find target
-  let tgt = u.tgt >= 0 && uP[u.tgt]!.alive ? u.tgt : -1;
+  let tgt = u.target >= 0 && uP[u.target]!.alive ? u.target : -1;
   if (tgt < 0) {
-    let bd = t.rng * 3,
+    let bd = t.range * 3,
       bi = -1;
     for (let i = 0; i < nn; i++) {
       const oi = _nb[i]!,
@@ -106,7 +106,7 @@ export function steer(u: Unit, dt: number) {
     }
     tgt = bi;
   }
-  u.tgt = tgt;
+  u.target = tgt;
 
   if (gameMode === 2 && tgt < 0) {
     const eb = bases[u.team === 0 ? 1 : 0];
@@ -120,22 +120,22 @@ export function steer(u: Unit, dt: number) {
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (t.rams) {
-      fx += (dx / d) * t.spd * 3;
-      fy += (dy / d) * t.spd * 3;
-    } else if (d > t.rng * 0.7) {
-      fx += (dx / d) * t.spd * 2;
-      fy += (dy / d) * t.spd * 2;
-    } else if (d < t.rng * 0.3) {
-      fx -= (dx / d) * t.spd;
-      fy += (dy / d) * t.spd * 0.5;
+      fx += (dx / d) * t.speed * 3;
+      fy += (dy / d) * t.speed * 3;
+    } else if (d > t.range * 0.7) {
+      fx += (dx / d) * t.speed * 2;
+      fy += (dy / d) * t.speed * 2;
+    } else if (d < t.range * 0.3) {
+      fx -= (dx / d) * t.speed;
+      fy += (dy / d) * t.speed * 0.5;
     } else {
-      fx += (-dy / d) * t.spd * 0.8;
-      fy += (dx / d) * t.spd * 0.8;
+      fx += (-dy / d) * t.speed * 0.8;
+      fy += (dx / d) * t.speed * 0.8;
     }
   } else {
-    u.wn += (Math.random() - 0.5) * 2 * dt;
-    fx += Math.cos(u.wn) * t.spd * 0.5;
-    fy += Math.sin(u.wn) * t.spd * 0.5;
+    u.wanderAngle += (Math.random() - 0.5) * 2 * dt;
+    fx += Math.cos(u.wanderAngle) * t.speed * 0.5;
+    fy += Math.sin(u.wanderAngle) * t.speed * 0.5;
   }
 
   // Healer follows big ally
@@ -165,14 +165,14 @@ export function steer(u: Unit, dt: number) {
   if (u.y > m) fy -= 120;
 
   const da = Math.atan2(fy, fx);
-  let ad = da - u.ang;
+  let ad = da - u.angle;
   if (ad > PI) ad -= TAU;
   if (ad < -PI) ad += TAU;
-  u.ang += ad * t.tr * dt;
+  u.angle += ad * t.turnRate * dt;
 
-  const spd = t.spd * (1 + u.vet * 0.12);
-  u.vx += (Math.cos(u.ang) * spd - u.vx) * dt * 3;
-  u.vy += (Math.sin(u.ang) * spd - u.vy) * dt * 3;
+  const spd = t.speed * (1 + u.vet * 0.12);
+  u.vx += (Math.cos(u.angle) * spd - u.vx) * dt * 3;
+  u.vy += (Math.sin(u.angle) * spd - u.vy) * dt * 3;
   u.vx *= 1 - dt * 0.5;
   u.vy *= 1 - dt * 0.5;
   u.x += u.vx * dt;
@@ -184,8 +184,8 @@ export function steer(u: Unit, dt: number) {
     const dx = u.x - a.x,
       dy = u.y - a.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < a.r + t.sz) {
-      const pen = a.r + t.sz - d;
+    if (d < a.radius + t.size) {
+      const pen = a.radius + t.size - d;
       u.x += (dx / d) * pen;
       u.y += (dy / d) * pen;
       u.vx += (dx / d) * 50;

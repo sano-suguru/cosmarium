@@ -25,19 +25,19 @@ export function resetPools() {
     u.y = 0;
     u.vx = 0;
     u.vy = 0;
-    u.ang = 0;
+    u.angle = 0;
     u.hp = 0;
-    u.mhp = 0;
-    u.cd = 0;
-    u.tgt = -1;
-    u.wn = 0;
-    u.tT = 0;
+    u.maxHp = 0;
+    u.cooldown = 0;
+    u.target = -1;
+    u.wanderAngle = 0;
+    u.trailTimer = 0;
     u.mass = 1;
-    u.aCd = 0;
+    u.abilityCooldown = 0;
     u.shielded = false;
     u.stun = 0;
-    u.sCd = 0;
-    u.tp = 0;
+    u.spawnCooldown = 0;
+    u.teleportTimer = 0;
     u.beamOn = 0;
     u.kills = 0;
     u.vet = 0;
@@ -50,12 +50,12 @@ export function resetPools() {
     p.vx = 0;
     p.vy = 0;
     p.life = 0;
-    p.ml = 0;
-    p.sz = 0;
+    p.maxLife = 0;
+    p.size = 0;
     p.r = 0;
     p.g = 0;
     p.b = 0;
-    p.sh = 0;
+    p.shape = 0;
   }
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = prP[i]!;
@@ -65,15 +65,15 @@ export function resetPools() {
     p.vx = 0;
     p.vy = 0;
     p.life = 0;
-    p.dmg = 0;
+    p.damage = 0;
     p.team = 0;
-    p.sz = 0;
+    p.size = 0;
     p.r = 0;
     p.g = 0;
     p.b = 0;
-    p.hom = false;
+    p.homing = false;
     p.aoe = 0;
-    p.tx = -1;
+    p.targetIndex = -1;
   }
   poolCounts.uC = 0;
   poolCounts.pC = 0;
@@ -93,9 +93,9 @@ export function resetState() {
   beams.length = 0;
   // bases の x/y は state.ts で const オブジェクトの初期値として固定されており、テスト中に変更されないためリセット不要
   bases[0].hp = 500;
-  bases[0].mhp = 500;
+  bases[0].maxHp = 500;
   bases[1].hp = 500;
-  bases[1].mhp = 500;
+  bases[1].maxHp = 500;
 }
 
 /** spU() の Math.random 依存（ang, cd, wn）をモックして確定的にユニットを生成する共通ヘルパー */

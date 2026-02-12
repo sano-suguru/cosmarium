@@ -9,8 +9,8 @@ export const fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
 
 function delFBO(fbo: FBO | null) {
   if (!fbo) return;
-  gl.deleteFramebuffer(fbo.fb);
-  gl.deleteTexture(fbo.tex);
+  gl.deleteFramebuffer(fbo.framebuffer);
+  gl.deleteTexture(fbo.texture);
 }
 
 function mkFBO(w: number, h: number): FBO {
@@ -26,7 +26,7 @@ function mkFBO(w: number, h: number): FBO {
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) console.error('FBO incomplete:', w, h);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  return { fb: f, tex: t, w: w, h: h };
+  return { framebuffer: f, texture: t, width: w, height: h };
 }
 
 export function mkFBOs() {

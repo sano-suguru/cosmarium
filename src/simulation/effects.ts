@@ -7,7 +7,7 @@ import { _nb, gN, kb } from './spatial-hash.ts';
 import { addBeam, killU, spP } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
-  const sz = TYPES[type]!.sz;
+  const sz = TYPES[type]!.size;
   const c = gC(type, team);
   const cnt = Math.min((18 + sz * 3) | 0, 50);
 
@@ -75,15 +75,15 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 export function trail(u: Unit) {
   const t = TYPES[u.type]!,
     c = gTr(u.type, u.team);
-  const bx = u.x - Math.cos(u.ang) * t.sz * 0.8;
-  const by = u.y - Math.sin(u.ang) * t.sz * 0.8;
+  const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
+  const by = u.y - Math.sin(u.angle) * t.size * 0.8;
   spP(
-    bx + (Math.random() - 0.5) * t.sz * 0.3,
-    by + (Math.random() - 0.5) * t.sz * 0.3,
-    -Math.cos(u.ang) * 25 + (Math.random() - 0.5) * 15,
-    -Math.sin(u.ang) * 25 + (Math.random() - 0.5) * 15,
-    0.1 + Math.random() * 0.22 * t.trl,
-    t.sz * 0.3 + Math.random() * 1.5,
+    bx + (Math.random() - 0.5) * t.size * 0.3,
+    by + (Math.random() - 0.5) * t.size * 0.3,
+    -Math.cos(u.angle) * 25 + (Math.random() - 0.5) * 15,
+    -Math.sin(u.angle) * 25 + (Math.random() - 0.5) * 15,
+    0.1 + Math.random() * 0.22 * t.trailInterval,
+    t.size * 0.3 + Math.random() * 1.5,
     c[0],
     c[1],
     c[2],

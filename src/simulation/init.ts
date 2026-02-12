@@ -10,9 +10,9 @@ function genAsteroids() {
     asteroids.push({
       x: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
       y: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
-      r: 20 + Math.random() * 60,
-      ang: Math.random() * 6.28,
-      va: (0.02 + Math.random() * 0.03) * (Math.random() < 0.5 ? 1 : -1),
+      radius: 20 + Math.random() * 60,
+      angle: Math.random() * 6.28,
+      angularVelocity: (0.02 + Math.random() * 0.03) * (Math.random() < 0.5 ? 1 : -1),
     });
   }
 }
@@ -25,8 +25,8 @@ export function initUnits() {
   for (let i = 0; i < POOL_PROJECTILES; i++) prP[i]!.alive = false;
   poolCounts.prC = 0;
   beams.length = 0;
-  bases[0].hp = bases[0].mhp;
-  bases[1].hp = bases[1].mhp;
+  bases[0].hp = bases[0].maxHp;
+  bases[1].hp = bases[1].maxHp;
   genAsteroids();
 
   const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];

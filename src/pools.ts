@@ -16,26 +16,26 @@ for (let i = 0; i < POOL_UNITS; i++) {
     y: 0,
     vx: 0,
     vy: 0,
-    ang: 0,
+    angle: 0,
     hp: 0,
-    mhp: 0,
-    cd: 0,
-    tgt: -1,
-    wn: 0,
-    tT: 0,
+    maxHp: 0,
+    cooldown: 0,
+    target: -1,
+    wanderAngle: 0,
+    trailTimer: 0,
     mass: 1,
-    aCd: 0,
+    abilityCooldown: 0,
     shielded: false,
     stun: 0,
-    sCd: 0,
-    tp: 0,
+    spawnCooldown: 0,
+    teleportTimer: 0,
     beamOn: 0,
     kills: 0,
     vet: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {
-  pP[i] = { alive: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, ml: 0, sz: 0, r: 0, g: 0, b: 0, sh: 0 };
+  pP[i] = { alive: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 0, size: 0, r: 0, g: 0, b: 0, shape: 0 };
 }
 for (let i = 0; i < POOL_PROJECTILES; i++) {
   prP[i] = {
@@ -45,14 +45,14 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     vx: 0,
     vy: 0,
     life: 0,
-    dmg: 0,
+    damage: 0,
     team: 0,
-    sz: 0,
+    size: 0,
     r: 0,
     g: 0,
     b: 0,
-    hom: false,
+    homing: false,
     aoe: 0,
-    tx: -1,
+    targetIndex: -1,
   };
 }

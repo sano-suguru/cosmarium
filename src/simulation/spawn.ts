@@ -16,19 +16,19 @@ export function spU(team: Team, type: number, x: number, y: number): number {
       u.y = y;
       u.vx = 0;
       u.vy = 0;
-      u.ang = Math.random() * 6.283;
+      u.angle = Math.random() * 6.283;
       u.hp = t.hp;
-      u.mhp = t.hp;
-      u.cd = Math.random() * t.fr;
-      u.tgt = -1;
-      u.wn = Math.random() * 6.283;
-      u.tT = 0;
+      u.maxHp = t.hp;
+      u.cooldown = Math.random() * t.fireRate;
+      u.target = -1;
+      u.wanderAngle = Math.random() * 6.283;
+      u.trailTimer = 0;
       u.mass = t.mass;
-      u.aCd = 0;
+      u.abilityCooldown = 0;
       u.shielded = false;
       u.stun = 0;
-      u.sCd = 0;
-      u.tp = 0;
+      u.spawnCooldown = 0;
+      u.teleportTimer = 0;
       u.beamOn = 0;
       u.kills = 0;
       u.vet = 0;
@@ -67,12 +67,12 @@ export function spP(
       p.vx = vx;
       p.vy = vy;
       p.life = life;
-      p.ml = life;
-      p.sz = sz;
+      p.maxLife = life;
+      p.size = sz;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.sh = sh || 0;
+      p.shape = sh || 0;
       poolCounts.pC++;
       return i;
     }
@@ -105,15 +105,15 @@ export function spPr(
       p.vx = vx;
       p.vy = vy;
       p.life = life;
-      p.dmg = dmg;
+      p.damage = dmg;
       p.team = team;
-      p.sz = sz;
+      p.size = sz;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.hom = hom ?? false;
+      p.homing = hom ?? false;
       p.aoe = aoe ?? 0;
-      p.tx = tx ?? -1;
+      p.targetIndex = tx ?? -1;
       poolCounts.prC++;
       return i;
     }
@@ -132,5 +132,5 @@ export function addBeam(
   life: number,
   w: number,
 ) {
-  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, ml: life, w: w });
+  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, maxLife: life, width: w });
 }

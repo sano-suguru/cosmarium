@@ -37,13 +37,13 @@ describe('steer — スタン', () => {
     const idx = spawnAt(0, 1, 100, 100);
     const u = uP[idx]!;
     u.stun = 0.5;
-    u.tgt = -1;
+    u.target = -1;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const angBefore = u.ang;
+    const angBefore = u.angle;
     steer(u, 0.016);
     // ang はスタン中変化しない
-    expect(u.ang).toBe(angBefore);
+    expect(u.angle).toBe(angBefore);
   });
 });
 
@@ -52,7 +52,7 @@ describe('steer — ベテラン速度', () => {
     const idx = spawnAt(0, 1, 0, 0);
     const u = uP[idx]!;
     u.vet = 0;
-    u.ang = 0;
+    u.angle = 0;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // 長めのdtで速度を安定させる
@@ -61,7 +61,7 @@ describe('steer — ベテラン速度', () => {
     const t = TYPES[1]!;
     // vet=0の目標速度はspd * 1.0
     expect(spd).toBeGreaterThan(0);
-    expect(spd).toBeLessThanOrEqual(t.spd * 1.1); // マージン含む
+    expect(spd).toBeLessThanOrEqual(t.speed * 1.1); // マージン含む
   });
 
   it('vet=2 → vet=0 より速い', () => {
@@ -69,13 +69,13 @@ describe('steer — ベテラン速度', () => {
     const i0 = spawnAt(0, 1, 0, 0);
     const u0 = uP[i0]!;
     u0.vet = 0;
-    u0.ang = 0;
+    u0.angle = 0;
 
     // vet=2
     const i2 = spawnAt(0, 1, 500, 500); // 離れた位置
     const u2 = uP[i2]!;
     u2.vet = 2;
-    u2.ang = 0;
+    u2.angle = 0;
 
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -97,13 +97,13 @@ describe('steer — ターゲット探索', () => {
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(uP[ally]!, 0.016);
-    expect(uP[ally]!.tgt).toBe(nearEnemy);
+    expect(uP[ally]!.target).toBe(nearEnemy);
   });
 
   it('死亡ターゲットクリア: tgt先がalive=false → tgt=-1', () => {
     const ally = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 80, 0);
-    uP[ally]!.tgt = enemy;
+    uP[ally]!.target = enemy;
     uP[enemy]!.alive = false;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -111,7 +111,7 @@ describe('steer — ターゲット探索', () => {
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
-    expect(uP[ally]!.tgt).toBe(-1);
+    expect(uP[ally]!.target).toBe(-1);
   });
 });
 
@@ -119,7 +119,7 @@ describe('steer — RAM型', () => {
   it('RAM型はターゲットに向かって強い力で突進', () => {
     const ram = spawnAt(0, 9, 0, 0); // type 9 = Ram
     const enemy = spawnAt(1, 1, 200, 0);
-    uP[ram]!.tgt = enemy;
+    uP[ram]!.target = enemy;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(uP[ram]!, 0.033);
@@ -132,7 +132,7 @@ describe('steer — Mode 2 フォールバック', () => {
   it('tgt<0 → 敵基地方向に力', () => {
     setGameMode(2);
     const ally = spawnAt(0, 1, 0, 0); // team 0 → 敵基地 = bases[1] (x=1800)
-    uP[ally]!.tgt = -1;
+    uP[ally]!.target = -1;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 50; i++) steer(uP[ally]!, 0.033);
@@ -143,9 +143,9 @@ describe('steer — Mode 2 フォールバック', () => {
   it('team=1 → bases[0] (x=-1800) 方向に力', () => {
     setGameMode(2);
     const ally = spawnAt(1, 1, 0, 0); // team 1 → 敵基地 = bases[0] (x=-1800)
-    uP[ally]!.tgt = -1;
+    uP[ally]!.target = -1;
     // wn=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
-    uP[ally]!.wn = Math.PI;
+    uP[ally]!.wanderAngle = Math.PI;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 50; i++) steer(uP[ally]!, 0.033);
@@ -161,7 +161,7 @@ describe('steer — 小惑星衝突', () => {
     u.vx = 0;
     u.vy = 0;
     // 小惑星 (x=50, r=40) と ユニット (x=55, sz=7) → d=5, a.r+t.sz=47 → 重なり
-    asteroids.push({ x: 50, y: 0, r: 40, ang: 0, va: 0 });
+    asteroids.push({ x: 50, y: 0, radius: 40, angle: 0, angularVelocity: 0 });
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(u, 0.033);
@@ -189,7 +189,7 @@ describe('steer — ワールド境界', () => {
     const u = uP[idx]!;
     u.vx = 0;
     u.vy = 0;
-    u.tgt = -1;
+    u.target = -1;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
@@ -202,7 +202,7 @@ describe('steer — ワールド境界', () => {
     const u = uP[idx]!;
     u.vx = 0;
     u.vy = 0;
-    u.tgt = -1;
+    u.target = -1;
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);

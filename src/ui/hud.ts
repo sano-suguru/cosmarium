@@ -16,7 +16,7 @@ export function updateHUD(df: number) {
   document.getElementById('pN')!.textContent = '' + (poolCounts.pC + poolCounts.prC);
   document.getElementById('fps')!.textContent = '' + df;
   if (gameMode === 2) {
-    document.getElementById('bA')!.textContent = (((bases[0].hp / bases[0].mhp) * 100) | 0) + '%';
-    document.getElementById('bB')!.textContent = (((bases[1].hp / bases[1].mhp) * 100) | 0) + '%';
+    document.getElementById('bA')!.textContent = (((bases[0].hp / bases[0].maxHp) * 100) | 0) + '%';
+    document.getElementById('bB')!.textContent = (((bases[1].hp / bases[1].maxHp) * 100) | 0) + '%';
   }
 }

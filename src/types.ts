@@ -6,19 +6,19 @@ export interface Unit {
   y: number;
   vx: number;
   vy: number;
-  ang: number;
+  angle: number;
   hp: number;
-  mhp: number;
-  cd: number;
-  tgt: number;
-  wn: number;
-  tT: number;
+  maxHp: number;
+  cooldown: number;
+  target: number;
+  wanderAngle: number;
+  trailTimer: number;
   mass: number;
-  aCd: number;
+  abilityCooldown: number;
   shielded: boolean;
   stun: number;
-  sCd: number;
-  tp: number;
+  spawnCooldown: number;
+  teleportTimer: number;
   beamOn: number;
   kills: number;
   vet: number;
@@ -31,12 +31,12 @@ export interface Particle {
   vx: number;
   vy: number;
   life: number;
-  ml: number;
-  sz: number;
+  maxLife: number;
+  size: number;
   r: number;
   g: number;
   b: number;
-  sh: number;
+  shape: number;
 }
 
 export interface Projectile {
@@ -46,31 +46,31 @@ export interface Projectile {
   vx: number;
   vy: number;
   life: number;
-  dmg: number;
+  damage: number;
   team: Team;
-  sz: number;
+  size: number;
   r: number;
   g: number;
   b: number;
-  hom: boolean;
+  homing: boolean;
   aoe: number;
-  tx: number;
+  targetIndex: number;
 }
 
 export interface UnitType {
-  nm: string;
-  sz: number;
+  name: string;
+  size: number;
   hp: number;
-  spd: number;
-  tr: number;
-  fr: number;
-  rng: number;
-  dmg: number;
-  sh: number;
-  trl: number;
+  speed: number;
+  turnRate: number;
+  fireRate: number;
+  range: number;
+  damage: number;
+  shape: number;
+  trailInterval: number;
   mass: number;
-  desc: string;
-  atk: string;
+  description: string;
+  attackDesc: string;
   aoe?: number;
   beam?: boolean;
   heals?: boolean;
@@ -92,42 +92,42 @@ export interface Beam {
   g: number;
   b: number;
   life: number;
-  ml: number;
-  w: number;
+  maxLife: number;
+  width: number;
 }
 
 export interface Asteroid {
   x: number;
   y: number;
-  r: number;
-  ang: number;
-  va: number;
+  radius: number;
+  angle: number;
+  angularVelocity: number;
 }
 
 export interface Base {
   x: number;
   y: number;
   hp: number;
-  mhp: number;
+  maxHp: number;
 }
 
 export interface Camera {
   x: number;
   y: number;
   z: number;
-  tz: number;
-  tx: number;
-  ty: number;
-  shkx: number;
-  shky: number;
-  shk: number;
+  targetZ: number;
+  targetX: number;
+  targetY: number;
+  shakeX: number;
+  shakeY: number;
+  shake: number;
 }
 
 export interface FBO {
-  fb: WebGLFramebuffer;
-  tex: WebGLTexture;
-  w: number;
-  h: number;
+  framebuffer: WebGLFramebuffer;
+  texture: WebGLTexture;
+  width: number;
+  height: number;
 }
 
 export type Color3 = [number, number, number];

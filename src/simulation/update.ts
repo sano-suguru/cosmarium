@@ -23,9 +23,9 @@ export function update(rawDt: number, now: number) {
     u.shielded = false;
     steer(u, dt);
     combat(u, i, dt, now);
-    u.tT -= dt;
-    if (u.tT <= 0) {
-      u.tT = 0.03 + Math.random() * 0.02;
+    u.trailTimer -= dt;
+    if (u.trailTimer <= 0) {
+      u.trailTimer = 0.03 + Math.random() * 0.02;
       trail(u);
     }
   }
@@ -35,7 +35,7 @@ export function update(rawDt: number, now: number) {
     const u = uP[i]!;
     if (!u.alive) continue;
     urem2--;
-    if (TYPES[u.type]!.nm !== 'Reflector') continue;
+    if (TYPES[u.type]!.name !== 'Reflector') continue;
     const nn = gN(u.x, u.y, 100, _nb);
     for (let j = 0; j < nn; j++) {
       const o = uP[_nb[j]!]!;
@@ -49,8 +49,8 @@ export function update(rawDt: number, now: number) {
     if (!p.alive) continue;
     prem--;
 
-    if (p.hom && p.tx >= 0) {
-      const tg = uP[p.tx]!;
+    if (p.homing && p.targetIndex >= 0) {
+      const tg = uP[p.targetIndex]!;
       if (tg.alive) {
         let ca = Math.atan2(p.vy, p.vx);
         const da = Math.atan2(tg.y - p.y, tg.x - p.x);
@@ -77,7 +77,7 @@ export function update(rawDt: number, now: number) {
         (Math.random() - 0.5) * 10,
         (Math.random() - 0.5) * 10,
         0.04,
-        p.sz * 0.35,
+        p.size * 0.35,
         p.r * 0.5,
         p.g * 0.5,
         p.b * 0.5,
@@ -96,7 +96,7 @@ export function update(rawDt: number, now: number) {
             ddy = o.y - p.y;
           if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
             const dd = Math.sqrt(ddx * ddx + ddy * ddy);
-            o.hp -= p.dmg * (1 - dd / (p.aoe * 1.2));
+            o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
             kb(oi, p.x, p.y, 220);
             if (o.hp <= 0) {
               killU(oi);
@@ -134,12 +134,12 @@ export function update(rawDt: number, now: number) {
       const oi = _nb[j]!,
         o = uP[oi]!;
       if (!o.alive || o.team === p.team) continue;
-      const hs = TYPES[o.type]!.sz;
+      const hs = TYPES[o.type]!.size;
       if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
-        let dmg = p.dmg;
+        let dmg = p.damage;
         if (o.shielded) dmg *= 0.3;
         o.hp -= dmg;
-        kb(oi, p.x, p.y, p.dmg * 12);
+        kb(oi, p.x, p.y, p.damage * 12);
         spP(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
         if (o.hp <= 0) {
           killU(oi);
@@ -155,7 +155,7 @@ export function update(rawDt: number, now: number) {
     if (!hit && !catalogOpen) {
       for (let j = 0; j < asteroids.length; j++) {
         const ast = asteroids[j]!;
-        if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.r * ast.r) {
+        if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
           spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           p.alive = false;
           poolCounts.prC--;
@@ -198,7 +198,7 @@ export function update(rawDt: number, now: number) {
         const eb = bases[u.team === 0 ? 1 : 0];
         const d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
         if (d < 80) {
-          eb.hp -= TYPES[u.type]!.dmg * dt * 3;
+          eb.hp -= TYPES[u.type]!.damage * dt * 3;
           if (eb.hp < 0) eb.hp = 0;
         }
       }
@@ -206,7 +206,7 @@ export function update(rawDt: number, now: number) {
 
     for (let i = 0; i < asteroids.length; i++) {
       const ast = asteroids[i]!;
-      ast.ang += ast.va * dt;
+      ast.angle += ast.angularVelocity * dt;
     }
     reinforce(dt);
 

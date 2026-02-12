@@ -34,7 +34,7 @@ function setupCatDemo(typeIdx: number) {
   const mi = spU(0, typeIdx, 0, 0);
   if (mi >= 0) {
     catDemoUnits.push(mi);
-    uP[mi]!.ang = 0;
+    uP[mi]!.angle = 0;
   }
 
   if (t.heals) {
@@ -57,7 +57,7 @@ function setupCatDemo(typeIdx: number) {
       const ei = spU(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
       if (ei >= 0) {
         catDemoUnits.push(ei);
-        uP[ei]!.tgt = mi;
+        uP[ei]!.target = mi;
       }
     }
   } else if (t.spawns) {
@@ -90,8 +90,8 @@ function setupCatDemo(typeIdx: number) {
     if (mi >= 0) uP[mi]!.x = -200;
   } else {
     let cnt: number;
-    if (t.sh === 3) cnt = 6;
-    else if (t.sh === 8) cnt = 2;
+    if (t.shape === 3) cnt = 6;
+    else if (t.shape === 8) cnt = 2;
     else cnt = 4;
     for (let i = 0; i < cnt; i++) {
       const ei = spU(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
@@ -118,7 +118,7 @@ export function updateCatDemo(dt: number) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
-    if (u.team === 1) u.hp = Math.min(u.mhp, u.hp + dt * 2);
+    if (u.team === 1) u.hp = Math.min(u.maxHp, u.hp + dt * 2);
   });
 }
 
@@ -128,9 +128,9 @@ function updateCatPanel() {
     c1 = gC(catSelected, 1);
   const col = 'rgb(' + ((c0[0] * 255) | 0) + ',' + ((c0[1] * 255) | 0) + ',' + ((c0[2] * 255) | 0) + ')';
   const col2 = 'rgb(' + ((c1[0] * 255) | 0) + ',' + ((c1[1] * 255) | 0) + ',' + ((c1[2] * 255) | 0) + ')';
-  document.getElementById('cpName')!.textContent = t.nm;
+  document.getElementById('cpName')!.textContent = t.name;
   document.getElementById('cpName')!.style.color = col;
-  document.getElementById('cpDesc')!.textContent = t.desc;
+  document.getElementById('cpDesc')!.textContent = t.description;
 
   const mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
@@ -149,14 +149,14 @@ function updateCatPanel() {
   const stats = document.getElementById('cpStats')!;
   stats.textContent = '';
   stats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
-  stats.appendChild(mkBar('SPEED', t.spd, 260, '#4cf'));
-  stats.appendChild(mkBar('DAMAGE', t.dmg, 18, '#f64'));
-  stats.appendChild(mkBar('RANGE', t.rng, 600, '#fc4'));
+  stats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
+  stats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
+  stats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
   stats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
   const atkDiv = document.createElement('div');
   atkDiv.style.marginTop = '8px';
   atkDiv.style.color = col;
-  atkDiv.textContent = ': ' + t.atk;
+  atkDiv.textContent = ': ' + t.attackDesc;
   stats.appendChild(atkDiv);
   const teamDiv = document.createElement('div');
   teamDiv.style.marginTop = '4px';
@@ -192,11 +192,11 @@ function buildCatUI() {
     const nameDiv = document.createElement('div');
     nameDiv.className = 'ciName';
     nameDiv.style.color = rgb;
-    nameDiv.textContent = t.nm;
+    nameDiv.textContent = t.name;
     info.appendChild(nameDiv);
     const typeDiv = document.createElement('div');
     typeDiv.className = 'ciType';
-    typeDiv.textContent = t.atk;
+    typeDiv.textContent = t.attackDesc;
     info.appendChild(typeDiv);
     item.appendChild(info);
     item.onclick = ((idx: number) => () => {

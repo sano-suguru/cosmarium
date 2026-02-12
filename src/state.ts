@@ -11,8 +11,8 @@ export let rT = 0;
 export const beams: Beam[] = [];
 export const asteroids: Asteroid[] = [];
 export const bases: [Base, Base] = [
-  { x: -1800, y: 0, hp: 500, mhp: 500 },
-  { x: 1800, y: 0, hp: 500, mhp: 500 },
+  { x: -1800, y: 0, hp: 500, maxHp: 500 },
+  { x: 1800, y: 0, hp: 500, maxHp: 500 },
 ];
 
 export function setGameState(v: GameState) {

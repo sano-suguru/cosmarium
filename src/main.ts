@@ -49,18 +49,18 @@ function frame(now: number) {
   }
 
   const ct = 1 - 0.0005 ** dt;
-  cam.x += (cam.tx - cam.x) * ct;
-  cam.y += (cam.ty - cam.y) * ct;
-  cam.z += (cam.tz - cam.z) * ct;
+  cam.x += (cam.targetX - cam.x) * ct;
+  cam.y += (cam.targetY - cam.y) * ct;
+  cam.z += (cam.targetZ - cam.z) * ct;
 
-  if (cam.shk > 0.1) {
-    cam.shkx = (Math.random() - 0.5) * cam.shk;
-    cam.shky = (Math.random() - 0.5) * cam.shk;
-    cam.shk *= 0.82;
+  if (cam.shake > 0.1) {
+    cam.shakeX = (Math.random() - 0.5) * cam.shake;
+    cam.shakeY = (Math.random() - 0.5) * cam.shake;
+    cam.shake *= 0.82;
   } else {
-    cam.shkx = 0;
-    cam.shky = 0;
-    cam.shk = 0;
+    cam.shakeX = 0;
+    cam.shakeY = 0;
+    cam.shake = 0;
   }
 
   if (gameState === 'play') {

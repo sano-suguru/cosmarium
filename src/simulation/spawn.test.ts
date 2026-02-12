@@ -22,12 +22,12 @@ describe('spP', () => {
     expect(p.vx).toBe(1);
     expect(p.vy).toBe(-1);
     expect(p.life).toBe(0.5);
-    expect(p.ml).toBe(0.5);
-    expect(p.sz).toBe(3);
+    expect(p.maxLife).toBe(0.5);
+    expect(p.size).toBe(3);
     expect(p.r).toBe(1);
     expect(p.g).toBe(0.5);
     expect(p.b).toBe(0);
-    expect(p.sh).toBe(0);
+    expect(p.shape).toBe(0);
   });
 
   it('複数生成で空きスロットを探索する', () => {
@@ -48,20 +48,20 @@ describe('spPr', () => {
     expect(p.alive).toBe(true);
     expect(p.x).toBe(100);
     expect(p.y).toBe(200);
-    expect(p.dmg).toBe(10);
+    expect(p.damage).toBe(10);
     expect(p.team).toBe(0);
-    expect(p.hom).toBe(false);
+    expect(p.homing).toBe(false);
     expect(p.aoe).toBe(0);
-    expect(p.tx).toBe(-1);
+    expect(p.targetIndex).toBe(-1);
   });
 
   it('オプション引数が反映される', () => {
     const idx = spPr(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42);
     expect(idx).toBe(0);
     const p = prP[0]!;
-    expect(p.hom).toBe(true);
+    expect(p.homing).toBe(true);
     expect(p.aoe).toBe(70);
-    expect(p.tx).toBe(42);
+    expect(p.targetIndex).toBe(42);
   });
 });
 
@@ -79,7 +79,7 @@ describe('spU', () => {
     expect(u.x).toBe(100);
     expect(u.y).toBe(200);
     expect(u.hp).toBe(fighter.hp);
-    expect(u.mhp).toBe(fighter.hp);
+    expect(u.maxHp).toBe(fighter.hp);
     expect(u.mass).toBe(fighter.mass);
     expect(u.vx).toBe(0);
     expect(u.vy).toBe(0);
@@ -141,8 +141,8 @@ describe('addBeam', () => {
       g: 0,
       b: 0,
       life: 0.5,
-      ml: 0.5,
-      w: 2,
+      maxLife: 0.5,
+      width: 2,
     });
   });
 

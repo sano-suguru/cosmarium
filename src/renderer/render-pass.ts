@@ -19,12 +19,12 @@ export function renderFrame(now: number) {
   const W = viewport.W,
     H = viewport.H;
 
-  const cx = catalogOpen ? 0 : cam.x + cam.shkx;
-  const cy = catalogOpen ? 0 : cam.y + cam.shky;
+  const cx = catalogOpen ? 0 : cam.x + cam.shakeX;
+  const cy = catalogOpen ? 0 : cam.y + cam.shakeY;
   const cz = catalogOpen ? 2.5 : cam.z;
 
   // Render pass 1: scene
-  gl.bindFramebuffer(gl.FRAMEBUFFER, sF.fb);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, sF.framebuffer);
   gl.viewport(0, 0, W, H);
   gl.clearColor(0.007, 0.003, 0.013, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -47,19 +47,19 @@ export function renderFrame(now: number) {
   }
 
   // Render pass 2-3: bloom
-  gl.bindFramebuffer(gl.FRAMEBUFFER, bF1.fb);
-  gl.viewport(0, 0, bF1.w, bF1.h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, bF1.framebuffer);
+  gl.viewport(0, 0, bF1.width, bF1.height);
   gl.useProgram(blP);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, sF.tex);
+  gl.bindTexture(gl.TEXTURE_2D, sF.texture);
   gl.uniform1i(blLoc.uT, 0);
   gl.uniform2f(blLoc.uD, 2.5, 0);
-  gl.uniform2f(blLoc.uR, bF1.w, bF1.h);
+  gl.uniform2f(blLoc.uR, bF1.width, bF1.height);
   dQ();
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, bF2.fb);
-  gl.viewport(0, 0, bF2.w, bF2.h);
-  gl.bindTexture(gl.TEXTURE_2D, bF1.tex);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, bF2.framebuffer);
+  gl.viewport(0, 0, bF2.width, bF2.height);
+  gl.bindTexture(gl.TEXTURE_2D, bF1.texture);
   gl.uniform2f(blLoc.uD, 0, 2.5);
   dQ();
 
@@ -68,10 +68,10 @@ export function renderFrame(now: number) {
   gl.viewport(0, 0, W, H);
   gl.useProgram(coP);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, sF.tex);
+  gl.bindTexture(gl.TEXTURE_2D, sF.texture);
   gl.uniform1i(coLoc.uS, 0);
   gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, bF2.tex);
+  gl.bindTexture(gl.TEXTURE_2D, bF2.texture);
   gl.uniform1i(coLoc.uB, 1);
   dQ();
   gl.activeTexture(gl.TEXTURE0);
