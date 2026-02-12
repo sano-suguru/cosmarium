@@ -4,7 +4,7 @@ import { poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { bHash } from './spatial-hash.ts';
-import { spPr } from './spawn.ts';
+import { spawnProjectile } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -161,7 +161,7 @@ describe('combat — REFLECTOR', () => {
     const reflector = spawnAt(0, 6, 0, 0); // Reflector (rng=130)
     bHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    spPr(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0); // team=1 の敵弾 (x=50, rng内)
+    spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0); // team=1 の敵弾 (x=50, rng内)
     const p = projectilePool[0]!;
     expect(p.team).toBe(1);
     const vxBefore = p.vx;

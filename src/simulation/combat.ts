@@ -5,7 +5,7 @@ import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
 import { _nb, gN, kb } from './spatial-hash.ts';
-import { addBeam, killU, spP, spPr, spU } from './spawn.ts';
+import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
   if (u.target < 0) return -1;
@@ -41,7 +41,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         u.hp -= Math.ceil(TYPES[o.type]!.mass);
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * 6.283;
-          spP(
+          spawnParticle(
             (u.x + o.x) / 2,
             (u.y + o.y) / 2,
             Math.cos(a) * (80 + Math.random() * 160),
@@ -55,11 +55,11 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           );
         }
         if (o.hp <= 0) {
-          killU(oi);
+          killUnit(oi);
           explosion(o.x, o.y, o.team, o.type, ui);
         }
         if (u.hp <= 0) {
-          killU(ui);
+          killUnit(ui);
           explosion(u.x, u.y, u.team, u.type, -1);
           return;
         }
@@ -81,7 +81,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         addBeam(u.x, u.y, o.x, o.y, 0.2, 1, 0.5, 0.12, 2.5);
       }
     }
-    spP(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, 10);
+    spawnParticle(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, 10);
   }
 
   // --- REFLECTOR ---
@@ -97,8 +97,8 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         p.r = c[0];
         p.g = c[1];
         p.b = c[2];
-        spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.12, 3, c[0], c[1], c[2], 0);
-        spP(p.x, p.y, 0, 0, 0.1, 8, 1, 1, 1, 10);
+        spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.12, 3, c[0], c[1], c[2], 0);
+        spawnParticle(p.x, p.y, 0, 0, 0.1, 8, 1, 1, 1, 10);
       }
     }
     if (u.cooldown <= 0 && u.target >= 0) {
@@ -112,7 +112,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         if (d < rr) {
           u.cooldown = t.fireRate;
           const ang = Math.atan2(dy, dx);
-          spPr(
+          spawnProjectile(
             u.x,
             u.y,
             Math.cos(ang) * 400,
@@ -129,7 +129,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       }
     }
     if (Math.random() < 0.1) {
-      spP(
+      spawnParticle(
         u.x + (Math.random() - 0.5) * rr * 1.5,
         u.y + (Math.random() - 0.5) * rr * 1.5,
         0,
@@ -152,11 +152,11 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       u.spawnCooldown = 4 + Math.random() * 2;
       for (let i = 0; i < 4; i++) {
         const a = Math.random() * 6.283;
-        spU(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2);
+        spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2);
       }
       for (let i = 0; i < 10; i++) {
         const a = Math.random() * 6.283;
-        spP(
+        spawnParticle(
           u.x + Math.cos(a) * t.size,
           u.y + Math.sin(a) * t.size,
           (Math.random() - 0.5) * 50,
@@ -187,7 +187,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           oo.stun = 1.5;
           oo.hp -= t.damage;
           if (oo.hp <= 0) {
-            killU(oi);
+            killUnit(oi);
             explosion(oo.x, oo.y, oo.team, oo.type, ui);
           }
         }
@@ -195,7 +195,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       for (let i = 0; i < 20; i++) {
         const a = (i / 20) * 6.283,
           r = t.range * 0.8;
-        spP(
+        spawnParticle(
           u.x + Math.cos(a) * r,
           u.y + Math.sin(a) * r,
           (Math.random() - 0.5) * 25,
@@ -208,7 +208,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           0,
         );
       }
-      spP(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, 10);
+      spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, 10);
     }
     return;
   }
@@ -226,21 +226,33 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           u.teleportTimer = 3 + Math.random() * 2;
           for (let i = 0; i < 8; i++) {
             const a = Math.random() * 6.283;
-            spP(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
+            spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
           }
-          spP(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
+          spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
           const ta = Math.random() * 6.283,
             td = 55 + Math.random() * 35;
           u.x = o.x + Math.cos(ta) * td;
           u.y = o.y + Math.sin(ta) * td;
           for (let i = 0; i < 8; i++) {
             const a = Math.random() * 6.283;
-            spP(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
+            spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
           }
-          spP(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
+          spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
           for (let i = 0; i < 5; i++) {
             const ba = Math.random() * 6.283;
-            spPr(u.x, u.y, Math.cos(ba) * 430, Math.sin(ba) * 430, 0.3, t.damage * vd, u.team, 2, c[0], c[1], c[2]);
+            spawnProjectile(
+              u.x,
+              u.y,
+              Math.cos(ba) * 430,
+              Math.sin(ba) * 430,
+              0.3,
+              t.damage * vd,
+              u.team,
+              2,
+              c[0],
+              c[1],
+              c[2],
+            );
           }
         }
       }
@@ -254,7 +266,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     if (d < t.range) {
       u.cooldown = t.fireRate;
       chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c);
-      spP(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], 10);
+      spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], 10);
     }
     return;
   }
@@ -275,7 +287,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
             o.hp -= dmg;
             kb(u.target, u.x, u.y, dmg * 5);
             for (let i = 0; i < 2; i++) {
-              spP(
+              spawnParticle(
                 o.x + (Math.random() - 0.5) * 8,
                 o.y + (Math.random() - 0.5) * 8,
                 (Math.random() - 0.5) * 50,
@@ -289,7 +301,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
               );
             }
             if (o.hp <= 0) {
-              killU(u.target);
+              killUnit(u.target);
               explosion(o.x, o.y, o.team, o.type, ui);
               u.beamOn = 0;
             }
@@ -334,7 +346,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       const ang = Math.atan2(dy, dx);
 
       if (t.homing) {
-        spPr(
+        spawnProjectile(
           u.x,
           u.y,
           Math.cos(ang) * 280,
@@ -351,7 +363,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           u.target,
         );
       } else if (t.aoe) {
-        spPr(
+        spawnProjectile(
           u.x,
           u.y,
           Math.cos(ang) * 170,
@@ -369,7 +381,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       } else if (t.shape === 3) {
         for (let i = -2; i <= 2; i++) {
           const ba = ang + i * 0.25;
-          spPr(
+          spawnProjectile(
             u.x + Math.cos(ba) * t.size,
             u.y + Math.sin(ba) * t.size,
             Math.cos(ba) * 420,
@@ -384,7 +396,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           );
         }
       } else if (t.shape === 8) {
-        spPr(
+        spawnProjectile(
           u.x + Math.cos(ang) * t.size,
           u.y + Math.sin(ang) * t.size,
           Math.cos(ang) * 900,
@@ -400,7 +412,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
         for (let i = 0; i < 4; i++) {
           const a2 = ang + (Math.random() - 0.5) * 0.4;
-          spP(
+          spawnParticle(
             u.x + Math.cos(ang) * t.size * 1.5,
             u.y + Math.sin(ang) * t.size * 1.5,
             Math.cos(a2) * 160,
@@ -415,7 +427,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         }
       } else {
         const sp = 480 + t.damage * 12;
-        spPr(
+        spawnProjectile(
           u.x + Math.cos(u.angle) * t.size,
           u.y + Math.sin(u.angle) * t.size,
           Math.cos(ang) * sp + u.vx * 0.3,
@@ -432,7 +444,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
       if (!t.homing && !t.aoe && t.shape !== 8) {
         for (let i = 0; i < 2; i++) {
-          spP(
+          spawnParticle(
             u.x + Math.cos(u.angle) * t.size,
             u.y + Math.sin(u.angle) * t.size,
             Math.cos(ang) * (60 + Math.random() * 60) + (Math.random() - 0.5) * 35,

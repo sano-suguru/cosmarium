@@ -2,7 +2,7 @@ import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../con
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { asteroids, bases, beams, gameMode } from '../state.ts';
 import type { Team } from '../types.ts';
-import { spU } from './spawn.ts';
+import { spawnUnit } from './spawn.ts';
 
 function genAsteroids() {
   asteroids.length = 0;
@@ -40,7 +40,7 @@ export function initUnits() {
     const cy = team === 0 ? -300 : 300;
     const s = (tp: number, count: number, spread: number) => {
       for (let j = 0; j < count; j++) {
-        spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+        spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       }
     };
     s(4, n[0]!, 200);

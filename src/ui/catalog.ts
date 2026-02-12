@@ -1,7 +1,7 @@
 import { gC } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { killU, spU } from '../simulation/spawn.ts';
+import { killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { beams, catalogOpen, catSelected, setCatalogOpen, setCatSelected } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 
@@ -25,36 +25,36 @@ function setupCatDemo(typeIdx: number) {
   }
   beams.length = 0;
   catDemoUnits.forEach((idx) => {
-    if (unitPool[idx]!.alive) killU(idx);
+    if (unitPool[idx]!.alive) killUnit(idx);
   });
   catDemoUnits = [];
   catDemoTimer = 0;
 
   const t = TYPES[typeIdx]!;
-  const mi = spU(0, typeIdx, 0, 0);
+  const mi = spawnUnit(0, typeIdx, 0, 0);
   if (mi >= 0) {
     catDemoUnits.push(mi);
     unitPool[mi]!.angle = 0;
   }
 
   if (t.heals) {
-    const ai = spU(0, 1, -60, 0);
+    const ai = spawnUnit(0, 1, -60, 0);
     if (ai >= 0) {
       catDemoUnits.push(ai);
       unitPool[ai]!.hp = 3;
     }
-    const ai2 = spU(0, 0, 60, -40);
+    const ai2 = spawnUnit(0, 0, 60, -40);
     if (ai2 >= 0) {
       catDemoUnits.push(ai2);
       unitPool[ai2]!.hp = 1;
     }
     for (let i = 0; i < 3; i++) {
-      const ei = spU(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
+      const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
       if (ei >= 0) catDemoUnits.push(ei);
     }
   } else if (t.reflects) {
     for (let i = 0; i < 5; i++) {
-      const ei = spU(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
+      const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
       if (ei >= 0) {
         catDemoUnits.push(ei);
         unitPool[ei]!.target = mi;
@@ -62,29 +62,29 @@ function setupCatDemo(typeIdx: number) {
     }
   } else if (t.spawns) {
     for (let i = 0; i < 4; i++) {
-      const ei = spU(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
+      const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
       if (ei >= 0) catDemoUnits.push(ei);
     }
   } else if (t.emp) {
     for (let i = 0; i < 8; i++) {
       const a = Math.random() * 6.283,
         r = 80 + Math.random() * 60;
-      const ei = spU(1, 0, Math.cos(a) * r, Math.sin(a) * r);
+      const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
       if (ei >= 0) catDemoUnits.push(ei);
     }
   } else if (t.chain) {
     for (let i = 0; i < 6; i++) {
-      const ei = spU(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
+      const ei = spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
       if (ei >= 0) catDemoUnits.push(ei);
     }
   } else if (t.teleports) {
     for (let i = 0; i < 4; i++) {
-      const ei = spU(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
+      const ei = spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
       if (ei >= 0) catDemoUnits.push(ei);
     }
   } else if (t.rams) {
     for (let i = 0; i < 3; i++) {
-      const ei = spU(1, 3, 250, (i - 1) * 80);
+      const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
       if (ei >= 0) catDemoUnits.push(ei);
     }
     if (mi >= 0) unitPool[mi]!.x = -200;
@@ -94,7 +94,7 @@ function setupCatDemo(typeIdx: number) {
     else if (t.shape === 8) cnt = 2;
     else cnt = 4;
     for (let i = 0; i < cnt; i++) {
-      const ei = spU(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
+      const ei = spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
       if (ei >= 0) catDemoUnits.push(ei);
     }
   }

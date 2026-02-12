@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { spU } from '../simulation/spawn.ts';
+import { spawnUnit } from '../simulation/spawn.ts';
 import {
   asteroids,
   bases,
@@ -104,5 +104,5 @@ export function spawnAt(team: 0 | 1, type: number, x: number, y: number): number
     .mockReturnValueOnce(0) // ang
     .mockReturnValueOnce(0) // cd
     .mockReturnValueOnce(0); // wn
-  return spU(team, type, x, y);
+  return spawnUnit(team, type, x, y);
 }

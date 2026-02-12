@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
 import { unitPool } from '../pools.ts';
 import { _nb, bHash, gN, kb } from './spatial-hash.ts';
-import { killU, spU } from './spawn.ts';
+import { killUnit, spawnUnit } from './spawn.ts';
 
 afterEach(() => {
   resetPools();
@@ -13,7 +13,7 @@ function spawnAt(team: 0 | 1, x: number, y: number): number {
     .mockReturnValueOnce(0) // ang
     .mockReturnValueOnce(0) // cd
     .mockReturnValueOnce(0); // wn
-  return spU(team, 1, x, y);
+  return spawnUnit(team, 1, x, y);
 }
 
 describe('bHash + gN', () => {
@@ -44,7 +44,7 @@ describe('bHash + gN', () => {
   it('dead ユニットは除外される', () => {
     spawnAt(0, 50, 50);
     const i1 = spawnAt(1, 60, 60);
-    killU(i1);
+    killUnit(i1);
     bHash();
     const n = gN(55, 55, 200, _nb);
     expect(n).toBe(1);

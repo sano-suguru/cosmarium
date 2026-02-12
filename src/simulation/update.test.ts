@@ -5,7 +5,7 @@ import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts'
 // winTeam は export let → ESM live binding で読取可能（setter 不要）
 import { asteroids, bases, beams, setCatalogOpen, setGameMode, setRT, winTeam } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
-import { addBeam, spP, spPr } from './spawn.ts';
+import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -47,14 +47,14 @@ afterEach(() => {
 describe('dt clamping', () => {
   it('rawDt > 0.033 はクランプされる', () => {
     // パーティクルだけ生成（ユニット/プロジェクタイルなし → steer/combat/projectile ループはスキップ）
-    spP(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
     update(0.05, 0); // dt = min(0.05, 0.033) = 0.033
     expect(particlePool[0]!.life).toBeCloseTo(1.0 - 0.033);
   });
 
   it('rawDt <= 0.033 はそのまま使われる', () => {
-    spP(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
     update(0.02, 0); // dt = min(0.02, 0.033) = 0.02
     expect(particlePool[0]!.life).toBeCloseTo(1.0 - 0.02);
   });
@@ -65,7 +65,7 @@ describe('dt clamping', () => {
 // ============================================================
 describe('パーティクル pass', () => {
   it('移動 + drag 0.97', () => {
-    spP(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
     update(0.016, 0);
     expect(particlePool[0]!.x).toBeCloseTo(100 * 0.016, 1);
     // vx は drag 後: 100 * 0.97 = 97
@@ -74,7 +74,7 @@ describe('パーティクル pass', () => {
   });
 
   it('life<=0 で消滅', () => {
-    spP(0, 0, 0, 0, 0.01, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 0.01, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
     update(0.016, 0); // life = 0.01 - 0.016 < 0
     expect(particlePool[0]!.alive).toBe(false);
@@ -167,7 +167,7 @@ describe('Reflector shield', () => {
 describe('projectile pass', () => {
   it('移動: x += vx*dt', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    spPr(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
     // x = 0 + 300 * 0.016 = 4.8
     expect(projectilePool[0]!.x).toBeCloseTo(4.8);
@@ -175,7 +175,7 @@ describe('projectile pass', () => {
 
   it('life<=0 で消滅 (aoe=0)', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    spPr(0, 0, 0, 0, 0.01, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(0, 0, 0, 0, 0.01, 5, 0, 2, 1, 0, 0);
     expect(poolCounts.projectileCount).toBe(1);
     update(0.016, 0);
     expect(projectilePool[0]!.alive).toBe(false);
@@ -187,7 +187,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 30, 0); // Fighter (hp=10)
     unitPool[enemy]!.trailTimer = 99;
     // AOE projectile: life=0.01 (すぐ消滅), aoe=70, dmg=8, team=0
-    spPr(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
     update(0.016, 0);
     // 距離30 < aoe=70 → ダメージ: 8 * (1 - 30/(70*1.2)) = 8 * (1 - 0.357) ≈ 5.14
     expect(unitPool[enemy]!.hp).toBeLessThan(10);
@@ -199,7 +199,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 5, 0); // Fighter (sz=7, hp=10)
     unitPool[enemy]!.trailTimer = 99;
     // team=0 の弾、dmg=5、敵の真横
-    spPr(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
     // 距離5 < sz=7 → ヒット、hp = 10 - 5 = 5
     expect(unitPool[enemy]!.hp).toBe(5);
@@ -215,7 +215,7 @@ describe('projectile pass', () => {
     unitPool[reflector]!.trailTimer = 99;
     unitPool[target]!.trailTimer = 99;
     // team=0 の弾を Fighter の隣に配置
-    spPr(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
     update(0.016, 0);
     // Reflector gN(0,rng+10,100) → Fighter shielded
     // dmg = 10 * 0.3 = 3, hp = 10 - 3 = 7
@@ -226,7 +226,7 @@ describe('projectile pass', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const enemy = spawnAt(1, 0, 3, 0); // Drone (sz=4, hp=3) 距離3 < sz=4
     unitPool[enemy]!.trailTimer = 99;
-    spPr(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0); // dmg=100 >> hp=3
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0); // dmg=100 >> hp=3
     update(0.016, 0);
     expect(unitPool[enemy]!.alive).toBe(false);
     expect(poolCounts.unitCount).toBe(0);
@@ -236,7 +236,7 @@ describe('projectile pass', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
     // 弾を小惑星の中心に配置 (距離0 < r=50)
-    spPr(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
     expect(projectilePool[0]!.alive).toBe(false);
   });
@@ -246,7 +246,7 @@ describe('projectile pass', () => {
     const target = spawnAt(1, 1, 0, 200); // 上方に配置
     unitPool[target]!.trailTimer = 99;
     // 右向きに飛ぶ homing 弾、ターゲットは上方
-    spPr(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     update(0.016, 0);
     // vy が正方向に増加（上に曲がる）
     expect(projectilePool[0]!.vy).toBeGreaterThan(0);
@@ -258,7 +258,7 @@ describe('projectile pass', () => {
     unitPool[target]!.alive = false; // 死亡させる
     poolCounts.unitCount--;
     unitPool[target]!.trailTimer = 99;
-    spPr(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     update(0.016, 0);
     // 追尾無効 → vy は 0 のまま（水平直進）
     expect(projectilePool[0]!.vy).toBe(0);
@@ -384,7 +384,7 @@ describe('catalogOpen 分岐', () => {
     asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // 弾を小惑星の中心に配置（!catalogOpen なら消滅するケース）
-    spPr(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
     // catalogOpen=true → 小惑星衝突チェックがスキップされる
     expect(projectilePool[0]!.alive).toBe(true);

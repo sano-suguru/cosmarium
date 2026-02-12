@@ -9,7 +9,7 @@ import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
 import { _nb, bHash, gN, kb } from './spatial-hash.ts';
-import { killU, spP } from './spawn.ts';
+import { killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
 export function update(rawDt: number, now: number) {
@@ -63,7 +63,7 @@ export function update(rawDt: number, now: number) {
         p.vy = Math.sin(ca) * sp;
       }
       if (Math.random() < 0.5) {
-        spP(p.x, p.y, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
+        spawnParticle(p.x, p.y, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
       }
     }
 
@@ -71,7 +71,7 @@ export function update(rawDt: number, now: number) {
     p.y += p.vy * dt;
     p.life -= dt;
     if (Math.random() < 0.25) {
-      spP(
+      spawnParticle(
         p.x,
         p.y,
         (Math.random() - 0.5) * 10,
@@ -99,14 +99,14 @@ export function update(rawDt: number, now: number) {
             o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
             kb(oi, p.x, p.y, 220);
             if (o.hp <= 0) {
-              killU(oi);
+              killUnit(oi);
               explosion(o.x, o.y, o.team, o.type, -1);
             }
           }
         }
         for (let j = 0; j < 16; j++) {
           const a = Math.random() * 6.283;
-          spP(
+          spawnParticle(
             p.x,
             p.y,
             Math.cos(a) * (40 + Math.random() * 110),
@@ -119,7 +119,7 @@ export function update(rawDt: number, now: number) {
             0,
           );
         }
-        spP(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, 1, 0.5, 0.15, 10);
+        spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, 1, 0.5, 0.15, 10);
         addShake(3);
       }
       p.alive = false;
@@ -140,9 +140,9 @@ export function update(rawDt: number, now: number) {
         if (o.shielded) dmg *= 0.3;
         o.hp -= dmg;
         kb(oi, p.x, p.y, p.damage * 12);
-        spP(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
+        spawnParticle(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
         if (o.hp <= 0) {
-          killU(oi);
+          killUnit(oi);
           explosion(o.x, o.y, o.team, o.type, -1);
         }
         p.alive = false;
@@ -156,7 +156,7 @@ export function update(rawDt: number, now: number) {
       for (let j = 0; j < asteroids.length; j++) {
         const ast = asteroids[j]!;
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
-          spP(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
+          spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           p.alive = false;
           poolCounts.projectileCount--;
           break;

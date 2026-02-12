@@ -4,7 +4,7 @@ import { unitPool } from '../pools.ts';
 import type { Color3, Team, Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { _nb, gN, kb } from './spatial-hash.ts';
-import { addBeam, killU, spP } from './spawn.ts';
+import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
   const sz = TYPES[type]!.size;
@@ -15,7 +15,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
     const a = Math.random() * 6.283;
     const sp = 40 + Math.random() * 200 * (sz / 10);
     const lf = 0.3 + Math.random() * 0.8;
-    spP(
+    spawnParticle(
       x,
       y,
       Math.cos(a) * sp,
@@ -30,7 +30,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   }
   for (let i = 0; i < 5; i++) {
     const a = Math.random() * 6.283;
-    spP(
+    spawnParticle(
       x,
       y,
       Math.cos(a) * Math.random() * 50,
@@ -47,9 +47,20 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   for (let i = 0; i < dc; i++) {
     const a = Math.random() * 6.283;
     const sp = 15 + Math.random() * 140;
-    spP(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.5 + Math.random() * 2, 1 + Math.random() * 2, 0.5, 0.35, 0.2, 0);
+    spawnParticle(
+      x,
+      y,
+      Math.cos(a) * sp,
+      Math.sin(a) * sp,
+      0.5 + Math.random() * 2,
+      1 + Math.random() * 2,
+      0.5,
+      0.35,
+      0.2,
+      0,
+    );
   }
-  spP(x, y, 0, 0, 0.45, sz * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
+  spawnParticle(x, y, 0, 0, 0.45, sz * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
 
   if (sz >= 14) addShake(sz * 0.8);
 
@@ -77,7 +88,7 @@ export function trail(u: Unit) {
     c = gTr(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
-  spP(
+  spawnParticle(
     bx + (Math.random() - 0.5) * t.size * 0.3,
     by + (Math.random() - 0.5) * t.size * 0.3,
     -Math.cos(u.angle) * 25 + (Math.random() - 0.5) * 15,
@@ -114,7 +125,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
     const o = unitPool[bi]!;
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
     for (let i = 0; i < 3; i++) {
-      spP(
+      spawnParticle(
         o.x + (Math.random() - 0.5) * 8,
         o.y + (Math.random() - 0.5) * 8,
         (Math.random() - 0.5) * 50,
@@ -131,7 +142,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
     o.hp -= dd;
     kb(bi, cx, cy, dd * 8);
     if (o.hp <= 0) {
-      killU(bi);
+      killUnit(bi);
       explosion(o.x, o.y, o.team, o.type, -1);
     }
     cx = o.x;

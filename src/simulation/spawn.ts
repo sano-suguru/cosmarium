@@ -4,7 +4,7 @@ import { beams } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
-export function spU(team: Team, type: number, x: number, y: number): number {
+export function spawnUnit(team: Team, type: number, x: number, y: number): number {
   for (let i = 0; i < POOL_UNITS; i++) {
     if (!unitPool[i]!.alive) {
       const u = unitPool[i]!,
@@ -39,14 +39,14 @@ export function spU(team: Team, type: number, x: number, y: number): number {
   return -1;
 }
 
-export function killU(i: number) {
+export function killUnit(i: number) {
   if (unitPool[i]!.alive) {
     unitPool[i]!.alive = false;
     poolCounts.unitCount--;
   }
 }
 
-export function spP(
+export function spawnParticle(
   x: number,
   y: number,
   vx: number,
@@ -80,7 +80,7 @@ export function spP(
   return -1;
 }
 
-export function spPr(
+export function spawnProjectile(
   x: number,
   y: number,
   vx: number,

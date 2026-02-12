@@ -2,7 +2,7 @@ import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
 import { gameMode, rT, setRT } from '../state.ts';
 import type { Team } from '../types.ts';
-import { spU } from './spawn.ts';
+import { spawnUnit } from './spawn.ts';
 
 // Reinforcement spawn probability distribution:
 // Each wave spawns 5 Drones + 2 Fighters as baseline, then rolls r∈[0,1)
@@ -27,7 +27,7 @@ export function reinforce(dt: number) {
       const cy = (Math.random() - 0.5) * WORLD_SIZE;
       const r = Math.random();
       const s = (tp: number, spread: number) => {
-        spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+        spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       };
       for (let i = 0; i < 5; i++) s(0, 100); // Drone ×5 — always
       for (let i = 0; i < 2; i++) s(1, 80); // Fighter ×2 — always
