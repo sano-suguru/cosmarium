@@ -32,9 +32,20 @@ bun run test:run     # Vitest single run (used in CI)
 bun run check        # All checks combined (typecheck + biome ci + knip + cpd + vitest run)
 ```
 
-**Testing**: [Vitest](https://vitest.dev/) for unit tests. Test files: `src/**/*.test.ts`. Helper utilities in `src/__test__/` (e.g., `resetPools()` for pool initialization). Test files have `noConsole: off` in Biome config.
+**Testing**: [Vitest](https://vitest.dev/) for unit tests. Test files: `src/**/*.test.ts`. Vitest config: `environment: 'node'` (no DOM), `restoreMocks: true` (mocks auto-restored between tests). Test files have `noConsole: off` in Biome config. Run a single test: `bunx vitest run src/path/to.test.ts`.
 
-**CI**: GitHub Actions runs `typecheck` → `biome ci .` → `knip` → `cpd` → `vitest run` on push/PR to `main`. Deploy workflow builds with `--base=/cosmarium/` and publishes to GitHub Pages.
+Helper utilities in `src/__test__/pool-helper.ts`:
+- `resetPools()` — resets all pools (uP/pP/prP) to dead state and zeroes poolCounts
+- `resetState()` — resets game state to menu defaults (gameState→menu, gameMode→0, bases HP→500, etc.)
+- `spawnAt(team, type, x, y)` — mocks `Math.random` for deterministic unit spawning (ang/cd/wn fixed to 0)
+
+**CI**: GitHub Actions (`.github/workflows/ci.yml`) — 4 parallel jobs on push/PR to `main`:
+- `typecheck`: `bun run typecheck`
+- `lint`: `bunx biome ci .`
+- `quality`: `bun run knip` + `bun run cpd`
+- `test`: `bun run test:run` (runs after `typecheck` via `needs: [typecheck]`)
+
+Deploy workflow builds with `--base=/cosmarium/` and publishes to GitHub Pages.
 
 **Biome key rules** (config in `biome.json`):
 - `noVar: error`, `useConst: error` — use `let`/`const` (`var` is forbidden)

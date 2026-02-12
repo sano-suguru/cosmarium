@@ -9,8 +9,8 @@
 | `main.vert.glsl` | シーン頂点: 回転→ワールド→カメラ変換 | instanced。`aA`=回転角度 |
 | `main.frag.glsl` | SDF描画: shapeID別の分岐（全18形状） | `#include includes/sdf.glsl` |
 | `quad.vert.glsl` | フルスクリーンquad頂点 | bloom + composite共用 |
-| `bloom.frag.glsl` | 1D Gaussianブラー | `uD`でH/V切替 |
-| `composite.frag.glsl` | bloom合成 + vignette + Reinhard tonemap | |
+| `bloom.frag.glsl` | 1D Gaussianブラー | `uD`でH/V切替。重み: 0.227, 0.195, 0.122, 0.054, 0.016 |
+| `composite.frag.glsl` | bloom合成 + vignette + Reinhard tonemap | `c=s+b*2.0`、vignette=`1-len*0.6`、tonemap=`c/(c+0.6)` |
 | `minimap.vert.glsl` | ミニマップ頂点（回転なし、Y-scale対応） | `aSY`スロット = `aA`スロット転用 |
 | `minimap.frag.glsl` | ミニマップ用簡易描画（色パススルー） | SDF分岐なし。circle以外はdiscardなし |
 | `includes/sdf.glsl` | 共有SDF関数: `hexDist`, `manDist`, `polarR` | `#include`で取り込み |
