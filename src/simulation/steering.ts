@@ -3,7 +3,7 @@ import { unitPool } from '../pools.ts';
 import { asteroids, bases, gameMode } from '../state.ts';
 import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
-import { _nb, gN } from './spatial-hash.ts';
+import { getNeighbors, neighborBuffer } from './spatial-hash.ts';
 
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
@@ -17,7 +17,7 @@ export function steer(u: Unit, dt: number) {
   const t = TYPES[u.type]!;
   let fx = 0,
     fy = 0;
-  const nn = gN(u.x, u.y, 200, _nb);
+  const nn = getNeighbors(u.x, u.y, 200, neighborBuffer);
   let sx = 0,
     sy = 0,
     ax = 0,
@@ -29,7 +29,7 @@ export function steer(u: Unit, dt: number) {
   const sd = t.size * 4;
 
   for (let i = 0; i < nn; i++) {
-    const oi = _nb[i]!,
+    const oi = neighborBuffer[i]!,
       o = unitPool[oi]!;
     if (!o.alive || o === u) continue;
     const dx = u.x - o.x,
@@ -83,7 +83,7 @@ export function steer(u: Unit, dt: number) {
     let bd = t.range * 3,
       bi = -1;
     for (let i = 0; i < nn; i++) {
-      const oi = _nb[i]!,
+      const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
       if (o.team === u.team || !o.alive) continue;
       const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
@@ -143,7 +143,7 @@ export function steer(u: Unit, dt: number) {
     let bm = 0,
       bi2 = -1;
     for (let i = 0; i < nn; i++) {
-      const oi = _nb[i]!,
+      const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
       if (o.team !== u.team || !o.alive || o === u) continue;
       if (TYPES[o.type]!.mass > bm) {

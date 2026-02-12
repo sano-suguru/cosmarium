@@ -3,7 +3,7 @@ import { addShake } from '../input/camera.ts';
 import { unitPool } from '../pools.ts';
 import type { Color3, Team, Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
-import { _nb, gN, kb } from './spatial-hash.ts';
+import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
@@ -64,14 +64,14 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
   if (sz >= 14) addShake(sz * 0.8);
 
-  const nn = gN(x, y, sz * 8, _nb);
+  const nn = getNeighbors(x, y, sz * 8, neighborBuffer);
   for (let i = 0; i < nn; i++) {
-    const o = unitPool[_nb[i]!]!;
+    const o = unitPool[neighborBuffer[i]!]!;
     if (!o.alive) continue;
     const ddx = o.x - x,
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < sz * 8) kb(_nb[i]!, x, y, (sz * 50) / (dd * 0.1 + 1));
+    if (dd < sz * 8) knockback(neighborBuffer[i]!, x, y, (sz * 50) / (dd * 0.1 + 1));
   }
   if (killer >= 0 && killer < unitPool.length) {
     const ku = unitPool[killer]!;
@@ -107,11 +107,11 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
     cy = sy;
   const hit = new Set();
   for (let ch = 0; ch < max; ch++) {
-    const nn = gN(cx, cy, 200, _nb);
+    const nn = getNeighbors(cx, cy, 200, neighborBuffer);
     let bd = 200,
       bi = -1;
     for (let i = 0; i < nn; i++) {
-      const oi = _nb[i]!,
+      const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
       if (!o.alive || o.team === team || hit.has(oi)) continue;
       const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
@@ -140,7 +140,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
     }
     const dd = dmg * (1 - ch * 0.12);
     o.hp -= dd;
-    kb(bi, cx, cy, dd * 8);
+    knockback(bi, cx, cy, dd * 8);
     if (o.hp <= 0) {
       killUnit(bi);
       explosion(o.x, o.y, o.team, o.type, -1);

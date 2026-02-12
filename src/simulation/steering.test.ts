@@ -4,7 +4,7 @@ import { WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
 import { asteroids, setGameMode } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
-import { bHash } from './spatial-hash.ts';
+import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
 
 afterEach(() => {
@@ -22,7 +22,7 @@ describe('steer — スタン', () => {
     u.vy = 50;
     const xBefore = u.x;
     const yBefore = u.y;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(u, 0.016);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
@@ -38,7 +38,7 @@ describe('steer — スタン', () => {
     const u = unitPool[idx]!;
     u.stun = 0.5;
     u.target = -1;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const angBefore = u.angle;
     steer(u, 0.016);
@@ -53,7 +53,7 @@ describe('steer — ベテラン速度', () => {
     const u = unitPool[idx]!;
     u.vet = 0;
     u.angle = 0;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // 長めのdtで速度を安定させる
     for (let i = 0; i < 100; i++) steer(u, 0.033);
@@ -77,7 +77,7 @@ describe('steer — ベテラン速度', () => {
     u2.vet = 2;
     u2.angle = 0;
 
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 100; i++) {
       steer(u0, 0.033);
@@ -94,7 +94,7 @@ describe('steer — ターゲット探索', () => {
     const ally = spawnAt(0, 1, 0, 0);
     const nearEnemy = spawnAt(1, 1, 80, 0);
     spawnAt(1, 1, 150, 0);
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(unitPool[ally]!, 0.016);
     expect(unitPool[ally]!.target).toBe(nearEnemy);
@@ -105,7 +105,7 @@ describe('steer — ターゲット探索', () => {
     const enemy = spawnAt(1, 1, 80, 0);
     unitPool[ally]!.target = enemy;
     unitPool[enemy]!.alive = false;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(unitPool[ally]!, 0.016);
     // 死亡ターゲットはクリアされるべき
@@ -120,7 +120,7 @@ describe('steer — RAM型', () => {
     const ram = spawnAt(0, 9, 0, 0); // type 9 = Ram
     const enemy = spawnAt(1, 1, 200, 0);
     unitPool[ram]!.target = enemy;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(unitPool[ram]!, 0.033);
     // ターゲットはx正方向なので、vxが正方向に増加
@@ -133,7 +133,7 @@ describe('steer — Mode 2 フォールバック', () => {
     setGameMode(2);
     const ally = spawnAt(0, 1, 0, 0); // team 0 → 敵基地 = bases[1] (x=1800)
     unitPool[ally]!.target = -1;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 50; i++) steer(unitPool[ally]!, 0.033);
     // team 0 → bases[1].x = 1800 なので右方向に移動
@@ -146,7 +146,7 @@ describe('steer — Mode 2 フォールバック', () => {
     unitPool[ally]!.target = -1;
     // wn=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
     unitPool[ally]!.wanderAngle = Math.PI;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 50; i++) steer(unitPool[ally]!, 0.033);
     // team 1 → bases[0].x = -1800 なので左方向に移動
@@ -162,7 +162,7 @@ describe('steer — 小惑星衝突', () => {
     u.vy = 0;
     // 小惑星 (x=50, r=40) と ユニット (x=55, sz=7) → d=5, a.r+t.sz=47 → 重なり
     asteroids.push({ x: 50, y: 0, radius: 40, angle: 0, angularVelocity: 0 });
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(u, 0.033);
     // 右方向に押し戻し
@@ -175,7 +175,7 @@ describe('steer — ヒーラー追従', () => {
     const healer = spawnAt(0, 5, 0, 0); // type 5 = Healer
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(unitPool[healer]!, 0.033);
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
@@ -190,7 +190,7 @@ describe('steer — ワールド境界', () => {
     u.vx = 0;
     u.vy = 0;
     u.target = -1;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
     // 境界の外側にいるので内側（左方向）に力
@@ -203,7 +203,7 @@ describe('steer — ワールド境界', () => {
     u.vx = 0;
     u.vy = 0;
     u.target = -1;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
     // y < -WORLD_SIZE*0.8 なので上方向（yが増える方向）に力

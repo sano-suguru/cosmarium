@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
-import { bHash } from './spatial-hash.ts';
+import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -46,7 +46,7 @@ describe('explosion', () => {
     const idx = spawnAt(0, 1, 30, 0);
     unitPool[idx]!.vx = 0;
     unitPool[idx]!.vy = 0;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 0, 0, -1);
     // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
@@ -55,7 +55,7 @@ describe('explosion', () => {
 
   it('killer有効 → kills++ される', () => {
     const killer = spawnAt(0, 1, 100, 100);
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unitPool[killer]!.kills).toBe(0);
     explosion(0, 0, 1, 0, killer);
@@ -65,7 +65,7 @@ describe('explosion', () => {
   it('kills >= 3 → vet=1', () => {
     const killer = spawnAt(0, 1, 100, 100);
     unitPool[killer]!.kills = 2;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 1, 0, killer);
     expect(unitPool[killer]!.kills).toBe(3);
@@ -75,7 +75,7 @@ describe('explosion', () => {
   it('kills >= 8 → vet=2', () => {
     const killer = spawnAt(0, 1, 100, 100);
     unitPool[killer]!.kills = 7;
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 1, 0, killer);
     expect(unitPool[killer]!.kills).toBe(8);
@@ -83,7 +83,7 @@ describe('explosion', () => {
   });
 
   it('killer=-1 → vet処理スキップ', () => {
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // killer=-1 でエラーが起きないことを確認
     explosion(0, 0, 0, 0, -1);
@@ -103,7 +103,7 @@ describe('trail', () => {
 
 describe('chainLightning', () => {
   it('ターゲットなし → 何もしない', () => {
-    bHash();
+    buildHash();
     chainLightning(0, 0, 0, 10, 5, [1, 1, 1]);
     expect(beams).toHaveLength(0);
     expect(poolCounts.particleCount).toBe(0);
@@ -111,7 +111,7 @@ describe('chainLightning', () => {
 
   it('1体の敵にビーム + ダメージ適用', () => {
     const enemy = spawnAt(1, 1, 50, 0); // team 1
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unitPool[enemy]!.hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
@@ -123,7 +123,7 @@ describe('chainLightning', () => {
   it('連鎖ごとにダメージ12%減衰', () => {
     const e1 = spawnAt(1, 1, 50, 0);
     const e2 = spawnAt(1, 1, 100, 0);
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp1Before = unitPool[e1]!.hp;
     const hp2Before = unitPool[e2]!.hp;
@@ -138,7 +138,7 @@ describe('chainLightning', () => {
   it('同ターゲットに2度連鎖しない (Set管理)', () => {
     // 1体だけの敵 → 1回だけヒット
     const enemy = spawnAt(1, 1, 50, 0);
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unitPool[enemy]!.hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
@@ -149,7 +149,7 @@ describe('chainLightning', () => {
 
   it('HP<=0 → killU + explosion（ユニットが死亡する）', () => {
     const enemy = spawnAt(1, 0, 50, 0); // type 0 (Drone), hp=3
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 100, 5, [1, 0, 0]); // dmg=100 > hp=3
     expect(unitPool[enemy]!.alive).toBe(false);
@@ -157,7 +157,7 @@ describe('chainLightning', () => {
 
   it('味方にはヒットしない', () => {
     const ally = spawnAt(0, 1, 50, 0); // team 0 (発射側と同チーム)
-    bHash();
+    buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unitPool[ally]!.hp;
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);

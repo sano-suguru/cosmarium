@@ -8,13 +8,13 @@ import { TYPES } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
-import { _nb, bHash, gN, kb } from './spatial-hash.ts';
+import { buildHash, getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
 export function update(rawDt: number, now: number) {
   const dt = Math.min(rawDt, 0.033);
-  bHash();
+  buildHash();
 
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
     const u = unitPool[i]!;
@@ -36,9 +36,9 @@ export function update(rawDt: number, now: number) {
     if (!u.alive) continue;
     urem2--;
     if (TYPES[u.type]!.name !== 'Reflector') continue;
-    const nn = gN(u.x, u.y, 100, _nb);
+    const nn = getNeighbors(u.x, u.y, 100, neighborBuffer);
     for (let j = 0; j < nn; j++) {
-      const o = unitPool[_nb[j]!]!;
+      const o = unitPool[neighborBuffer[j]!]!;
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
@@ -87,9 +87,9 @@ export function update(rawDt: number, now: number) {
 
     if (p.life <= 0) {
       if (p.aoe > 0) {
-        const nn = gN(p.x, p.y, p.aoe, _nb);
+        const nn = getNeighbors(p.x, p.y, p.aoe, neighborBuffer);
         for (let j = 0; j < nn; j++) {
-          const oi = _nb[j]!,
+          const oi = neighborBuffer[j]!,
             o = unitPool[oi]!;
           if (!o.alive || o.team === p.team) continue;
           const ddx = o.x - p.x,
@@ -97,7 +97,7 @@ export function update(rawDt: number, now: number) {
           if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
             const dd = Math.sqrt(ddx * ddx + ddy * ddy);
             o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
-            kb(oi, p.x, p.y, 220);
+            knockback(oi, p.x, p.y, 220);
             if (o.hp <= 0) {
               killUnit(oi);
               explosion(o.x, o.y, o.team, o.type, -1);
@@ -128,10 +128,10 @@ export function update(rawDt: number, now: number) {
     }
 
     // Hit detection
-    const nn2 = gN(p.x, p.y, 30, _nb);
+    const nn2 = getNeighbors(p.x, p.y, 30, neighborBuffer);
     let hit = false;
     for (let j = 0; j < nn2; j++) {
-      const oi = _nb[j]!,
+      const oi = neighborBuffer[j]!,
         o = unitPool[oi]!;
       if (!o.alive || o.team === p.team) continue;
       const hs = TYPES[o.type]!.size;
@@ -139,7 +139,7 @@ export function update(rawDt: number, now: number) {
         let dmg = p.damage;
         if (o.shielded) dmg *= 0.3;
         o.hp -= dmg;
-        kb(oi, p.x, p.y, p.damage * 12);
+        knockback(oi, p.x, p.y, p.damage * 12);
         spawnParticle(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
         if (o.hp <= 0) {
           killUnit(oi);

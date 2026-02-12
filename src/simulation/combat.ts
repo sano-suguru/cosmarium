@@ -4,7 +4,7 @@ import { projectilePool, unitPool } from '../pools.ts';
 import type { Unit } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
-import { _nb, gN, kb } from './spatial-hash.ts';
+import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
@@ -27,9 +27,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- RAM ---
   if (t.rams) {
-    const nn = gN(u.x, u.y, t.size * 2, _nb);
+    const nn = getNeighbors(u.x, u.y, t.size * 2, neighborBuffer);
     for (let i = 0; i < nn; i++) {
-      const oi = _nb[i]!,
+      const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
       if (!o.alive || o.team === u.team) continue;
       const dx = o.x - u.x,
@@ -37,7 +37,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d < t.size + TYPES[o.type]!.size) {
         o.hp -= Math.ceil(u.mass * 3 * vd);
-        kb(oi, u.x, u.y, u.mass * 55);
+        knockback(oi, u.x, u.y, u.mass * 55);
         u.hp -= Math.ceil(TYPES[o.type]!.mass);
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * 6.283;
@@ -71,9 +71,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- HEALER ---
   if (t.heals && u.abilityCooldown <= 0) {
     u.abilityCooldown = 0.35;
-    const nn = gN(u.x, u.y, 160, _nb);
+    const nn = getNeighbors(u.x, u.y, 160, neighborBuffer);
     for (let i = 0; i < nn; i++) {
-      const oi = _nb[i]!,
+      const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
       if (!o.alive || o.team !== u.team || oi === ui) continue;
       if (o.hp < o.maxHp) {
@@ -178,9 +178,9 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     if (d < 0) return;
     if (d < t.range) {
       u.abilityCooldown = t.fireRate;
-      const nn = gN(u.x, u.y, t.range, _nb);
+      const nn = getNeighbors(u.x, u.y, t.range, neighborBuffer);
       for (let i = 0; i < nn; i++) {
-        const oi = _nb[i]!,
+        const oi = neighborBuffer[i]!,
           oo = unitPool[oi]!;
         if (!oo.alive || oo.team === u.team) continue;
         if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
@@ -285,7 +285,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
             let dmg = t.damage * u.beamOn * vd;
             if (o.shielded) dmg *= 0.4; // 60% reduction under reflector shield
             o.hp -= dmg;
-            kb(u.target, u.x, u.y, dmg * 5);
+            knockback(u.target, u.x, u.y, dmg * 5);
             for (let i = 0; i < 2; i++) {
               spawnParticle(
                 o.x + (Math.random() - 0.5) * 8,
