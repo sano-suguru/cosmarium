@@ -15,7 +15,7 @@
 | `reinforcements.ts` | 増援スポーン（確率分布テーブル） | 低 |
 | `init.ts` | ゲーム開始時のユニット配置 + 小惑星生成 | 低 |
 
-テスト: `spatial-hash.test.ts`, `spawn.test.ts`（`vitest run`で実行）
+テスト: `combat.test.ts`, `steering.test.ts`, `effects.test.ts`, `reinforcements.test.ts`, `spawn.test.ts`, `spatial-hash.test.ts`（`vitest run`で実行）
 
 ## Tick Order（update.ts内）
 
@@ -53,8 +53,12 @@
 非排他: `heals`, `spawns`, `teleports` — 他パターンと共存可能
 最後: NORMAL FIRE — `homing` / `aoe` / `sh===3`(5-burst) / `sh===8`(railgun) / default
 
+### ヘルパー関数
+
+- `tgtDistOrClear(u)`: ターゲット距離を返す。`u.tgt<0` or `!alive` なら `u.tgt=-1` でリセットし-1を返す。combat冒頭でターゲット検証と距離取得を一括処理
+
 ### ターゲット alive チェックパターン
-beam系・通常攻撃ともに `u.tgt >= 0` でターゲット保持を確認後、`uP[u.tgt]!.alive` で生存判定。死亡時は `u.tgt = -1` でリセットし、次フレームの `steer()` で再取得させる。beam系では `beamOn` のフェードアウト（`-dt*3`）も同時に行う。
+beam系・通常攻撃ともに `tgtDistOrClear(u)` でターゲット有効性と距離を取得。-1なら無効→次フレームの `steer()` で再取得。beam系では `beamOn` のフェードアウト（`-dt*3`）も同時に行う。
 
 ## 変更ガイド
 

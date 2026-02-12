@@ -1,6 +1,19 @@
+import { vi } from 'vitest';
 import { PP, PPR, PU } from '../constants.ts';
 import { poolCounts, pP, prP, uP } from '../pools.ts';
-import { beams } from '../state.ts';
+import { spU } from '../simulation/spawn.ts';
+import {
+  asteroids,
+  bases,
+  beams,
+  setCatalogOpen,
+  setCatSelected,
+  setGameMode,
+  setGameState,
+  setRT,
+  setTimeScale,
+  setWinTeam,
+} from '../state.ts';
 
 export function resetPools() {
   for (let i = 0; i < PU; i++) {
@@ -66,4 +79,30 @@ export function resetPools() {
   poolCounts.pC = 0;
   poolCounts.prC = 0;
   beams.length = 0;
+}
+
+export function resetState() {
+  setGameState('menu');
+  setGameMode(0);
+  setWinTeam(-1);
+  setCatalogOpen(false);
+  setCatSelected(0);
+  setTimeScale(0.55);
+  setRT(0);
+  asteroids.length = 0;
+  beams.length = 0;
+  // bases の x/y は state.ts で const オブジェクトの初期値として固定されており、テスト中に変更されないためリセット不要
+  bases[0].hp = 500;
+  bases[0].mhp = 500;
+  bases[1].hp = 500;
+  bases[1].mhp = 500;
+}
+
+/** spU() の Math.random 依存（ang, cd, wn）をモックして確定的にユニットを生成する共通ヘルパー */
+export function spawnAt(team: 0 | 1, type: number, x: number, y: number): number {
+  vi.spyOn(Math, 'random')
+    .mockReturnValueOnce(0) // ang
+    .mockReturnValueOnce(0) // cd
+    .mockReturnValueOnce(0); // wn
+  return spU(team, type, x, y);
 }

@@ -10,7 +10,7 @@
 - **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
-- **テスト**: `bun run test` (`vitest run`) — `src/__test__/`配下。spawn/spatial-hash/colorsのユニットテスト
+- **テスト**: `bun run test` (`vitest run`) — `src/simulation/*.test.ts`(6), `src/*.test.ts`(3), `src/__test__/pool-helper.ts`(共通ヘルパー)。対象: combat, steering, effects, reinforcements, spawn, spatial-hash, state, unit-types, colors
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
 - **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd + vitest run
@@ -37,6 +37,7 @@
 | `CELL` | 100 | 空間ハッシュのセルサイズ |
 | `MAX_I` | 65000 | 描画instance上限 |
 | `MM_MAX` | 1200 | ミニマップinstance上限 |
+| `S_STRIDE` | 36 | instanceデータのバイトストライド（9 floats × 4） |
 
 ## Vet(ベテラン)システム
 
