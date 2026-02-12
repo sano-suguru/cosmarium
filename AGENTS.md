@@ -14,7 +14,9 @@
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
 - **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
 - **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd
+- **Deploy**: GitHub Actions（`.github/workflows/deploy.yml`）— main push時に`bun run check` → `vite build --base=/cosmarium/` → GitHub Pages deploy
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
+- **Knip設定**: `knip.json` — `src/**/*.ts`のみ対象、`src/vite-env.d.ts`は除外
 
 ## Game Modes
 

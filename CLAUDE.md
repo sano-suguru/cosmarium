@@ -124,6 +124,19 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
       [when catalogOpen: camera locked to origin z=2.5, HUD/minimap hidden]
 ```
 
+**Dependency graph** (変更影響マップ):
+```
+types.ts     ← 全ファイルが依存（型定義の変更は全体に波及）
+constants.ts ← pools.ts, simulation/*, renderer/*, ui/catalog.ts, ui/hud.ts
+state.ts     ← main.ts, simulation/*, renderer/render-pass.ts, renderer/render-scene.ts,
+               renderer/minimap.ts, input/camera.ts, ui/*
+pools.ts     ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts, ui/hud.ts
+colors.ts    ← simulation/combat.ts, simulation/effects.ts, renderer/render-scene.ts,
+               renderer/minimap.ts, ui/catalog.ts
+unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts
+input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをインポート）
+```
+
 **Detailed change guide**: See AGENTS.md for per-area guidelines, impact scope, and caveats (root `AGENTS.md` + `src/renderer/AGENTS.md` + `src/simulation/AGENTS.md` + `src/shaders/AGENTS.md`).
 
 ## Coding Conventions
@@ -215,6 +228,18 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 - **Team colors**: 15 unique color pairs per unit type (indexed by type, not team)
 - **Reflector shield**: Nearby allies get `shielded=true` → projectiles deal 30% damage, beams reduced 60%
 - **Catalog demo**: Spawns a controlled scenario per unit type for live preview in the catalog screen
+
+## Critical Gotchas
+
+| 罠 | 理由 |
+|----|------|
+| `Team`型（`0 \| 1`）で `1 - team` は `number` を返す | `team === 0 ? 1 : 0` で代替 |
+| `catalogOpen`は複数層に影響 | simulation(steps 1-6常時実行、7-10スキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
+| state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
+| `poolCounts`のカウンタは手動管理 | spawn/kill時に必ずインクリメント/デクリメント。漏れるとHUD・増援ロジックが狂う |
+| `_nb`バッファは共有（350要素） | `gN()`の戻り値=バッファ内の有効数。コピーせず即使用 |
+| GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
+| カタログがプールを消費 | `spU()`で実ユニット生成。`PU`上限に影響。`killU()`での破棄漏れ注意 |
 
 ## MCP Tools Guide
 
