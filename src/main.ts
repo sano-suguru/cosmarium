@@ -2,7 +2,7 @@ import './style.css';
 
 import { cam, initCamera } from './input/camera.ts';
 import { initBuffers } from './renderer/buffers.ts';
-import { mkFBOs } from './renderer/fbo.ts';
+import { createFBOs } from './renderer/fbo.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { initShaders } from './renderer/shaders.ts';
@@ -15,13 +15,13 @@ import { updateHUD } from './ui/hud.ts';
 // Initialize renderer (order matters)
 initWebGL();
 initShaders();
-mkFBOs();
+createFBOs();
 initBuffers();
 
 // Resize handler
 addEventListener('resize', () => {
   resize();
-  mkFBOs();
+  createFBOs();
 });
 
 // Initialize UI and input
