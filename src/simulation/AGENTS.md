@@ -15,7 +15,15 @@
 | `reinforcements.ts` | 増援スポーン（確率分布テーブル） | 低 |
 | `init.ts` | ゲーム開始時のユニット配置 + 小惑星生成 | 低 |
 
-テスト: `combat.test.ts`, `steering.test.ts`, `effects.test.ts`, `reinforcements.test.ts`, `spawn.test.ts`, `spatial-hash.test.ts`（`vitest run`で実行）
+### init.ts の初期配置
+
+- `initUnits()`: 全プール初期化 → 小惑星生成 → 両チームにユニットspawn
+  - 配置数配列 `n[]`: `[Flagship×2, Carrier×1, Cruiser×4, Bomber×3, Fighter×20, Drone×50, Healer×3, Reflector×2, Sniper×4, Ram×3, Missile×3, EMP×2, BeamFrig×3, Teleporter×2, ChainBolt×2]`
+  - mode=1（Annihilation）: 各数を`×0.7`（切り上げ）に縮小
+  - spawn位置: team 0 → cx=-1200, cy=-300; team 1 → cx=1200, cy=300（spread付きランダム）
+- `genAsteroids()`: 40個、位置=`WORLD*1.4`範囲内ランダム、半径20〜80、回転速度±0.02〜0.05
+
+テスト: `combat.test.ts`, `steering.test.ts`, `effects.test.ts`, `reinforcements.test.ts`, `spawn.test.ts`, `spatial-hash.test.ts`, `update.test.ts`（`vitest run`で実行）
 
 ## Tick Order（update.ts内）
 

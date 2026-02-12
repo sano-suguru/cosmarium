@@ -162,7 +162,7 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 
 - **Abbreviated names** (preserved from original — renaming is a separate task):
   - Pools: `uP`=units, `pP`=particles, `prP`=projectiles; `poolCounts.uC/pC/prC`=active counts
-  - Pool limits: `PU=800`, `PP=35000`, `PPR=6000`
+  - Pool/World: `PU=800`, `PP=35000`, `PPR=6000`, `WORLD=4000`, `CELL=100`, `MAX_I=65000`, `MM_MAX=1200`, `S_STRIDE=36`
   - Spawners: `spU`=spawn unit, `spP`=spawn particle, `spPr`=spawn projectile
   - Spatial: `bHash`=build hash, `gN`=get neighbors, `kb`=knockback, `_nb`=neighbor buffer
   - Camera: `cam` object with `tx/ty/tz` (targets), `x/y/z` (interpolated), `shk/shkx/shky` (screen shake)
@@ -196,24 +196,27 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 ## Shader Shape IDs
 
 The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape ID:
-- 0: Circle (default particle/projectile)
-- 1: Diamond
-- 2: Triangle (pointed up)
-- 3: Hexagon
-- 4: Cross
-- 5: Ring
-- 6: Arrow/missile
-- 7: Star (5-point)
-- 8: Crescent
-- 9: Square
-- 10: Glow ring (used for shockwaves/auras)
-- 11: Chevron
-- 12: Beam segment (horizontal line)
-- 13: Diamond ring (hollow)
-- 14: Trefoil (3-lobe)
-- 15: Lightning bolt
-- 16: Pentagon
-- 20: Large hexagon (bases)
+
+| ID | Shape | Used by |
+|----|-------|---------|
+| 0 | Circle | particle, projectile(aoe/default), HP bar, stun spark |
+| 1 | Diamond | projectile(通常弾), minimap背景/unit |
+| 2 | Triangle | — |
+| 3 | Hexagon | asteroid |
+| 4 | Cross | — |
+| 5 | Ring | reflector shield表示 |
+| 6 | Arrow | homing projectile, minimap unit |
+| 7 | Star(5) | vet星バッジ (vet≥1: 1個, vet≥2: 2個) |
+| 8 | Crescent | — |
+| 9 | Square | — |
+| 10 | Glow ring | explosion ring, vet glow, EMP ring, shield aura, base glow |
+| 11 | Chevron | — |
+| 12 | Beam | beam segments |
+| 13 | Diamond ring | — |
+| 14 | Trefoil | — |
+| 15 | Lightning | — |
+| 16 | Pentagon | — |
+| 20 | Large hexagon | base (mode=2) |
 
 ## Unit Type Index
 
@@ -248,6 +251,40 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 - **Reflector shield**: Nearby allies get `shielded=true` → projectiles deal 30% damage, beams reduced 60%
 - **Catalog demo**: Spawns a controlled scenario per unit type for live preview in the catalog screen
 
+## Combat Branching (combat.ts)
+
+排他パターン（`return`あり）: `rams` → `reflects` → `emp` → `chain` → `beam`（spawns除く）
+非排他（他と共存可）: `heals`, `spawns`, `teleports`
+最後: NORMAL FIRE — `homing` / `aoe` / `sh===3`(5-burst) / `sh===8`(railgun) / default
+
+## Common Change Procedures
+
+### 新ユニット追加
+1. `unit-types.ts` — `TYPES[]`に定義追加
+2. `types.ts` — 新フラグがあれば`Unit`に追加
+3. `colors.ts` — `TC[]`+`TrC[]`に色ペア追加
+4. `simulation/combat.ts` — 攻撃パターン分岐追加（排他なら`return`）
+5. `simulation/steering.ts` — 特殊移動があれば`steer()`に追加
+6. `simulation/spawn.ts` — 新プロパティがあれば`spU()`初期化に追加
+7. `ui/catalog.ts` — `setupCatDemo()`にデモシナリオ追加
+8. `src/shaders/main.frag.glsl` — 新シェイプが必要ならSDF追加
+
+### 新攻撃パターン追加
+1. `types.ts` — `UnitType`に新フラグ追加
+2. `unit-types.ts` — 該当エントリにフラグ追加
+3. `combat.ts` — NORMAL FIREの前に`if (t.newFlag)`分岐挿入
+4. `spawn.ts` — 新Unitプロパティがあれば`spU()`初期化に追加
+
+### 新パーティクルエフェクト追加
+1. `simulation/effects.ts` — エフェクト関数追加（`spP()`でパーティクル生成）
+2. 呼び出し元（`combat.ts`/`update.ts`）からインポート
+
+### 新Shape追加
+1. `main.frag.glsl` — 最後の`else if`の前にSDF分岐追加（次の空きID）
+2. SDF関数が必要なら`includes/sdf.glsl`に追加
+3. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
+4. **minimap.fragは変更不要**（SDFを使わず色パススルー）
+
 ## Critical Gotchas
 
 | 罠 | 理由 |
@@ -259,6 +296,14 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | `_nb`バッファは共有（350要素） | `gN()`の戻り値=バッファ内の有効数。コピーせず即使用 |
 | GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
 | カタログがプールを消費 | `spU()`で実ユニット生成。`PU`上限に影響。`killU()`での破棄漏れ注意 |
+| `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止 |
+| `killU()`はindexで呼ぶ | `killU(oi)` — Unit参照ではなくプール配列index |
+| `u.tgt`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
+| `beams`は`.splice()`で削除 | プールではなく動的配列。逆順ループ必須 |
+| `gN()`は`bHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
+| `wr()`のidx上限 | `MAX_I`を超えるとサイレントに描画省略。描画消え→`MAX_I`増加を検討 |
+| プール上限変更時は2ファイル | `constants.ts`の定数と`pools.ts`の配列初期化を両方変更 |
+| Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
 
 ## MCP Tools Guide
 

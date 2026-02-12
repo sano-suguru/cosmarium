@@ -10,10 +10,10 @@
 - **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
 - **未使用export検出**: `bun run knip` — 未使用export/依存を検出
 - **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
-- **テスト**: `bun run test` (`vitest run`) — `src/simulation/*.test.ts`(6), `src/*.test.ts`(3), `src/__test__/pool-helper.ts`(共通ヘルパー)。対象: combat, steering, effects, reinforcements, spawn, spatial-hash, state, unit-types, colors
+- **テスト**: `bun run test:run` (`vitest run`) — `src/simulation/*.test.ts`(7), `src/*.test.ts`(3), `src/__test__/pool-helper.ts`(共通ヘルパー)。対象: combat, steering, effects, reinforcements, spawn, spatial-hash, update, state, unit-types, colors。`bun run test`はwatchモード
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
 - **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境（`oven-sh/setup-bun@v2`）でtypecheck + lint + format:check + knip + cpd + vitest run
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境、4並列job: `typecheck` → `lint`(`biome ci .`) → `quality`(`knip`+`cpd`) → `test`(`vitest run`、typecheck完了後)
 - **Deploy**: GitHub Actions（`.github/workflows/deploy.yml`）— main push時に`bun run check` → `vite build --base=/cosmarium/` → GitHub Pages deploy
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 - **Knip設定**: `knip.json` — `src/**/*.ts`のみ対象、`src/vite-env.d.ts`は除外
@@ -22,9 +22,9 @@
 
 | mode | 名前 | 勝利条件 | 増援 |
 |------|------|----------|------|
-| 0 | Infinite | なし（永続戦闘） | あり（2.5秒ごと） |
+| 0 | Infinite | なし（永続戦闘） | あり（2.5秒ごと、上限130） |
 | 1 | Annihilation | 敵チーム全滅 | なし |
-| 2 | Base Assault | 敵基地HP=0 | あり（上限100） |
+| 2 | Base Assault | 敵基地HP=0（x=±1800、初期500HP） | あり（上限100） |
 
 ## Pool定数
 
