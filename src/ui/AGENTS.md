@@ -23,7 +23,7 @@
 カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spU()` で実際のプールに生ユニットを生成する。
 
 - `toggleCat()` → `setupCatDemo(catSelected)`: 旧デモユニットを`killU()`で破棄後、新シナリオをspawn
-- `updateCatDemo(dt)`: 3秒タイマーで敵残数<2なら再spawn。味方は原点に引き寄せ、敵はHP自動回復
+- `updateCatDemo(dt)`: 3秒タイマーで敵残数<2なら再spawn。味方は原点に引き寄せ（rams除く）、敵はHP自動回復
 - **影響**: `PU`上限を消費。カタログ中もsteps 1-6（steer/combat/projectile/particle/beam）は実行される
 
 ### デモシナリオ分岐

@@ -66,12 +66,23 @@ offset 32: shapeID   (aSh)
 ### 新エンティティの描画追加
 1. `render-scene.ts` — `renderScene()`内の適切な位置に`wr()`呼び出し追加
 2. 描画順序: asteroids → bases → particles → beams → projectiles → units（後に描いたものが上に来る）
-3. `MAX_I`超過チェック: `wr()`が`idx >= MAX_I`で早期returnするため、描画が消える場合は`constants.ts`の`MAX_I`増加を検討
+3. `catalogOpen`時: asteroids/basesスキップ。particles以降は常時描画
+4. `MAX_I`超過チェック: `wr()`が`idx >= MAX_I`で早期returnするため、描画が消える場合は`constants.ts`の`MAX_I`増加を検討
+
+### ユニット描画の付随エフェクト（render-scene.ts）
+
+各ユニットに対し`wr()`が最大5回呼ばれる:
+1. `shielded` → ring(shape 5), sz×1.8, 青半透明
+2. `stun > 0` → spark×2(shape 0), sz×0.7軌道上, sin回転
+3. `vet > 0` → glow ring(shape 10), sz×1.4, alpha=0.08+vet×0.06
+4. 本体 → 低HP flash(`hr<0.3`→sin×15), stun暗転(`sin×25`)
+5. HP bar → `sz >= 10 && hr < 1`のみ(shape 0, 横長rect)
+6. vet星バッジ → vet≥1: star×1, vet≥2: star×2（右上にoffset）
 
 ### ミニマップに描画追加
 1. `minimap.ts` — `drawMinimap()`内に`mmW()`呼び出し追加
 2. 座標系: ワールド座標 × `S`（= `1/WORLD`）で正規化。`mmW`の引数は`(x*S, y*S, sizeX, sizeY, r, g, b, a, shapeID)`
-3. 注意: `mmW`の7番目引数はY方向サイズ（`aA`スロットを`aSY`として転用）
+3. 注意: `mmW`の第4引数`sy`がバッファoffset 7（通常`aA`）に書き込まれ、minimap.vertでは`aSY`として解釈される
 
 ### FBO変更
 - `mkFBOs()`はリサイズ時に再呼出しされる（`resize()`経由）
