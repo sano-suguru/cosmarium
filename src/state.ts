@@ -6,13 +6,13 @@ export let winTeam = -1;
 export let catalogOpen = false;
 export let catSelected = 0;
 export let timeScale = 0.55;
-export let rT = 0;
+export let reinforcementTimer = 0;
 
 export const beams: Beam[] = [];
 export const asteroids: Asteroid[] = [];
 export const bases: [Base, Base] = [
-  { x: -1800, y: 0, hp: 500, mhp: 500 },
-  { x: 1800, y: 0, hp: 500, mhp: 500 },
+  { x: -1800, y: 0, hp: 500, maxHp: 500 },
+  { x: 1800, y: 0, hp: 500, maxHp: 500 },
 ];
 
 export function setGameState(v: GameState) {
@@ -33,6 +33,6 @@ export function setCatSelected(v: number) {
 export function setTimeScale(v: number) {
   timeScale = v;
 }
-export function setRT(v: number) {
-  rT = v;
+export function setReinforcementTimer(v: number) {
+  reinforcementTimer = v;
 }

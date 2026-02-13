@@ -1,13 +1,13 @@
-import { PP, PPR, PU } from '../constants.ts';
-import { poolCounts, pP, prP, uP } from '../pools.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
-export function spU(team: Team, type: number, x: number, y: number): number {
-  for (let i = 0; i < PU; i++) {
-    if (!uP[i]!.alive) {
-      const u = uP[i]!,
+export function spawnUnit(team: Team, type: number, x: number, y: number): number {
+  for (let i = 0; i < POOL_UNITS; i++) {
+    if (!unitPool[i]!.alive) {
+      const u = unitPool[i]!,
         t = TYPES[type]!;
       u.alive = true;
       u.team = team;
@@ -16,105 +16,105 @@ export function spU(team: Team, type: number, x: number, y: number): number {
       u.y = y;
       u.vx = 0;
       u.vy = 0;
-      u.ang = Math.random() * 6.283;
+      u.angle = Math.random() * 6.283;
       u.hp = t.hp;
-      u.mhp = t.hp;
-      u.cd = Math.random() * t.fr;
-      u.tgt = -1;
-      u.wn = Math.random() * 6.283;
-      u.tT = 0;
+      u.maxHp = t.hp;
+      u.cooldown = Math.random() * t.fireRate;
+      u.target = -1;
+      u.wanderAngle = Math.random() * 6.283;
+      u.trailTimer = 0;
       u.mass = t.mass;
-      u.aCd = 0;
+      u.abilityCooldown = 0;
       u.shielded = false;
       u.stun = 0;
-      u.sCd = 0;
-      u.tp = 0;
+      u.spawnCooldown = 0;
+      u.teleportTimer = 0;
       u.beamOn = 0;
       u.kills = 0;
       u.vet = 0;
-      poolCounts.uC++;
+      poolCounts.unitCount++;
       return i;
     }
   }
   return -1;
 }
 
-export function killU(i: number) {
-  if (uP[i]!.alive) {
-    uP[i]!.alive = false;
-    poolCounts.uC--;
+export function killUnit(i: number) {
+  if (unitPool[i]!.alive) {
+    unitPool[i]!.alive = false;
+    poolCounts.unitCount--;
   }
 }
 
-export function spP(
+export function spawnParticle(
   x: number,
   y: number,
   vx: number,
   vy: number,
   life: number,
-  sz: number,
+  size: number,
   r: number,
   g: number,
   b: number,
-  sh: number,
+  shape: number,
 ): number {
-  for (let i = 0; i < PP; i++) {
-    if (!pP[i]!.alive) {
-      const p = pP[i]!;
+  for (let i = 0; i < POOL_PARTICLES; i++) {
+    if (!particlePool[i]!.alive) {
+      const p = particlePool[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
       p.vx = vx;
       p.vy = vy;
       p.life = life;
-      p.ml = life;
-      p.sz = sz;
+      p.maxLife = life;
+      p.size = size;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.sh = sh || 0;
-      poolCounts.pC++;
+      p.shape = shape || 0;
+      poolCounts.particleCount++;
       return i;
     }
   }
   return -1;
 }
 
-export function spPr(
+export function spawnProjectile(
   x: number,
   y: number,
   vx: number,
   vy: number,
   life: number,
-  dmg: number,
+  damage: number,
   team: Team,
-  sz: number,
+  size: number,
   r: number,
   g: number,
   b: number,
-  hom?: boolean,
+  homing?: boolean,
   aoe?: number,
-  tx?: number,
+  targetIndex?: number,
 ): number {
-  for (let i = 0; i < PPR; i++) {
-    if (!prP[i]!.alive) {
-      const p = prP[i]!;
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
+    if (!projectilePool[i]!.alive) {
+      const p = projectilePool[i]!;
       p.alive = true;
       p.x = x;
       p.y = y;
       p.vx = vx;
       p.vy = vy;
       p.life = life;
-      p.dmg = dmg;
+      p.damage = damage;
       p.team = team;
-      p.sz = sz;
+      p.size = size;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.hom = hom ?? false;
+      p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
-      p.tx = tx ?? -1;
-      poolCounts.prC++;
+      p.targetIndex = targetIndex ?? -1;
+      poolCounts.projectileCount++;
       return i;
     }
   }
@@ -130,7 +130,7 @@ export function addBeam(
   g: number,
   b: number,
   life: number,
-  w: number,
+  width: number,
 ) {
-  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, ml: life, w: w });
+  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, maxLife: life, width: width });
 }

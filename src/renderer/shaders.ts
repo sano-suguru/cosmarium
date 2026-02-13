@@ -7,12 +7,12 @@ import minimapVertSrc from '../shaders/minimap.vert.glsl';
 import quadVertSrc from '../shaders/quad.vert.glsl';
 import { gl } from './webgl-setup.ts';
 
-export let mP: WebGLProgram;
-export let blP: WebGLProgram;
-export let coP: WebGLProgram;
-export let mmP: WebGLProgram;
+export let mainProgram: WebGLProgram;
+export let bloomProgram: WebGLProgram;
+export let compositeProgram: WebGLProgram;
+export let minimapProgram: WebGLProgram;
 
-export let Loc: {
+export let mainLocations: {
   aP: number;
   aO: number;
   aS: number;
@@ -24,7 +24,7 @@ export let Loc: {
   uZ: WebGLUniformLocation | null;
 };
 
-export let mmLoc: {
+export let minimapLocations: {
   aP: number;
   aO: number;
   aS: number;
@@ -33,82 +33,82 @@ export let mmLoc: {
   aSh: number;
 };
 
-export let blLoc: {
+export let bloomLocations: {
   uT: WebGLUniformLocation | null;
   uD: WebGLUniformLocation | null;
   uR: WebGLUniformLocation | null;
 };
 
-export let coLoc: {
+export let compositeLocations: {
   uS: WebGLUniformLocation | null;
   uB: WebGLUniformLocation | null;
 };
 
-function CS(s: string, t: number) {
-  const sh = gl.createShader(t)!;
-  gl.shaderSource(sh, s);
-  gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
-  return sh;
+function compileShader(s: string, t: number) {
+  const shader = gl.createShader(t)!;
+  gl.shaderSource(shader, s);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(shader));
+  return shader;
 }
 
-function CP(v: string, f: string) {
+function createProgram(v: string, f: string) {
   const p = gl.createProgram()!;
-  gl.attachShader(p, CS(v, gl.VERTEX_SHADER));
-  gl.attachShader(p, CS(f, gl.FRAGMENT_SHADER));
+  gl.attachShader(p, compileShader(v, gl.VERTEX_SHADER));
+  gl.attachShader(p, compileShader(f, gl.FRAGMENT_SHADER));
   gl.linkProgram(p);
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
   return p;
 }
 
 export function initShaders() {
-  mP = CP(mainVertSrc, mainFragSrc);
-  blP = CP(quadVertSrc, bloomFragSrc);
-  coP = CP(quadVertSrc, compositeFragSrc);
-  mmP = CP(minimapVertSrc, minimapFragSrc);
+  mainProgram = createProgram(mainVertSrc, mainFragSrc);
+  bloomProgram = createProgram(quadVertSrc, bloomFragSrc);
+  compositeProgram = createProgram(quadVertSrc, compositeFragSrc);
+  minimapProgram = createProgram(minimapVertSrc, minimapFragSrc);
 
-  Loc = {
-    aP: gl.getAttribLocation(mP, 'aP'),
-    aO: gl.getAttribLocation(mP, 'aO'),
-    aS: gl.getAttribLocation(mP, 'aS'),
-    aC: gl.getAttribLocation(mP, 'aC'),
-    aA: gl.getAttribLocation(mP, 'aA'),
-    aSh: gl.getAttribLocation(mP, 'aSh'),
-    uR: gl.getUniformLocation(mP, 'uR'),
-    uCam: gl.getUniformLocation(mP, 'uCam'),
-    uZ: gl.getUniformLocation(mP, 'uZ'),
+  mainLocations = {
+    aP: gl.getAttribLocation(mainProgram, 'aP'),
+    aO: gl.getAttribLocation(mainProgram, 'aO'),
+    aS: gl.getAttribLocation(mainProgram, 'aS'),
+    aC: gl.getAttribLocation(mainProgram, 'aC'),
+    aA: gl.getAttribLocation(mainProgram, 'aA'),
+    aSh: gl.getAttribLocation(mainProgram, 'aSh'),
+    uR: gl.getUniformLocation(mainProgram, 'uR'),
+    uCam: gl.getUniformLocation(mainProgram, 'uCam'),
+    uZ: gl.getUniformLocation(mainProgram, 'uZ'),
   };
 
-  mmLoc = {
-    aP: gl.getAttribLocation(mmP, 'aP'),
-    aO: gl.getAttribLocation(mmP, 'aO'),
-    aS: gl.getAttribLocation(mmP, 'aS'),
-    aC: gl.getAttribLocation(mmP, 'aC'),
-    aSY: gl.getAttribLocation(mmP, 'aSY'),
-    aSh: gl.getAttribLocation(mmP, 'aSh'),
+  minimapLocations = {
+    aP: gl.getAttribLocation(minimapProgram, 'aP'),
+    aO: gl.getAttribLocation(minimapProgram, 'aO'),
+    aS: gl.getAttribLocation(minimapProgram, 'aS'),
+    aC: gl.getAttribLocation(minimapProgram, 'aC'),
+    aSY: gl.getAttribLocation(minimapProgram, 'aSY'),
+    aSh: gl.getAttribLocation(minimapProgram, 'aSh'),
   };
 
-  blLoc = {
-    uT: gl.getUniformLocation(blP, 'uT'),
-    uD: gl.getUniformLocation(blP, 'uD'),
-    uR: gl.getUniformLocation(blP, 'uR'),
+  bloomLocations = {
+    uT: gl.getUniformLocation(bloomProgram, 'uT'),
+    uD: gl.getUniformLocation(bloomProgram, 'uD'),
+    uR: gl.getUniformLocation(bloomProgram, 'uR'),
   };
 
-  coLoc = {
-    uS: gl.getUniformLocation(coP, 'uS'),
-    uB: gl.getUniformLocation(coP, 'uB'),
+  compositeLocations = {
+    uS: gl.getUniformLocation(compositeProgram, 'uS'),
+    uB: gl.getUniformLocation(compositeProgram, 'uB'),
   };
 
   if (import.meta.env.DEV) {
     const locs: Record<string, WebGLUniformLocation | null> = {
-      'Loc.uR': Loc.uR,
-      'Loc.uCam': Loc.uCam,
-      'Loc.uZ': Loc.uZ,
-      'blLoc.uT': blLoc.uT,
-      'blLoc.uD': blLoc.uD,
-      'blLoc.uR': blLoc.uR,
-      'coLoc.uS': coLoc.uS,
-      'coLoc.uB': coLoc.uB,
+      'mainLocations.uR': mainLocations.uR,
+      'mainLocations.uCam': mainLocations.uCam,
+      'mainLocations.uZ': mainLocations.uZ,
+      'bloomLocations.uT': bloomLocations.uT,
+      'bloomLocations.uD': bloomLocations.uD,
+      'bloomLocations.uR': bloomLocations.uR,
+      'compositeLocations.uS': compositeLocations.uS,
+      'compositeLocations.uB': compositeLocations.uB,
     };
     for (const name in locs) if (locs[name] === null) console.warn('Uniform location is null:', name);
   }

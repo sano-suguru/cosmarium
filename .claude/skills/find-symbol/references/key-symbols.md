@@ -6,27 +6,27 @@ Frequently investigated symbols organized by module. Use LSP `references` and `d
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `uP` | `Unit[]` | Unit pool array |
-| `pP` | `Particle[]` | Particle pool array |
-| `prP` | `Projectile[]` | Projectile pool array |
-| `poolCounts` | `object` | Active counts: `uC`, `pC`, `prC` |
-| `spU` | `function` | Spawn unit |
-| `spP` | `function` | Spawn particle |
-| `spPr` | `function` | Spawn projectile |
-| `killU` | `function` | Kill unit + spawn explosion |
+| `unitPool` | `Unit[]` | Unit pool array |
+| `particlePool` | `Particle[]` | Particle pool array |
+| `projectilePool` | `Projectile[]` | Projectile pool array |
+| `poolCounts` | `object` | Active counts: `unitCount`, `particleCount`, `projectileCount` |
+| `spawnUnit` | `function` | Spawn unit |
+| `spawnParticle` | `function` | Spawn particle |
+| `spawnProjectile` | `function` | Spawn projectile |
+| `killUnit` | `function` | Kill unit + spawn explosion |
 
 ## State (src/state.ts)
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `gameState` | `number` | 0=menu, 1=playing, 2=gameover |
-| `gameMode` | `number` | 0=infinite, 1=annihilation, 2=base |
+| `gameState` | `GameState` | 'menu', 'play', 'win' |
+| `gameMode` | `GameMode` | 0=infinite, 1=annihilation, 2=base |
 | `beams` | `Beam[]` | Active beam array |
 | `timeScale` | `number` | Simulation speed multiplier |
 | `catalogOpen` | `boolean` | Catalog UI state |
-| `rT` | `number` | Reinforcement timer |
+| `reinforcementTimer` | `number` | Reinforcement timer |
 
-State uses setter functions: `setGameState()`, `setGameMode()`, `setCatalogOpen()`, etc.
+State uses setter functions: `setGameState()`, `setGameMode()`, `setCatalogOpen()`, `setReinforcementTimer()`, etc.
 
 ## Renderer (src/renderer/)
 
@@ -35,24 +35,24 @@ State uses setter functions: `setGameState()`, `setGameMode()`, `setCatalogOpen(
 | `gl` | `WebGL2RenderingContext` | webgl-setup.ts | WebGL context |
 | `canvas` | `HTMLCanvasElement` | webgl-setup.ts | Canvas element |
 | `viewport` | `{W,H}` | webgl-setup.ts | Viewport dimensions |
-| `mP` | `WebGLProgram` | shaders.ts | Main shader program |
-| `blP` | `WebGLProgram` | shaders.ts | Bloom shader program |
-| `coP` | `WebGLProgram` | shaders.ts | Composite shader program |
-| `mmP` | `WebGLProgram` | shaders.ts | Minimap shader program |
-| `Loc` | `object` | shaders.ts | Main program locations |
-| `mmLoc` | `object` | shaders.ts | Minimap program locations |
-| `fbos` | `object` | fbo.ts | FBO references (sF, bF1, bF2) |
-| `iD` / `iB` | `Float32Array` / `WebGLBuffer` | buffers.ts | Scene instance data |
-| `mmD` / `mmB` | `Float32Array` / `WebGLBuffer` | buffers.ts | Minimap instance data |
+| `mainProgram` | `WebGLProgram` | shaders.ts | Main shader program |
+| `bloomProgram` | `WebGLProgram` | shaders.ts | Bloom shader program |
+| `compositeProgram` | `WebGLProgram` | shaders.ts | Composite shader program |
+| `minimapProgram` | `WebGLProgram` | shaders.ts | Minimap shader program |
+| `mainLocations` | `object` | shaders.ts | Main program locations |
+| `minimapLocations` | `object` | shaders.ts | Minimap program locations |
+| `fbos` | `object` | fbo.ts | FBO references (scene, bloom1, bloom2) |
+| `instanceData` / `instanceBuffer` | `Float32Array` / `WebGLBuffer` | buffers.ts | Scene instance data |
+| `minimapData` / `minimapBuffer` | `Float32Array` / `WebGLBuffer` | buffers.ts | Minimap instance data |
 
 ## Simulation (src/simulation/)
 
 | Symbol | Type | File | Description |
 |--------|------|------|-------------|
-| `bHash` | `function` | spatial-hash.ts | Rebuild spatial hash |
-| `gN` | `function` | spatial-hash.ts | Get neighbors |
-| `kb` | `function` | spatial-hash.ts | Apply knockback |
-| `_nb` | `number[]` | spatial-hash.ts | Neighbor buffer (350 elements) |
+| `buildHash` | `function` | spatial-hash.ts | Rebuild spatial hash |
+| `getNeighbors` | `function` | spatial-hash.ts | Get neighbors |
+| `knockback` | `function` | spatial-hash.ts | Apply knockback |
+| `neighborBuffer` | `number[]` | spatial-hash.ts | Neighbor buffer (350 elements) |
 | `steer` | `function` | steering.ts | Boid steering + target AI |
 | `combat` | `function` | combat.ts | Combat processing |
 | `reinforce` | `function` | reinforcements.ts | Spawn reinforcements |
@@ -62,7 +62,7 @@ State uses setter functions: `setGameState()`, `setGameMode()`, `setCatalogOpen(
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `cam` | `object` | Camera state: x/y/z, tx/ty/tz, shk/shkx/shky |
+| `cam` | `Camera` | Camera state: x/y/z, targetX/targetY/targetZ, shake/shakeX/shakeY |
 | `addShake` | `function` | Add screen shake |
 
 ## Types (src/types.ts)
@@ -80,18 +80,18 @@ State uses setter functions: `setGameState()`, `setGameMode()`, `setCatalogOpen(
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `TC` | `number[][][]` | Team colors per unit type |
-| `TrC` | `number[][][]` | Trail colors per unit type |
-| `gC` | `function` | Get color: `(typeIdx, team) => [r,g,b]` |
-| `gTr` | `function` | Get trail color |
+| `teamColors` | `number[][][]` | Team colors per unit type |
+| `trailColors` | `number[][][]` | Trail colors per unit type |
+| `getColor` | `function` | Get color: `(typeIdx, team) => [r,g,b]` |
+| `getTrailColor` | `function` | Get trail color |
 
 ## Constants (src/constants.ts)
 
 | Symbol | Value | Description |
 |--------|-------|-------------|
-| `PU` | `800` | Max units pool |
-| `PP` | `35000` | Max particles pool |
-| `PPR` | `6000` | Max projectiles pool |
-| `WORLD` | `4000` | World size |
-| `CELL` | `100` | Spatial hash cell size |
-| `S_STRIDE` | `9` | Instance data stride (floats) |
+| `POOL_UNITS` | `800` | Max units pool |
+| `POOL_PARTICLES` | `35000` | Max particles pool |
+| `POOL_PROJECTILES` | `6000` | Max projectiles pool |
+| `WORLD_SIZE` | `4000` | World size |
+| `CELL_SIZE` | `100` | Spatial hash cell size |
+| `STRIDE_BYTES` | `36` | Instance data stride (bytes, 9 floats × 4) |

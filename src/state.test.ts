@@ -8,12 +8,12 @@ import {
   catSelected,
   gameMode,
   gameState,
-  rT,
+  reinforcementTimer,
   setCatalogOpen,
   setCatSelected,
   setGameMode,
   setGameState,
-  setRT,
+  setReinforcementTimer,
   setTimeScale,
   setWinTeam,
   timeScale,
@@ -49,8 +49,8 @@ describe('初期値', () => {
     expect(timeScale).toBe(0.55);
   });
 
-  it('rT は 0', () => {
-    expect(rT).toBe(0);
+  it('reinforcementTimer は 0', () => {
+    expect(reinforcementTimer).toBe(0);
   });
 });
 
@@ -93,29 +93,29 @@ describe('setter関数', () => {
     expect(timeScale).toBe(2.0);
   });
 
-  it('setRT が rT を更新する', () => {
-    setRT(1.5);
-    expect(rT).toBe(1.5);
+  it('setReinforcementTimer が reinforcementTimer を更新する', () => {
+    setReinforcementTimer(1.5);
+    expect(reinforcementTimer).toBe(1.5);
   });
 });
 
 describe('mutableオブジェクト', () => {
   it('beams は直接 push/length=0 で操作可能', () => {
     expect(beams).toHaveLength(0);
-    beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, ml: 1, w: 1 });
+    beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
     expect(beams).toHaveLength(1);
   });
 
   it('asteroids は直接操作可能', () => {
     expect(asteroids).toHaveLength(0);
-    asteroids.push({ x: 100, y: 200, r: 30, ang: 0, va: 0.1 });
+    asteroids.push({ x: 100, y: 200, radius: 30, angle: 0, angularVelocity: 0.1 });
     expect(asteroids).toHaveLength(1);
   });
 
   it('bases は初期構造を持つ (x=±1800, hp=500)', () => {
     expect(bases).toHaveLength(2);
-    expect(bases[0]).toEqual({ x: -1800, y: 0, hp: 500, mhp: 500 });
-    expect(bases[1]).toEqual({ x: 1800, y: 0, hp: 500, mhp: 500 });
+    expect(bases[0]).toEqual({ x: -1800, y: 0, hp: 500, maxHp: 500 });
+    expect(bases[1]).toEqual({ x: 1800, y: 0, hp: 500, maxHp: 500 });
   });
 
   it('bases の hp は直接変更可能', () => {

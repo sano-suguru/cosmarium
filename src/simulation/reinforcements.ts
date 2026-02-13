@@ -1,8 +1,8 @@
-import { PU, WORLD } from '../constants.ts';
-import { uP } from '../pools.ts';
-import { gameMode, rT, setRT } from '../state.ts';
+import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
+import { unitPool } from '../pools.ts';
+import { gameMode, reinforcementTimer, setReinforcementTimer } from '../state.ts';
 import type { Team } from '../types.ts';
-import { spU } from './spawn.ts';
+import { spawnUnit } from './spawn.ts';
 
 // Reinforcement spawn probability distribution:
 // Each wave spawns 5 Drones + 2 Fighters as baseline, then rolls r∈[0,1)
@@ -11,23 +11,23 @@ import { spU } from './spawn.ts';
 // powerful units appear only when the team is losing.
 export function reinforce(dt: number) {
   if (gameMode === 1) return;
-  setRT(rT + dt);
-  if (rT < 2.5) return;
-  setRT(0);
+  setReinforcementTimer(reinforcementTimer + dt);
+  if (reinforcementTimer < 2.5) return;
+  setReinforcementTimer(0);
   for (let ti = 0; ti < 2; ti++) {
     const team = ti as Team;
     let cnt = 0;
-    for (let i = 0; i < PU; i++) {
-      const u = uP[i]!;
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unitPool[i]!;
       if (u.alive && u.team === team) cnt++;
     }
     const lim = gameMode === 2 ? 100 : 130;
     if (cnt < lim) {
-      const cx = team === 0 ? -WORLD * 0.6 : WORLD * 0.6;
-      const cy = (Math.random() - 0.5) * WORLD;
+      const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
+      const cy = (Math.random() - 0.5) * WORLD_SIZE;
       const r = Math.random();
       const s = (tp: number, spread: number) => {
-        spU(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+        spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       };
       for (let i = 0; i < 5; i++) s(0, 100); // Drone ×5 — always
       for (let i = 0; i < 2; i++) s(1, 80); // Fighter ×2 — always

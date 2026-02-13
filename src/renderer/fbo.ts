@@ -1,19 +1,19 @@
 import type { FBO } from '../types.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
-export const fbos: { sF: FBO | null; bF1: FBO | null; bF2: FBO | null } = {
-  sF: null,
-  bF1: null,
-  bF2: null,
+export const fbos: { scene: FBO | null; bloom1: FBO | null; bloom2: FBO | null } = {
+  scene: null,
+  bloom1: null,
+  bloom2: null,
 };
 
-function delFBO(fbo: FBO | null) {
+function deleteFBO(fbo: FBO | null) {
   if (!fbo) return;
-  gl.deleteFramebuffer(fbo.fb);
-  gl.deleteTexture(fbo.tex);
+  gl.deleteFramebuffer(fbo.framebuffer);
+  gl.deleteTexture(fbo.texture);
 }
 
-function mkFBO(w: number, h: number): FBO {
+function createFBO(w: number, h: number): FBO {
   const t = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -26,14 +26,14 @@ function mkFBO(w: number, h: number): FBO {
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) console.error('FBO incomplete:', w, h);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  return { fb: f, tex: t, w: w, h: h };
+  return { framebuffer: f, texture: t, width: w, height: h };
 }
 
-export function mkFBOs() {
-  delFBO(fbos.sF);
-  delFBO(fbos.bF1);
-  delFBO(fbos.bF2);
-  fbos.sF = mkFBO(viewport.W, viewport.H);
-  fbos.bF1 = mkFBO(viewport.W >> 1, viewport.H >> 1);
-  fbos.bF2 = mkFBO(viewport.W >> 1, viewport.H >> 1);
+export function createFBOs() {
+  deleteFBO(fbos.scene);
+  deleteFBO(fbos.bloom1);
+  deleteFBO(fbos.bloom2);
+  fbos.scene = createFBO(viewport.W, viewport.H);
+  fbos.bloom1 = createFBO(viewport.W >> 1, viewport.H >> 1);
+  fbos.bloom2 = createFBO(viewport.W >> 1, viewport.H >> 1);
 }

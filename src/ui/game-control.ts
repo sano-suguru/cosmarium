@@ -25,9 +25,9 @@ function startGame(mode: GameMode) {
   setGameMode(mode);
   setGameState('play');
   setWinTeam(-1);
-  cam.tx = 0;
-  cam.ty = 0;
-  cam.tz = 1;
+  cam.targetX = 0;
+  cam.targetY = 0;
+  cam.targetZ = 1;
   document.getElementById('menu')!.style.display = 'none';
   document.getElementById('hud')!.style.display = 'block';
   document.getElementById('catBtn')!.style.display = 'block';
