@@ -125,6 +125,6 @@ beam系・通常攻撃ともに `tgtDistOrClear(u)` でターゲット有効性�
 | `explosion()`のkiller引数 | -1=キラー不明。有効indexならvet/killsを加算 |
 | combat内の`vd` | `1 + u.vet * 0.2` — ダメージ乗算。vet変更時は確認 |
 | `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
-| Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
+| Reflector判定が名前文字列 | `TYPES[u.type]!.name !== 'Reflector'` — 名前変更で壊れる |
 | beamOn ramp-up/down | 上昇: `+dt*2`（0.5s）、下降: `-dt*3`（0.33s）。幅: `(size≥15 ? 6 : 4) * beamOn` |
 

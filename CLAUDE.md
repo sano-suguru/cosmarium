@@ -303,7 +303,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
 | `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略。描画消え→`MAX_INSTANCES`増加を検討 |
 | プール上限変更時は2ファイル | `constants.ts`の定数と`pools.ts`の配列初期化を両方変更 |
-| Reflector判定が名前文字列 | `TYPES[u.type]!.nm !== 'Reflector'` — 名前変更で壊れる |
+| Reflector判定が名前文字列 | `TYPES[u.type]!.name !== 'Reflector'` — 名前変更で壊れる |
 
 ## MCP Tools Guide
 
