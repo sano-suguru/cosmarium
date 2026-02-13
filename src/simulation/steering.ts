@@ -1,7 +1,8 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
-import { asteroids, bases, gameMode } from '../state.ts';
-import type { Unit } from '../types.ts';
+import { asteroids, bases, state } from '../state.ts';
+import type { Unit, UnitIndex } from '../types.ts';
+import { enemyTeam, NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { getNeighbors, neighborBuffer } from './spatial-hash.ts';
 
@@ -17,7 +18,7 @@ export function steer(u: Unit, dt: number) {
   const t = TYPES[u.type]!;
   let fx = 0,
     fy = 0;
-  const nn = getNeighbors(u.x, u.y, 200, neighborBuffer);
+  const nn = getNeighbors(u.x, u.y, 200);
   let sx = 0,
     sy = 0,
     ax = 0,
@@ -78,10 +79,10 @@ export function steer(u: Unit, dt: number) {
   }
 
   // Find target
-  let tgt = u.target >= 0 && unitPool[u.target]!.alive ? u.target : -1;
-  if (tgt < 0) {
+  let tgt: UnitIndex = u.target !== NO_UNIT && unitPool[u.target]!.alive ? u.target : NO_UNIT;
+  if (tgt === NO_UNIT) {
     let bd = t.range * 3,
-      bi = -1;
+      bi: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
       const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
@@ -92,7 +93,7 @@ export function steer(u: Unit, dt: number) {
         bi = oi;
       }
     }
-    if (bi < 0 && Math.random() < 0.012) {
+    if (bi === NO_UNIT && Math.random() < 0.012) {
       bd = 1e18;
       for (let i = 0; i < POOL_UNITS; i++) {
         const o = unitPool[i]!;
@@ -100,7 +101,7 @@ export function steer(u: Unit, dt: number) {
         const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
         if (d2 < bd) {
           bd = d2;
-          bi = i;
+          bi = i as UnitIndex;
         }
       }
     }
@@ -108,13 +109,13 @@ export function steer(u: Unit, dt: number) {
   }
   u.target = tgt;
 
-  if (gameMode === 2 && tgt < 0) {
-    const eb = bases[u.team === 0 ? 1 : 0];
+  if (state.gameMode === 2 && tgt === NO_UNIT) {
+    const eb = bases[enemyTeam(u.team)];
     fx += (eb.x - u.x) * 0.03;
     fy += (eb.y - u.y) * 0.03;
   }
 
-  if (tgt >= 0) {
+  if (tgt !== NO_UNIT) {
     const o = unitPool[tgt]!;
     const dx = o.x - u.x,
       dy = o.y - u.y;
@@ -141,7 +142,7 @@ export function steer(u: Unit, dt: number) {
   // Healer follows big ally
   if (t.heals) {
     let bm = 0,
-      bi2 = -1;
+      bi2: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
       const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
@@ -151,7 +152,7 @@ export function steer(u: Unit, dt: number) {
         bi2 = oi;
       }
     }
-    if (bi2 >= 0) {
+    if (bi2 !== NO_UNIT) {
       const o = unitPool[bi2]!;
       fx += (o.x - u.x) * 0.05;
       fy += (o.y - u.y) * 0.05;

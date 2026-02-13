@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
 import { unitPool } from '../pools.ts';
+import type { UnitIndex } from '../types.ts';
 import { buildHash, getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { killUnit, spawnUnit } from './spawn.ts';
 
@@ -8,7 +9,7 @@ afterEach(() => {
   resetPools();
 });
 
-function spawnAt(team: 0 | 1, x: number, y: number): number {
+function spawnAt(team: 0 | 1, x: number, y: number): UnitIndex {
   vi.spyOn(Math, 'random')
     .mockReturnValueOnce(0) // angle
     .mockReturnValueOnce(0) // cooldown
@@ -19,14 +20,14 @@ function spawnAt(team: 0 | 1, x: number, y: number): number {
 describe('buildHash + getNeighbors', () => {
   it('空プールで近傍ゼロ', () => {
     buildHash();
-    const n = getNeighbors(0, 0, 200, neighborBuffer);
+    const n = getNeighbors(0, 0, 200);
     expect(n).toBe(0);
   });
 
   it('1体のユニットを検出する', () => {
     spawnAt(0, 50, 50);
     buildHash();
-    const n = getNeighbors(50, 50, 200, neighborBuffer);
+    const n = getNeighbors(50, 50, 200);
     expect(n).toBe(1);
     expect(neighborBuffer[0]).toBe(0);
   });
@@ -35,7 +36,7 @@ describe('buildHash + getNeighbors', () => {
     spawnAt(0, 10, 10);
     spawnAt(1, 20, 20);
     buildHash();
-    const n = getNeighbors(15, 15, 200, neighborBuffer);
+    const n = getNeighbors(15, 15, 200);
     expect(n).toBe(2);
     const found = [neighborBuffer[0], neighborBuffer[1]].sort();
     expect(found).toEqual([0, 1]);
@@ -46,7 +47,7 @@ describe('buildHash + getNeighbors', () => {
     const i1 = spawnAt(1, 60, 60);
     killUnit(i1);
     buildHash();
-    const n = getNeighbors(55, 55, 200, neighborBuffer);
+    const n = getNeighbors(55, 55, 200);
     expect(n).toBe(1);
     expect(neighborBuffer[0]).toBe(0);
   });
@@ -55,7 +56,7 @@ describe('buildHash + getNeighbors', () => {
     spawnAt(0, 0, 0);
     spawnAt(1, 3000, 3000);
     buildHash();
-    const n = getNeighbors(0, 0, 100, neighborBuffer);
+    const n = getNeighbors(0, 0, 100);
     expect(n).toBe(1);
     expect(neighborBuffer[0]).toBe(0);
   });
@@ -63,15 +64,15 @@ describe('buildHash + getNeighbors', () => {
   it('移動後に再構築で新位置を反映', () => {
     const idx = spawnAt(0, 50, 50);
     buildHash();
-    let n = getNeighbors(50, 50, 100, neighborBuffer);
+    let n = getNeighbors(50, 50, 100);
     expect(n).toBe(1);
 
     unitPool[idx]!.x = 2000;
     unitPool[idx]!.y = 2000;
     buildHash();
-    n = getNeighbors(50, 50, 100, neighborBuffer);
+    n = getNeighbors(50, 50, 100);
     expect(n).toBe(0);
-    n = getNeighbors(2000, 2000, 100, neighborBuffer);
+    n = getNeighbors(2000, 2000, 100);
     expect(n).toBe(1);
   });
 });

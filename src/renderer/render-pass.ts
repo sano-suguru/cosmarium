@@ -1,5 +1,5 @@
 import { cam } from '../input/camera.ts';
-import { catalogOpen } from '../state.ts';
+import { state } from '../state.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
 import { fbos } from './fbo.ts';
 import { renderScene } from './render-scene.ts';
@@ -26,9 +26,9 @@ export function renderFrame(now: number) {
   const W = viewport.W,
     H = viewport.H;
 
-  const cx = catalogOpen ? 0 : cam.x + cam.shakeX;
-  const cy = catalogOpen ? 0 : cam.y + cam.shakeY;
-  const cz = catalogOpen ? 2.5 : cam.z;
+  const cx = state.catalogOpen ? 0 : cam.x + cam.shakeX;
+  const cy = state.catalogOpen ? 0 : cam.y + cam.shakeY;
+  const cz = state.catalogOpen ? 2.5 : cam.z;
 
   // Render pass 1: scene
   gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFBO.framebuffer);

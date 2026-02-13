@@ -61,7 +61,7 @@ unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, u
 input/camera.ts → addShake: simulation/effects.ts, simulation/update.ts からインポート
 
 main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
-         （初期化順序: initWebGL → initShaders → createFBOs → initBuffers → initUI → initCamera → initMinimap）
+         （初期化順序: initWebGL → initShaders → createFBOs → initBuffers → initUI → initHUD → initCamera → initMinimap）
 ```
 
 ## Data Flow（フレーム単位）
@@ -122,18 +122,22 @@ main loop (main.ts) — gameState==='play' 時のみ実行
 ## State管理パターン
 
 ```typescript
-// state.ts の let + setter パターン（ESMバインディングは外部から代入不可のため）
-export let gameState: GameState = 'menu';
-export function setGameState(v: GameState) { gameState = v; }
+// state.ts — 単一オブジェクトパターン（プロパティ変更はESMで許可される）
+export const state: State = {
+  gameState: 'menu', gameMode: 0, winTeam: 0,
+  catalogOpen: false, catSelected: 0, timeScale: 0.55,
+  reinforcementTimer: 0,
+};
 
 // 使用側
-import { gameState, setGameState } from './state';
-if (gameState === 'play') { ... }
-setGameState('win'); // ✅ setter経由（モジュール内からの再代入なので問題ない）
-// gameState = 'win'; // ❌ ESMバインディングは外部モジュールから代入不可
+import { state } from './state.ts';
+if (state.gameState === 'play') { ... }
+state.gameState = 'win';  // ✅ OK（オブジェクトプロパティの変更）
 
-// poolCounts はオブジェクトなのでプロパティ直接変更可
-poolCounts.unitCount++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
+// pools.ts — Readonly export + 内部mutation
+export const poolCounts: Readonly<{ unitCount: number; ... }>;
+// spawn.ts のみが内部 _counts エイリアス経由でカウンタを変更
+// 外部からの poolCounts.unitCount++ は型エラー
 ```
 
 ## プールパターン（spawn/kill）
@@ -147,8 +151,11 @@ function spawnUnit(team, type, x, y, ...): number {
   return -1; // プール満杯
 }
 
-// 破棄: alive=false + カウンタデクリメント
-function killUnit(i: number) { unitPool[i].alive = false; poolCounts.unitCount--; }
+// 破棄: alive=false + カウンタデクリメント（集約関数経由）
+function killUnit(i: number) { ... }       // unitPool用
+function killParticle(i: number) { ... }   // particlePool用（spawn.tsで集約済み）
+function killProjectile(i: number) { ... } // projectilePool用（spawn.tsで集約済み）
+// ※ 全kill関数に二重kill防止ガードあり。inline で poolCounts を直接操作しないこと
 ```
 
 新オブジェクト種追加時: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加。
@@ -168,16 +175,14 @@ function killUnit(i: number) { unitPool[i].alive = false; poolCounts.unitCount--
 
 | 罠 | 理由 |
 |----|------|
-| state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
-| プール上限変更時は`constants.ts`と`pools.ts`両方 | `POOL_UNITS`定数とプール配列初期化が別ファイル |
-| `neighborBuffer`バッファは共有（350要素） | `getNeighbors()`の戻り値=バッファ内の有効数。コピーせず即使用 |
+| プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |
+| `neighborBuffer`は共有読取バッファ | `getNeighbors()`が内部で書き込み、戻り値=有効数。呼出側は`neighborBuffer[i]`で結果を読む。コピーせず即使用 |
 | `instanceData`/`minimapData`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_INSTANCES*9` |
 | シェーダは`vite-plugin-glsl`経由でimport | `import src from '../shaders/x.glsl'`。`#include`展開もplugin側で処理 |
-| `poolCounts`オブジェクト内のカウンタ手動管理 | spawn/kill時に必ずインクリメント/デクリメント |
+| `poolCounts`はReadonly export | 外部から`poolCounts.unitCount++`は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作すること |
 | pre-commitはエラーのみブロック | Biome警告はコミット通過。`biome check --staged --write` |
 | GLSLのGPUコンパイルはランタイム | CIでは検出不可。ブラウザで確認必須 |
 | `catalogOpen`は複数層に影響 | simulation(steps 1-6は常時実行、7-10のみスキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
-| `Team`型（`0 \| 1`）を引数に使う | `getColor`/`getTrailColor`/`explosion`/`chainLightning`等。`1 - team`は`number`になるため`team === 0 ? 1 : 0`で代替 |
 | `bases`は`[Base, Base]`タプル | リテラル`0`/`1`または`Team`型でインデックスすれば`!`不要 |
 
 ## Subdirectory Knowledge

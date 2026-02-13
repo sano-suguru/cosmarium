@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools } from '../__test__/pool-helper.ts';
+import { fillUnitPool, resetPools } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
+import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
-import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 afterEach(() => {
   resetPools();
@@ -56,7 +57,7 @@ describe('spawnProjectile', () => {
   });
 
   it('オプション引数が反映される', () => {
-    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42);
+    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42 as UnitIndex);
     expect(idx).toBe(0);
     const p = projectilePool[0]!;
     expect(p.homing).toBe(true);
@@ -88,10 +89,7 @@ describe('spawnUnit', () => {
   });
 
   it('プール満杯時に -1 を返す', () => {
-    for (let i = 0; i < POOL_UNITS; i++) {
-      unitPool[i]!.alive = true;
-    }
-    poolCounts.unitCount = POOL_UNITS;
+    fillUnitPool();
     const overflow = spawnUnit(0, 0, 0, 0);
     expect(overflow).toBe(-1);
     expect(poolCounts.unitCount).toBe(POOL_UNITS);
@@ -101,7 +99,7 @@ describe('spawnUnit', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     spawnUnit(0, 0, 0, 0);
-    killUnit(0);
+    killUnit(0 as UnitIndex);
     const reused = spawnUnit(1, 1, 50, 50);
     expect(reused).toBe(0);
     expect(unitPool[0]!.team).toBe(1);
@@ -114,7 +112,7 @@ describe('killUnit', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     expect(poolCounts.unitCount).toBe(1);
-    killUnit(0);
+    killUnit(0 as UnitIndex);
     expect(unitPool[0]!.alive).toBe(false);
     expect(poolCounts.unitCount).toBe(0);
   });
@@ -122,9 +120,43 @@ describe('killUnit', () => {
   it('二重killしても poolCounts が負にならない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
-    killUnit(0);
-    killUnit(0);
+    killUnit(0 as UnitIndex);
+    killUnit(0 as UnitIndex);
     expect(poolCounts.unitCount).toBe(0);
+  });
+});
+
+describe('killParticle', () => {
+  it('パーティクルを無効化し poolCounts.particleCount を減少させる', () => {
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    expect(poolCounts.particleCount).toBe(1);
+    killParticle(0 as ParticleIndex);
+    expect(particlePool[0]!.alive).toBe(false);
+    expect(poolCounts.particleCount).toBe(0);
+  });
+
+  it('二重killしても poolCounts が負にならない', () => {
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    killParticle(0 as ParticleIndex);
+    killParticle(0 as ParticleIndex);
+    expect(poolCounts.particleCount).toBe(0);
+  });
+});
+
+describe('killProjectile', () => {
+  it('プロジェクタイルを無効化し poolCounts.projectileCount を減少させる', () => {
+    spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
+    expect(poolCounts.projectileCount).toBe(1);
+    killProjectile(0 as ProjectileIndex);
+    expect(projectilePool[0]!.alive).toBe(false);
+    expect(poolCounts.projectileCount).toBe(0);
+  });
+
+  it('二重killしても poolCounts が負にならない', () => {
+    spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
+    killProjectile(0 as ProjectileIndex);
+    killProjectile(0 as ProjectileIndex);
+    expect(poolCounts.projectileCount).toBe(0);
   });
 });
 

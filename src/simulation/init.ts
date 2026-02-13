@@ -1,8 +1,8 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { asteroids, bases, beams, gameMode } from '../state.ts';
+import { particlePool, projectilePool, unitPool } from '../pools.ts';
+import { asteroids, bases, beams, state } from '../state.ts';
 import type { Team } from '../types.ts';
-import { spawnUnit } from './spawn.ts';
+import { resetPoolCounts, spawnUnit } from './spawn.ts';
 
 function genAsteroids() {
   asteroids.length = 0;
@@ -19,18 +19,16 @@ function genAsteroids() {
 
 export function initUnits() {
   for (let i = 0; i < POOL_UNITS; i++) unitPool[i]!.alive = false;
-  poolCounts.unitCount = 0;
   for (let i = 0; i < POOL_PARTICLES; i++) particlePool[i]!.alive = false;
-  poolCounts.particleCount = 0;
   for (let i = 0; i < POOL_PROJECTILES; i++) projectilePool[i]!.alive = false;
-  poolCounts.projectileCount = 0;
+  resetPoolCounts();
   beams.length = 0;
   bases[0].hp = bases[0].maxHp;
   bases[1].hp = bases[1].maxHp;
   genAsteroids();
 
   const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
-  if (gameMode === 1) {
+  if (state.gameMode === 1) {
     for (let i = 0; i < n.length; i++) n[i] = Math.ceil(n[i]! * 0.7);
   }
 

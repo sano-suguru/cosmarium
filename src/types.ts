@@ -10,7 +10,7 @@ export interface Unit {
   hp: number;
   maxHp: number;
   cooldown: number;
-  target: number;
+  target: UnitIndex;
   wanderAngle: number;
   trailTimer: number;
   mass: number;
@@ -54,7 +54,7 @@ export interface Projectile {
   b: number;
   homing: boolean;
   aoe: number;
-  targetIndex: number;
+  targetIndex: UnitIndex;
 }
 
 export interface UnitType {
@@ -135,3 +135,17 @@ export type Color3 = [number, number, number];
 export type GameState = 'menu' | 'play' | 'win';
 export type GameMode = 0 | 1 | 2;
 export type Team = 0 | 1;
+
+/** プールインデックスの branded type（型レベルで異なるプール間のインデックス混用を防止） */
+export type UnitIndex = number & { readonly __brand: 'UnitIndex' };
+export type ParticleIndex = number & { readonly __brand: 'ParticleIndex' };
+export type ProjectileIndex = number & { readonly __brand: 'ProjectileIndex' };
+
+/** ターゲットなし / スロットなしを示すセンチネル値 */
+export const NO_UNIT = -1 as UnitIndex;
+export const NO_PARTICLE = -1 as ParticleIndex;
+export const NO_PROJECTILE = -1 as ProjectileIndex;
+
+export function enemyTeam(team: Team): Team {
+  return team === 0 ? 1 : 0;
+}

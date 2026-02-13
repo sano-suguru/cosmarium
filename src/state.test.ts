@@ -1,24 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
-import {
-  asteroids,
-  bases,
-  beams,
-  catalogOpen,
-  catSelected,
-  gameMode,
-  gameState,
-  reinforcementTimer,
-  setCatalogOpen,
-  setCatSelected,
-  setGameMode,
-  setGameState,
-  setReinforcementTimer,
-  setTimeScale,
-  setWinTeam,
-  timeScale,
-  winTeam,
-} from './state.ts';
+import { asteroids, bases, beams, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -26,76 +8,76 @@ afterEach(() => {
 
 describe('初期値', () => {
   it('gameState は "menu"', () => {
-    expect(gameState).toBe('menu');
+    expect(state.gameState).toBe('menu');
   });
 
   it('gameMode は 0', () => {
-    expect(gameMode).toBe(0);
+    expect(state.gameMode).toBe(0);
   });
 
   it('winTeam は -1', () => {
-    expect(winTeam).toBe(-1);
+    expect(state.winTeam).toBe(-1);
   });
 
   it('catalogOpen は false', () => {
-    expect(catalogOpen).toBe(false);
+    expect(state.catalogOpen).toBe(false);
   });
 
   it('catSelected は 0', () => {
-    expect(catSelected).toBe(0);
+    expect(state.catSelected).toBe(0);
   });
 
   it('timeScale は 0.55', () => {
-    expect(timeScale).toBe(0.55);
+    expect(state.timeScale).toBe(0.55);
   });
 
   it('reinforcementTimer は 0', () => {
-    expect(reinforcementTimer).toBe(0);
+    expect(state.reinforcementTimer).toBe(0);
   });
 });
 
-describe('setter関数', () => {
-  it('setGameState が gameState を更新する', () => {
-    setGameState('play');
-    expect(gameState).toBe('play');
-    setGameState('win');
-    expect(gameState).toBe('win');
+describe('直接代入', () => {
+  it('state.gameState を更新できる', () => {
+    state.gameState = 'play';
+    expect(state.gameState).toBe('play');
+    state.gameState = 'win';
+    expect(state.gameState).toBe('win');
   });
 
-  it('setGameMode が gameMode を更新する', () => {
-    setGameMode(1);
-    expect(gameMode).toBe(1);
-    setGameMode(2);
-    expect(gameMode).toBe(2);
+  it('state.gameMode を更新できる', () => {
+    state.gameMode = 1;
+    expect(state.gameMode).toBe(1);
+    state.gameMode = 2;
+    expect(state.gameMode).toBe(2);
   });
 
-  it('setWinTeam が winTeam を更新する', () => {
-    setWinTeam(0);
-    expect(winTeam).toBe(0);
-    setWinTeam(1);
-    expect(winTeam).toBe(1);
+  it('state.winTeam を更新できる', () => {
+    state.winTeam = 0;
+    expect(state.winTeam).toBe(0);
+    state.winTeam = 1;
+    expect(state.winTeam).toBe(1);
   });
 
-  it('setCatalogOpen が catalogOpen を更新する', () => {
-    setCatalogOpen(true);
-    expect(catalogOpen).toBe(true);
-    setCatalogOpen(false);
-    expect(catalogOpen).toBe(false);
+  it('state.catalogOpen を更新できる', () => {
+    state.catalogOpen = true;
+    expect(state.catalogOpen).toBe(true);
+    state.catalogOpen = false;
+    expect(state.catalogOpen).toBe(false);
   });
 
-  it('setCatSelected が catSelected を更新する', () => {
-    setCatSelected(7);
-    expect(catSelected).toBe(7);
+  it('state.catSelected を更新できる', () => {
+    state.catSelected = 7;
+    expect(state.catSelected).toBe(7);
   });
 
-  it('setTimeScale が timeScale を更新する', () => {
-    setTimeScale(2.0);
-    expect(timeScale).toBe(2.0);
+  it('state.timeScale を更新できる', () => {
+    state.timeScale = 2.0;
+    expect(state.timeScale).toBe(2.0);
   });
 
-  it('setReinforcementTimer が reinforcementTimer を更新する', () => {
-    setReinforcementTimer(1.5);
-    expect(reinforcementTimer).toBe(1.5);
+  it('state.reinforcementTimer を更新できる', () => {
+    state.reinforcementTimer = 1.5;
+    expect(state.reinforcementTimer).toBe(1.5);
   });
 });
 

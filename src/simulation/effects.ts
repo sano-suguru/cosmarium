@@ -1,12 +1,13 @@
 import { getColor, getTrailColor } from '../colors.ts';
 import { addShake } from '../input/camera.ts';
 import { unitPool } from '../pools.ts';
-import type { Color3, Team, Unit } from '../types.ts';
+import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
-export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
+export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex) {
   const size = TYPES[type]!.size;
   const c = getColor(type, team);
   const cnt = Math.min((18 + size * 3) | 0, 50);
@@ -64,7 +65,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
   if (size >= 14) addShake(size * 0.8);
 
-  const nn = getNeighbors(x, y, size * 8, neighborBuffer);
+  const nn = getNeighbors(x, y, size * 8);
   for (let i = 0; i < nn; i++) {
     const o = unitPool[neighborBuffer[i]!]!;
     if (!o.alive) continue;
@@ -73,7 +74,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
     if (dd < size * 8) knockback(neighborBuffer[i]!, x, y, (size * 50) / (dd * 0.1 + 1));
   }
-  if (killer >= 0 && killer < unitPool.length) {
+  if (killer !== NO_UNIT && killer < unitPool.length) {
     const ku = unitPool[killer]!;
     if (ku.alive) {
       ku.kills++;
@@ -107,9 +108,9 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     cy = sy;
   const hit = new Set();
   for (let ch = 0; ch < max; ch++) {
-    const nn = getNeighbors(cx, cy, 200, neighborBuffer);
+    const nn = getNeighbors(cx, cy, 200);
     let bd = 200,
-      bi = -1;
+      bi: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
       const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
@@ -120,7 +121,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
         bi = oi;
       }
     }
-    if (bi < 0) break;
+    if (bi === NO_UNIT) break;
     hit.add(bi);
     const o = unitPool[bi]!;
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
@@ -143,7 +144,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     knockback(bi, cx, cy, dd * 8);
     if (o.hp <= 0) {
       killUnit(bi);
-      explosion(o.x, o.y, o.team, o.type, -1);
+      explosion(o.x, o.y, o.team, o.type, NO_UNIT);
     }
     cx = o.x;
     cy = o.y;

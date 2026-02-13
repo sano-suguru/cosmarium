@@ -1,5 +1,5 @@
 import { canvas, viewport } from '../renderer/webgl-setup.ts';
-import { catalogOpen, gameState } from '../state.ts';
+import { state } from '../state.ts';
 import type { Camera } from '../types.ts';
 
 export const cam: Camera = { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 };
@@ -17,7 +17,7 @@ export function initCamera() {
     'wheel',
     (e) => {
       e.preventDefault();
-      if (catalogOpen) return;
+      if (state.catalogOpen) return;
       const W = viewport.W,
         H = viewport.H;
       const wx = cam.targetX + (e.clientX - W / 2) / cam.targetZ;
@@ -32,7 +32,7 @@ export function initCamera() {
   );
 
   canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0 && !catalogOpen) {
+    if (e.button === 0 && !state.catalogOpen) {
       dragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
       cameraStart = { x: cam.targetX, y: cam.targetY };
@@ -52,7 +52,7 @@ export function initCamera() {
   });
 
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'Space' && gameState === 'play' && !catalogOpen) {
+    if (e.code === 'Space' && state.gameState === 'play' && !state.catalogOpen) {
       cam.targetX = 0;
       cam.targetY = 0;
       cam.targetZ = 1;

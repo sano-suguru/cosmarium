@@ -1,19 +1,11 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { spawnUnit } from '../simulation/spawn.ts';
-import {
-  asteroids,
-  bases,
-  beams,
-  setCatalogOpen,
-  setCatSelected,
-  setGameMode,
-  setGameState,
-  setReinforcementTimer,
-  setTimeScale,
-  setWinTeam,
-} from '../state.ts';
+import { resetPoolCounts, spawnUnit } from '../simulation/spawn.ts';
+import type { State } from '../state.ts';
+import { asteroids, bases, beams, state } from '../state.ts';
+import type { UnitIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 
 export function resetPools() {
   for (let i = 0; i < POOL_UNITS; i++) {
@@ -29,7 +21,7 @@ export function resetPools() {
     u.hp = 0;
     u.maxHp = 0;
     u.cooldown = 0;
-    u.target = -1;
+    u.target = NO_UNIT;
     u.wanderAngle = 0;
     u.trailTimer = 0;
     u.mass = 1;
@@ -73,22 +65,30 @@ export function resetPools() {
     p.b = 0;
     p.homing = false;
     p.aoe = 0;
-    p.targetIndex = -1;
+    p.targetIndex = NO_UNIT;
   }
-  poolCounts.unitCount = 0;
-  poolCounts.particleCount = 0;
-  poolCounts.projectileCount = 0;
+  resetPoolCounts();
   beams.length = 0;
 }
 
+/** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
+export function fillUnitPool() {
+  for (let i = 0; i < POOL_UNITS; i++) unitPool[i]!.alive = true;
+  (poolCounts as { unitCount: number }).unitCount = POOL_UNITS;
+}
+
+const stateDefaults: State = {
+  gameState: 'menu',
+  gameMode: 0,
+  winTeam: -1,
+  catalogOpen: false,
+  catSelected: 0,
+  timeScale: 0.55,
+  reinforcementTimer: 0,
+};
+
 export function resetState() {
-  setGameState('menu');
-  setGameMode(0);
-  setWinTeam(-1);
-  setCatalogOpen(false);
-  setCatSelected(0);
-  setTimeScale(0.55);
-  setReinforcementTimer(0);
+  Object.assign(state, stateDefaults);
   asteroids.length = 0;
   beams.length = 0;
   // bases の x/y は state.ts で const オブジェクトの初期値として固定されており、テスト中に変更されないためリセット不要
@@ -99,7 +99,7 @@ export function resetState() {
 }
 
 /** spawnUnit() の Math.random 依存（angle, cooldown, wanderAngle）をモックして確定的にユニットを生成する共通ヘルパー */
-export function spawnAt(team: 0 | 1, type: number, x: number, y: number): number {
+export function spawnAt(team: 0 | 1, type: number, x: number, y: number): UnitIndex {
   vi.spyOn(Math, 'random')
     .mockReturnValueOnce(0) // angle
     .mockReturnValueOnce(0) // cooldown

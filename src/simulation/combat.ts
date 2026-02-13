@@ -1,23 +1,24 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES } from '../constants.ts';
 import { projectilePool, unitPool } from '../pools.ts';
-import type { Unit } from '../types.ts';
+import type { Unit, UnitIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
 import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
-  if (u.target < 0) return -1;
+  if (u.target === NO_UNIT) return -1;
   const o = unitPool[u.target]!;
   if (!o.alive) {
-    u.target = -1;
+    u.target = NO_UNIT;
     return -1;
   }
   return Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
 }
 
-export function combat(u: Unit, ui: number, dt: number, _now: number) {
+export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   const t = TYPES[u.type]!;
   if (u.stun > 0) return;
   u.cooldown -= dt;
@@ -27,7 +28,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- RAM ---
   if (t.rams) {
-    const nn = getNeighbors(u.x, u.y, t.size * 2, neighborBuffer);
+    const nn = getNeighbors(u.x, u.y, t.size * 2);
     for (let i = 0; i < nn; i++) {
       const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
@@ -60,7 +61,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         }
         if (u.hp <= 0) {
           killUnit(ui);
-          explosion(u.x, u.y, u.team, u.type, -1);
+          explosion(u.x, u.y, u.team, u.type, NO_UNIT);
           return;
         }
       }
@@ -71,7 +72,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- HEALER ---
   if (t.heals && u.abilityCooldown <= 0) {
     u.abilityCooldown = 0.35;
-    const nn = getNeighbors(u.x, u.y, 160, neighborBuffer);
+    const nn = getNeighbors(u.x, u.y, 160);
     for (let i = 0; i < nn; i++) {
       const oi = neighborBuffer[i]!,
         o = unitPool[oi]!;
@@ -101,10 +102,10 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
         spawnParticle(p.x, p.y, 0, 0, 0.1, 8, 1, 1, 1, 10);
       }
     }
-    if (u.cooldown <= 0 && u.target >= 0) {
+    if (u.cooldown <= 0 && u.target !== NO_UNIT) {
       const o = unitPool[u.target]!;
       if (!o.alive) {
-        u.target = -1;
+        u.target = NO_UNIT;
       } else {
         const dx = o.x - u.x,
           dy = o.y - u.y;
@@ -178,7 +179,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
     if (d < 0) return;
     if (d < t.range) {
       u.abilityCooldown = t.fireRate;
-      const nn = getNeighbors(u.x, u.y, t.range, neighborBuffer);
+      const nn = getNeighbors(u.x, u.y, t.range);
       for (let i = 0; i < nn; i++) {
         const oi = neighborBuffer[i]!,
           oo = unitPool[oi]!;
@@ -216,10 +217,10 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   // --- TELEPORTER ---
   if (t.teleports) {
     u.teleportTimer -= dt;
-    if (u.teleportTimer <= 0 && u.target >= 0) {
+    if (u.teleportTimer <= 0 && u.target !== NO_UNIT) {
       const o = unitPool[u.target]!;
       if (!o.alive) {
-        u.target = -1;
+        u.target = NO_UNIT;
       } else {
         const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < 500 && d > 80) {
@@ -273,7 +274,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
 
   // --- BEAM ---
   if (t.beam) {
-    if (u.target >= 0) {
+    if (u.target !== NO_UNIT) {
       const o = unitPool[u.target]!;
       if (o.alive) {
         const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
@@ -322,7 +323,7 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
           u.beamOn = Math.max(0, u.beamOn - dt * 3);
         }
       } else {
-        u.target = -1;
+        u.target = NO_UNIT;
         u.beamOn = Math.max(0, u.beamOn - dt * 3);
       }
     } else {
@@ -332,10 +333,10 @@ export function combat(u: Unit, ui: number, dt: number, _now: number) {
   }
 
   // --- NORMAL FIRE ---
-  if (u.cooldown <= 0 && u.target >= 0) {
+  if (u.cooldown <= 0 && u.target !== NO_UNIT) {
     const o = unitPool[u.target]!;
     if (!o.alive) {
-      u.target = -1;
+      u.target = NO_UNIT;
       return;
     }
     const dx = o.x - u.x,

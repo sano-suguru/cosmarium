@@ -1,6 +1,6 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
-import { gameMode, reinforcementTimer, setReinforcementTimer } from '../state.ts';
+import { state } from '../state.ts';
 import type { Team } from '../types.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -10,10 +10,10 @@ import { spawnUnit } from './spawn.ts';
 // can spawn in the same wave. Low-count gates (cnt<50/40) ensure rare
 // powerful units appear only when the team is losing.
 export function reinforce(dt: number) {
-  if (gameMode === 1) return;
-  setReinforcementTimer(reinforcementTimer + dt);
-  if (reinforcementTimer < 2.5) return;
-  setReinforcementTimer(0);
+  if (state.gameMode === 1) return;
+  state.reinforcementTimer += dt;
+  if (state.reinforcementTimer < 2.5) return;
+  state.reinforcementTimer = 0;
   for (let ti = 0; ti < 2; ti++) {
     const team = ti as Team;
     let cnt = 0;
@@ -21,7 +21,7 @@ export function reinforce(dt: number) {
       const u = unitPool[i]!;
       if (u.alive && u.team === team) cnt++;
     }
-    const lim = gameMode === 2 ? 100 : 130;
+    const lim = state.gameMode === 2 ? 100 : 130;
     if (cnt < lim) {
       const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
       const cy = (Math.random() - 0.5) * WORLD_SIZE;

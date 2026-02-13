@@ -50,16 +50,17 @@
 - `.sbtn`ボタンの`data-spd`属性と一致させる必要あり（HTMLとJS両方）
 
 ### HUD項目追加
-1. `hud.ts` — `updateHUD()` に `document.getElementById('新ID')!.textContent = ...` 追加
-2. `index.html` に対応するDOM要素追加
-3. `gameMode` 条件分岐の要否を確認（基地HPはmode=2のみ表示）
+1. `ui/dom-ids.ts` — 新IDの定数を追加（`export const DOM_ID_XXX = '新ID';`）
+2. `ui/hud.ts` — `initHUD()` にキャッシュ変数宣言 + `getElementById(DOM_ID_XXX)` 追加。`updateHUD()` でキャッシュ変数を参照
+3. `index.html` に対応するDOM要素追加
+4. `gameMode` 条件分岐の要否を確認（基地HPはmode=2のみ表示）
 
 ## Critical Gotchas
 
 | 罠 | 理由 |
 |----|------|
-| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
+| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。閉じ時は`teardownCatDemo()`で自動片付け済み |
 | `setupCatDemo()`冒頭で全particle/projectile/beam消去 | カタログ切替時にパーティクルが全消滅するのは仕様 |
-| DOM要素IDはハードコード | `getElementById('cpName')!`等。HTML側のID変更で即壊れる |
+| DOM要素IDはハードコード | HUD 6個 + catalog 1個は `dom-ids.ts` で定数化済み。新規追加時は `dom-ids.ts` に定数追加すること |
 | `showWin()`は`game-control.ts` | カタログではなくgame-control側にある。勝利画面変更時は注意 |
-| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。ユニットプール全走査O(`POOL_UNITS`=800)でチーム別カウント |
+| `updateHUD`は毎フレーム呼ばれる | DOMノードは `initHUD()` でキャッシュ済み。ユニットプール全走査O(`POOL_UNITS`=800)でチーム別カウント |

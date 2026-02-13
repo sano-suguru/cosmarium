@@ -1,7 +1,9 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { asteroids, bases, beams, catalogOpen, gameMode, setWinTeam } from '../state.ts';
+import { asteroids, bases, beams, state } from '../state.ts';
+import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
+import { enemyTeam, NO_UNIT } from '../types.ts';
 import { updateCatDemo } from '../ui/catalog.ts';
 import { showWin } from '../ui/game-control.ts';
 import { TYPES } from '../unit-types.ts';
@@ -9,7 +11,7 @@ import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
-import { killUnit, spawnParticle } from './spawn.ts';
+import { killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
 export function update(rawDt: number, now: number) {
@@ -22,7 +24,7 @@ export function update(rawDt: number, now: number) {
     urem--;
     u.shielded = false;
     steer(u, dt);
-    combat(u, i, dt, now);
+    combat(u, i as UnitIndex, dt, now);
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + Math.random() * 0.02;
@@ -35,8 +37,8 @@ export function update(rawDt: number, now: number) {
     const u = unitPool[i]!;
     if (!u.alive) continue;
     urem2--;
-    if (TYPES[u.type]!.name !== 'Reflector') continue;
-    const nn = getNeighbors(u.x, u.y, 100, neighborBuffer);
+    if (!TYPES[u.type]!.reflects) continue;
+    const nn = getNeighbors(u.x, u.y, 100);
     for (let j = 0; j < nn; j++) {
       const o = unitPool[neighborBuffer[j]!]!;
       if (o.alive && o.team === u.team) o.shielded = true;
@@ -49,7 +51,7 @@ export function update(rawDt: number, now: number) {
     if (!p.alive) continue;
     prem--;
 
-    if (p.homing && p.targetIndex >= 0) {
+    if (p.homing && p.targetIndex !== NO_UNIT) {
       const tg = unitPool[p.targetIndex]!;
       if (tg.alive) {
         let ca = Math.atan2(p.vy, p.vx);
@@ -87,7 +89,7 @@ export function update(rawDt: number, now: number) {
 
     if (p.life <= 0) {
       if (p.aoe > 0) {
-        const nn = getNeighbors(p.x, p.y, p.aoe, neighborBuffer);
+        const nn = getNeighbors(p.x, p.y, p.aoe);
         for (let j = 0; j < nn; j++) {
           const oi = neighborBuffer[j]!,
             o = unitPool[oi]!;
@@ -100,7 +102,7 @@ export function update(rawDt: number, now: number) {
             knockback(oi, p.x, p.y, 220);
             if (o.hp <= 0) {
               killUnit(oi);
-              explosion(o.x, o.y, o.team, o.type, -1);
+              explosion(o.x, o.y, o.team, o.type, NO_UNIT);
             }
           }
         }
@@ -122,13 +124,12 @@ export function update(rawDt: number, now: number) {
         spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, 1, 0.5, 0.15, 10);
         addShake(3);
       }
-      p.alive = false;
-      poolCounts.projectileCount--;
+      killProjectile(i as ProjectileIndex);
       continue;
     }
 
     // Hit detection
-    const nn2 = getNeighbors(p.x, p.y, 30, neighborBuffer);
+    const nn2 = getNeighbors(p.x, p.y, 30);
     let hit = false;
     for (let j = 0; j < nn2; j++) {
       const oi = neighborBuffer[j]!,
@@ -143,22 +144,20 @@ export function update(rawDt: number, now: number) {
         spawnParticle(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
         if (o.hp <= 0) {
           killUnit(oi);
-          explosion(o.x, o.y, o.team, o.type, -1);
+          explosion(o.x, o.y, o.team, o.type, NO_UNIT);
         }
-        p.alive = false;
-        poolCounts.projectileCount--;
+        killProjectile(i as ProjectileIndex);
         hit = true;
         break;
       }
     }
 
-    if (!hit && !catalogOpen) {
+    if (!hit && !state.catalogOpen) {
       for (let j = 0; j < asteroids.length; j++) {
         const ast = asteroids[j]!;
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
           spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
-          p.alive = false;
-          poolCounts.projectileCount--;
+          killProjectile(i as ProjectileIndex);
           break;
         }
       }
@@ -176,8 +175,7 @@ export function update(rawDt: number, now: number) {
     pp.vy *= 0.97;
     pp.life -= dt;
     if (pp.life <= 0) {
-      pp.alive = false;
-      poolCounts.particleCount--;
+      killParticle(i as ParticleIndex);
     }
   }
 
@@ -188,14 +186,14 @@ export function update(rawDt: number, now: number) {
     if (bm.life <= 0) beams.splice(i, 1);
   }
 
-  if (!catalogOpen) {
+  if (!state.catalogOpen) {
     // Base damage
-    if (gameMode === 2) {
+    if (state.gameMode === 2) {
       for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
         const u = unitPool[i]!;
         if (!u.alive) continue;
         urem3--;
-        const eb = bases[u.team === 0 ? 1 : 0];
+        const eb = bases[enemyTeam(u.team)];
         const d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
         if (d < 80) {
           eb.hp -= TYPES[u.type]!.damage * dt * 3;
@@ -211,7 +209,10 @@ export function update(rawDt: number, now: number) {
     reinforce(dt);
 
     // Win checks
-    if (gameMode === 1) {
+    // ⚠ showWin() → closeCatalog() → teardownCatDemo() → killUnit/killParticle/killProjectile
+    // simulation → UI → pool mutation のチェーン。killed ユニットは alive=false になるだけで
+    // プール位置は不変のため、同フレーム内の後続ループでは !alive で安全にスキップされる。
+    if (state.gameMode === 1) {
       let ac = 0,
         bc = 0;
       for (let i = 0, urem4 = poolCounts.unitCount; i < POOL_UNITS && urem4 > 0; i++) {
@@ -222,16 +223,16 @@ export function update(rawDt: number, now: number) {
         else bc++;
       }
       if (ac === 0 || bc === 0) {
-        setWinTeam(ac === 0 ? 1 : 0);
+        state.winTeam = ac === 0 ? 1 : 0;
         showWin();
       }
     }
-    if (gameMode === 2) {
+    if (state.gameMode === 2) {
       if (bases[0].hp <= 0) {
-        setWinTeam(1);
+        state.winTeam = 1;
         showWin();
       } else if (bases[1].hp <= 0) {
-        setWinTeam(0);
+        state.winTeam = 0;
         showWin();
       }
     }

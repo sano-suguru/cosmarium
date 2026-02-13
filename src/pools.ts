@@ -1,11 +1,16 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
 import type { Particle, Projectile, Unit } from './types.ts';
+import { NO_UNIT } from './types.ts';
 
 export const unitPool: Unit[] = [];
 export const particlePool: Particle[] = [];
 export const projectilePool: Projectile[] = [];
 
-export const poolCounts = { unitCount: 0, particleCount: 0, projectileCount: 0 };
+export const poolCounts: Readonly<{ unitCount: number; particleCount: number; projectileCount: number }> = {
+  unitCount: 0,
+  particleCount: 0,
+  projectileCount: 0,
+};
 
 for (let i = 0; i < POOL_UNITS; i++) {
   unitPool[i] = {
@@ -20,7 +25,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     hp: 0,
     maxHp: 0,
     cooldown: 0,
-    target: -1,
+    target: NO_UNIT,
     wanderAngle: 0,
     trailTimer: 0,
     mass: 1,
@@ -66,6 +71,6 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     b: 0,
     homing: false,
     aoe: 0,
-    targetIndex: -1,
+    targetIndex: NO_UNIT,
   };
 }

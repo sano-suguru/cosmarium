@@ -98,7 +98,7 @@ offset 32: shapeID   (aSh)
 
 | 罠 | 理由 |
 |----|------|
-| `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略される |
+| `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとDEV環境で`console.warn`警告あり（productionではサイレント省略） |
 | blendモードが`SRC_ALPHA, ONE`（加算） | シーンパスのみ。ミニマップは`SRC_ALPHA, ONE_MINUS_SRC_ALPHA`（通常合成） |
 | `instanceData`はサブ配列で転送 | `bufferData(instanceData.subarray(0, ic*9))` — 全体送信しない |
 | attrib divisor=1 | instance属性は全て`vertexAttribDivisor(loc, 1)`必須。忘れると全instanceが同じ値に |

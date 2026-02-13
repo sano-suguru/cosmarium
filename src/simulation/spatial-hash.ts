@@ -1,11 +1,12 @@
-import { CELL_SIZE, POOL_UNITS } from '../constants.ts';
+import { CELL_SIZE, NEIGHBOR_BUFFER_SIZE, POOL_UNITS } from '../constants.ts';
 import { unitPool } from '../pools.ts';
+import type { UnitIndex } from '../types.ts';
 
-const hashMap = new Map<number, number[]>();
-export const neighborBuffer: number[] = new Array(350);
+const hashMap = new Map<number, UnitIndex[]>();
+export const neighborBuffer: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);
 
-const _pooled: number[][] = [];
-const _used: number[][] = [];
+const _pooled: UnitIndex[][] = [];
+const _used: UnitIndex[][] = [];
 
 export function buildHash() {
   for (let i = 0; i < _used.length; i++) {
@@ -25,11 +26,11 @@ export function buildHash() {
       hashMap.set(k, a);
       _used.push(a);
     }
-    a.push(i);
+    a.push(i as UnitIndex);
   }
 }
 
-export function getNeighbors(x: number, y: number, r: number, buf: number[]): number {
+export function getNeighbors(x: number, y: number, r: number): number {
   let n = 0;
   const cr = Math.ceil(r / CELL_SIZE);
   const cx = (x / CELL_SIZE) | 0,
@@ -39,7 +40,7 @@ export function getNeighbors(x: number, y: number, r: number, buf: number[]): nu
       const a = hashMap.get(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663));
       if (a) {
         for (let i = 0; i < a.length; i++) {
-          if (n < buf.length) buf[n++] = a[i]!;
+          if (n < neighborBuffer.length) neighborBuffer[n++] = a[i]!;
         }
       }
     }
@@ -47,7 +48,7 @@ export function getNeighbors(x: number, y: number, r: number, buf: number[]): nu
   return n;
 }
 
-export function knockback(ti: number, fx: number, fy: number, force: number) {
+export function knockback(ti: UnitIndex, fx: number, fy: number, force: number) {
   const u = unitPool[ti]!;
   const dx = u.x - fx,
     dy = u.y - fy;

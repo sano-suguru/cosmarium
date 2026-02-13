@@ -8,9 +8,9 @@ import { renderFrame } from './renderer/render-pass.ts';
 import { initShaders } from './renderer/shaders.ts';
 import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { update } from './simulation/update.ts';
-import { catalogOpen, gameState, timeScale } from './state.ts';
+import { state } from './state.ts';
 import { initUI } from './ui/game-control.ts';
-import { updateHUD } from './ui/hud.ts';
+import { initHUD, updateHUD } from './ui/hud.ts';
 
 // Initialize renderer (order matters)
 initWebGL();
@@ -26,6 +26,7 @@ addEventListener('resize', () => {
 
 // Initialize UI and input
 initUI();
+initHUD();
 initCamera();
 initMinimap();
 
@@ -63,13 +64,13 @@ function frame(now: number) {
     cam.shake = 0;
   }
 
-  if (gameState === 'play') {
-    update(dt * timeScale, t);
+  if (state.gameState === 'play') {
+    update(dt * state.timeScale, t);
 
     renderFrame(t);
 
     // HUD updates
-    if (!catalogOpen) {
+    if (!state.catalogOpen) {
       updateHUD(displayFps);
       if (frameCount % 2 === 0) drawMinimap();
     }

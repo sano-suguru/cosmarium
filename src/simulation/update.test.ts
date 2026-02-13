@@ -2,8 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-// winTeam は export let → ESM live binding で読取可能（setter 不要）
-import { asteroids, bases, beams, setCatalogOpen, setGameMode, setReinforcementTimer, winTeam } from '../state.ts';
+import { asteroids, bases, beams, state } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -256,7 +255,7 @@ describe('projectile pass', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const target = spawnAt(1, 1, 0, 200);
     unitPool[target]!.alive = false; // 死亡させる
-    poolCounts.unitCount--;
+    (poolCounts as { unitCount: number }).unitCount--;
     unitPool[target]!.trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     update(0.016, 0);
@@ -270,7 +269,7 @@ describe('projectile pass', () => {
 // ============================================================
 describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
   it('Mode2 基地ダメージ (80px 以内)', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // team=0 Fighter を bases[1] (x=1800) の近くに配置
     const idx = spawnAt(0, 1, 1795, 0); // 距離5 < 80
@@ -281,7 +280,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
   });
 
   it('Mode2 基地ダメージ (80px 超は無害)', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 1700, 0); // 距離100 > 80
     unitPool[idx]!.trailTimer = 99;
@@ -297,8 +296,8 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
   });
 
   it('reinforce が呼び出され両チームにユニットが増える', () => {
-    setGameMode(0);
-    setReinforcementTimer(2.49);
+    state.gameMode = 0;
+    state.reinforcementTimer = 2.49;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0); // reinforcementTimer = 2.49 + 0.016 = 2.506 >= 2.5
     let t0 = 0;
@@ -314,51 +313,51 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
   });
 
   it('Mode1 勝利: team0 のみ → team0 勝利', () => {
-    setGameMode(1);
+    state.gameMode = 1;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     unitPool[idx]!.trailTimer = 99;
     update(0.016, 0);
-    expect(winTeam).toBe(0);
+    expect(state.winTeam).toBe(0);
     expect(showWin).toHaveBeenCalled();
   });
 
   it('Mode1 勝利: team1 のみ → team1 勝利', () => {
-    setGameMode(1);
+    state.gameMode = 1;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(1, 1, 0, 0);
     unitPool[idx]!.trailTimer = 99;
     update(0.016, 0);
-    expect(winTeam).toBe(1);
+    expect(state.winTeam).toBe(1);
     expect(showWin).toHaveBeenCalled();
   });
 
   it('Mode2 勝利: bases[0].hp<=0 → team1 勝利', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     bases[0].hp = 0;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0);
-    expect(winTeam).toBe(1);
+    expect(state.winTeam).toBe(1);
     expect(showWin).toHaveBeenCalled();
   });
 
   it('Mode2 勝利: bases[1].hp<=0 → team0 勝利', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     bases[1].hp = 0;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0);
-    expect(winTeam).toBe(0);
+    expect(state.winTeam).toBe(0);
     expect(showWin).toHaveBeenCalled();
   });
 
   it('Mode0 (INFINITE): 片方のみでも勝利判定なし', () => {
-    setGameMode(0);
-    setReinforcementTimer(0);
+    state.gameMode = 0;
+    state.reinforcementTimer = 0;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     unitPool[idx]!.trailTimer = 99;
     update(0.016, 0);
-    expect(winTeam).toBe(-1);
+    expect(state.winTeam).toBe(-1);
     expect(showWin).not.toHaveBeenCalled();
   });
 });
@@ -368,8 +367,8 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
 // ============================================================
 describe('catalogOpen 分岐', () => {
   it('catalogOpen=true → steps 7-10 スキップ + updateCatDemo 呼出', () => {
-    setCatalogOpen(true);
-    setGameMode(1);
+    state.catalogOpen = true;
+    state.gameMode = 1;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // team0 のみ → !catalogOpen なら勝利判定が発動するはず
     const idx = spawnAt(0, 1, 0, 0);
@@ -380,7 +379,7 @@ describe('catalogOpen 分岐', () => {
   });
 
   it('catalogOpen=true → 小惑星衝突なし（弾が存続）', () => {
-    setCatalogOpen(true);
+    state.catalogOpen = true;
     asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // 弾を小惑星の中心に配置（!catalogOpen なら消滅するケース）

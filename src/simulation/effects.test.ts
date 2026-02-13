@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
+import { NO_UNIT } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -24,21 +25,21 @@ afterEach(() => {
 describe('explosion', () => {
   it('パーティクルが生成される', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, -1);
+    explosion(0, 0, 0, 0, NO_UNIT);
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 
   it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 3 (Cruiser) は size=15
-    explosion(0, 0, 0, 3, -1);
+    explosion(0, 0, 0, 3, NO_UNIT);
     expect(addShake).toHaveBeenCalledWith(15 * 0.8);
   });
 
   it('小型ユニット (size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 0 (Drone) は size=4
-    explosion(0, 0, 0, 0, -1);
+    explosion(0, 0, 0, 0, NO_UNIT);
     expect(addShake).not.toHaveBeenCalled();
   });
 
@@ -48,7 +49,7 @@ describe('explosion', () => {
     unitPool[idx]!.vy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, -1);
+    explosion(0, 0, 0, 0, NO_UNIT);
     // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
     expect(unitPool[idx]!.vx).toBeGreaterThan(0);
   });
@@ -86,7 +87,7 @@ describe('explosion', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // killer=-1 でエラーが起きないことを確認
-    explosion(0, 0, 0, 0, -1);
+    explosion(0, 0, 0, 0, NO_UNIT);
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 });

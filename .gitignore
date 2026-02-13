@@ -41,3 +41,6 @@ index.original.html
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# OpenCode local workspace
+.sisyphus/

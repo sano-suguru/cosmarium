@@ -2,7 +2,7 @@ import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { unitPool } from '../pools.ts';
-import { asteroids, bases, gameMode } from '../state.ts';
+import { asteroids, bases, state } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
@@ -75,7 +75,7 @@ export function drawMinimap() {
   }
 
   // Bases
-  if (gameMode === 2) {
+  if (state.gameMode === 2) {
     for (let i = 0; i < 2; i++) {
       const b = bases[i]!;
       writeMinimapInstance(

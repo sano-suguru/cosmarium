@@ -6,5 +6,6 @@ export const CELL_SIZE = 100;
 export const MAX_INSTANCES = 65000;
 export const MINIMAP_MAX = 1200;
 export const STRIDE_BYTES = 36;
+export const NEIGHBOR_BUFFER_SIZE = 350;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;

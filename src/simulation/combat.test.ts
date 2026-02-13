@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
+import { NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { spawnProjectile } from './spawn.ts';
@@ -27,7 +28,7 @@ describe('combat — 共通', () => {
     const u = unitPool[idx]!;
     u.stun = 1.0;
     u.cooldown = 0;
-    u.target = -1;
+    u.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(u, idx, 0.016, 0);
@@ -40,7 +41,7 @@ describe('combat — 共通', () => {
     const u = unitPool[idx]!;
     u.cooldown = 1.0;
     u.abilityCooldown = 0.5;
-    u.target = -1;
+    u.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(u, idx, 0.016, 0);
@@ -228,7 +229,7 @@ describe('combat — EMP', () => {
   it('tgt<0 → 即return', () => {
     const emp = spawnAt(0, 11, 0, 0);
     unitPool[emp]!.abilityCooldown = 0;
-    unitPool[emp]!.target = -1;
+    unitPool[emp]!.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(unitPool[emp]!, emp, 0.016, 0);
@@ -313,7 +314,7 @@ describe('combat — CHAIN LIGHTNING', () => {
   it('tgt<0 → 即return', () => {
     const chain = spawnAt(0, 14, 0, 0);
     unitPool[chain]!.cooldown = 0;
-    unitPool[chain]!.target = -1;
+    unitPool[chain]!.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(unitPool[chain]!, chain, 0.016, 0);
@@ -499,7 +500,7 @@ describe('combat — NORMAL FIRE', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(unitPool[fighter]!, fighter, 0.016, 0);
-    expect(unitPool[fighter]!.target).toBe(-1);
+    expect(unitPool[fighter]!.target).toBe(NO_UNIT);
     expect(poolCounts.projectileCount).toBe(0);
   });
 });

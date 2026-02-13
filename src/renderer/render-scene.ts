@@ -1,10 +1,12 @@
 import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particlePool, projectilePool, unitPool } from '../pools.ts';
-import { asteroids, bases, beams, catalogOpen, gameMode } from '../state.ts';
+import { asteroids, bases, beams, state } from '../state.ts';
 import type { Color3 } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { instanceData } from './buffers.ts';
+
+let _instanceOverflowWarned = false;
 
 export function renderScene(now: number): number {
   let idx = 0;
@@ -20,7 +22,13 @@ export function renderScene(now: number): number {
     angle: number,
     shape: number,
   ) {
-    if (idx >= MAX_INSTANCES) return;
+    if (idx >= MAX_INSTANCES) {
+      if (import.meta.env.DEV && !_instanceOverflowWarned) {
+        console.warn(`[DEV] writeInstance: idx(${idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);
+        _instanceOverflowWarned = true;
+      }
+      return;
+    }
     const B = idx * 9;
     instanceData[B] = x;
     instanceData[B + 1] = y;
@@ -34,14 +42,14 @@ export function renderScene(now: number): number {
     idx++;
   }
 
-  if (!catalogOpen) {
+  if (!state.catalogOpen) {
     // Asteroids
     for (let i = 0; i < asteroids.length; i++) {
       const a = asteroids[i]!;
       writeInstance(a.x, a.y, a.radius, 0.12, 0.1, 0.08, 0.7, a.angle, 3);
     }
     // Bases
-    if (gameMode === 2) {
+    if (state.gameMode === 2) {
       for (let i = 0; i < 2; i++) {
         const b = bases[i]!,
           hr = b.hp / b.maxHp;

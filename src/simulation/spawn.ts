@@ -1,10 +1,19 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
 import { beams } from '../state.ts';
-import type { Team } from '../types.ts';
+import type { ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 
-export function spawnUnit(team: Team, type: number, x: number, y: number): number {
+type MutablePoolCounts = { -readonly [K in keyof typeof poolCounts]: (typeof poolCounts)[K] };
+/**
+ * poolCounts への唯一の mutable alias — カウンタ変更は spawn.ts（と resetPoolCounts）に集約。
+ * 他ファイルで同様の `as MutablePoolCounts` キャストを行わないこと。
+ * Readonly<> はうっかり防止であり `as` で容易にバイパスできるため、この集約が唯一の防御線。
+ */
+const _counts = poolCounts as MutablePoolCounts;
+
+export function spawnUnit(team: Team, type: number, x: number, y: number): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     if (!unitPool[i]!.alive) {
       const u = unitPool[i]!,
@@ -20,7 +29,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): numbe
       u.hp = t.hp;
       u.maxHp = t.hp;
       u.cooldown = Math.random() * t.fireRate;
-      u.target = -1;
+      u.target = NO_UNIT;
       u.wanderAngle = Math.random() * 6.283;
       u.trailTimer = 0;
       u.mass = t.mass;
@@ -32,17 +41,31 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): numbe
       u.beamOn = 0;
       u.kills = 0;
       u.vet = 0;
-      poolCounts.unitCount++;
-      return i;
+      _counts.unitCount++;
+      return i as UnitIndex;
     }
   }
-  return -1;
+  return NO_UNIT;
 }
 
-export function killUnit(i: number) {
+export function killUnit(i: UnitIndex) {
   if (unitPool[i]!.alive) {
     unitPool[i]!.alive = false;
-    poolCounts.unitCount--;
+    _counts.unitCount--;
+  }
+}
+
+export function killParticle(i: ParticleIndex) {
+  if (particlePool[i]!.alive) {
+    particlePool[i]!.alive = false;
+    _counts.particleCount--;
+  }
+}
+
+export function killProjectile(i: ProjectileIndex) {
+  if (projectilePool[i]!.alive) {
+    projectilePool[i]!.alive = false;
+    _counts.projectileCount--;
   }
 }
 
@@ -57,7 +80,7 @@ export function spawnParticle(
   g: number,
   b: number,
   shape: number,
-): number {
+): ParticleIndex {
   for (let i = 0; i < POOL_PARTICLES; i++) {
     if (!particlePool[i]!.alive) {
       const p = particlePool[i]!;
@@ -73,11 +96,11 @@ export function spawnParticle(
       p.g = g;
       p.b = b;
       p.shape = shape || 0;
-      poolCounts.particleCount++;
-      return i;
+      _counts.particleCount++;
+      return i as ParticleIndex;
     }
   }
-  return -1;
+  return NO_PARTICLE;
 }
 
 export function spawnProjectile(
@@ -94,8 +117,8 @@ export function spawnProjectile(
   b: number,
   homing?: boolean,
   aoe?: number,
-  targetIndex?: number,
-): number {
+  targetIndex?: UnitIndex,
+): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     if (!projectilePool[i]!.alive) {
       const p = projectilePool[i]!;
@@ -113,12 +136,18 @@ export function spawnProjectile(
       p.b = b;
       p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
-      p.targetIndex = targetIndex ?? -1;
-      poolCounts.projectileCount++;
-      return i;
+      p.targetIndex = targetIndex ?? NO_UNIT;
+      _counts.projectileCount++;
+      return i as ProjectileIndex;
     }
   }
-  return -1;
+  return NO_PROJECTILE;
+}
+
+export function resetPoolCounts() {
+  _counts.unitCount = 0;
+  _counts.particleCount = 0;
+  _counts.projectileCount = 0;
 }
 
 export function addBeam(

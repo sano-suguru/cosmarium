@@ -106,7 +106,7 @@ src/
     render-pass.ts            # 4-pass bloom pipeline
     minimap.ts                # writeMinimapInstance(), drawMinimap(), minimap events
   simulation/
-    spatial-hash.ts           # hashMap, neighborBuffer, buildHash(), getNeighbors(), knockback()
+    spatial-hash.ts           # hashMap, neighborBuffer, buildHash(), getNeighbors(x,y,r), knockback()
     spawn.ts                  # spawnUnit(), killUnit(), spawnParticle(), spawnProjectile(), addBeam()
     effects.ts                # explosion(), trail(), chainLightning()
     steering.ts               # steer() — boids + target AI
@@ -164,7 +164,7 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
   - Pools: `unitPool`=units, `particlePool`=particles, `projectilePool`=projectiles; `poolCounts.unitCount/particleCount/projectileCount`=active counts
   - Pool/World: `POOL_UNITS=800`, `POOL_PARTICLES=35000`, `POOL_PROJECTILES=6000`, `WORLD_SIZE=4000`, `CELL_SIZE=100`, `MAX_INSTANCES=65000`, `MINIMAP_MAX=1200`, `STRIDE_BYTES=36`
   - Spawners: `spawnUnit`=spawn unit, `spawnParticle`=spawn particle, `spawnProjectile`=spawn projectile
-  - Spatial: `buildHash`=build hash, `getNeighbors`=get neighbors, `knockback`=knockback, `neighborBuffer`=neighbor buffer
+  - Spatial: `buildHash`=build hash, `getNeighbors(x,y,r)`=get neighbors (returns count; results in shared `neighborBuffer`), `knockback`=knockback
   - Camera: `cam` object with `targetX/targetY/targetZ` (targets), `x/y/z` (interpolated), `shake/shakeX/shakeY` (screen shake)
   - Rendering: `mainProgram`=main program, `bloomProgram`=bloom program, `compositeProgram`=composite program, `minimapProgram`=minimap program
   - VAOs: `mainVAO` (scene), `mmVAO` (minimap), `qVAO` (fullscreen quad)
@@ -173,7 +173,7 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
   - Locations: `mainLocations`=main program attribs/uniforms, `minimapLocations`=minimap program attribs, `bloomLocations`=bloom program uniforms, `compositeLocations`=composite program uniforms
   - Colors: `getColor(typeIdx, team)` → [r,g,b], `getTrailColor(typeIdx, team)` → trail color
   - State: `reinforcementTimer`=reinforcement timer (fires `reinforce()` every 2.5s)
-- **State mutation**: Mutable state in `state.ts` uses `export let` + setter functions (e.g., `setGameState()`) because ES module exports can't be assigned from importers. `poolCounts` object avoids this via property mutation.
+- **State mutation**: Mutable state in `state.ts` uses `export const state: State` オブジェクトパターン（プロパティ直接代入で変更）。`poolCounts` は `Readonly<>` 型で外部からの変更を防止、spawn/kill 関数内でのみ変更可能。
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese (日本語)
 - **Import conventions**: Relative paths + explicit `.ts` extension (`allowImportingTsExtensions: true`). No path aliases, no barrel exports (`index.ts`)
@@ -187,7 +187,7 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 
 - **Object pooling**: All units/particles/projectiles pre-allocated; `.alive` flag controls active state. Spawn functions scan for first dead slot.
 - **Instanced rendering (WebGL 2)**: Native `gl.drawArraysInstanced()` with VAOs. Instance buffer is 9 floats per instance: `[x, y, size, r, g, b, alpha, angle, shapeID]` (stride = 36 bytes). All shaders use GLSL `#version 300 es` with `in`/`out` instead of `attribute`/`varying`.
-- **Spatial hash**: `buildHash()` rebuilds every frame using hash `(x/100 * 73856093) ^ (y/100 * 19349663)`. `getNeighbors(x,y,radius,buffer)` returns neighbor count. `neighborBuffer` is a shared 350-element buffer.
+- **Spatial hash**: `buildHash()` rebuilds every frame using hash `(x/100 * 73856093) ^ (y/100 * 19349663)`. `getNeighbors(x,y,radius)` returns neighbor count; results are written to the shared `neighborBuffer` (350-element) internally.
 - **Bloom pipeline**: 4-pass rendering: scene FBO → horizontal blur (half-res) → vertical blur (half-res) → composite with vignette + Reinhard tone mapping.
 - **Minimap**: WebGL-rendered via dedicated `minimapProgram` shader program and `mmVAO`, drawn into a scissored viewport region. Uses instanced quads with a simplified vertex shader that reuses the `aA` slot for non-uniform Y scaling.
 - **Render order** (in `renderScene()`): asteroids → bases → particles → beams → projectiles → units (later = drawn on top).
@@ -289,21 +289,24 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 
 | 罠 | 理由 |
 |----|------|
-| `Team`型（`0 \| 1`）で `1 - team` は `number` を返す | `team === 0 ? 1 : 0` で代替 |
+| `Team`型（`0 \| 1`）で `1 - team` は `number` を返す | `enemyTeam()`ヘルパー（`types.ts`）を使用 |
 | `catalogOpen`は複数層に影響 | simulation(steps 1-6常時実行、7-10スキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
-| state変数を外部モジュールから直接代入しない | ESMバインディングは外部から読取専用。`export let` + setter経由で変更 |
-| `poolCounts`のカウンタは手動管理 | spawn/kill時に必ずインクリメント/デクリメント。漏れるとHUD・増援ロジックが狂う |
-| `neighborBuffer`バッファは共有（350要素） | `getNeighbors()`の戻り値=バッファ内の有効数。コピーせず即使用 |
+| `poolCounts` は `Readonly<>` 型 | 変更は spawn/kill 関数経由のみ（内部で `_counts` 型アサーション使用）。直接代入は型エラー |
+| `neighborBuffer`は共有読取バッファ（350要素） | `getNeighbors(x,y,r)`が内部で書き込み、戻り値=有効数。呼出側は`neighborBuffer[i]`で読取。コピーせず即使用 |
 | GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
 | カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
-| `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止 |
-| `killUnit()`はindexで呼ぶ | `killUnit(oi)` — Unit参照ではなくプール配列index |
-| `u.target`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
+| `killUnit()` は `UnitIndex` branded type を受け取る | プールループ変数は `i as UnitIndex` でキャスト必要。`killParticle`/`killProjectile` も同様 |
+| `u.target` は `UnitIndex` 型 | `NO_UNIT`（-1）で「ターゲットなし」を表現。ターゲットの `.alive` チェックは依然必要 |
 | `beams`は`.splice()`で削除 | プールではなく動的配列。逆順ループ必須 |
 | `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
 | `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略。描画消え→`MAX_INSTANCES`増加を検討 |
-| プール上限変更時は2ファイル | `constants.ts`の定数と`pools.ts`の配列初期化を両方変更 |
-| Reflector判定が名前文字列 | `TYPES[u.type]!.name !== 'Reflector'` — 名前変更で壊れる |
+
+## 設計メモ
+
+| 仕様 | 詳細 |
+|------|------|
+| `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止。意図的な安全策 |
+| プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |
 
 ## MCP Tools Guide
 

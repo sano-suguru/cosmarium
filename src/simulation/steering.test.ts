@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
 import { unitPool } from '../pools.ts';
-import { asteroids, setGameMode } from '../state.ts';
+import { asteroids, state } from '../state.ts';
+import { NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
@@ -37,7 +38,7 @@ describe('steer — スタン', () => {
     const idx = spawnAt(0, 1, 100, 100);
     const u = unitPool[idx]!;
     u.stun = 0.5;
-    u.target = -1;
+    u.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const angBefore = u.angle;
@@ -111,7 +112,7 @@ describe('steer — ターゲット探索', () => {
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
-    expect(unitPool[ally]!.target).toBe(-1);
+    expect(unitPool[ally]!.target).toBe(NO_UNIT);
   });
 });
 
@@ -130,9 +131,9 @@ describe('steer — RAM型', () => {
 
 describe('steer — Mode 2 フォールバック', () => {
   it('tgt<0 → 敵基地方向に力', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     const ally = spawnAt(0, 1, 0, 0); // team 0 → 敵基地 = bases[1] (x=1800)
-    unitPool[ally]!.target = -1;
+    unitPool[ally]!.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 50; i++) steer(unitPool[ally]!, 0.033);
@@ -141,9 +142,9 @@ describe('steer — Mode 2 フォールバック', () => {
   });
 
   it('team=1 → bases[0] (x=-1800) 方向に力', () => {
-    setGameMode(2);
+    state.gameMode = 2;
     const ally = spawnAt(1, 1, 0, 0); // team 1 → 敵基地 = bases[0] (x=-1800)
-    unitPool[ally]!.target = -1;
+    unitPool[ally]!.target = NO_UNIT;
     // wanderAngle=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
     unitPool[ally]!.wanderAngle = Math.PI;
     buildHash();
@@ -189,7 +190,7 @@ describe('steer — ワールド境界', () => {
     const u = unitPool[idx]!;
     u.vx = 0;
     u.vy = 0;
-    u.target = -1;
+    u.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
@@ -202,7 +203,7 @@ describe('steer — ワールド境界', () => {
     const u = unitPool[idx]!;
     u.vx = 0;
     u.vy = 0;
-    u.target = -1;
+    u.target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
