@@ -13,7 +13,7 @@
 | `composite.frag.glsl` | bloom合成 + vignette + Reinhard tonemap | `c=s+b*2.0`、vignette=`1-len*0.6`、tonemap=`c/(c+0.6)` |
 | `minimap.vert.glsl` | ミニマップ頂点（回転なし、Y-scale対応） | `aSY`スロット = `aA`スロット転用 |
 | `minimap.frag.glsl` | ミニマップ用簡易描画（色パススルー） | SDF分岐なし。circle以外はdiscardなし |
-| `includes/sdf.glsl` | 共有SDF関数: `hexDist`, `manDist`, `polarR` | `#include`で取り込み |
+| `includes/sdf.glsl` | 共有SDF関数: `hexDist(vec2)`, `manDist(vec2)`, `polarR(vec2,float,float,float)` | `#include`で取り込み |
 
 ## #includeメカニズム
 

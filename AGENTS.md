@@ -17,6 +17,7 @@
 - **Deploy**: GitHub Actions（`.github/workflows/deploy.yml`）— main push時に`bun run check` → `vite build --base=/cosmarium/` → GitHub Pages deploy
 - **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
 - **Knip設定**: `knip.json` — `src/**/*.ts`のみ対象、`src/vite-env.d.ts`は除外
+- **TSC strict設定（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexアクセスは`T | undefined`)、`noImplicitReturns`
 
 ## Game Modes
 

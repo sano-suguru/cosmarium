@@ -23,7 +23,7 @@
   - spawn位置: team 0 → cx=-1200, cy=-300; team 1 → cx=1200, cy=300（spread付きランダム）
 - `genAsteroids()`: 40個、位置=`WORLD_SIZE*1.4`範囲内ランダム、半径20〜80、回転速度±0.02〜0.05
 
-テスト: `combat.test.ts`, `steering.test.ts`, `effects.test.ts`, `reinforcements.test.ts`, `spawn.test.ts`, `spatial-hash.test.ts`, `update.test.ts`（`vitest run`で実行）
+テスト: `combat.test.ts`, `steering.test.ts`, `effects.test.ts`, `reinforcements.test.ts`, `spawn.test.ts`, `spatial-hash.test.ts`, `update.test.ts`（`vitest run`で実行）。テストヘルパー: `src/__test__/pool-helper.ts`（`resetPools()`/`resetState()`/`spawnAt()`）
 
 ## Tick Order（update.ts内）
 

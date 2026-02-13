@@ -45,7 +45,7 @@
 2. 敵の配置（数・位置・type）はユニット特性が映えるように設計
 
 ### 速度プリセット変更
-- `game-control.ts` — `speeds` 配列: `[0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5]`
+- `game-control.ts` — `speeds` 配列: `[0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5]`（デフォルト: index=2 → 0.55x）
 - `+`/`-` キーは`stepSpd()`で配列内を1段階移動
 - `.sbtn`ボタンの`data-spd`属性と一致させる必要あり（HTMLとJS両方）
 
@@ -62,4 +62,4 @@
 | `setupCatDemo()`冒頭で全particle/projectile/beam消去 | カタログ切替時にパーティクルが全消滅するのは仕様 |
 | DOM要素IDはハードコード | `getElementById('cpName')!`等。HTML側のID変更で即壊れる |
 | `showWin()`は`game-control.ts` | カタログではなくgame-control側にある。勝利画面変更時は注意 |
-| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。POOL_UNITS全走査(O(800))もあり |
+| `updateHUD`は毎フレームgetElementById | DOMノードキャッシュなし。ユニットプール全走査O(`POOL_UNITS`=800)でチーム別カウント |

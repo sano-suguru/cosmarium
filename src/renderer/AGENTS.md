@@ -87,9 +87,12 @@ offset 32: shapeID   (aSh)
 ### FBO変更
 - `createFBOs()`はリサイズ時に再呼出しされる（`resize()`経由）
 - bloomのFBOはfull解像度の半分（`>> 1`）
-- フォーマットは`RGBA / UNSIGNED_BYTE` — HDRが必要なら`gl.RGBA16F`/`gl.FLOAT`に変更
+- フォーマットは`RGBA / UNSIGNED_BYTE` — HDRが必要なら`gl.RGBA16F`/`gl.FLOAT`に変更（テクスチャfilter/wrapとcheckFramebufferStatusも確認）
+- 深度バッファ不使用（フラグメントベースの合成のみ）
 - scene clear color: `(0.007, 0.003, 0.013, 1)` — ほぼ黒に微かな紫
 - bloom blur半径: `uD` = `(2.5, 0)` horizontal → `(0, 2.5)` vertical
+- bloom重み: `[0.227, 0.195, 0.122, 0.054, 0.016]`（中心+4サンプル）
+- composite数式: `c = scene + bloom*2.0`、vignette=`1-len(vU-0.5)*0.6`、Reinhard=`c/(c+0.6)`
 
 ## Critical Gotchas
 
