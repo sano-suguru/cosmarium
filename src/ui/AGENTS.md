@@ -1,66 +1,25 @@
 # UI AGENTS.md
 
-> DOM操作・カタログ・HUDの変更ガイド。State管理パターン・プールパターンはルート AGENTS.md 参照。
-
-## ファイル責務マップ
-
-| ファイル | 責務 | 変更頻度 |
-|----------|------|----------|
-| `catalog.ts` | カタログUI構築、デモユニットspawn/update、パネル表示 | 高 |
-| `game-control.ts` | メニュー、ゲーム開始/終了、速度制御、キーボードショートカット | 中 |
-| `hud.ts` | HUD数値更新（ユニット数/fps/基地HP）。DOM直接更新 | 低 |
-
-## キーボードショートカット（game-control.ts + camera.ts）
-
-| キー | 条件 | 動作 |
-|------|------|------|
-| `Tab` / `Escape` | play中 | カタログ開閉（`toggleCat()`） |
-| `-` / `=` | play中 | 速度1段階下げ/上げ（`stepSpd()`） |
-| `Space` | play中 & !catalogOpen | カメラリセット（tx=0, ty=0, tz=1） |
+> DOM操作・カタログ・HUDの変更ガイド。
 
 ## カタログのプール副作用（最重要）
 
-カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spawnUnit()` で実際のプールに生ユニットを生成する。
-
-- `toggleCat()` → `setupCatDemo(catSelected)`: 旧デモユニットを`killUnit()`で破棄後、新シナリオをspawn
-- `updateCatDemo(dt)`: 3秒タイマーで敵残数<2なら再spawn。味方は原点に引き寄せ（rams除く）、敵はHP自動回復
-- **影響**: `POOL_UNITS`上限を消費。カタログ中もsteps 1-6（steer/combat/projectile/particle/beam）は実行される
-
-### デモシナリオ分岐
-
-`setupCatDemo()` は`TYPES[typeIdx]`のフラグで分岐:
-- `heals` → 味方2体（低HP）+ 敵3体
-- `reflects` → 敵5体（Fighterがメインユニットをターゲット）
-- `spawns` → 敵4体
-- `emp` → 敵8体（円形配置）
-- `chain` → 敵6体（ジグザグ配置）
-- `teleports` → 敵4体
-- `rams` → 敵Cruiser×3、メインユニットを左寄せ
-- default → sh依存で敵2〜6体
+カタログは**プレビュー専用ではない**。`setupCatDemo()` → `spawnUnit()`で実際のプールに生ユニットを生成する。`POOL_UNITS`上限を消費。steps 1-6(steer/combat等)はカタログ中も実行される。閉じ時は`teardownCatDemo()`で自動片付け。切替時に全particle/projectile/beam消去は仕様。
 
 ## 変更ガイド
 
 ### 新ユニットのカタログデモ追加
-1. `catalog.ts` — `setupCatDemo()` に新フラグの `else if` 分岐追加
-2. 敵の配置（数・位置・type）はユニット特性が映えるように設計
-
-### 速度プリセット変更
-- `game-control.ts` — `speeds` 配列: `[0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5]`（デフォルト: index=2 → 0.55x）
-- `+`/`-` キーは`stepSpd()`で配列内を1段階移動
-- `.sbtn`ボタンの`data-spd`属性と一致させる必要あり（HTMLとJS両方）
+`catalog.ts`の`setupCatDemo()`に新フラグの`else if`分岐追加。敵配置はユニット特性が映える構成にする。分岐キーは`TYPES[typeIdx]`のフラグ。
 
 ### HUD項目追加
-1. `ui/dom-ids.ts` — 新IDの定数を追加（`export const DOM_ID_XXX = '新ID';`）
-2. `ui/hud.ts` — `initHUD()` にキャッシュ変数宣言 + `getElementById(DOM_ID_XXX)` 追加。`updateHUD()` でキャッシュ変数を参照
-3. `index.html` に対応するDOM要素追加
-4. `gameMode` 条件分岐の要否を確認（基地HPはmode=2のみ表示）
+`ui/dom-ids.ts`(ID定数) → `ui/hud.ts`(`initHUD`でキャッシュ+`updateHUD`で更新) → `index.html`(DOM要素)。`gameMode`条件分岐の要否を確認。
+
+### 速度プリセット変更
+`game-control.ts`の`speeds`配列と`.sbtn`の`data-spd`属性を一致させる。
 
 ## Critical Gotchas
 
-| 罠 | 理由 |
-|----|------|
-| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。閉じ時は`teardownCatDemo()`で自動片付け済み |
-| `setupCatDemo()`冒頭で全particle/projectile/beam消去 | カタログ切替時にパーティクルが全消滅するのは仕様 |
-| DOM要素IDはハードコード | HUD 6個 + catalog 1個は `dom-ids.ts` で定数化済み。新規追加時は `dom-ids.ts` に定数追加すること |
-| `showWin()`は`game-control.ts` | カタログではなくgame-control側にある。勝利画面変更時は注意 |
-| `updateHUD`は毎フレーム呼ばれる | DOMノードは `initHUD()` でキャッシュ済み。ユニットプール全走査O(`POOL_UNITS`=800)でチーム別カウント |
+- `setupCatDemo()`は`spawnUnit()`で実ユニット生成 → プール上限に影響
+- DOM要素IDは`dom-ids.ts`で定数化済み。新規追加時はここに追加
+- `showWin()`は`game-control.ts`にある（catalogではない）
+- `updateHUD`は毎フレームO(`POOL_UNITS`)でプール走査。DOMノードは`initHUD()`でキャッシュ済み

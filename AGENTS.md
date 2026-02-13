@@ -1,196 +1,60 @@
 # AGENTS.md — COSMARIUM
 
-> AI向けナビゲーションガイド。CLAUDE.mdの構造・略称・メカニクス情報を前提とし、**変更作業時の判断指針**を補完する。
+> 変更作業時の判断指針。数値の正は常にソースコード。
 
 ## Quick Reference
 
 - **言語**: 日本語で返答
-- **型チェック**: `bun run typecheck` (`tsc --noEmit`) — strict mode、`noUnusedLocals`/`noUnusedParameters` on
-- **ビルド**: `bun run build` — dist/へ出力
-- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd を一括実行
-- **未使用export検出**: `bun run knip` — 未使用export/依存を検出
-- **コピペ検出**: `bun run cpd` (`jscpd src/`) — コード重複を検出
-- **テスト**: `bun run test:run` (`vitest run`) — `src/simulation/*.test.ts`(7), `src/*.test.ts`(3), `src/__test__/pool-helper.ts`(共通ヘルパー)。対象: combat, steering, effects, reinforcements, spawn, spatial-hash, update, state, unit-types, colors。`bun run test`はwatchモード
-- **Linting & Formatting**: [Biome](https://biomejs.dev/)（Rust製の統合lint+formatter）。`src/shaders/**`は除外。`noVar: error`, `useConst: error`, singleQuote, lineWidth=120
-- **Pre-commit**: `simple-git-hooks` + `biome check --staged --write`。エラーのみブロック（警告は許容）
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）— Bun環境、4並列job: `typecheck` → `lint`(`biome ci .`) → `quality`(`knip`+`cpd`) → `test`(`vitest run`、typecheck完了後)
-- **Deploy**: GitHub Actions（`.github/workflows/deploy.yml`）— main push時に`bun run check` → `vite build --base=/cosmarium/` → GitHub Pages deploy
-- **Import規約**: 相対パス + `.ts`拡張子明示（`allowImportingTsExtensions: true`）。パスエイリアスなし。barrel export（index.ts）なし
-- **Knip設定**: `knip.json` — `src/**/*.ts`のみ対象、`src/vite-env.d.ts`は除外
-- **TSC strict設定（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexアクセスは`T | undefined`)、`noImplicitReturns`
+- **型チェック**: `bun run typecheck` — strict mode、`noUnusedLocals`/`noUnusedParameters` on
+- **ビルド**: `bun run build`
+- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd
+- **テスト**: `bun run test:run` — `src/simulation/*.test.ts`(7) + `src/*.test.ts`(4)。ヘルパー: `src/__test__/pool-helper.ts`
+- **Lint/Format**: Biome。`src/shaders/**`は除外。singleQuote, lineWidth=120
+- **Pre-commit**: `biome check --staged --write`。エラーのみブロック
+- **Import規約**: 相対パス + `.ts`拡張子明示。パスエイリアスなし。barrel export なし
+- **TSC strict（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexは`T | undefined`)、`noImplicitReturns`
 
 ## Game Modes
 
-| mode | 名前 | 勝利条件 | 増援 |
-|------|------|----------|------|
-| 0 | Infinite | なし（永続戦闘） | あり（2.5秒ごと、上限130） |
-| 1 | Annihilation | 敵チーム全滅 | なし |
-| 2 | Base Assault | 敵基地HP=0（x=±1800、初期500HP） | あり（上限100） |
+3モード: Infinite(0)/Annihilation(1)/Base Assault(2)。詳細は`state.ts`の`GameMode`型と`simulation/update.ts`の勝利判定参照。
 
-## Pool定数
+## 主要モジュールと変更影響
 
-| 定数 | 値 | 用途 |
-|------|-----|------|
-| `POOL_UNITS` | 800 | ユニット上限 |
-| `POOL_PARTICLES` | 35000 | パーティクル上限 |
-| `POOL_PROJECTILES` | 6000 | 弾(projectile)上限 |
-| `WORLD_SIZE` | 4000 | ワールド半径（-4000〜+4000） |
-| `CELL_SIZE` | 100 | 空間ハッシュのセルサイズ |
-| `MAX_INSTANCES` | 65000 | 描画instance上限 |
-| `MINIMAP_MAX` | 1200 | ミニマップinstance上限 |
-| `STRIDE_BYTES` | 36 | instanceデータのバイトストライド（9 floats × 4） |
+`types.ts`は全ファイルが依存（変更は全体に波及）。`constants.ts`/`state.ts`/`pools.ts`/`colors.ts`/`unit-types.ts`も広域依存。定数値は`src/constants.ts`参照。
 
-## Vet(ベテラン)システム
+## Data Flow概要
 
-kills ≥ 3 → vet=1、kills ≥ 8 → vet=2。効果:
-- ダメージ × `(1 + vet * 0.2)`
-- 速度 × `(1 + vet * 0.12)`
-- vet≥1: 星バッジ表示（shape 7）、vet≥2: 星2個
-
-## Dependency Graph (変更影響マップ)
-
-```
-types.ts     ← 全ファイルが依存（型定義の変更は全体に波及）
-constants.ts ← pools.ts, simulation/*, renderer/*, ui/catalog.ts, ui/hud.ts
-state.ts     ← main.ts, simulation/*, renderer/render-pass.ts, renderer/render-scene.ts,
-               renderer/minimap.ts, input/camera.ts, ui/*
-pools.ts     ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts, ui/hud.ts
-colors.ts    ← simulation/combat.ts, simulation/effects.ts, renderer/render-scene.ts,
-               renderer/minimap.ts, ui/catalog.ts
-unit-types.ts ← simulation/*, renderer/render-scene.ts, renderer/minimap.ts, ui/catalog.ts
-input/camera.ts → addShake: simulation/effects.ts, simulation/update.ts からインポート
-
-main.ts → renderer/*, simulation/update.ts, input/camera.ts, ui/*
-         （初期化順序: initWebGL → initShaders → createFBOs → initBuffers → initUI → initHUD → initCamera → initMinimap）
-```
-
-## Data Flow（フレーム単位）
-
-```
-main loop (main.ts) — gameState==='play' 時のみ実行
-  ├─ dt = min(now-lastTime, 0.05)       ← main.tsのクランプ（0.05s）
-  ├─ camera lerp + shake decay          ← cam.shake *= 0.82（閾値0.1で停止）、cap=min(shake,60)
-  ├─ update(dt * timeScale, now)        ← simulation/update.ts
-  │   ├─ dt = min(dt, 0.033)            ← update.ts内で再クランプ（0.033s）
-  │   ├─ buildHash()                    ← 空間ハッシュ再構築
-  │   ├─ per unit: steer() → combat()   ← AI + 攻撃（常時実行）
-  │   ├─ reflector pass                 ← シールド付与（次フレームで有効、常時実行）
-  │   ├─ projectile pass                ← 移動 + homing + 衝突（常時実行。小惑星衝突のみcatalogOpen時スキップ）
-  │   ├─ particle/beam pass             ← 移動 + 寿命管理（常時実行）
-  │   ├─ if (!catalogOpen):
-  │   │   ├─ base damage (mode=2)       ← 80px内ユニットがダメージ
-  │   │   ├─ asteroid rotation
-  │   │   ├─ reinforce(dt)              ← 2.5秒ごと
-  │   │   └─ win checks                ← mode=1:全滅、mode=2:基地HP=0
-  │   └─ else: updateCatDemo(dt)
-  ├─ renderFrame(now)                   ← renderer/render-pass.ts
-  │   ├─ [catalogOpen時: カメラ → (0,0,z=2.5)に固定]
-  │   ├─ renderScene(now)               ← pools → instanceData[] (Float32Array) 書込み
-  │   ├─ scene pass (additive blend)    ← scene FBO
-  │   ├─ bloom H/V pass                 ← 半解像度FBO、blur radius=2.5
-  │   └─ composite                      ← vignette + Reinhard tonemap
-  └─ if (!catalogOpen):
-      ├─ updateHUD(fps)
-      └─ drawMinimap()                  ← frameCount%2===0 のとき（毎フレームではない）
-```
+- main loop: `gameState==='play'`時のみ実行
+- dt二重クランプ: main.ts(0.05s) → update.ts(0.033s)
+- update順: `buildHash()` → per unit(`steer`→`combat`) → reflector pass → projectile pass → particle/beam pass → `!catalogOpen`時のみ(base damage/reinforce/win check)
+- `catalogOpen`時: steps 7-10スキップ → `updateCatDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化
 
 ## ファイル変更ガイド
 
 ### 新ユニット追加
-1. `unit-types.ts` — `TYPES[]`に定義追加（既存15エントリのフォーマットに従う）
-2. `types.ts` — 新フラグが必要なら`Unit`インターフェースに追加
-3. `colors.ts` — `teamColors[]`と`trailColors[]`に色ペア追加（index=ユニットtype番号）
-4. `simulation/combat.ts` — 新攻撃パターンの分岐を`combat()`に追加（排他なら`return`、非排他ならreturnなし）
-5. `simulation/steering.ts` — 特殊移動ロジックがあれば`steer()`に追加
-6. `simulation/spawn.ts` — 新プロパティがあれば`spawnUnit()`の初期化に追加
-7. `ui/catalog.ts` — カタログデモに対応シナリオ追加（`setupCatDemo()`）
-8. `src/shaders/main.frag.glsl` — 新シェイプが必要ならSDF追加（次の空きID使用）→ `src/shaders/AGENTS.md` 参照
+`unit-types.ts` → `types.ts`(新フラグ時) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts`(特殊移動時) → `simulation/spawn.ts`(新プロパティ時) → `ui/catalog.ts` → `src/shaders/main.frag.glsl`(新シェイプ時)
 
-### 新パーティクルエフェクト追加
-1. `simulation/effects.ts` — エフェクト関数を追加（`spawnParticle()`でパーティクル生成）
-2. 呼び出し元（`combat.ts`や`update.ts`）からインポート
+### 新エフェクト追加
+`simulation/effects.ts` にエフェクト関数追加 → 呼び出し元からインポート
 
-### レンダリング変更
-→ `src/renderer/AGENTS.md` 参照
+### 他の変更
+レンダリング→`src/renderer/AGENTS.md`、シミュレーション→`src/simulation/AGENTS.md`、シェーダ→`src/shaders/AGENTS.md`、UI→`src/ui/AGENTS.md`
 
-### シミュレーション変更
-→ `src/simulation/AGENTS.md` 参照
+## 規約
 
-### シェーダ変更
-→ `src/shaders/AGENTS.md` 参照
+- **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
+- **poolCounts**: Readonly export。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
+- **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり。inline で poolCounts を直接操作しない
+- **新オブジェクト種追加時**: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加
 
-## State管理パターン
+## テストパターン
 
-```typescript
-// state.ts — 単一オブジェクトパターン（プロパティ変更はESMで許可される）
-export const state: State = {
-  gameState: 'menu', gameMode: 0, winTeam: 0,
-  catalogOpen: false, catSelected: 0, timeScale: 0.55,
-  reinforcementTimer: 0,
-};
-
-// 使用側
-import { state } from './state.ts';
-if (state.gameState === 'play') { ... }
-state.gameState = 'win';  // ✅ OK（オブジェクトプロパティの変更）
-
-// pools.ts — Readonly export + 内部mutation
-export const poolCounts: Readonly<{ unitCount: number; ... }>;
-// spawn.ts のみが内部 _counts エイリアス経由でカウンタを変更
-// 外部からの poolCounts.unitCount++ は型エラー
-```
-
-## プールパターン（spawn/kill）
-
-```typescript
-// 生成: 最初の dead スロットを線形スキャン
-function spawnUnit(team, type, x, y, ...): number {
-  for (let i = 0; i < POOL_UNITS; i++) {
-    if (!unitPool[i].alive) { /* 初期化して return i */ }
-  }
-  return -1; // プール満杯
-}
-
-// 破棄: alive=false + カウンタデクリメント（集約関数経由）
-function killUnit(i: number) { ... }       // unitPool用
-function killParticle(i: number) { ... }   // particlePool用（spawn.tsで集約済み）
-function killProjectile(i: number) { ... } // projectilePool用（spawn.tsで集約済み）
-// ※ 全kill関数に二重kill防止ガードあり。inline で poolCounts を直接操作しないこと
-```
-
-新オブジェクト種追加時: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加。
-
-## UI・Input概要
-
-→ `src/ui/AGENTS.md` 参照（カタログのプール副作用、デモシナリオ等）
-
-| ファイル | 責務 |
-|----------|------|
-| `ui/game-control.ts` | メニュー、ゲーム開始/終了、速度、キーショートカット |
-| `ui/catalog.ts` | ユニットカタログ。**`spawnUnit()`で実プールにspawn** |
-| `ui/hud.ts` | HUD数値更新（DOM直接操作） |
-| `input/camera.ts` | カメラ(pan/zoom/shake)。`catalogOpen`時は無効化。zoom=[0.05,8]制限あり、panは境界clampなし |
+vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`resetState()`/`spawnAt()`)を必ず使用。`afterEach`で`resetPools()` + `resetState()` + `vi.restoreAllMocks()`。`vi.mock()`でUI/camera依存を排除。
 
 ## Critical Gotchas
 
-| 罠 | 理由 |
-|----|------|
-| プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |
-| `neighborBuffer`は共有読取バッファ | `getNeighbors()`が内部で書き込み、戻り値=有効数。呼出側は`neighborBuffer[i]`で結果を読む。コピーせず即使用 |
-| `instanceData`/`minimapData`はFloat32Array | `renderScene()`で毎フレーム書き込み。サイズ=`MAX_INSTANCES*9` |
-| シェーダは`vite-plugin-glsl`経由でimport | `import src from '../shaders/x.glsl'`。`#include`展開もplugin側で処理 |
-| `poolCounts`はReadonly export | 外部から`poolCounts.unitCount++`は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作すること |
-| pre-commitはエラーのみブロック | Biome警告はコミット通過。`biome check --staged --write` |
-| GLSLのGPUコンパイルはランタイム | CIでは検出不可。ブラウザで確認必須 |
-| `catalogOpen`は複数層に影響 | simulation(steps 1-6は常時実行、7-10のみスキップ→updateCatDemo)、renderer(カメラ→原点z=2.5固定)、input(操作無効化)、main(HUD/minimap省略) |
-| `bases`は`[Base, Base]`タプル | リテラル`0`/`1`または`Team`型でインデックスすれば`!`不要 |
-
-## Subdirectory Knowledge
-
-| ディレクトリ | AGENTS.md | 対象 |
-|-------------|-----------|------|
-| `src/renderer/` | あり | WebGL2パイプライン、FBO、インスタンスバッファ、描画パス |
-| `src/simulation/` | あり | ゲームロジック、AI、戦闘、空間ハッシュ |
-| `src/shaders/` | あり | GLSLシェーダ群、SDF関数、Shape IDマップ、#includeパターン |
-| `src/ui/` | あり | カタログのプール副作用、DOM構築、HUD更新 |
-| `src/input/` | なし | camera.ts 1ファイルのみ。上記参照 |
+- `neighborBuffer`は共有バッファ: `getNeighbors()`が書込み、戻り値=有効数。コピーせず即使用
+- `catalogOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
+- `bases`は`[Base, Base]`タプル: `0`/`1`または`Team`型indexなら`!`不要
+- GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可
+- シェーダは`vite-plugin-glsl`経由でimport。`#include`展開もplugin側で処理
