@@ -49,7 +49,7 @@ describe('初期値', () => {
     expect(timeScale).toBe(0.55);
   });
 
-  it('rT は 0', () => {
+  it('reinforcementTimer は 0', () => {
     expect(reinforcementTimer).toBe(0);
   });
 });
@@ -93,7 +93,7 @@ describe('setter関数', () => {
     expect(timeScale).toBe(2.0);
   });
 
-  it('setRT が rT を更新する', () => {
+  it('setReinforcementTimer が reinforcementTimer を更新する', () => {
     setReinforcementTimer(1.5);
     expect(reinforcementTimer).toBe(1.5);
   });

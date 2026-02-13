@@ -98,11 +98,11 @@ export function resetState() {
   bases[1].maxHp = 500;
 }
 
-/** spU() の Math.random 依存（ang, cd, wn）をモックして確定的にユニットを生成する共通ヘルパー */
+/** spawnUnit() の Math.random 依存（angle, cooldown, wanderAngle）をモックして確定的にユニットを生成する共通ヘルパー */
 export function spawnAt(team: 0 | 1, type: number, x: number, y: number): number {
   vi.spyOn(Math, 'random')
-    .mockReturnValueOnce(0) // ang
-    .mockReturnValueOnce(0) // cd
-    .mockReturnValueOnce(0); // wn
+    .mockReturnValueOnce(0) // angle
+    .mockReturnValueOnce(0) // cooldown
+    .mockReturnValueOnce(0); // wanderAngle
   return spawnUnit(team, type, x, y);
 }

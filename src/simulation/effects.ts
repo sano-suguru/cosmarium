@@ -7,13 +7,13 @@ import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: number) {
-  const sz = TYPES[type]!.size;
+  const size = TYPES[type]!.size;
   const c = getColor(type, team);
-  const cnt = Math.min((18 + sz * 3) | 0, 50);
+  const cnt = Math.min((18 + size * 3) | 0, 50);
 
   for (let i = 0; i < cnt; i++) {
     const a = Math.random() * 6.283;
-    const sp = 40 + Math.random() * 200 * (sz / 10);
+    const sp = 40 + Math.random() * 200 * (size / 10);
     const lf = 0.3 + Math.random() * 0.8;
     spawnParticle(
       x,
@@ -21,7 +21,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
       Math.cos(a) * sp,
       Math.sin(a) * sp,
       lf,
-      2 + Math.random() * sz * 0.4,
+      2 + Math.random() * size * 0.4,
       c[0] * 0.5 + 0.5,
       c[1] * 0.5 + 0.5,
       c[2] * 0.5 + 0.5,
@@ -36,14 +36,14 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
       Math.cos(a) * Math.random() * 50,
       Math.sin(a) * Math.random() * 50,
       0.1 + Math.random() * 0.12,
-      sz * 0.7 + Math.random() * 3,
+      size * 0.7 + Math.random() * 3,
       1,
       1,
       1,
       0,
     );
   }
-  const dc = Math.min((sz * 2) | 0, 14);
+  const dc = Math.min((size * 2) | 0, 14);
   for (let i = 0; i < dc; i++) {
     const a = Math.random() * 6.283;
     const sp = 15 + Math.random() * 140;
@@ -60,18 +60,18 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
       0,
     );
   }
-  spawnParticle(x, y, 0, 0, 0.45, sz * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
+  spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
 
-  if (sz >= 14) addShake(sz * 0.8);
+  if (size >= 14) addShake(size * 0.8);
 
-  const nn = getNeighbors(x, y, sz * 8, neighborBuffer);
+  const nn = getNeighbors(x, y, size * 8, neighborBuffer);
   for (let i = 0; i < nn; i++) {
     const o = unitPool[neighborBuffer[i]!]!;
     if (!o.alive) continue;
     const ddx = o.x - x,
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < sz * 8) knockback(neighborBuffer[i]!, x, y, (sz * 50) / (dd * 0.1 + 1));
+    if (dd < size * 8) knockback(neighborBuffer[i]!, x, y, (size * 50) / (dd * 0.1 + 1));
   }
   if (killer >= 0 && killer < unitPool.length) {
     const ku = unitPool[killer]!;
@@ -102,7 +102,7 @@ export function trail(u: Unit) {
   );
 }
 
-export function chainLightning(sx: number, sy: number, team: Team, dmg: number, max: number, col: Color3) {
+export function chainLightning(sx: number, sy: number, team: Team, damage: number, max: number, col: Color3) {
   let cx = sx,
     cy = sy;
   const hit = new Set();
@@ -138,7 +138,7 @@ export function chainLightning(sx: number, sy: number, team: Team, dmg: number, 
         0,
       );
     }
-    const dd = dmg * (1 - ch * 0.12);
+    const dd = damage * (1 - ch * 0.12);
     o.hp -= dd;
     knockback(bi, cx, cy, dd * 8);
     if (o.hp <= 0) {

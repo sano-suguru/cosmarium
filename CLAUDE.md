@@ -87,7 +87,7 @@ src/
   style.css                   # All CSS
   vite-env.d.ts               # Vite type declarations + .glsl module
   types.ts                    # All TypeScript interfaces (Unit, Particle, Projectile, etc.)
-  constants.ts                # Pool limits (POOL_UNITS/POOL_PARTICLES/POOL_PROJECTILES), WORLD, CELL_SIZE, MAX_INSTANCES, MINIMAP_MAX, STRIDE
+  constants.ts                # Pool limits (POOL_UNITS/POOL_PARTICLES/POOL_PROJECTILES), WORLD_SIZE, CELL_SIZE, MAX_INSTANCES, MINIMAP_MAX, STRIDE_BYTES
   state.ts                    # Game state + setter functions (gameState, gameMode, beams, etc.)
   pools.ts                    # Object pools (unitPool/particlePool/projectilePool) + poolCounts object
   colors.ts                   # teamColors[15][2], trailColors[15][2], getColor(), getTrailColor()
@@ -161,8 +161,8 @@ input/camera.ts ← simulation/effects.ts, simulation/update.ts（addShakeをイ
 ## Coding Conventions
 
 - **Abbreviated names** (preserved from original — renaming is a separate task):
-  - Pools: `unitPool`=units, `particlePool`=particles, `projectilePool`=projectiles; `poolCounts.units/particles/projectiles`=active counts
-  - Pool/World: `POOL_UNITS=800`, `POOL_PARTICLES=35000`, `POOL_PROJECTILES=6000`, `WORLD=4000`, `CELL_SIZE=100`, `MAX_INSTANCES=65000`, `MINIMAP_MAX=1200`, `STRIDE=36`
+  - Pools: `unitPool`=units, `particlePool`=particles, `projectilePool`=projectiles; `poolCounts.unitCount/particleCount/projectileCount`=active counts
+  - Pool/World: `POOL_UNITS=800`, `POOL_PARTICLES=35000`, `POOL_PROJECTILES=6000`, `WORLD_SIZE=4000`, `CELL_SIZE=100`, `MAX_INSTANCES=65000`, `MINIMAP_MAX=1200`, `STRIDE_BYTES=36`
   - Spawners: `spawnUnit`=spawn unit, `spawnParticle`=spawn particle, `spawnProjectile`=spawn projectile
   - Spatial: `buildHash`=build hash, `getNeighbors`=get neighbors, `knockback`=knockback, `neighborBuffer`=neighbor buffer
   - Camera: `cam` object with `targetX/targetY/targetZ` (targets), `x/y/z` (interpolated), `shake/shakeX/shakeY` (screen shake)
@@ -298,7 +298,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
 | `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止 |
 | `killUnit()`はindexで呼ぶ | `killUnit(oi)` — Unit参照ではなくプール配列index |
-| `u.tgt`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
+| `u.target`はプールindex | -1=ターゲットなし。ターゲットの`.alive`を必ずチェック |
 | `beams`は`.splice()`で削除 | プールではなく動的配列。逆順ループ必須 |
 | `getNeighbors()`は`buildHash()`後のみ有効 | フレーム冒頭で再構築。途中でユニット追加しても反映されない |
 | `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略。描画消え→`MAX_INSTANCES`増加を検討 |

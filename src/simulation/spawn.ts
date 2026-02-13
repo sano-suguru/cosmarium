@@ -52,11 +52,11 @@ export function spawnParticle(
   vx: number,
   vy: number,
   life: number,
-  sz: number,
+  size: number,
   r: number,
   g: number,
   b: number,
-  sh: number,
+  shape: number,
 ): number {
   for (let i = 0; i < POOL_PARTICLES; i++) {
     if (!particlePool[i]!.alive) {
@@ -68,11 +68,11 @@ export function spawnParticle(
       p.vy = vy;
       p.life = life;
       p.maxLife = life;
-      p.size = sz;
+      p.size = size;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.shape = sh || 0;
+      p.shape = shape || 0;
       poolCounts.particleCount++;
       return i;
     }
@@ -86,15 +86,15 @@ export function spawnProjectile(
   vx: number,
   vy: number,
   life: number,
-  dmg: number,
+  damage: number,
   team: Team,
-  sz: number,
+  size: number,
   r: number,
   g: number,
   b: number,
-  hom?: boolean,
+  homing?: boolean,
   aoe?: number,
-  tx?: number,
+  targetIndex?: number,
 ): number {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     if (!projectilePool[i]!.alive) {
@@ -105,15 +105,15 @@ export function spawnProjectile(
       p.vx = vx;
       p.vy = vy;
       p.life = life;
-      p.damage = dmg;
+      p.damage = damage;
       p.team = team;
-      p.size = sz;
+      p.size = size;
       p.r = r;
       p.g = g;
       p.b = b;
-      p.homing = hom ?? false;
+      p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
-      p.targetIndex = tx ?? -1;
+      p.targetIndex = targetIndex ?? -1;
       poolCounts.projectileCount++;
       return i;
     }
@@ -130,7 +130,7 @@ export function addBeam(
   g: number,
   b: number,
   life: number,
-  w: number,
+  width: number,
 ) {
-  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, maxLife: life, width: w });
+  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, maxLife: life, width: width });
 }

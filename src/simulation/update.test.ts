@@ -9,7 +9,7 @@ import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, tz: 1, tx: 0, ty: 0, shkx: 0, shky: 0, shk: 0 },
+  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
   initCamera: vi.fn(),
 }));
 
@@ -110,18 +110,18 @@ describe('steer + combat + trail', () => {
     const b = spawnAt(1, 1, 100, 0); // Fighter team 1
     unitPool[a]!.trailTimer = 99;
     unitPool[b]!.trailTimer = 99;
-    // cd=0 (spawnAt mock), tgt=-1 (初期値)
+    // cooldown=0 (spawnAt mock), target=-1 (初期値)
     update(0.016, 0);
     // steer が tgt を設定 → combat が即発射
     expect(unitPool[a]!.target).toBeGreaterThanOrEqual(0);
     expect(poolCounts.projectileCount).toBeGreaterThanOrEqual(1);
   });
 
-  it('trail timer: tT<=0 でパーティクル生成', () => {
+  it('trail timer: trailTimer<=0 でパーティクル生成', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 0, 500, 500); // Drone (遠方で敵なし)
     unitPool[idx]!.trailTimer = 0.001; // すぐ切れる
-    update(0.016, 0); // tT = 0.001 - 0.016 < 0 → trail
+    update(0.016, 0); // trailTimer = 0.001 - 0.016 < 0 → trail
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 });
@@ -143,7 +143,7 @@ describe('Reflector shield', () => {
   it('範囲外の味方は shielded=false', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ref = spawnAt(0, 6, 0, 0); // Reflector
-    const ally = spawnAt(0, 1, 250, 0); // 距離250 → gN(0,0,100) の外
+    const ally = spawnAt(0, 1, 250, 0); // 距離250 → getNeighbors(0,0,100) の外
     unitPool[ref]!.trailTimer = 99;
     unitPool[ally]!.trailTimer = 99;
     update(0.016, 0);
@@ -186,7 +186,7 @@ describe('projectile pass', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const enemy = spawnAt(1, 1, 30, 0); // Fighter (hp=10)
     unitPool[enemy]!.trailTimer = 99;
-    // AOE projectile: life=0.01 (すぐ消滅), aoe=70, dmg=8, team=0
+    // AOE projectile: life=0.01 (すぐ消滅), aoe=70, damage=8, team=0
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
     update(0.016, 0);
     // 距離30 < aoe=70 → ダメージ: 8 * (1 - 30/(70*1.2)) = 8 * (1 - 0.357) ≈ 5.14
@@ -196,12 +196,12 @@ describe('projectile pass', () => {
 
   it('ユニットヒット: 通常ダメージ', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const enemy = spawnAt(1, 1, 5, 0); // Fighter (sz=7, hp=10)
+    const enemy = spawnAt(1, 1, 5, 0); // Fighter (size=7, hp=10)
     unitPool[enemy]!.trailTimer = 99;
-    // team=0 の弾、dmg=5、敵の真横
+    // team=0 の弾、damage=5、敵の真横
     spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
-    // 距離5 < sz=7 → ヒット、hp = 10 - 5 = 5
+    // 距離5 < size=7 → ヒット、hp = 10 - 5 = 5
     expect(unitPool[enemy]!.hp).toBe(5);
     expect(projectilePool[0]!.alive).toBe(false);
   });
@@ -217,16 +217,16 @@ describe('projectile pass', () => {
     // team=0 の弾を Fighter の隣に配置
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
     update(0.016, 0);
-    // Reflector gN(0,rng+10,100) → Fighter shielded
-    // dmg = 10 * 0.3 = 3, hp = 10 - 3 = 7
+    // Reflector getNeighbors(0,rng+10,100) → Fighter shielded
+    // damage = 10 * 0.3 = 3, hp = 10 - 3 = 7
     expect(unitPool[target]!.hp).toBe(7);
   });
 
   it('ヒットで HP<=0 → ユニット死亡', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const enemy = spawnAt(1, 0, 3, 0); // Drone (sz=4, hp=3) 距離3 < sz=4
+    const enemy = spawnAt(1, 0, 3, 0); // Drone (size=4, hp=3) 距離3 < size=4
     unitPool[enemy]!.trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0); // dmg=100 >> hp=3
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0); // damage=100 >> hp=3
     update(0.016, 0);
     expect(unitPool[enemy]!.alive).toBe(false);
     expect(poolCounts.unitCount).toBe(0);
@@ -292,7 +292,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
   it('小惑星が回転する', () => {
     asteroids.push({ x: 500, y: 500, radius: 30, angle: 0, angularVelocity: 2.0 });
     update(0.016, 0);
-    // ang = 0 + 2.0 * 0.016 = 0.032
+    // angle = 0 + 2.0 * 0.016 = 0.032
     expect(asteroids[0]!.angle).toBeCloseTo(0.032);
   });
 
@@ -300,7 +300,7 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
     setGameMode(0);
     setReinforcementTimer(2.49);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    update(0.016, 0); // rT = 2.49 + 0.016 = 2.506 >= 2.5
+    update(0.016, 0); // reinforcementTimer = 2.49 + 0.016 = 2.506 >= 2.5
     let t0 = 0;
     let t1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {

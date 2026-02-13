@@ -42,7 +42,7 @@ describe('steer — スタン', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const angBefore = u.angle;
     steer(u, 0.016);
-    // ang はスタン中変化しない
+    // angle はスタン中変化しない
     expect(u.angle).toBe(angBefore);
   });
 });
@@ -144,7 +144,7 @@ describe('steer — Mode 2 フォールバック', () => {
     setGameMode(2);
     const ally = spawnAt(1, 1, 0, 0); // team 1 → 敵基地 = bases[0] (x=-1800)
     unitPool[ally]!.target = -1;
-    // wn=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
+    // wanderAngle=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
     unitPool[ally]!.wanderAngle = Math.PI;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -160,7 +160,7 @@ describe('steer — 小惑星衝突', () => {
     const u = unitPool[idx]!;
     u.vx = 0;
     u.vy = 0;
-    // 小惑星 (x=50, r=40) と ユニット (x=55, sz=7) → d=5, a.r+t.sz=47 → 重なり
+    // 小惑星 (x=50, r=40) と ユニット (x=55, size=7) → d=5, a.r+t.size=47 → 重なり
     asteroids.push({ x: 50, y: 0, radius: 40, angle: 0, angularVelocity: 0 });
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);

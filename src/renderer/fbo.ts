@@ -7,7 +7,7 @@ export const fbos: { scene: FBO | null; bloom1: FBO | null; bloom2: FBO | null }
   bloom2: null,
 };
 
-function delFBO(fbo: FBO | null) {
+function deleteFBO(fbo: FBO | null) {
   if (!fbo) return;
   gl.deleteFramebuffer(fbo.framebuffer);
   gl.deleteTexture(fbo.texture);
@@ -30,9 +30,9 @@ function createFBO(w: number, h: number): FBO {
 }
 
 export function createFBOs() {
-  delFBO(fbos.scene);
-  delFBO(fbos.bloom1);
-  delFBO(fbos.bloom2);
+  deleteFBO(fbos.scene);
+  deleteFBO(fbos.bloom1);
+  deleteFBO(fbos.bloom2);
   fbos.scene = createFBO(viewport.W, viewport.H);
   fbos.bloom1 = createFBO(viewport.W >> 1, viewport.H >> 1);
   fbos.bloom2 = createFBO(viewport.W >> 1, viewport.H >> 1);

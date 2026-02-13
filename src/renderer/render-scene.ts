@@ -12,25 +12,25 @@ export function renderScene(now: number): number {
   function writeInstance(
     x: number,
     y: number,
-    sz: number,
+    size: number,
     r: number,
     g: number,
     b: number,
     a: number,
-    ang: number,
-    sh: number,
+    angle: number,
+    shape: number,
   ) {
     if (idx >= MAX_INSTANCES) return;
     const B = idx * 9;
     instanceData[B] = x;
     instanceData[B + 1] = y;
-    instanceData[B + 2] = sz;
+    instanceData[B + 2] = size;
     instanceData[B + 3] = r;
     instanceData[B + 4] = g;
     instanceData[B + 5] = b;
     instanceData[B + 6] = a;
-    instanceData[B + 7] = ang;
-    instanceData[B + 8] = sh;
+    instanceData[B + 7] = angle;
+    instanceData[B + 8] = shape;
     idx++;
   }
 
@@ -69,10 +69,10 @@ export function renderScene(now: number): number {
     const p = particlePool[i]!;
     if (!p.alive) continue;
     const al = Math.min(1, p.life / p.maxLife);
-    let sz = p.size * (0.5 + al * 0.5);
-    const sh = p.shape;
-    if (sh === 10) sz = p.size * (2.2 - al * 1.7);
-    writeInstance(p.x, p.y, sz, p.r * al, p.g * al, p.b * al, al * 0.8, 0, sh);
+    let size = p.size * (0.5 + al * 0.5);
+    const shape = p.shape;
+    if (shape === 10) size = p.size * (2.2 - al * 1.7);
+    writeInstance(p.x, p.y, size, p.r * al, p.g * al, p.b * al, al * 0.8, 0, shape);
   }
 
   // Beams

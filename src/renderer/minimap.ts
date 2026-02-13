@@ -14,25 +14,25 @@ let minimapInstanceCount = 0;
 function writeMinimapInstance(
   x: number,
   y: number,
-  sx: number,
-  sy: number,
+  sizeX: number,
+  sizeY: number,
   r: number,
   g: number,
   b: number,
   a: number,
-  sh: number,
+  shape: number,
 ) {
   if (minimapInstanceCount >= MINIMAP_MAX) return;
   const B = minimapInstanceCount * 9;
   minimapData[B] = x;
   minimapData[B + 1] = y;
-  minimapData[B + 2] = sx;
+  minimapData[B + 2] = sizeX;
   minimapData[B + 3] = r;
   minimapData[B + 4] = g;
   minimapData[B + 5] = b;
   minimapData[B + 6] = a;
-  minimapData[B + 7] = sy;
-  minimapData[B + 8] = sh;
+  minimapData[B + 7] = sizeY;
+  minimapData[B + 8] = shape;
   minimapInstanceCount++;
 }
 
@@ -97,8 +97,8 @@ export function drawMinimap() {
     const u = unitPool[i]!;
     if (!u.alive) continue;
     const c = getColor(u.type, u.team);
-    const sz = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);
-    writeMinimapInstance(u.x * S, u.y * S, sz, 0, c[0], c[1], c[2], 0.7, 1);
+    const size = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);
+    writeMinimapInstance(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
   }
 
   // Camera viewport frame

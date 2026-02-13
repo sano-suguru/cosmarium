@@ -18,11 +18,11 @@ describe('reinforce', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     reinforce(1.0);
     expect(poolCounts.unitCount).toBe(0);
-    // gameMode===1 では rT 更新前に即 return
+    // gameMode===1 では reinforcementTimer 更新前に即 return
     expect(reinforcementTimer).toBe(3.0);
   });
 
-  it('rT < 2.5 → スポーンなし（タイマー蓄積のみ）', () => {
+  it('reinforcementTimer < 2.5 → スポーンなし（タイマー蓄積のみ）', () => {
     setGameMode(0);
     setReinforcementTimer(0);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -39,11 +39,11 @@ describe('reinforce', () => {
     expect(poolCounts.unitCount).toBe(0);
     reinforce(1.0);
     expect(poolCounts.unitCount).toBe(0);
-    reinforce(1.0); // rT = 3.0 >= 2.5
+    reinforce(1.0); // reinforcementTimer = 3.0 >= 2.5
     expect(poolCounts.unitCount).toBeGreaterThan(0);
   });
 
-  it('rT >= 2.5 → タイマーリセット + スポーン実行', () => {
+  it('reinforcementTimer >= 2.5 → タイマーリセット + スポーン実行', () => {
     setGameMode(0);
     setReinforcementTimer(2.0);
     vi.spyOn(Math, 'random').mockReturnValue(0.99);

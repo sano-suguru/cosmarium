@@ -6,7 +6,7 @@ import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, tz: 1, tx: 0, ty: 0, shkx: 0, shky: 0, shk: 0 },
+  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
   initCamera: vi.fn(),
 }));
 
@@ -28,16 +28,16 @@ describe('explosion', () => {
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 
-  it('大型ユニット (sz>=14) → addShake が呼ばれる', () => {
+  it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // type 3 (Cruiser) は sz=15
+    // type 3 (Cruiser) は size=15
     explosion(0, 0, 0, 3, -1);
     expect(addShake).toHaveBeenCalledWith(15 * 0.8);
   });
 
-  it('小型ユニット (sz<14) → addShake が呼ばれない', () => {
+  it('小型ユニット (size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // type 0 (Drone) は sz=4
+    // type 0 (Drone) は size=4
     explosion(0, 0, 0, 0, -1);
     expect(addShake).not.toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe('chainLightning', () => {
     const hpBefore = unitPool[enemy]!.hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
     expect(beams).toHaveLength(1);
-    // ch=0: dmg * (1 - 0*0.12) = 4
+    // ch=0: damage * (1 - 0*0.12) = 4
     expect(unitPool[enemy]!.hp).toBe(hpBefore - 4);
   });
 
@@ -147,11 +147,11 @@ describe('chainLightning', () => {
     expect(beams).toHaveLength(1);
   });
 
-  it('HP<=0 → killU + explosion（ユニットが死亡する）', () => {
+  it('HP<=0 → killUnit + explosion（ユニットが死亡する）', () => {
     const enemy = spawnAt(1, 0, 50, 0); // type 0 (Drone), hp=3
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0]); // dmg=100 > hp=3
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0]); // damage=100 > hp=3
     expect(unitPool[enemy]!.alive).toBe(false);
   });
 

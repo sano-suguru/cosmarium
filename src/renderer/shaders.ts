@@ -45,11 +45,11 @@ export let compositeLocations: {
 };
 
 function compileShader(s: string, t: number) {
-  const sh = gl.createShader(t)!;
-  gl.shaderSource(sh, s);
-  gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
-  return sh;
+  const shader = gl.createShader(t)!;
+  gl.shaderSource(shader, s);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(shader));
+  return shader;
 }
 
 function createProgram(v: string, f: string) {

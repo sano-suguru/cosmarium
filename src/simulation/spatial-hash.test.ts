@@ -10,13 +10,13 @@ afterEach(() => {
 
 function spawnAt(team: 0 | 1, x: number, y: number): number {
   vi.spyOn(Math, 'random')
-    .mockReturnValueOnce(0) // ang
-    .mockReturnValueOnce(0) // cd
-    .mockReturnValueOnce(0); // wn
+    .mockReturnValueOnce(0) // angle
+    .mockReturnValueOnce(0) // cooldown
+    .mockReturnValueOnce(0); // wanderAngle
   return spawnUnit(team, 1, x, y);
 }
 
-describe('bHash + gN', () => {
+describe('buildHash + getNeighbors', () => {
   it('空プールで近傍ゼロ', () => {
     buildHash();
     const n = getNeighbors(0, 0, 200, neighborBuffer);
@@ -76,7 +76,7 @@ describe('bHash + gN', () => {
   });
 });
 
-describe('kb', () => {
+describe('knockback', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 0);
     unitPool[idx]!.vx = 0;

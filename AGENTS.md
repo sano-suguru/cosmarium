@@ -33,11 +33,11 @@
 | `POOL_UNITS` | 800 | ユニット上限 |
 | `POOL_PARTICLES` | 35000 | パーティクル上限 |
 | `POOL_PROJECTILES` | 6000 | 弾(projectile)上限 |
-| `WORLD` | 4000 | ワールド半径（-4000〜+4000） |
+| `WORLD_SIZE` | 4000 | ワールド半径（-4000〜+4000） |
 | `CELL_SIZE` | 100 | 空間ハッシュのセルサイズ |
 | `MAX_INSTANCES` | 65000 | 描画instance上限 |
 | `MINIMAP_MAX` | 1200 | ミニマップinstance上限 |
-| `STRIDE` | 36 | instanceデータのバイトストライド（9 floats × 4） |
+| `STRIDE_BYTES` | 36 | instanceデータのバイトストライド（9 floats × 4） |
 
 ## Vet(ベテラン)システム
 
@@ -132,7 +132,7 @@ setGameState('win'); // ✅ setter経由（モジュール内からの再代入�
 // gameState = 'win'; // ❌ ESMバインディングは外部モジュールから代入不可
 
 // poolCounts はオブジェクトなのでプロパティ直接変更可
-poolCounts.units++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
+poolCounts.unitCount++;  // ✅ OK（オブジェクトプロパティの変更はESMで許可される）
 ```
 
 ## プールパターン（spawn/kill）
@@ -147,7 +147,7 @@ function spawnUnit(team, type, x, y, ...): number {
 }
 
 // 破棄: alive=false + カウンタデクリメント
-function killUnit(i: number) { unitPool[i].alive = false; poolCounts.units--; }
+function killUnit(i: number) { unitPool[i].alive = false; poolCounts.unitCount--; }
 ```
 
 新オブジェクト種追加時: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加。

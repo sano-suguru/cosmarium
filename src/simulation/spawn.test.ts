@@ -10,8 +10,8 @@ afterEach(() => {
   resetPools();
 });
 
-describe('spP', () => {
-  it('パーティクルを生成し poolCounts.pC が増加する', () => {
+describe('spawnParticle', () => {
+  it('パーティクルを生成し poolCounts.particleCount が増加する', () => {
     const idx = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
     expect(idx).toBe(0);
     expect(poolCounts.particleCount).toBe(1);
@@ -39,7 +39,7 @@ describe('spP', () => {
   });
 });
 
-describe('spPr', () => {
+describe('spawnProjectile', () => {
   it('プロジェクタイルを生成する', () => {
     const idx = spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(idx).toBe(0);
@@ -65,7 +65,7 @@ describe('spPr', () => {
   });
 });
 
-describe('spU', () => {
+describe('spawnUnit', () => {
   it('Fighterユニットを生成する (type=1)', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnUnit(0, 1, 100, 200);
@@ -109,8 +109,8 @@ describe('spU', () => {
   });
 });
 
-describe('killU', () => {
-  it('ユニットを無効化し poolCounts.uC を減少させる', () => {
+describe('killUnit', () => {
+  it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     expect(poolCounts.unitCount).toBe(1);

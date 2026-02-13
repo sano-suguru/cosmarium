@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getColor, getTrailColor } from './colors.ts';
 
-describe('gC', () => {
+describe('getColor', () => {
   it('index 0, team 0 を返す', () => {
     expect(getColor(0, 0)).toEqual([0.2, 1, 0.55]);
   });
@@ -32,7 +32,7 @@ describe('gC', () => {
   });
 });
 
-describe('gTr', () => {
+describe('getTrailColor', () => {
   it('index 0, team 0 のトレイルカラーを返す', () => {
     expect(getTrailColor(0, 0)).toEqual([0.1, 0.6, 0.35]);
   });

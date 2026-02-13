@@ -81,7 +81,7 @@ offset 32: shapeID   (aSh)
 
 ### ミニマップに描画追加
 1. `minimap.ts` — `drawMinimap()`内に`writeMinimapInstance()`呼び出し追加
-2. 座標系: ワールド座標 × `S`（= `1/WORLD`）で正規化。`writeMinimapInstance`の引数は`(x*S, y*S, sizeX, sizeY, r, g, b, a, shapeID)`
+2. 座標系: ワールド座標 × `S`（= `1/WORLD_SIZE`）で正規化。`writeMinimapInstance`の引数は`(x*S, y*S, sizeX, sizeY, r, g, b, a, shapeID)`
 3. 注意: `writeMinimapInstance`の第4引数`sy`がバッファoffset 7（通常`aA`）に書き込まれ、minimap.vertでは`aSY`として解釈される
 
 ### FBO変更
