@@ -3,7 +3,7 @@ import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts, setUnitCountForTest } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { State } from '../state.ts';
-import { bases, beams, state } from '../state.ts';
+import { beams, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 
@@ -79,8 +79,6 @@ export function fillUnitPool() {
 
 const stateDefaults: State = {
   gameState: 'menu',
-  gameMode: 0,
-  winTeam: -1,
   codexOpen: false,
   codexSelected: 0,
   timeScale: 0.55,
@@ -90,11 +88,6 @@ const stateDefaults: State = {
 export function resetState() {
   Object.assign(state, stateDefaults);
   beams.length = 0;
-  // bases の x/y は state.ts で const オブジェクトの初期値として固定されており、テスト中に変更されないためリセット不要
-  bases[0].hp = 500;
-  bases[0].maxHp = 500;
-  bases[1].hp = 500;
-  bases[1].maxHp = 500;
 }
 
 /** spawnUnit() の Math.random 依存（angle, cooldown, wanderAngle）をモックして確定的にユニットを生成する共通ヘルパー */

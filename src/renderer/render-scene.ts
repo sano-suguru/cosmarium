@@ -1,8 +1,7 @@
 import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
-import { bases, beams, getBeam, state } from '../state.ts';
-import { type Color3, TEAMS } from '../types.ts';
+import { beams, getBeam } from '../state.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';
 import { instanceData } from './buffers.ts';
@@ -81,22 +80,6 @@ function renderUnits(now: number) {
   }
 }
 
-function renderBases(now: number) {
-  if (state.gameMode !== 2) return;
-  for (const tm of TEAMS) {
-    const b = bases[tm],
-      hr = b.hp / b.maxHp;
-    const bc: Color3 = tm === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
-    writeInstance(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
-    writeInstance(b.x, b.y, 60, bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3, 0.2 + Math.sin(now * 3) * 0.1, now * -0.1, 10);
-    const bw = 50;
-    const barY = b.y - 65;
-    writeInstance(b.x, barY, bw * 0.5, 0.08, 0.08, 0.08, 0.35, 0, 21);
-    const hpW = bw * hr;
-    writeInstance(b.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, 0.2, 0.7, 0, 21);
-  }
-}
-
 function renderParticles() {
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = getParticle(i);
@@ -150,10 +133,6 @@ function renderProjectiles() {
 
 export function renderScene(now: number): number {
   _writer.idx = 0;
-
-  if (!state.codexOpen) {
-    renderBases(now);
-  }
 
   renderParticles();
   renderBeams(now);

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { enemyTeam } from './types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from './types.ts';
 
-describe('enemyTeam', () => {
-  it('returns 1 for team 0', () => {
-    expect(enemyTeam(0)).toBe(1);
+describe('sentinel values', () => {
+  it('NO_UNIT is -1', () => {
+    expect(NO_UNIT).toBe(-1);
   });
 
-  it('returns 0 for team 1', () => {
-    expect(enemyTeam(1)).toBe(0);
+  it('NO_PARTICLE is -1', () => {
+    expect(NO_PARTICLE).toBe(-1);
+  });
+
+  it('NO_PROJECTILE is -1', () => {
+    expect(NO_PROJECTILE).toBe(-1);
   });
 });

@@ -14,9 +14,9 @@
 - **Import規約**: 相対パス + `.ts`拡張子明示。パスエイリアスなし。barrel export なし
 - **TSC strict（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexは`T | undefined`)、`noImplicitReturns`
 
-## Game Modes
+## Game Mode
 
-3モード: Infinite(0)/Annihilation(1)/Base Assault(2)。詳細は`state.ts`の`GameMode`型と`simulation/update.ts`の勝利判定参照。
+Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 
 ## 主要モジュールと変更影響
 
@@ -26,8 +26,8 @@
 
 - main loop: `gameState==='play'`時のみ実行
 - dt二重クランプ: main.ts(0.05s) → update.ts(0.033s)
-- update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ(base damage/reinforce/win check)
-- `codexOpen`時: 非デモユニットのsteer/combatスキップ + steps 7-10スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
+- update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ `reinforce(dt)`
+- `codexOpen`時: 非デモユニットのsteer/combatスキップ + reinforce スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
 
 ## ファイル変更ガイド
 
@@ -65,7 +65,7 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 |------|------|
 | 3モジュール以上にまたがる変更 | 上記「ファイル変更ガイド」の依存チェーン参照 |
 | `types.ts`または`state.ts`の変更 | 全ファイルに波及 |
-| 新ユニット・新ゲームモード追加 | 6〜8ファイルの連鎖変更が必要 |
+| 新ユニット追加 | 6〜8ファイルの連鎖変更が必要 |
 | シェーダ変更 | 型安全性なし。ブラウザ実行でしか検証不可 |
 
 ### 分割単位の目安
@@ -86,6 +86,5 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 
 - `neighborBuffer`は共有バッファ: `getNeighbors()`が書込み、戻り値=有効数。コピーせず即使用
 - `codexOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
-- `bases`は`[Base, Base]`タプル: `0`/`1`または`Team`型indexなら`!`不要
 - GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可
 - シェーダは`vite-plugin-glsl`経由でimport。`#include`展開もplugin側で処理

@@ -12,7 +12,7 @@ Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUni
 `codex.ts`の`setupCodexDemo()`に新フラグの`else if`分岐追加。敵配置はユニット特性が映える構成にする。分岐キーは`TYPES[typeIdx]`のフラグ。
 
 ### HUD項目追加
-`ui/dom-ids.ts`(ID定数) → `ui/hud.ts`(`initHUD`でキャッシュ+`updateHUD`で更新) → `index.html`(DOM要素)。`gameMode`条件分岐の要否を確認。
+`ui/dom-ids.ts`(ID定数) → `ui/hud.ts`(`initHUD`でキャッシュ+`updateHUD`で更新) → `index.html`(DOM要素)。
 
 ### 速度プリセット変更
 `game-control.ts`の`speeds`配列と`.sbtn`の`data-spd`属性を一致させる。
@@ -21,5 +21,4 @@ Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUni
 
 - `setupCodexDemo()`は`spawnUnit()`で実ユニット生成 → プール上限に影響
 - DOM要素IDは`dom-ids.ts`で定数化済み。新規追加時はここに追加
-- `showWin()`は`game-control.ts`にある（codexではない）
 - `updateHUD`は毎フレームO(`POOL_UNITS`)でプール走査。DOMノードは`initHUD()`でキャッシュ済み

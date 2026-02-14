@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { bases, beams, state } from '../state.ts';
+import { beams, state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -21,7 +21,6 @@ vi.mock('../ui/codex.ts', () => ({
 }));
 
 vi.mock('../ui/game-control.ts', () => ({
-  showWin: vi.fn(),
   setSpd: vi.fn(),
   startGame: vi.fn(),
   backToMenu: vi.fn(),
@@ -30,7 +29,6 @@ vi.mock('../ui/game-control.ts', () => ({
 
 import { addShake } from '../input/camera.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
-import { showWin } from '../ui/game-control.ts';
 import { update } from './update.ts';
 
 afterEach(() => {
@@ -265,29 +263,10 @@ describe('projectile pass', () => {
 });
 
 // ============================================================
-// 6. Steps 7-10: !codexOpen (game mode, win conditions)
+// 6. reinforce
 // ============================================================
-describe('!codexOpen: 基地・増援・勝利判定', () => {
-  it('Mode2 基地ダメージ (80px 以内)', () => {
-    state.gameMode = 2;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const idx = spawnAt(0, 1, 1795, 0);
-    getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
-    expect(bases[1].hp).toBeLessThan(500);
-  });
-
-  it('Mode2 基地ダメージ (80px 超は無害)', () => {
-    state.gameMode = 2;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const idx = spawnAt(0, 1, 1700, 0);
-    getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
-    expect(bases[1].hp).toBe(500);
-  });
-
+describe('reinforce', () => {
   it('reinforce が呼び出され両チームにユニットが増える', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 2.49;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0);
@@ -302,69 +281,18 @@ describe('!codexOpen: 基地・増援・勝利判定', () => {
     expect(t0).toBeGreaterThan(0);
     expect(t1).toBeGreaterThan(0);
   });
-
-  it('Mode1 勝利: team0 のみ → team0 勝利', () => {
-    state.gameMode = 1;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const idx = spawnAt(0, 1, 0, 0);
-    getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
-    expect(state.winTeam).toBe(0);
-    expect(showWin).toHaveBeenCalled();
-  });
-
-  it('Mode1 勝利: team1 のみ → team1 勝利', () => {
-    state.gameMode = 1;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const idx = spawnAt(1, 1, 0, 0);
-    getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
-    expect(state.winTeam).toBe(1);
-    expect(showWin).toHaveBeenCalled();
-  });
-
-  it('Mode2 勝利: bases[0].hp<=0 → team1 勝利', () => {
-    state.gameMode = 2;
-    bases[0].hp = 0;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    update(0.016, 0);
-    expect(state.winTeam).toBe(1);
-    expect(showWin).toHaveBeenCalled();
-  });
-
-  it('Mode2 勝利: bases[1].hp<=0 → team0 勝利', () => {
-    state.gameMode = 2;
-    bases[1].hp = 0;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    update(0.016, 0);
-    expect(state.winTeam).toBe(0);
-    expect(showWin).toHaveBeenCalled();
-  });
-
-  it('Mode0 (INFINITE): 片方のみでも勝利判定なし', () => {
-    state.gameMode = 0;
-    state.reinforcementTimer = 0;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const idx = spawnAt(0, 1, 0, 0);
-    getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
-    expect(state.winTeam).toBe(-1);
-    expect(showWin).not.toHaveBeenCalled();
-  });
 });
 
 // ============================================================
 // 7. codexOpen 分岐
 // ============================================================
 describe('codexOpen 分岐', () => {
-  it('codexOpen=true → steps 7-10 スキップ + updateCodexDemo 呼出', () => {
+  it('codexOpen=true → reinforce スキップ + updateCodexDemo 呼出', () => {
     state.codexOpen = true;
-    state.gameMode = 1;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
     update(0.016, 0);
-    expect(showWin).not.toHaveBeenCalled();
     expect(updateCodexDemo).toHaveBeenCalled();
   });
 

@@ -77,11 +77,10 @@ function spawnWave(team: Team, cnt: number) {
 }
 
 export function reinforce(dt: number) {
-  if (state.gameMode === 1) return;
   state.reinforcementTimer += dt;
   if (state.reinforcementTimer < 2.5) return;
   state.reinforcementTimer = 0;
-  const lim = state.gameMode === 2 ? 100 : 130;
+  const lim = 130;
   for (const team of TEAMS) {
     const cnt = countAlive(team);
     if (cnt < lim) spawnWave(team, cnt);

@@ -96,13 +96,6 @@ export interface Beam {
   width: number;
 }
 
-export interface Base {
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-}
-
 export interface Camera {
   x: number;
   y: number;
@@ -124,8 +117,7 @@ export interface FBO {
 
 export type Color3 = [number, number, number];
 
-export type GameState = 'menu' | 'play' | 'win';
-export type GameMode = 0 | 1 | 2;
+export type GameState = 'menu' | 'play';
 export type Team = 0 | 1;
 export const TEAMS: readonly [Team, Team] = [0, 1];
 
@@ -138,7 +130,3 @@ export type ProjectileIndex = number & { readonly __brand: 'ProjectileIndex' };
 export const NO_UNIT = -1 as UnitIndex;
 export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
-
-export function enemyTeam(team: Team): Team {
-  return team === 0 ? 1 : 0;
-}

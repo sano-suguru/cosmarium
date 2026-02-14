@@ -23,17 +23,9 @@
     <div id="menu">
       <h1>COSMARIUM</h1>
       <div class="sub">SPACE BATTLE SIMULATION</div>
-      <button class="mbtn" id="btnInfinite">
-        INFINITE
-        <div class="desc">永遠に続く戦争。増援が自動で到着</div>
-      </button>
-      <button class="mbtn" id="btnAnnihilation">
-        ANNIHILATION
-        <div class="desc">相手の全ユニットを殲滅せよ</div>
-      </button>
-      <button class="mbtn" id="btnBaseAssault">
-        BASE ASSAULT
-        <div class="desc">敵の拠点を破壊しつつ自拠点を守れ</div>
+      <button class="mbtn" id="btnStart">
+        START
+        <div class="desc">永遠に続く宇宙戦争シミュレーション</div>
       </button>
       <button class="mbtn" id="codexMenuBtn">
         CODEX
@@ -53,15 +45,9 @@
         <span class="hl">FPS:</span> <span id="fps">0</span> <span class="hl" style="margin-left: 8px">SPD:</span>
         <span id="spdV">0.55x</span>
       </div>
-      <div id="baseHP" style="display: none">
-        <span class="hl">BASE:</span>
-        <span class="hc" id="bA">100%</span>
-        <span class="hl">vs</span>
-        <span class="hm" id="bB">100%</span>
-      </div>
+      <button class="mbtn" id="btnMenu" style="display: none">MENU</button>
     </div>
 
-    <div id="objective" style="display: none"></div>
     <button id="codexBtn" style="display: none">TAB: CODEX</button>
 
     <div id="codex">
@@ -87,11 +73,6 @@
     </div>
 
     <div id="minimap" style="display: none"></div>
-
-    <div id="win">
-      <h2 id="winText"></h2>
-      <button class="mbtn" id="btnMenu">MENU</button>
-    </div>
 
     <div id="controls" style="display: none">
       [ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ TAB: Codex ] [ +/-: Speed ]

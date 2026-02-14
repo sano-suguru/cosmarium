@@ -2,8 +2,6 @@ import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
-import { bases, state } from '../state.ts';
-import { TEAMS } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
@@ -83,23 +81,6 @@ export function drawMinimap() {
     H = viewport.H;
 
   writeMinimapInstance(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
-
-  if (state.gameMode === 2) {
-    for (const tm of TEAMS) {
-      const b = bases[tm];
-      writeMinimapInstance(
-        b.x * S,
-        b.y * S,
-        0.05,
-        0,
-        tm === 0 ? 0 : 1,
-        tm === 0 ? 0.784 : 0.392,
-        tm === 0 ? 1 : 0.784,
-        0.6,
-        0,
-      );
-    }
-  }
 
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = getUnit(i);

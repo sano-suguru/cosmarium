@@ -1,6 +1,6 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { bases, beams, state } from '../state.ts';
+import { beams } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -10,18 +10,8 @@ export function initUnits() {
   for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
   resetPoolCounts();
   beams.length = 0;
-  bases[0].hp = bases[0].maxHp;
-  bases[1].hp = bases[1].maxHp;
 
   const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
-  if (state.gameMode === 1) {
-    for (let i = 0; i < n.length; i++) {
-      const v = n[i];
-      if (v === undefined) throw new RangeError(`Invalid n index: ${i}`);
-      n[i] = Math.ceil(v * 0.7);
-    }
-  }
-
   for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;
     const cy = team === 0 ? -300 : 300;

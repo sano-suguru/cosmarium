@@ -1,11 +1,10 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { bases, beams, getBeam, state } from '../state.ts';
+import { beams, getBeam, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
-import { enemyTeam, NO_UNIT } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
-import { showWin } from '../ui/game-control.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
@@ -155,50 +154,6 @@ function updateBeams(dt: number) {
   }
 }
 
-function applyBaseDamage(dt: number) {
-  for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
-    const u = getUnit(i);
-    if (!u.alive) continue;
-    urem--;
-    const eb = bases[enemyTeam(u.team)];
-    const d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
-    if (d < 80) {
-      eb.hp -= getUnitType(u.type).damage * dt * 3;
-      if (eb.hp < 0) eb.hp = 0;
-    }
-  }
-}
-
-// ⚠ showWin() → closeCodex() → teardownCodexDemo() → killUnit/killParticle/killProjectile
-// simulation → UI → pool mutation のチェーン。killed ユニットは alive=false になるだけで
-// プール位置は不変のため、同フレーム内の後続ループでは !alive で安全にスキップされる。
-function checkWinConditions() {
-  if (state.gameMode === 1) {
-    let ac = 0,
-      bc = 0;
-    for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
-      const u = getUnit(i);
-      if (!u.alive) continue;
-      urem--;
-      if (u.team === 0) ac++;
-      else bc++;
-    }
-    if (ac === 0 || bc === 0) {
-      state.winTeam = ac === 0 ? 1 : 0;
-      showWin();
-    }
-  }
-  if (state.gameMode === 2) {
-    if (bases[0].hp <= 0) {
-      state.winTeam = 1;
-      showWin();
-    } else if (bases[1].hp <= 0) {
-      state.winTeam = 0;
-      showWin();
-    }
-  }
-}
-
 function updateUnits(dt: number, now: number) {
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
     const u = getUnit(i);
@@ -240,9 +195,7 @@ export function update(rawDt: number, now: number) {
   updateBeams(dt);
 
   if (!state.codexOpen) {
-    if (state.gameMode === 2) applyBaseDamage(dt);
     reinforce(dt);
-    checkWinConditions();
   } else {
     updateCodexDemo(dt);
   }

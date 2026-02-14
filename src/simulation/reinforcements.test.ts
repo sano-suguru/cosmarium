@@ -12,18 +12,7 @@ afterEach(() => {
 });
 
 describe('reinforce', () => {
-  it('gameMode===1 (ANNIHILATION) → 何もしない', () => {
-    state.gameMode = 1;
-    state.reinforcementTimer = 3.0;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    reinforce(1.0);
-    expect(poolCounts.unitCount).toBe(0);
-    // gameMode===1 では reinforcementTimer 更新前に即 return
-    expect(state.reinforcementTimer).toBe(3.0);
-  });
-
   it('reinforcementTimer < 2.5 → スポーンなし（タイマー蓄積のみ）', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 0;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     reinforce(1.0);
@@ -32,7 +21,6 @@ describe('reinforce', () => {
   });
 
   it('dt累積で2.5sに到達 → スポーン発動', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 0;
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(1.0);
@@ -44,7 +32,6 @@ describe('reinforce', () => {
   });
 
   it('reinforcementTimer >= 2.5 → タイマーリセット + スポーン実行', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 2.0;
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(0.6); // rT = 2.6 >= 2.5
@@ -52,9 +39,7 @@ describe('reinforce', () => {
     expect(poolCounts.unitCount).toBeGreaterThan(0);
   });
 
-  // 以下のテストは reinforce() 内の確率テーブルに依存（r の閾値でユニット種が決定される）
   it('最低 Drone×5 + Fighter×2 が両チームにスポーン (r=0.99)', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 2.5;
     // r=0.99 だとほとんどの条件付きスポーンがスキップされる
     // r > 0.95 のみ: Chain Bolt がスポーン
@@ -65,7 +50,6 @@ describe('reinforce', () => {
   });
 
   it('r < 0.1 かつ cnt < 50 で Flagship がスポーンする', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 2.5;
     // reinforce() 内の確率テーブル: r<0.1 → Flagship (cnt<50 条件付き)
     vi.spyOn(Math, 'random').mockReturnValue(0.05);
@@ -85,9 +69,7 @@ describe('reinforce', () => {
     expect(hasFlagship).toBe(true);
   });
 
-  it('gameMode===2 → 閾値100, gameMode===0 → 閾値130', () => {
-    // gameMode===0: 閾値130 → 130体以上なら新規スポーンなし
-    state.gameMode = 0;
+  it('閾値130体以上でスポーンなし', () => {
     state.reinforcementTimer = 2.5;
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     // チーム0に130体配置
@@ -98,19 +80,7 @@ describe('reinforce', () => {
     expect(poolCounts.unitCount).toBe(130 + 8);
   });
 
-  it('gameMode===2 → 閾値100（100体以上でスポーンなし）', () => {
-    state.gameMode = 2;
-    state.reinforcementTimer = 2.5;
-    vi.spyOn(Math, 'random').mockReturnValue(0.99);
-    // チーム0に100体配置
-    for (let i = 0; i < 100; i++) spawnAt(0, 0, i * 20, 0);
-    reinforce(0.1);
-    // チーム0は閾値以上、チーム1だけスポーン
-    expect(poolCounts.unitCount).toBe(100 + 8);
-  });
-
   it('両チーム (0, 1) にそれぞれスポーンされる', () => {
-    state.gameMode = 0;
     state.reinforcementTimer = 2.5;
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
     reinforce(0.1);

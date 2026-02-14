@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -126,32 +125,6 @@ describe('steer — RAM型', () => {
     steer(getUnit(ram), 0.033);
     // ターゲットはx正方向なので、vxが正方向に増加
     expect(getUnit(ram).vx).toBeGreaterThan(0);
-  });
-});
-
-describe('steer — Mode 2 フォールバック', () => {
-  it('tgt<0 → 敵基地方向に力', () => {
-    state.gameMode = 2;
-    const ally = spawnAt(0, 1, 0, 0); // team 0 → 敵基地 = bases[1] (x=1800)
-    getUnit(ally).target = NO_UNIT;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    for (let i = 0; i < 50; i++) steer(getUnit(ally), 0.033);
-    // team 0 → bases[1].x = 1800 なので右方向に移動
-    expect(getUnit(ally).x).toBeGreaterThan(0);
-  });
-
-  it('team=1 → bases[0] (x=-1800) 方向に力', () => {
-    state.gameMode = 2;
-    const ally = spawnAt(1, 1, 0, 0); // team 1 → 敵基地 = bases[0] (x=-1800)
-    getUnit(ally).target = NO_UNIT;
-    // wanderAngle=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
-    getUnit(ally).wanderAngle = Math.PI;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    for (let i = 0; i < 50; i++) steer(getUnit(ally), 0.033);
-    // team 1 → bases[0].x = -1800 なので左方向に移動
-    expect(getUnit(ally).x).toBeLessThan(0);
   });
 });
 

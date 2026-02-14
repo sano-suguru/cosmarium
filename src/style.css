@@ -96,18 +96,6 @@ canvas#c {
   color: #f0f;
 }
 
-#objective {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  color: #fc0;
-  font-size: 13px;
-  text-shadow: 0 0 10px #fc0;
-  pointer-events: none;
-  letter-spacing: 2px;
-}
 #controls {
   position: fixed;
   bottom: 12px;
@@ -338,23 +326,4 @@ canvas#c {
   border-radius: 3px;
   width: 160px;
   height: 160px;
-}
-#win {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  background: rgba(0, 0, 0, 0.85);
-}
-#win h2 {
-  font-size: 36px;
-  text-shadow: 0 0 30px;
-  letter-spacing: 6px;
-  margin-bottom: 20px;
-}
-#win .mbtn {
-  min-width: 200px;
 }

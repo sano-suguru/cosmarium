@@ -1,8 +1,7 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { bases, state } from '../state.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
-import { enemyTeam, NO_UNIT } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
@@ -169,12 +168,6 @@ export function steer(u: Unit, dt: number) {
 
   const tgt = findTarget(u, nn, t.range);
   u.target = tgt;
-
-  if (state.gameMode === 2 && tgt === NO_UNIT) {
-    const eb = bases[enemyTeam(u.team)];
-    fx += (eb.x - u.x) * 0.03;
-    fy += (eb.y - u.y) * 0.03;
-  }
 
   const engage = computeEngagementForce(u, tgt, t, dt);
   fx += engage.x;

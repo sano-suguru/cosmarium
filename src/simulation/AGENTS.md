@@ -5,7 +5,7 @@
 ## Tick順序（update.ts）
 
 1-6は常時実行: `buildHash()` → per unit(`shielded=false` → `steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → reflector pass → projectile pass → particle pass → beam pass
-7-10は`!codexOpen`時のみ: base damage(mode=2) → `reinforce(dt)` → win checks。codexOpen時は`updateCodexDemo(dt)`実行。
+7は`!codexOpen`時のみ: `reinforce(dt)`。codexOpen時は`updateCodexDemo(dt)`実行。
 
 **重要**: Reflector付与(step 3)はcombat(step 2)の後→shieldedは次フレームで有効。
 
@@ -21,7 +21,7 @@
 力の合成: `fx/fy`に各力加算→角速度`u.angle`に反映。stun時: vx/vy\*=0.93、steering力スキップ。Boids3要素(Separation/Alignment/Cohesion)。ターゲット: 近傍→1.2%全域スキャン→wanderAngle。境界力: `WORLD_SIZE*0.8`超で押し戻し。
 
 ### 増援変更
-確率テーブルは`reinforcements.ts`参照。単一乱数`r`で複数タイプ同時spawn可能。低ユニット数ゲート(`cnt<50`/`cnt<40`)で劣勢チームのみ強力ユニット出現。mode=1は増援なし。
+確率テーブルは`reinforcements.ts`参照。単一乱数`r`で複数タイプ同時spawn可能。低ユニット数ゲート(`cnt<50`/`cnt<40`)で劣勢チームのみ強力ユニット出現。
 
 ## Critical Gotchas
 

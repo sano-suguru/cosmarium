@@ -1,15 +1,11 @@
 import { cam } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { state } from '../state.ts';
-import type { GameMode } from '../types.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { closeCodex, initCodexDOM, toggleCodex } from './codex.ts';
 import {
-  DOM_ID_BASE_HP,
-  DOM_ID_BTN_ANNIHILATION,
-  DOM_ID_BTN_BASE_ASSAULT,
-  DOM_ID_BTN_INFINITE,
   DOM_ID_BTN_MENU,
+  DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
   DOM_ID_CODEX_MENU_BTN,
@@ -17,11 +13,8 @@ import {
   DOM_ID_HUD,
   DOM_ID_MENU,
   DOM_ID_MINIMAP,
-  DOM_ID_OBJECTIVE,
   DOM_ID_SPD_VALUE,
   DOM_ID_SPEED,
-  DOM_ID_WIN,
-  DOM_ID_WIN_TEXT,
 } from './dom-ids.ts';
 
 let elMenu: HTMLElement | null = null;
@@ -31,10 +24,7 @@ let elMinimap: HTMLElement | null = null;
 let elControls: HTMLElement | null = null;
 let elSpeed: HTMLElement | null = null;
 let elSpdValue: HTMLElement | null = null;
-let elWin: HTMLElement | null = null;
-let elWinText: HTMLElement | null = null;
-let elBaseHp: HTMLElement | null = null;
-let elObjective: HTMLElement | null = null;
+let elBtnMenu: HTMLElement | null = null;
 
 function setSpd(v: number) {
   state.timeScale = v;
@@ -44,10 +34,8 @@ function setSpd(v: number) {
   if (elSpdValue) elSpdValue.textContent = `${v}x`;
 }
 
-function startGame(mode: GameMode) {
-  state.gameMode = mode;
+function startGame() {
   state.gameState = 'play';
-  state.winTeam = -1;
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
@@ -57,42 +45,21 @@ function startGame(mode: GameMode) {
   if (elMinimap) elMinimap.style.display = 'block';
   if (elControls) elControls.style.display = 'block';
   if (elSpeed) elSpeed.style.display = 'flex';
-  if (elWin) elWin.style.display = 'none';
-  if (elBaseHp) elBaseHp.style.display = mode === 2 ? 'block' : 'none';
-  if (elObjective) {
-    elObjective.style.display = 'block';
-    const labels: Record<GameMode, string> = {
-      0: 'INFINITE WAR',
-      1: 'ANNIHILATE ALL ENEMIES',
-      2: 'DESTROY ENEMY BASE',
-    };
-    elObjective.textContent = labels[mode];
-  }
+  if (elBtnMenu) elBtnMenu.style.display = 'block';
   initUnits();
-}
-
-export function showWin() {
-  closeCodex();
-  state.gameState = 'win';
-  if (elWin) elWin.style.display = 'flex';
-  if (elWinText) {
-    elWinText.textContent = state.winTeam === 0 ? 'CYAN VICTORY' : 'MAGENTA VICTORY';
-    elWinText.style.color = state.winTeam === 0 ? '#0ff' : '#f0f';
-  }
 }
 
 function backToMenu() {
   closeCodex();
   state.gameState = 'menu';
   if (elMenu) elMenu.style.display = 'flex';
-  const els = [elHud, elCodexBtn, elMinimap, elControls, elObjective, elWin, elSpeed];
+  const els = [elHud, elCodexBtn, elMinimap, elControls, elSpeed, elBtnMenu];
   for (const el of els) {
     if (el) el.style.display = 'none';
   }
 }
 
 function handleCodexToggle() {
-  if (state.gameState === 'win') return;
   toggleCodex();
   if (state.gameState === 'menu') {
     if (elMenu) elMenu.style.display = state.codexOpen ? 'none' : 'flex';
@@ -126,23 +93,15 @@ export function initUI() {
   elControls = document.getElementById(DOM_ID_CONTROLS);
   elSpeed = document.getElementById(DOM_ID_SPEED);
   elSpdValue = document.getElementById(DOM_ID_SPD_VALUE);
-  elWin = document.getElementById(DOM_ID_WIN);
-  elWinText = document.getElementById(DOM_ID_WIN_TEXT);
-  elBaseHp = document.getElementById(DOM_ID_BASE_HP);
-  elObjective = document.getElementById(DOM_ID_OBJECTIVE);
 
-  const elBtnInfinite = document.getElementById(DOM_ID_BTN_INFINITE);
-  const elBtnAnnihilation = document.getElementById(DOM_ID_BTN_ANNIHILATION);
-  const elBtnBaseAssault = document.getElementById(DOM_ID_BTN_BASE_ASSAULT);
+  const elBtnStart = document.getElementById(DOM_ID_BTN_START);
   const elCodexClose = document.getElementById(DOM_ID_CODEX_CLOSE);
   const elCodexMenuBtn = document.getElementById(DOM_ID_CODEX_MENU_BTN);
-  const elBtnMenu = document.getElementById(DOM_ID_BTN_MENU);
+  elBtnMenu = document.getElementById(DOM_ID_BTN_MENU);
 
   {
     const entries: [string, HTMLElement | null][] = [
-      [DOM_ID_BTN_INFINITE, elBtnInfinite],
-      [DOM_ID_BTN_ANNIHILATION, elBtnAnnihilation],
-      [DOM_ID_BTN_BASE_ASSAULT, elBtnBaseAssault],
+      [DOM_ID_BTN_START, elBtnStart],
       [DOM_ID_CODEX_BTN, elCodexBtn],
       [DOM_ID_CODEX_CLOSE, elCodexClose],
       [DOM_ID_CODEX_MENU_BTN, elCodexMenuBtn],
@@ -153,10 +112,6 @@ export function initUI() {
       [DOM_ID_CONTROLS, elControls],
       [DOM_ID_SPEED, elSpeed],
       [DOM_ID_SPD_VALUE, elSpdValue],
-      [DOM_ID_WIN, elWin],
-      [DOM_ID_WIN_TEXT, elWinText],
-      [DOM_ID_BASE_HP, elBaseHp],
-      [DOM_ID_OBJECTIVE, elObjective],
     ];
     const missing = entries.filter(([, el]) => !el).map(([id]) => id);
     if (missing.length > 0) {
@@ -164,14 +119,8 @@ export function initUI() {
     }
   }
 
-  elBtnInfinite?.addEventListener('click', () => {
-    startGame(0);
-  });
-  elBtnAnnihilation?.addEventListener('click', () => {
-    startGame(1);
-  });
-  elBtnBaseAssault?.addEventListener('click', () => {
-    startGame(2);
+  elBtnStart?.addEventListener('click', () => {
+    startGame();
   });
 
   elCodexBtn?.addEventListener('click', () => {
