@@ -3,6 +3,7 @@ import { getUnit } from '../pools.ts';
 import { state } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
+import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
 
 // Reinforcement spawn probability distribution:
@@ -17,20 +18,36 @@ interface ReinforcementEntry {
   readonly condition: (r: number, cnt: number) => boolean;
 }
 
+const DRONE = unitTypeIndex('Drone');
+const FIGHTER = unitTypeIndex('Fighter');
+const BOMBER = unitTypeIndex('Bomber');
+const CRUISER = unitTypeIndex('Cruiser');
+const FLAGSHIP = unitTypeIndex('Flagship');
+const HEALER = unitTypeIndex('Healer');
+const REFLECTOR = unitTypeIndex('Reflector');
+const CARRIER = unitTypeIndex('Carrier');
+const SNIPER = unitTypeIndex('Sniper');
+const RAM = unitTypeIndex('Ram');
+const MISSILE = unitTypeIndex('Missile');
+const EMP = unitTypeIndex('EMP');
+const BEAM_FRIG = unitTypeIndex('Beam Frig.');
+const TELEPORTER = unitTypeIndex('Teleporter');
+const CHAIN_BOLT = unitTypeIndex('Chain Bolt');
+
 const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
-  { type: 2, spread: 80, condition: (r) => r < 0.5 }, // Bomber — 50%
-  { type: 3, spread: 80, condition: (r) => r < 0.4 }, // Cruiser — 40%
-  { type: 4, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // Flagship — 10% (losing)
-  { type: 5, spread: 60, condition: (r) => r > 0.2 && r < 0.35 }, // Healer — 15%
-  { type: 6, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // Reflector — 15%
-  { type: 7, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // Carrier — 18% (losing)
-  { type: 8, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // Sniper — 15%
-  { type: 9, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // Ram — 12%
-  { type: 10, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // Missile — 15%
-  { type: 11, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // EMP — 10%
-  { type: 12, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // Beam Frig — 13%
-  { type: 13, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // Teleporter — 8%
-  { type: 14, spread: 60, condition: (r) => r > 0.95 }, // Chain Bolt — 5%
+  { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
+  { type: CRUISER, spread: 80, condition: (r) => r < 0.4 }, // 40%
+  { type: FLAGSHIP, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // 10% (losing)
+  { type: HEALER, spread: 60, condition: (r) => r > 0.2 && r < 0.35 }, // 15%
+  { type: REFLECTOR, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // 15%
+  { type: CARRIER, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // 18% (losing)
+  { type: SNIPER, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // 15%
+  { type: RAM, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
+  { type: MISSILE, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
+  { type: EMP, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
+  { type: BEAM_FRIG, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
+  { type: TELEPORTER, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
+  { type: CHAIN_BOLT, spread: 60, condition: (r) => r > 0.95 }, // 5%
 ];
 
 function countAlive(team: Team): number {
@@ -49,8 +66,8 @@ function spawnWave(team: Team, cnt: number) {
   const s = (tp: number, spread: number) => {
     spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
   };
-  for (let i = 0; i < 5; i++) s(0, 100); // Drone ×5 — always
-  for (let i = 0; i < 2; i++) s(1, 80); // Fighter ×2 — always
+  for (let i = 0; i < 5; i++) s(DRONE, 100);
+  for (let i = 0; i < 2; i++) s(FIGHTER, 80);
   for (let i = 0; i < REINFORCEMENT_TABLE.length; i++) {
     const entry = REINFORCEMENT_TABLE[i];
     if (entry?.condition(r, cnt)) {

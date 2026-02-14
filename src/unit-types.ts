@@ -245,3 +245,10 @@ export function getUnitType(id: number): UnitType {
   if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
   return t;
 }
+
+/** TYPES配列のnameからインデックスを導出する。存在しない名前はコンパイル時に弾けないためランタイムエラー */
+export function unitTypeIndex(name: string): number {
+  const idx = TYPES.findIndex((t) => t.name === name);
+  if (idx === -1) throw new RangeError(`Unknown unit type name: ${name}`);
+  return idx;
+}
