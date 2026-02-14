@@ -169,6 +169,7 @@ export function updateCodexDemo(dt: number) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
+    // 両チームをヒール: 展示ユニット(team 0)が倒されるのを防ぎ、敵(team 1)はサンドバッグとして維持する
     u.hp = Math.min(u.maxHp, u.hp + dt * 2);
   }
 }

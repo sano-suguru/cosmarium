@@ -62,6 +62,7 @@ function frame(now: number) {
   }
 
   if (state.codexOpen) {
+    // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
     update(dt, t);
     renderFrame(t);
   } else if (state.gameState === 'play') {

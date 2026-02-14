@@ -71,7 +71,10 @@ function renderUnits(now: number) {
     writeInstance(u.x, u.y, ut.size, c[0] * flash * sf, c[1] * flash * sf, c[2] * flash * sf, 0.9, u.angle, ut.shape);
     if (ut.size >= 10 && hr < 1) {
       const bw = ut.size * 1.5;
-      writeInstance(u.x - bw * 0.5 + bw * hr * 0.5, u.y - ut.size * 1.3, bw * hr * 0.5, 1 - hr, hr, 0.2, 0.55, 0, 0);
+      const barY = u.y - ut.size * 1.3;
+      writeInstance(u.x, barY, bw * 0.5, 0.08, 0.08, 0.08, 0.25, 0, 21);
+      const hpW = bw * hr;
+      writeInstance(u.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, 0.2, 0.55, 0, 21);
     }
     if (u.vet >= 1) writeInstance(u.x + ut.size * 1.1, u.y - ut.size * 1.1, 2, 1, 1, 0.3, 0.8, now * 3, 7);
     if (u.vet >= 2) writeInstance(u.x + ut.size * 1.1 + 5, u.y - ut.size * 1.1, 2, 1, 0.5, 0.3, 0.8, now * 3, 7);
@@ -94,7 +97,10 @@ function renderBases(now: number) {
     writeInstance(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
     writeInstance(b.x, b.y, 60, bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3, 0.2 + Math.sin(now * 3) * 0.1, now * -0.1, 10);
     const bw = 50;
-    writeInstance(b.x - bw * 0.5 + bw * hr * 0.5, b.y - 65, bw * hr * 0.5, 1 - hr, hr, 0.2, 0.7, 0, 0);
+    const barY = b.y - 65;
+    writeInstance(b.x, barY, bw * 0.5, 0.08, 0.08, 0.08, 0.35, 0, 21);
+    const hpW = bw * hr;
+    writeInstance(b.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, 0.2, 0.7, 0, 21);
   }
 }
 
