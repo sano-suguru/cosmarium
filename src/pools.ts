@@ -48,7 +48,7 @@ export function setUnitCountForTest(n: number) {
 /*
  * プール配列への安全なアクセサ — noUncheckedIndexedAccess 下で
  * undefined チェックを集約し、不正 index には throw で防御する。
- * state.ts の getAsteroid / getBeam も同じパターンに統一済み。
+ * state.ts の getBeam も同じパターンに統一済み。
  */
 export function getUnit(i: number): Unit {
   const u = unitPool[i];

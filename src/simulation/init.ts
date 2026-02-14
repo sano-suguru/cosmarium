@@ -1,21 +1,8 @@
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { asteroids, bases, beams, state } from '../state.ts';
+import { bases, beams, state } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { spawnUnit } from './spawn.ts';
-
-function genAsteroids() {
-  asteroids.length = 0;
-  for (let i = 0; i < 40; i++) {
-    asteroids.push({
-      x: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
-      y: (Math.random() - 0.5) * WORLD_SIZE * 1.4,
-      radius: 20 + Math.random() * 60,
-      angle: Math.random() * 6.28,
-      angularVelocity: (0.02 + Math.random() * 0.03) * (Math.random() < 0.5 ? 1 : -1),
-    });
-  }
-}
 
 export function initUnits() {
   for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
@@ -25,7 +12,6 @@ export function initUnits() {
   beams.length = 0;
   bases[0].hp = bases[0].maxHp;
   bases[1].hp = bases[1].maxHp;
-  genAsteroids();
 
   const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
   if (state.gameMode === 1) {

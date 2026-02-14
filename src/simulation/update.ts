@@ -1,7 +1,7 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
+import { bases, beams, getBeam, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
@@ -127,18 +127,7 @@ function updateProjectiles(dt: number) {
       continue;
     }
 
-    const hit = detectProjectileHit(p, i as ProjectileIndex);
-
-    if (!hit && !state.codexOpen) {
-      for (let j = 0; j < asteroids.length; j++) {
-        const ast = getAsteroid(j);
-        if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
-          spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
-          killProjectile(i as ProjectileIndex);
-          break;
-        }
-      }
-    }
+    detectProjectileHit(p, i as ProjectileIndex);
   }
 }
 
@@ -252,10 +241,6 @@ export function update(rawDt: number, now: number) {
 
   if (!state.codexOpen) {
     if (state.gameMode === 2) applyBaseDamage(dt);
-    for (let i = 0; i < asteroids.length; i++) {
-      const ast = getAsteroid(i);
-      ast.angle += ast.angularVelocity * dt;
-    }
     reinforce(dt);
     checkWinConditions();
   } else {

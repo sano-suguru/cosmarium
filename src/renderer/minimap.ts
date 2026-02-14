@@ -2,7 +2,7 @@ import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
-import { asteroids, bases, getAsteroid, state } from '../state.ts';
+import { bases, state } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO } from './buffers.ts';
@@ -83,11 +83,6 @@ export function drawMinimap() {
     H = viewport.H;
 
   writeMinimapInstance(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
-
-  for (let i = 0; i < asteroids.length; i++) {
-    const a = getAsteroid(i);
-    writeMinimapInstance(a.x * S, a.y * S, Math.max(0.008, a.radius * S), 0, 0.31, 0.235, 0.157, 0.4, 0);
-  }
 
   if (state.gameMode === 2) {
     for (const tm of TEAMS) {

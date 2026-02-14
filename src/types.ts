@@ -96,14 +96,6 @@ export interface Beam {
   width: number;
 }
 
-export interface Asteroid {
-  x: number;
-  y: number;
-  radius: number;
-  angle: number;
-  angularVelocity: number;
-}
-
 export interface Base {
   x: number;
   y: number;

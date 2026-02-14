@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { asteroids, bases, beams, getAsteroid, state } from '../state.ts';
+import { bases, beams, state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -243,14 +243,6 @@ describe('projectile pass', () => {
     expect(poolCounts.unitCount).toBe(0);
   });
 
-  it('小惑星衝突で弾が消滅', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
-    spawnProjectile(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0);
-    expect(getProjectile(0).alive).toBe(false);
-  });
-
   it('homing: ターゲット生存時に追尾で曲がる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const target = spawnAt(1, 1, 0, 200);
@@ -275,7 +267,7 @@ describe('projectile pass', () => {
 // ============================================================
 // 6. Steps 7-10: !codexOpen (game mode, win conditions)
 // ============================================================
-describe('!codexOpen: 基地・小惑星・増援・勝利判定', () => {
+describe('!codexOpen: 基地・増援・勝利判定', () => {
   it('Mode2 基地ダメージ (80px 以内)', () => {
     state.gameMode = 2;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -292,12 +284,6 @@ describe('!codexOpen: 基地・小惑星・増援・勝利判定', () => {
     getUnit(idx).trailTimer = 99;
     update(0.016, 0);
     expect(bases[1].hp).toBe(500);
-  });
-
-  it('小惑星が回転する', () => {
-    asteroids.push({ x: 500, y: 500, radius: 30, angle: 0, angularVelocity: 2.0 });
-    update(0.016, 0);
-    expect(getAsteroid(0).angle).toBeCloseTo(0.032);
   });
 
   it('reinforce が呼び出され両チームにユニットが増える', () => {
@@ -380,15 +366,6 @@ describe('codexOpen 分岐', () => {
     update(0.016, 0);
     expect(showWin).not.toHaveBeenCalled();
     expect(updateCodexDemo).toHaveBeenCalled();
-  });
-
-  it('codexOpen=true → 小惑星衝突なし（弾が存続）', () => {
-    state.codexOpen = true;
-    asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    spawnProjectile(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0);
-    expect(getProjectile(0).alive).toBe(true);
   });
 
   it('codexOpen=true → 非デモユニットの steer/combat スキップ', () => {

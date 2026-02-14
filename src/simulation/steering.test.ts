@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { asteroids, state } from '../state.ts';
+import { state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -152,22 +152,6 @@ describe('steer — Mode 2 フォールバック', () => {
     for (let i = 0; i < 50; i++) steer(getUnit(ally), 0.033);
     // team 1 → bases[0].x = -1800 なので左方向に移動
     expect(getUnit(ally).x).toBeLessThan(0);
-  });
-});
-
-describe('steer — 小惑星衝突', () => {
-  it('小惑星と重なった場合、押し戻し + 速度加算', () => {
-    const idx = spawnAt(0, 1, 55, 0);
-    const u = getUnit(idx);
-    u.vx = 0;
-    u.vy = 0;
-    // 小惑星 (x=50, r=40) と ユニット (x=55, size=7) → d=5, a.r+t.size=47 → 重なり
-    asteroids.push({ x: 50, y: 0, radius: 40, angle: 0, angularVelocity: 0 });
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    steer(u, 0.033);
-    // 右方向に押し戻し
-    expect(u.vx).toBeGreaterThan(0);
   });
 });
 

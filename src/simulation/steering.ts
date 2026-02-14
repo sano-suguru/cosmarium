@@ -1,6 +1,6 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { asteroids, bases, getAsteroid, state } from '../state.ts';
+import { bases, state } from '../state.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -151,22 +151,6 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   return _force;
 }
 
-function resolveAsteroidCollisions(u: Unit, size: number) {
-  for (let i = 0; i < asteroids.length; i++) {
-    const a = getAsteroid(i);
-    const dx = u.x - a.x,
-      dy = u.y - a.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < a.radius + size) {
-      const pen = a.radius + size - d;
-      u.x += (dx / d) * pen;
-      u.y += (dy / d) * pen;
-      u.vx += (dx / d) * 50;
-      u.vy += (dy / d) * 50;
-    }
-  }
-}
-
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;
@@ -182,17 +166,6 @@ export function steer(u: Unit, dt: number) {
   const boids = computeBoidsForce(u, nn, t);
   let fx = boids.x,
     fy = boids.y;
-
-  for (let i = 0; i < asteroids.length; i++) {
-    const a = getAsteroid(i);
-    const dx = u.x - a.x,
-      dy = u.y - a.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < a.radius + t.size * 2) {
-      fx += ((dx / d) * 300) / (d + 1);
-      fy += ((dy / d) * 300) / (d + 1);
-    }
-  }
 
   const tgt = findTarget(u, nn, t.range);
   u.target = tgt;
@@ -232,6 +205,4 @@ export function steer(u: Unit, dt: number) {
   u.vy *= 1 - dt * 0.5;
   u.x += u.vx * dt;
   u.y += u.vy * dt;
-
-  resolveAsteroidCollisions(u, t.size);
 }

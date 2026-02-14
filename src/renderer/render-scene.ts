@@ -1,7 +1,7 @@
 import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
-import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
+import { bases, beams, getBeam, state } from '../state.ts';
 import { type Color3, TEAMS } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -81,13 +81,6 @@ function renderUnits(now: number) {
   }
 }
 
-function renderAsteroids() {
-  for (let i = 0; i < asteroids.length; i++) {
-    const a = getAsteroid(i);
-    writeInstance(a.x, a.y, a.radius, 0.12, 0.1, 0.08, 0.7, a.angle, 3);
-  }
-}
-
 function renderBases(now: number) {
   if (state.gameMode !== 2) return;
   for (const tm of TEAMS) {
@@ -159,7 +152,6 @@ export function renderScene(now: number): number {
   _writer.idx = 0;
 
   if (!state.codexOpen) {
-    renderAsteroids();
     renderBases(now);
   }
 

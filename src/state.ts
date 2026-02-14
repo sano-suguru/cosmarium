@@ -1,4 +1,4 @@
-import type { Asteroid, Base, Beam, GameMode, GameState } from './types.ts';
+import type { Base, Beam, GameMode, GameState } from './types.ts';
 
 export interface State {
   gameState: GameState;
@@ -21,13 +21,7 @@ export const state: State = {
 };
 
 export const beams: Beam[] = [];
-export const asteroids: Asteroid[] = [];
 
-export function getAsteroid(i: number): Asteroid {
-  const a = asteroids[i];
-  if (a === undefined) throw new RangeError(`Invalid asteroid index: ${i}`);
-  return a;
-}
 export function getBeam(i: number): Beam {
   const b = beams[i];
   if (b === undefined) throw new RangeError(`Invalid beam index: ${i}`);

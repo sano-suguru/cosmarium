@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
-import { asteroids, bases, beams, state } from './state.ts';
+import { bases, beams, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -86,12 +86,6 @@ describe('mutableオブジェクト', () => {
     expect(beams).toHaveLength(0);
     beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
     expect(beams).toHaveLength(1);
-  });
-
-  it('asteroids は直接操作可能', () => {
-    expect(asteroids).toHaveLength(0);
-    asteroids.push({ x: 100, y: 200, radius: 30, angle: 0, angularVelocity: 0.1 });
-    expect(asteroids).toHaveLength(1);
   });
 
   it('bases は初期構造を持つ (x=±1800, hp=500)', () => {
