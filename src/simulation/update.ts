@@ -4,7 +4,7 @@ import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
-import { updateCatDemo } from '../ui/catalog.ts';
+import { updateCodexDemo } from '../ui/codex.ts';
 import { showWin } from '../ui/game-control.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat } from './combat.ts';
@@ -127,7 +127,7 @@ function updateProjectiles(dt: number) {
 
     const hit = detectProjectileHit(p, i as ProjectileIndex);
 
-    if (!hit && !state.catalogOpen) {
+    if (!hit && !state.codexOpen) {
       for (let j = 0; j < asteroids.length; j++) {
         const ast = getAsteroid(j);
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
@@ -178,7 +178,7 @@ function applyBaseDamage(dt: number) {
   }
 }
 
-// ⚠ showWin() → closeCatalog() → teardownCatDemo() → killUnit/killParticle/killProjectile
+// ⚠ showWin() → closeCodex() → teardownCodexDemo() → killUnit/killParticle/killProjectile
 // simulation → UI → pool mutation のチェーン。killed ユニットは alive=false になるだけで
 // プール位置は不変のため、同フレーム内の後続ループでは !alive で安全にスキップされる。
 function checkWinConditions() {
@@ -243,7 +243,7 @@ export function update(rawDt: number, now: number) {
   updateParticles(dt);
   updateBeams(dt);
 
-  if (!state.catalogOpen) {
+  if (!state.codexOpen) {
     if (state.gameMode === 2) applyBaseDamage(dt);
     for (let i = 0; i < asteroids.length; i++) {
       const ast = getAsteroid(i);
@@ -252,6 +252,6 @@ export function update(rawDt: number, now: number) {
     reinforce(dt);
     checkWinConditions();
   } else {
-    updateCatDemo(dt);
+    updateCodexDemo(dt);
   }
 }

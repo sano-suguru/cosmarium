@@ -6,47 +6,53 @@ import { beams, state } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';
-import { DOM_ID_CAT_DESC, DOM_ID_CAT_LIST, DOM_ID_CAT_NAME, DOM_ID_CAT_STATS, DOM_ID_CATALOG } from './dom-ids.ts';
+import {
+  DOM_ID_CODEX,
+  DOM_ID_CODEX_DESC,
+  DOM_ID_CODEX_LIST,
+  DOM_ID_CODEX_NAME,
+  DOM_ID_CODEX_STATS,
+} from './dom-ids.ts';
 
-// DOM element cache (populated by initCatalogDOM)
-let elCatalog: HTMLElement | null = null;
-let elCatName: HTMLElement | null = null;
-let elCatDesc: HTMLElement | null = null;
-let elCatStats: HTMLElement | null = null;
-let elCatList: HTMLElement | null = null;
+// DOM element cache (populated by initCodexDOM)
+let elCodex: HTMLElement | null = null;
+let elCodexName: HTMLElement | null = null;
+let elCodexDesc: HTMLElement | null = null;
+let elCodexStats: HTMLElement | null = null;
+let elCodexList: HTMLElement | null = null;
 
-let catDemoUnits: UnitIndex[] = [];
-let catDemoTimer = 0;
+let codexDemoUnits: UnitIndex[] = [];
+let codexDemoTimer = 0;
 
-function teardownCatDemo() {
-  for (const idx of catDemoUnits) {
+function teardownCodexDemo() {
+  for (const idx of codexDemoUnits) {
     killUnit(idx);
   }
-  catDemoUnits = [];
-  catDemoTimer = 0;
+  codexDemoUnits = [];
+  codexDemoTimer = 0;
 }
 
-export function closeCatalog() {
-  if (!state.catalogOpen) return;
-  teardownCatDemo();
-  state.catalogOpen = false;
-  if (elCatalog) elCatalog.classList.remove('open');
+export function closeCodex() {
+  if (!state.codexOpen) return;
+  teardownCodexDemo();
+  state.codexOpen = false;
+  if (elCodex) elCodex.classList.remove('open');
 }
 
 function demoHealer() {
   const ai = spawnUnit(0, 1, -60, 0);
   if (ai !== NO_UNIT) {
-    catDemoUnits.push(ai);
+    codexDemoUnits.push(ai);
     getUnit(ai).hp = 3;
   }
   const ai2 = spawnUnit(0, 0, 60, -40);
   if (ai2 !== NO_UNIT) {
-    catDemoUnits.push(ai2);
+    codexDemoUnits.push(ai2);
     getUnit(ai2).hp = 1;
   }
   for (let i = 0; i < 3; i++) {
     const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
@@ -54,7 +60,7 @@ function demoReflector(mi: UnitIndex) {
   for (let i = 0; i < 5; i++) {
     const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
     if (ei !== NO_UNIT) {
-      catDemoUnits.push(ei);
+      codexDemoUnits.push(ei);
       getUnit(ei).target = mi;
     }
   }
@@ -63,7 +69,7 @@ function demoReflector(mi: UnitIndex) {
 function demoCarrier() {
   for (let i = 0; i < 4; i++) {
     const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
@@ -72,28 +78,28 @@ function demoEmp() {
     const a = Math.random() * 6.283,
       r = 80 + Math.random() * 60;
     const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
 function demoChain() {
   for (let i = 0; i < 6; i++) {
     const ei = spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
 function demoTeleporter() {
   for (let i = 0; i < 4; i++) {
     const ei = spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
 function demoRam(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
     const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
   if (mi !== NO_UNIT) getUnit(mi).x = -200;
 }
@@ -105,12 +111,12 @@ function demoDefault(t: UnitType) {
   else cnt = 4;
   for (let i = 0; i < cnt; i++) {
     const ei = spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
-    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
   }
 }
 
-function setupCatDemo(typeIdx: number) {
-  teardownCatDemo();
+function setupCodexDemo(typeIdx: number) {
+  teardownCodexDemo();
 
   for (let i = 0; i < POOL_PARTICLES; i++) {
     if (getParticle(i).alive) {
@@ -127,7 +133,7 @@ function setupCatDemo(typeIdx: number) {
   const t = getUnitType(typeIdx);
   const mi = spawnUnit(0, typeIdx, 0, 0);
   if (mi !== NO_UNIT) {
-    catDemoUnits.push(mi);
+    codexDemoUnits.push(mi);
     getUnit(mi).angle = 0;
   }
 
@@ -141,18 +147,18 @@ function setupCatDemo(typeIdx: number) {
   else demoDefault(t);
 }
 
-export function updateCatDemo(dt: number) {
-  catDemoTimer += dt;
-  if (catDemoTimer > 3) {
-    catDemoTimer = 0;
+export function updateCodexDemo(dt: number) {
+  codexDemoTimer += dt;
+  if (codexDemoTimer > 3) {
+    codexDemoTimer = 0;
     let ec = 0;
-    for (const idx of catDemoUnits) {
+    for (const idx of codexDemoUnits) {
       const unit = getUnit(idx);
       if (unit.alive && unit.team === 1) ec++;
     }
-    if (ec < 2) setupCatDemo(state.catSelected);
+    if (ec < 2) setupCodexDemo(state.codexSelected);
   }
-  for (const idx of catDemoUnits) {
+  for (const idx of codexDemoUnits) {
     const u = getUnit(idx);
     if (!u.alive) continue;
     if (u.team === 0 && !getUnitType(u.type).rams) {
@@ -163,16 +169,16 @@ export function updateCatDemo(dt: number) {
   }
 }
 
-function updateCatPanel() {
-  if (!elCatName || !elCatDesc || !elCatStats) return;
-  const t = getUnitType(state.catSelected);
-  const c0 = getColor(state.catSelected, 0),
-    c1 = getColor(state.catSelected, 1);
+function updateCodexPanel() {
+  if (!elCodexName || !elCodexDesc || !elCodexStats) return;
+  const t = getUnitType(state.codexSelected);
+  const c0 = getColor(state.codexSelected, 0),
+    c1 = getColor(state.codexSelected, 1);
   const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
   const col2 = `rgb(${(c1[0] * 255) | 0},${(c1[1] * 255) | 0},${(c1[2] * 255) | 0})`;
-  elCatName.textContent = t.name;
-  elCatName.style.color = col;
-  elCatDesc.textContent = t.description;
+  elCodexName.textContent = t.name;
+  elCodexName.style.color = col;
+  elCodexDesc.textContent = t.description;
 
   const mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
@@ -188,17 +194,17 @@ function updateCatPanel() {
     frag.appendChild(barOuter);
     return frag;
   };
-  elCatStats.textContent = '';
-  elCatStats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
-  elCatStats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
-  elCatStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
-  elCatStats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
-  elCatStats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
+  elCodexStats.textContent = '';
+  elCodexStats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
+  elCodexStats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
+  elCodexStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
+  elCodexStats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
+  elCodexStats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
   const atkDiv = document.createElement('div');
   atkDiv.style.marginTop = '8px';
   atkDiv.style.color = col;
   atkDiv.textContent = `: ${t.attackDesc}`;
-  elCatStats.appendChild(atkDiv);
+  elCodexStats.appendChild(atkDiv);
   const teamDiv = document.createElement('div');
   teamDiv.style.marginTop = '4px';
   teamDiv.style.fontSize = '9px';
@@ -213,16 +219,16 @@ function updateCatPanel() {
   spanB.style.color = col2;
   spanB.textContent = 'B';
   teamDiv.appendChild(spanB);
-  elCatStats.appendChild(teamDiv);
+  elCodexStats.appendChild(teamDiv);
 }
 
-function buildCatUI() {
-  if (!elCatList) return;
-  const list = elCatList;
+function buildCodexUI() {
+  if (!elCodexList) return;
+  const list = elCodexList;
   list.textContent = '';
   TYPES.forEach((t, i) => {
     const item = document.createElement('div');
-    item.className = `catItem${i === state.catSelected ? ' active' : ''}`;
+    item.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
     const c = getColor(i, 0);
     const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
     const dot = document.createElement('div');
@@ -242,45 +248,45 @@ function buildCatUI() {
     info.appendChild(typeDiv);
     item.appendChild(info);
     item.onclick = ((idx: number) => () => {
-      state.catSelected = idx;
-      buildCatUI();
-      setupCatDemo(idx);
-      updateCatPanel();
+      state.codexSelected = idx;
+      buildCodexUI();
+      setupCodexDemo(idx);
+      updateCodexPanel();
     })(i);
     list.appendChild(item);
   });
 }
 
-export function toggleCat() {
-  if (state.catalogOpen) {
-    closeCatalog();
+export function toggleCodex() {
+  if (state.codexOpen) {
+    closeCodex();
   } else {
-    state.catalogOpen = true;
-    if (elCatalog) elCatalog.classList.add('open');
-    buildCatUI();
-    updateCatPanel();
-    setupCatDemo(state.catSelected);
+    state.codexOpen = true;
+    if (elCodex) elCodex.classList.add('open');
+    buildCodexUI();
+    updateCodexPanel();
+    setupCodexDemo(state.codexSelected);
   }
 }
 
-export function initCatalogDOM() {
-  elCatalog = document.getElementById(DOM_ID_CATALOG);
-  elCatName = document.getElementById(DOM_ID_CAT_NAME);
-  elCatDesc = document.getElementById(DOM_ID_CAT_DESC);
-  elCatStats = document.getElementById(DOM_ID_CAT_STATS);
-  elCatList = document.getElementById(DOM_ID_CAT_LIST);
+export function initCodexDOM() {
+  elCodex = document.getElementById(DOM_ID_CODEX);
+  elCodexName = document.getElementById(DOM_ID_CODEX_NAME);
+  elCodexDesc = document.getElementById(DOM_ID_CODEX_DESC);
+  elCodexStats = document.getElementById(DOM_ID_CODEX_STATS);
+  elCodexList = document.getElementById(DOM_ID_CODEX_LIST);
 
   {
     const entries: [string, HTMLElement | null][] = [
-      [DOM_ID_CATALOG, elCatalog],
-      [DOM_ID_CAT_NAME, elCatName],
-      [DOM_ID_CAT_DESC, elCatDesc],
-      [DOM_ID_CAT_STATS, elCatStats],
-      [DOM_ID_CAT_LIST, elCatList],
+      [DOM_ID_CODEX, elCodex],
+      [DOM_ID_CODEX_NAME, elCodexName],
+      [DOM_ID_CODEX_DESC, elCodexDesc],
+      [DOM_ID_CODEX_STATS, elCodexStats],
+      [DOM_ID_CODEX_LIST, elCodexList],
     ];
     const missing = entries.filter(([, el]) => !el).map(([id]) => id);
     if (missing.length > 0) {
-      throw new Error(`initCatalogDOM: missing DOM elements: ${missing.join(', ')}`);
+      throw new Error(`initCodexDOM: missing DOM elements: ${missing.join(', ')}`);
     }
   }
 }

@@ -27,9 +27,9 @@ export function renderFrame(now: number) {
   const W = viewport.W,
     H = viewport.H;
 
-  const cx = state.catalogOpen ? 0 : cam.x + cam.shakeX;
-  const cy = state.catalogOpen ? 0 : cam.y + cam.shakeY;
-  const cz = state.catalogOpen ? 2.5 : cam.z;
+  const cx = state.codexOpen ? 0 : cam.x + cam.shakeX;
+  const cy = state.codexOpen ? 0 : cam.y + cam.shakeY;
+  const cz = state.codexOpen ? 2.5 : cam.z;
 
   // Render pass 1: scene
   gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFBO.framebuffer);

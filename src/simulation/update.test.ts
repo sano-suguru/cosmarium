@@ -12,11 +12,11 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-vi.mock('../ui/catalog.ts', () => ({
-  updateCatDemo: vi.fn(),
-  setupCatDemo: vi.fn(),
-  buildCatUI: vi.fn(),
-  toggleCat: vi.fn(),
+vi.mock('../ui/codex.ts', () => ({
+  updateCodexDemo: vi.fn(),
+  setupCodexDemo: vi.fn(),
+  buildCodexUI: vi.fn(),
+  toggleCodex: vi.fn(),
 }));
 
 vi.mock('../ui/game-control.ts', () => ({
@@ -28,7 +28,7 @@ vi.mock('../ui/game-control.ts', () => ({
 }));
 
 import { addShake } from '../input/camera.ts';
-import { updateCatDemo } from '../ui/catalog.ts';
+import { updateCodexDemo } from '../ui/codex.ts';
 import { showWin } from '../ui/game-control.ts';
 import { update } from './update.ts';
 
@@ -265,9 +265,9 @@ describe('projectile pass', () => {
 });
 
 // ============================================================
-// 6. Steps 7-10: !catalogOpen (game mode, win conditions)
+// 6. Steps 7-10: !codexOpen (game mode, win conditions)
 // ============================================================
-describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
+describe('!codexOpen: 基地・小惑星・増援・勝利判定', () => {
   it('Mode2 基地ダメージ (80px 以内)', () => {
     state.gameMode = 2;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -363,29 +363,29 @@ describe('!catalogOpen: 基地・小惑星・増援・勝利判定', () => {
 });
 
 // ============================================================
-// 7. catalogOpen 分岐
+// 7. codexOpen 分岐
 // ============================================================
-describe('catalogOpen 分岐', () => {
-  it('catalogOpen=true → steps 7-10 スキップ + updateCatDemo 呼出', () => {
-    state.catalogOpen = true;
+describe('codexOpen 分岐', () => {
+  it('codexOpen=true → steps 7-10 スキップ + updateCodexDemo 呼出', () => {
+    state.codexOpen = true;
     state.gameMode = 1;
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // team0 のみ → !catalogOpen なら勝利判定が発動するはず
+    // team0 のみ → !codexOpen なら勝利判定が発動するはず
     const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
     update(0.016, 0);
     expect(showWin).not.toHaveBeenCalled();
-    expect(updateCatDemo).toHaveBeenCalled();
+    expect(updateCodexDemo).toHaveBeenCalled();
   });
 
-  it('catalogOpen=true → 小惑星衝突なし（弾が存続）', () => {
-    state.catalogOpen = true;
+  it('codexOpen=true → 小惑星衝突なし（弾が存続）', () => {
+    state.codexOpen = true;
     asteroids.push({ x: 100, y: 0, radius: 50, angle: 0, angularVelocity: 0 });
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // 弾を小惑星の中心に配置（!catalogOpen なら消滅するケース）
+    // 弾を小惑星の中心に配置（!codexOpen なら消滅するケース）
     spawnProjectile(100, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
-    // catalogOpen=true → 小惑星衝突チェックがスキップされる
+    // codexOpen=true → 小惑星衝突チェックがスキップされる
     expect(getProjectile(0).alive).toBe(true);
   });
 });

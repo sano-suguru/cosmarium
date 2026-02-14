@@ -4,8 +4,8 @@ export interface State {
   gameState: GameState;
   gameMode: GameMode;
   winTeam: number;
-  catalogOpen: boolean;
-  catSelected: number;
+  codexOpen: boolean;
+  codexSelected: number;
   timeScale: number;
   reinforcementTimer: number;
 }
@@ -14,8 +14,8 @@ export const state: State = {
   gameState: 'menu',
   gameMode: 0,
   winTeam: -1,
-  catalogOpen: false,
-  catSelected: 0,
+  codexOpen: false,
+  codexSelected: 0,
   timeScale: 0.55,
   reinforcementTimer: 0,
 };

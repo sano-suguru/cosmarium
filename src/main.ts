@@ -70,7 +70,7 @@ function frame(now: number) {
     renderFrame(t);
 
     // HUD updates
-    if (!state.catalogOpen) {
+    if (!state.codexOpen) {
       updateHUD(displayFps);
       if (frameCount % 2 === 0) drawMinimap();
     }

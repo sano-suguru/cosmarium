@@ -81,8 +81,8 @@ const stateDefaults: State = {
   gameState: 'menu',
   gameMode: 0,
   winTeam: -1,
-  catalogOpen: false,
-  catSelected: 0,
+  codexOpen: false,
+  codexSelected: 0,
   timeScale: 0.55,
   reinforcementTimer: 0,
 };

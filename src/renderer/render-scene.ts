@@ -101,7 +101,7 @@ function renderEnvironment(now: number) {
 export function renderScene(now: number): number {
   _writer.idx = 0;
 
-  if (!state.catalogOpen) {
+  if (!state.codexOpen) {
     renderEnvironment(now);
   }
 
