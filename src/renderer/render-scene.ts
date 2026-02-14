@@ -78,34 +78,27 @@ function renderUnits(now: number) {
   }
 }
 
-function renderEnvironment(now: number) {
-  // Asteroids
+function renderAsteroids() {
   for (let i = 0; i < asteroids.length; i++) {
     const a = getAsteroid(i);
     writeInstance(a.x, a.y, a.radius, 0.12, 0.1, 0.08, 0.7, a.angle, 3);
   }
-  // Bases
-  if (state.gameMode === 2) {
-    for (const tm of TEAMS) {
-      const b = bases[tm],
-        hr = b.hp / b.maxHp;
-      const bc: Color3 = tm === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
-      writeInstance(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
-      writeInstance(b.x, b.y, 60, bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3, 0.2 + Math.sin(now * 3) * 0.1, now * -0.1, 10);
-      const bw = 50;
-      writeInstance(b.x - bw * 0.5 + bw * hr * 0.5, b.y - 65, bw * hr * 0.5, 1 - hr, hr, 0.2, 0.7, 0, 0);
-    }
+}
+
+function renderBases(now: number) {
+  if (state.gameMode !== 2) return;
+  for (const tm of TEAMS) {
+    const b = bases[tm],
+      hr = b.hp / b.maxHp;
+    const bc: Color3 = tm === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
+    writeInstance(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
+    writeInstance(b.x, b.y, 60, bc[0] * 0.3, bc[1] * 0.3, bc[2] * 0.3, 0.2 + Math.sin(now * 3) * 0.1, now * -0.1, 10);
+    const bw = 50;
+    writeInstance(b.x - bw * 0.5 + bw * hr * 0.5, b.y - 65, bw * hr * 0.5, 1 - hr, hr, 0.2, 0.7, 0, 0);
   }
 }
 
-export function renderScene(now: number): number {
-  _writer.idx = 0;
-
-  if (!state.codexOpen) {
-    renderEnvironment(now);
-  }
-
-  // Particles
+function renderParticles() {
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = getParticle(i);
     if (!p.alive) continue;
@@ -115,8 +108,9 @@ export function renderScene(now: number): number {
     if (shape === 10) size = p.size * (2.2 - al * 1.7);
     writeInstance(p.x, p.y, size, p.r * al, p.g * al, p.b * al, al * 0.8, 0, shape);
   }
+}
 
-  // Beams
+function renderBeams(now: number) {
   for (let i = 0; i < beams.length; i++) {
     const bm = getBeam(i);
     const al = bm.life / bm.maxLife;
@@ -141,8 +135,9 @@ export function renderScene(now: number): number {
       );
     }
   }
+}
 
-  // Projectiles
+function renderProjectiles() {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const pr = getProjectile(i);
     if (!pr.alive) continue;
@@ -152,8 +147,19 @@ export function renderScene(now: number): number {
     else shape = 1;
     writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
+}
 
-  // Units
+export function renderScene(now: number): number {
+  _writer.idx = 0;
+
+  if (!state.codexOpen) {
+    renderAsteroids();
+    renderBases(now);
+  }
+
+  renderParticles();
+  renderBeams(now);
+  renderProjectiles();
   renderUnits(now);
 
   return _writer.idx;

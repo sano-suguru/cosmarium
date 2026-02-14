@@ -24,7 +24,6 @@ import {
   DOM_ID_WIN_TEXT,
 } from './dom-ids.ts';
 
-// DOM element cache (populated by initUI)
 let elMenu: HTMLElement | null = null;
 let elHud: HTMLElement | null = null;
 let elCodexBtn: HTMLElement | null = null;
@@ -93,6 +92,7 @@ function backToMenu() {
 }
 
 function handleCodexToggle() {
+  if (state.gameState === 'win') return;
   toggleCodex();
   if (state.gameState === 'menu') {
     if (elMenu) elMenu.style.display = state.codexOpen ? 'none' : 'flex';
@@ -119,7 +119,6 @@ function stepSpd(dir: number) {
 }
 
 export function initUI() {
-  // Cache DOM elements
   elMenu = document.getElementById(DOM_ID_MENU);
   elHud = document.getElementById(DOM_ID_HUD);
   elCodexBtn = document.getElementById(DOM_ID_CODEX_BTN);
@@ -165,7 +164,6 @@ export function initUI() {
     }
   }
 
-  // Menu buttons
   elBtnInfinite?.addEventListener('click', () => {
     startGame(0);
   });
@@ -176,7 +174,6 @@ export function initUI() {
     startGame(2);
   });
 
-  // Codex buttons
   elCodexBtn?.addEventListener('click', () => {
     handleCodexToggle();
   });
@@ -187,24 +184,18 @@ export function initUI() {
     handleCodexToggle();
   });
 
-  // Win screen
   elBtnMenu?.addEventListener('click', () => {
     backToMenu();
   });
 
-  // Speed buttons
   for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
     btn.addEventListener('click', () => {
       setSpd(Number.parseFloat(btn.dataset.spd || '0.55'));
     });
   }
 
-  // Keyboard shortcuts for codex and speed
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if (
-      (e.code === 'Tab' || e.code === 'Escape') &&
-      (state.gameState === 'play' || state.gameState === 'menu' || state.codexOpen)
-    ) {
+    if ((e.code === 'Tab' || e.code === 'Escape') && (state.gameState === 'play' || state.gameState === 'menu')) {
       e.preventDefault();
       handleCodexToggle();
     }

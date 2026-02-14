@@ -1,6 +1,6 @@
 import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getParticle, getProjectile, getUnit } from '../pools.ts';
+import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { beams, state } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
@@ -14,18 +14,17 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
-// DOM element cache (populated by initCodexDOM)
 let elCodex: HTMLElement | null = null;
 let elCodexName: HTMLElement | null = null;
 let elCodexDesc: HTMLElement | null = null;
 let elCodexStats: HTMLElement | null = null;
 let elCodexList: HTMLElement | null = null;
 
-let codexDemoUnits: UnitIndex[] = [];
 let codexDemoTimer = 0;
 let gameUnitSnapshot: Set<UnitIndex> = new Set();
 
 export function isCodexDemoUnit(idx: UnitIndex): boolean {
+  if (!state.codexOpen) return false;
   return !gameUnitSnapshot.has(idx);
 }
 
@@ -35,7 +34,6 @@ function teardownCodexDemo() {
       killUnit(i as UnitIndex);
     }
   }
-  codexDemoUnits = [];
   codexDemoTimer = 0;
   gameUnitSnapshot = new Set();
 }
@@ -50,17 +48,14 @@ export function closeCodex() {
 function demoHealer() {
   const ai = spawnUnit(0, 1, -60, 0);
   if (ai !== NO_UNIT) {
-    codexDemoUnits.push(ai);
     getUnit(ai).hp = 3;
   }
   const ai2 = spawnUnit(0, 0, 60, -40);
   if (ai2 !== NO_UNIT) {
-    codexDemoUnits.push(ai2);
     getUnit(ai2).hp = 1;
   }
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
   }
 }
 
@@ -68,7 +63,6 @@ function demoReflector(mi: UnitIndex) {
   for (let i = 0; i < 5; i++) {
     const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
     if (ei !== NO_UNIT) {
-      codexDemoUnits.push(ei);
       getUnit(ei).target = mi;
     }
   }
@@ -76,8 +70,7 @@ function demoReflector(mi: UnitIndex) {
 
 function demoCarrier() {
   for (let i = 0; i < 4; i++) {
-    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
   }
 }
 
@@ -85,29 +78,25 @@ function demoEmp() {
   for (let i = 0; i < 8; i++) {
     const a = Math.random() * 6.283,
       r = 80 + Math.random() * 60;
-    const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
   }
 }
 
 function demoChain() {
   for (let i = 0; i < 6; i++) {
-    const ei = spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
   }
 }
 
 function demoTeleporter() {
   for (let i = 0; i < 4; i++) {
-    const ei = spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
   }
 }
 
 function demoRam(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 3, 250, (i - 1) * 80);
   }
   if (mi !== NO_UNIT) getUnit(mi).x = -200;
 }
@@ -118,15 +107,13 @@ function demoDefault(t: UnitType) {
   else if (t.shape === 8) cnt = 2;
   else cnt = 4;
   for (let i = 0; i < cnt; i++) {
-    const ei = spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
-    if (ei !== NO_UNIT) codexDemoUnits.push(ei);
+    spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
   }
 }
 
 function setupCodexDemo(typeIdx: number) {
   teardownCodexDemo();
 
-  // Snapshot alive game units before spawning demo units
   gameUnitSnapshot = new Set();
   for (let i = 0; i < POOL_UNITS; i++) {
     if (getUnit(i).alive) gameUnitSnapshot.add(i as UnitIndex);
@@ -147,7 +134,6 @@ function setupCodexDemo(typeIdx: number) {
   const t = getUnitType(typeIdx);
   const mi = spawnUnit(0, typeIdx, 0, 0);
   if (mi !== NO_UNIT) {
-    codexDemoUnits.push(mi);
     getUnit(mi).angle = 0;
   }
 
@@ -166,15 +152,19 @@ export function updateCodexDemo(dt: number) {
   if (codexDemoTimer > 3) {
     codexDemoTimer = 0;
     let ec = 0;
-    for (const idx of codexDemoUnits) {
-      const unit = getUnit(idx);
-      if (unit.alive && unit.team === 1) ec++;
+    for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+      const u = getUnit(i);
+      if (!u.alive) continue;
+      rem--;
+      if (!gameUnitSnapshot.has(i as UnitIndex) && u.team === 1) ec++;
     }
     if (ec < 2) setupCodexDemo(state.codexSelected);
   }
-  for (const idx of codexDemoUnits) {
-    const u = getUnit(idx);
+  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+    const u = getUnit(i);
     if (!u.alive) continue;
+    rem--;
+    if (gameUnitSnapshot.has(i as UnitIndex)) continue;
     if (u.team === 0 && !getUnitType(u.type).rams) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;

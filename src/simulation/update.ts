@@ -231,11 +231,11 @@ export function update(rawDt: number, now: number) {
 
   updateUnits(dt, now);
 
-  // Reflector shields
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem2--;
+    if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
     if (!getUnitType(u.type).reflects) continue;
     const nn = getNeighbors(u.x, u.y, 100);
     for (let j = 0; j < nn; j++) {
