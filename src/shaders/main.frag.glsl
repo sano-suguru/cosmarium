@@ -43,7 +43,7 @@ void main(){
   else if(sh==20){ float dd=hexDist(vU);
     a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
-    a=smoothstep(1.0,0.85,bx)*smoothstep(0.25,0.15,by)+exp(-by*8.0)*0.15; }
+    a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
 }

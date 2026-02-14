@@ -60,9 +60,10 @@ function renderUnits(now: number) {
     if (ut.size >= 10 && hr < 1) {
       const bw = ut.size * 1.5;
       const barY = u.y - ut.size * 1.3;
-      writeInstance(u.x, barY, bw * 0.5, 0.08, 0.08, 0.08, 0.25, 0, 21);
+      writeInstance(u.x, barY, bw * 0.5, 0.04, 0.05, 0.08, 0.35, 0, 21);
       const hpW = bw * hr;
-      writeInstance(u.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, 0.2, 0.55, 0, 21);
+      const hpB = Math.max(0, (hr - 0.5) * 1.4);
+      writeInstance(u.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, hpB, 0.75, 0, 21);
     }
     if (u.vet >= 1) writeInstance(u.x + ut.size * 1.1, u.y - ut.size * 1.1, 2, 1, 1, 0.3, 0.8, now * 3, 7);
     if (u.vet >= 2) writeInstance(u.x + ut.size * 1.1 + 5, u.y - ut.size * 1.1, 2, 1, 0.5, 0.3, 0.8, now * 3, 7);
