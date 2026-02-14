@@ -33,6 +33,7 @@ export function closeCatalog() {
   if (elCatalog) elCatalog.classList.remove('open');
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: per-unit-type demo setup with many branches
 function setupCatDemo(typeIdx: number) {
   teardownCatDemo();
 
@@ -145,8 +146,8 @@ function updateCatPanel() {
   const t = getUnitType(state.catSelected);
   const c0 = getColor(state.catSelected, 0),
     c1 = getColor(state.catSelected, 1);
-  const col = 'rgb(' + ((c0[0] * 255) | 0) + ',' + ((c0[1] * 255) | 0) + ',' + ((c0[2] * 255) | 0) + ')';
-  const col2 = 'rgb(' + ((c1[0] * 255) | 0) + ',' + ((c1[1] * 255) | 0) + ',' + ((c1[2] * 255) | 0) + ')';
+  const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
+  const col2 = `rgb(${(c1[0] * 255) | 0},${(c1[1] * 255) | 0},${(c1[2] * 255) | 0})`;
   elCatName.textContent = t.name;
   elCatName.style.color = col;
   elCatDesc.textContent = t.description;
@@ -154,12 +155,12 @@ function updateCatPanel() {
   const mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
     const lbl = document.createElement('div');
-    lbl.textContent = label + ': ' + val;
+    lbl.textContent = `${label}: ${val}`;
     frag.appendChild(lbl);
     const barOuter = document.createElement('div');
     barOuter.className = 'cpBar';
     const barInner = document.createElement('div');
-    barInner.style.width = (val / max) * 100 + '%';
+    barInner.style.width = `${(val / max) * 100}%`;
     barInner.style.background = color;
     barOuter.appendChild(barInner);
     frag.appendChild(barOuter);
@@ -174,7 +175,7 @@ function updateCatPanel() {
   const atkDiv = document.createElement('div');
   atkDiv.style.marginTop = '8px';
   atkDiv.style.color = col;
-  atkDiv.textContent = ': ' + t.attackDesc;
+  atkDiv.textContent = `: ${t.attackDesc}`;
   elCatStats.appendChild(atkDiv);
   const teamDiv = document.createElement('div');
   teamDiv.style.marginTop = '4px';
@@ -199,13 +200,13 @@ function buildCatUI() {
   list.textContent = '';
   TYPES.forEach((t, i) => {
     const item = document.createElement('div');
-    item.className = 'catItem' + (i === state.catSelected ? ' active' : '');
+    item.className = `catItem${i === state.catSelected ? ' active' : ''}`;
     const c = getColor(i, 0);
-    const rgb = 'rgb(' + ((c[0] * 255) | 0) + ',' + ((c[1] * 255) | 0) + ',' + ((c[2] * 255) | 0) + ')';
+    const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
     const dot = document.createElement('div');
     dot.className = 'ciDot';
     dot.style.background = rgb;
-    dot.style.boxShadow = '0 0 6px ' + rgb;
+    dot.style.boxShadow = `0 0 6px ${rgb}`;
     item.appendChild(dot);
     const info = document.createElement('div');
     const nameDiv = document.createElement('div');

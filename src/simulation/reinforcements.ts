@@ -9,6 +9,7 @@ import { spawnUnit } from './spawn.ts';
 // for conditional spawns. Ranges overlap intentionally so multiple types
 // can spawn in the same wave. Low-count gates (cnt<50/40) ensure rare
 // powerful units appear only when the team is losing.
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: probability table with many conditions
 export function reinforce(dt: number) {
   if (state.gameMode === 1) return;
   state.reinforcementTimer += dt;

@@ -9,6 +9,7 @@ import { instanceData } from './buffers.ts';
 
 let _instanceOverflowWarned = false;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-pass WebGL renderer inherently complex
 export function renderScene(now: number): number {
   let idx = 0;
 

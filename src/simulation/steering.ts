@@ -6,6 +6,7 @@ import { enemyTeam, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: boids + targeting + boundary forces
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;

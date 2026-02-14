@@ -63,12 +63,12 @@ export function updateHUD(displayFps: number) {
     if (u.team === 0) ca++;
     else cb++;
   }
-  elCountA.textContent = '' + ca;
-  elCountB.textContent = '' + cb;
-  elParticleNum.textContent = '' + (poolCounts.particleCount + poolCounts.projectileCount);
-  elFps.textContent = '' + displayFps;
+  elCountA.textContent = `${ca}`;
+  elCountB.textContent = `${cb}`;
+  elParticleNum.textContent = `${poolCounts.particleCount + poolCounts.projectileCount}`;
+  elFps.textContent = `${displayFps}`;
   if (state.gameMode === 2) {
-    elBaseA.textContent = (((bases[0].hp / bases[0].maxHp) * 100) | 0) + '%';
-    elBaseB.textContent = (((bases[1].hp / bases[1].maxHp) * 100) | 0) + '%';
+    elBaseA.textContent = `${((bases[0].hp / bases[0].maxHp) * 100) | 0}%`;
+    elBaseB.textContent = `${((bases[1].hp / bases[1].maxHp) * 100) | 0}%`;
   }
 }

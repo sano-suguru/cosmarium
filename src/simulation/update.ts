@@ -14,6 +14,7 @@ import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-has
 import { killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: main game loop orchestrating all subsystems
 export function update(rawDt: number, now: number) {
   const dt = Math.min(rawDt, 0.033);
   buildHash();

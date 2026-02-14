@@ -18,6 +18,7 @@ function tgtDistOrClear(u: Unit): number {
   return Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: combat branching is inherently complex
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   const t = getUnitType(u.type);
   if (u.stun > 0) return;

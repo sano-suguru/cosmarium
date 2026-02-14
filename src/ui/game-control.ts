@@ -38,10 +38,10 @@ let elObjective: HTMLElement | null = null;
 
 function setSpd(v: number) {
   state.timeScale = v;
-  document.querySelectorAll('.sbtn').forEach((b) => {
+  for (const b of document.querySelectorAll('.sbtn')) {
     b.classList.toggle('active', Number.parseFloat(b.textContent || '') === v);
-  });
-  if (elSpdValue) elSpdValue.textContent = v + 'x';
+  }
+  if (elSpdValue) elSpdValue.textContent = `${v}x`;
 }
 
 function startGame(mode: GameMode) {
@@ -177,11 +177,11 @@ export function initUI() {
   });
 
   // Speed buttons
-  document.querySelectorAll<HTMLElement>('.sbtn[data-spd]').forEach((btn) => {
+  for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
     btn.addEventListener('click', () => {
       setSpd(Number.parseFloat(btn.dataset.spd || '0.55'));
     });
-  });
+  }
 
   // Keyboard shortcuts for catalog and speed
   addEventListener('keydown', (e: KeyboardEvent) => {
