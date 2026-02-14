@@ -4,7 +4,7 @@ import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
-import { updateCodexDemo } from '../ui/codex.ts';
+import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { showWin } from '../ui/game-control.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat } from './combat.ts';
@@ -208,15 +208,13 @@ function checkWinConditions() {
   }
 }
 
-export function update(rawDt: number, now: number) {
-  const dt = Math.min(rawDt, 0.033);
-  buildHash();
-
+function updateUnits(dt: number, now: number) {
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem--;
     u.shielded = false;
+    if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
     steer(u, dt);
     combat(u, i as UnitIndex, dt, now);
     u.trailTimer -= dt;
@@ -225,6 +223,13 @@ export function update(rawDt: number, now: number) {
       trail(u);
     }
   }
+}
+
+export function update(rawDt: number, now: number) {
+  const dt = Math.min(rawDt, 0.033);
+  buildHash();
+
+  updateUnits(dt, now);
 
   // Reflector shields
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {

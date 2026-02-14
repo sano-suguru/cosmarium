@@ -30,3 +30,4 @@ export const DOM_ID_BTN_INFINITE = 'btnInfinite';
 export const DOM_ID_BTN_ANNIHILATION = 'btnAnnihilation';
 export const DOM_ID_BTN_BASE_ASSAULT = 'btnBaseAssault';
 export const DOM_ID_CODEX_CLOSE = 'codexClose';
+export const DOM_ID_CODEX_MENU_BTN = 'codexMenuBtn';

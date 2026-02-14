@@ -64,16 +64,14 @@ function frame(now: number) {
     cam.shake = 0;
   }
 
-  if (state.gameState === 'play') {
-    update(dt * state.timeScale, t);
-
+  if (state.codexOpen) {
+    update(dt, t);
     renderFrame(t);
-
-    // HUD updates
-    if (!state.codexOpen) {
-      updateHUD(displayFps);
-      if (frameCount % 2 === 0) drawMinimap();
-    }
+  } else if (state.gameState === 'play') {
+    update(dt * state.timeScale, t);
+    renderFrame(t);
+    updateHUD(displayFps);
+    if (frameCount % 2 === 0) drawMinimap();
   }
 
   requestAnimationFrame(frame);

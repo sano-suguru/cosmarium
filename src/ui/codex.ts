@@ -24,6 +24,10 @@ let elCodexList: HTMLElement | null = null;
 let codexDemoUnits: UnitIndex[] = [];
 let codexDemoTimer = 0;
 
+export function isCodexDemoUnit(idx: UnitIndex): boolean {
+  return codexDemoUnits.includes(idx);
+}
+
 function teardownCodexDemo() {
   for (const idx of codexDemoUnits) {
     killUnit(idx);

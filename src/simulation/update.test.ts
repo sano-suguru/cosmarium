@@ -17,6 +17,7 @@ vi.mock('../ui/codex.ts', () => ({
   setupCodexDemo: vi.fn(),
   buildCodexUI: vi.fn(),
   toggleCodex: vi.fn(),
+  isCodexDemoUnit: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('../ui/game-control.ts', () => ({
@@ -28,7 +29,7 @@ vi.mock('../ui/game-control.ts', () => ({
 }));
 
 import { addShake } from '../input/camera.ts';
-import { updateCodexDemo } from '../ui/codex.ts';
+import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { showWin } from '../ui/game-control.ts';
 import { update } from './update.ts';
 
@@ -387,5 +388,37 @@ describe('codexOpen 分岐', () => {
     update(0.016, 0);
     // codexOpen=true → 小惑星衝突チェックがスキップされる
     expect(getProjectile(0).alive).toBe(true);
+  });
+
+  it('codexOpen=true → 非デモユニットの steer/combat スキップ', () => {
+    state.codexOpen = true;
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    // isCodexDemoUnit はデフォルトで false を返す（全ユニットが非デモ扱い）
+    const idx = spawnAt(0, 1, 0, 0);
+    const u = getUnit(idx);
+    u.trailTimer = 99;
+    u.cooldown = 0;
+    const origX = u.x;
+    // team1 ユニットを射程内に配置（steer が走れば target が設定され、combat で弾が出るはず）
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(enemy).trailTimer = 99;
+    update(0.016, 0);
+    // steer/combat がスキップされるので位置変化なし、弾なし
+    expect(u.x).toBe(origX);
+    expect(poolCounts.projectileCount).toBe(0);
+  });
+
+  it('codexOpen=true → デモユニットは steer/combat が走る', () => {
+    state.codexOpen = true;
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    vi.mocked(isCodexDemoUnit).mockReturnValue(true);
+    const idx = spawnAt(0, 1, 0, 0);
+    getUnit(idx).trailTimer = 99;
+    getUnit(idx).cooldown = 0;
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(enemy).trailTimer = 99;
+    update(0.016, 0);
+    // デモユニットはスキップされないので target 設定 or 弾発射が起こる
+    expect(getUnit(idx).target).toBeGreaterThanOrEqual(0);
   });
 });

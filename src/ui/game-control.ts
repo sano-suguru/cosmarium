@@ -12,6 +12,7 @@ import {
   DOM_ID_BTN_MENU,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
+  DOM_ID_CODEX_MENU_BTN,
   DOM_ID_CONTROLS,
   DOM_ID_HUD,
   DOM_ID_MENU,
@@ -91,6 +92,16 @@ function backToMenu() {
   }
 }
 
+function handleCodexToggle() {
+  toggleCodex();
+  if (state.gameState === 'menu') {
+    if (elMenu) elMenu.style.display = state.codexOpen ? 'none' : 'flex';
+  }
+  if (elCodexBtn && state.gameState === 'play') {
+    elCodexBtn.style.display = state.codexOpen ? 'none' : 'block';
+  }
+}
+
 const speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
 
 function unreachable(idx: number): never {
@@ -125,6 +136,7 @@ export function initUI() {
   const elBtnAnnihilation = document.getElementById(DOM_ID_BTN_ANNIHILATION);
   const elBtnBaseAssault = document.getElementById(DOM_ID_BTN_BASE_ASSAULT);
   const elCodexClose = document.getElementById(DOM_ID_CODEX_CLOSE);
+  const elCodexMenuBtn = document.getElementById(DOM_ID_CODEX_MENU_BTN);
   const elBtnMenu = document.getElementById(DOM_ID_BTN_MENU);
 
   {
@@ -134,6 +146,7 @@ export function initUI() {
       [DOM_ID_BTN_BASE_ASSAULT, elBtnBaseAssault],
       [DOM_ID_CODEX_BTN, elCodexBtn],
       [DOM_ID_CODEX_CLOSE, elCodexClose],
+      [DOM_ID_CODEX_MENU_BTN, elCodexMenuBtn],
       [DOM_ID_BTN_MENU, elBtnMenu],
       [DOM_ID_MENU, elMenu],
       [DOM_ID_HUD, elHud],
@@ -165,10 +178,13 @@ export function initUI() {
 
   // Codex buttons
   elCodexBtn?.addEventListener('click', () => {
-    toggleCodex();
+    handleCodexToggle();
   });
   elCodexClose?.addEventListener('click', () => {
-    toggleCodex();
+    handleCodexToggle();
+  });
+  elCodexMenuBtn?.addEventListener('click', () => {
+    handleCodexToggle();
   });
 
   // Win screen
@@ -185,9 +201,12 @@ export function initUI() {
 
   // Keyboard shortcuts for codex and speed
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if ((e.code === 'Tab' || e.code === 'Escape') && state.gameState === 'play') {
+    if (
+      (e.code === 'Tab' || e.code === 'Escape') &&
+      (state.gameState === 'play' || state.gameState === 'menu' || state.codexOpen)
+    ) {
       e.preventDefault();
-      toggleCodex();
+      handleCodexToggle();
     }
     if (state.gameState === 'play') {
       if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
