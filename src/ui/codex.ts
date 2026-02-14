@@ -38,7 +38,7 @@ function teardownCodexDemo() {
   gameUnitSnapshot = new Set();
 }
 
-export function closeCodex() {
+function closeCodex() {
   if (!state.codexOpen) return;
   teardownCodexDemo();
   state.codexOpen = false;
