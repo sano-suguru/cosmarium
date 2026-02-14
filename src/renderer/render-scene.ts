@@ -4,7 +4,7 @@ import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import { beams, getBeam } from '../state.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';
-import { instanceData } from './buffers.ts';
+import { instanceData, writeSlots } from './buffers.ts';
 
 const _writer = { idx: 0, overflowWarned: false };
 
@@ -19,24 +19,13 @@ function writeInstance(
   angle: number,
   shape: number,
 ) {
-  if (_writer.idx >= MAX_INSTANCES) {
-    if (!_writer.overflowWarned) {
-      devWarn(`writeInstance: idx(${_writer.idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);
-      _writer.overflowWarned = true;
-    }
-    return;
+  if (_writer.idx < MAX_INSTANCES) {
+    writeSlots(instanceData, _writer.idx * 9, x, y, size, r, g, b, a, angle, shape);
+    _writer.idx++;
+  } else if (!_writer.overflowWarned) {
+    devWarn(`writeInstance: idx(${_writer.idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);
+    _writer.overflowWarned = true;
   }
-  const B = _writer.idx * 9;
-  instanceData[B] = x;
-  instanceData[B + 1] = y;
-  instanceData[B + 2] = size;
-  instanceData[B + 3] = r;
-  instanceData[B + 4] = g;
-  instanceData[B + 5] = b;
-  instanceData[B + 6] = a;
-  instanceData[B + 7] = angle;
-  instanceData[B + 8] = shape;
-  _writer.idx++;
 }
 
 function renderUnits(now: number) {

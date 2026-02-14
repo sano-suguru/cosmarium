@@ -43,6 +43,30 @@ function setupQuadVAO() {
   gl.bindVertexArray(null);
 }
 
+export function writeSlots(
+  buf: Float32Array,
+  base: number,
+  v0: number,
+  v1: number,
+  v2: number,
+  v3: number,
+  v4: number,
+  v5: number,
+  v6: number,
+  v7: number,
+  v8: number,
+): void {
+  buf[base] = v0;
+  buf[base + 1] = v1;
+  buf[base + 2] = v2;
+  buf[base + 3] = v3;
+  buf[base + 4] = v4;
+  buf[base + 5] = v5;
+  buf[base + 6] = v6;
+  buf[base + 7] = v7;
+  buf[base + 8] = v8;
+}
+
 export function initBuffers() {
   quadBuffer = required(gl.createBuffer(), 'quadBuffer');
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);

@@ -3,7 +3,7 @@ import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
 import { getUnitType } from '../unit-types.ts';
-import { minimapBuffer, minimapData, mmVAO } from './buffers.ts';
+import { minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
@@ -22,16 +22,7 @@ function writeMinimapInstance(
   shape: number,
 ) {
   if (minimapInstanceCount >= MINIMAP_MAX) return;
-  const B = minimapInstanceCount * 9;
-  minimapData[B] = x;
-  minimapData[B + 1] = y;
-  minimapData[B + 2] = sizeX;
-  minimapData[B + 3] = r;
-  minimapData[B + 4] = g;
-  minimapData[B + 5] = b;
-  minimapData[B + 6] = a;
-  minimapData[B + 7] = sizeY;
-  minimapData[B + 8] = shape;
+  writeSlots(minimapData, minimapInstanceCount * 9, x, y, sizeX, r, g, b, a, sizeY, shape);
   minimapInstanceCount++;
 }
 
