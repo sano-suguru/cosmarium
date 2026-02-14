@@ -41,8 +41,7 @@ export function resetPoolCounts() {
   _counts.particleCount = 0;
   _counts.projectileCount = 0;
 }
-/** テスト専用: unitCount を任意値に設定 */
-export function setUnitCount(n: number) {
+export function setUnitCountForTest(n: number) {
   _counts.unitCount = n;
 }
 

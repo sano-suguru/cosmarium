@@ -183,7 +183,6 @@ export function steer(u: Unit, dt: number) {
   let fx = boids.x,
     fy = boids.y;
 
-  // Avoid asteroids
   for (let i = 0; i < asteroids.length; i++) {
     const a = getAsteroid(i);
     const dx = u.x - a.x,
@@ -195,7 +194,6 @@ export function steer(u: Unit, dt: number) {
     }
   }
 
-  // Find target
   const tgt = findTarget(u, nn, t.range);
   u.target = tgt;
 

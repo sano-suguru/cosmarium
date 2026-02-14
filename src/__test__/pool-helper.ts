@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getParticle, getProjectile, getUnit, resetPoolCounts, setUnitCount } from '../pools.ts';
+import { getParticle, getProjectile, getUnit, resetPoolCounts, setUnitCountForTest } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { State } from '../state.ts';
 import { asteroids, bases, beams, state } from '../state.ts';
@@ -74,7 +74,7 @@ export function resetPools() {
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
 export function fillUnitPool() {
   for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = true;
-  setUnitCount(POOL_UNITS);
+  setUnitCountForTest(POOL_UNITS);
 }
 
 const stateDefaults: State = {

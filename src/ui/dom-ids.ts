@@ -1,4 +1,3 @@
-// HUD elements
 export const DOM_ID_COUNT_A = 'cA';
 export const DOM_ID_COUNT_B = 'cB';
 export const DOM_ID_PARTICLE_NUM = 'pN';
@@ -6,14 +5,12 @@ export const DOM_ID_FPS = 'fps';
 export const DOM_ID_BASE_A = 'bA';
 export const DOM_ID_BASE_B = 'bB';
 
-// UI elements
 export const DOM_ID_CODEX = 'codex';
 export const DOM_ID_CODEX_NAME = 'cxName';
 export const DOM_ID_CODEX_DESC = 'cxDesc';
 export const DOM_ID_CODEX_STATS = 'cxStats';
 export const DOM_ID_CODEX_LIST = 'codexList';
 
-// Game control elements
 export const DOM_ID_MENU = 'menu';
 export const DOM_ID_HUD = 'hud';
 export const DOM_ID_CODEX_BTN = 'codexBtn';

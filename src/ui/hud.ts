@@ -11,7 +11,6 @@ import {
   DOM_ID_PARTICLE_NUM,
 } from './dom-ids.ts';
 
-// HUD DOM node cache
 let _hudInitialized = false;
 let elCountA: HTMLElement | null = null;
 let elCountB: HTMLElement | null = null;
