@@ -2,9 +2,8 @@ import { cam } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { state } from '../state.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
-import { closeCodex, initCodexDOM, toggleCodex } from './codex.ts';
+import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
-  DOM_ID_BTN_MENU,
   DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
@@ -24,7 +23,6 @@ let elMinimap: HTMLElement | null = null;
 let elControls: HTMLElement | null = null;
 let elSpeed: HTMLElement | null = null;
 let elSpdValue: HTMLElement | null = null;
-let elBtnMenu: HTMLElement | null = null;
 
 function setSpd(v: number) {
   state.timeScale = v;
@@ -45,18 +43,7 @@ function startGame() {
   if (elMinimap) elMinimap.style.display = 'block';
   if (elControls) elControls.style.display = 'block';
   if (elSpeed) elSpeed.style.display = 'flex';
-  if (elBtnMenu) elBtnMenu.style.display = 'block';
   initUnits();
-}
-
-function backToMenu() {
-  closeCodex();
-  state.gameState = 'menu';
-  if (elMenu) elMenu.style.display = 'flex';
-  const els = [elHud, elCodexBtn, elMinimap, elControls, elSpeed, elBtnMenu];
-  for (const el of els) {
-    if (el) el.style.display = 'none';
-  }
 }
 
 function handleCodexToggle() {
@@ -97,7 +84,6 @@ export function initUI() {
   const elBtnStart = document.getElementById(DOM_ID_BTN_START);
   const elCodexClose = document.getElementById(DOM_ID_CODEX_CLOSE);
   const elCodexMenuBtn = document.getElementById(DOM_ID_CODEX_MENU_BTN);
-  elBtnMenu = document.getElementById(DOM_ID_BTN_MENU);
 
   {
     const entries: [string, HTMLElement | null][] = [
@@ -105,7 +91,6 @@ export function initUI() {
       [DOM_ID_CODEX_BTN, elCodexBtn],
       [DOM_ID_CODEX_CLOSE, elCodexClose],
       [DOM_ID_CODEX_MENU_BTN, elCodexMenuBtn],
-      [DOM_ID_BTN_MENU, elBtnMenu],
       [DOM_ID_MENU, elMenu],
       [DOM_ID_HUD, elHud],
       [DOM_ID_MINIMAP, elMinimap],
@@ -131,10 +116,6 @@ export function initUI() {
   });
   elCodexMenuBtn?.addEventListener('click', () => {
     handleCodexToggle();
-  });
-
-  elBtnMenu?.addEventListener('click', () => {
-    backToMenu();
   });
 
   for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {

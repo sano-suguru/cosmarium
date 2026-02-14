@@ -23,7 +23,6 @@ vi.mock('../ui/codex.ts', () => ({
 vi.mock('../ui/game-control.ts', () => ({
   setSpd: vi.fn(),
   startGame: vi.fn(),
-  backToMenu: vi.fn(),
   initUI: vi.fn(),
 }));
 

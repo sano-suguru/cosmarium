@@ -16,7 +16,6 @@ export const DOM_ID_MINIMAP = 'minimap';
 export const DOM_ID_CONTROLS = 'controls';
 export const DOM_ID_SPEED = 'speed';
 export const DOM_ID_SPD_VALUE = 'spdV';
-export const DOM_ID_BTN_MENU = 'btnMenu';
 export const DOM_ID_BTN_START = 'btnStart';
 export const DOM_ID_CODEX_CLOSE = 'codexClose';
 export const DOM_ID_CODEX_MENU_BTN = 'codexMenuBtn';
