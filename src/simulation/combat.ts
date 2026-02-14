@@ -8,6 +8,8 @@ import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
+const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
+
 interface CombatContext {
   u: Unit;
   ui: UnitIndex;
@@ -288,7 +290,7 @@ function fireBeamAtTarget(ctx: CombatContext, o: Unit) {
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
     let dmg = t.damage * u.beamOn * vd;
-    if (o.shielded) dmg *= 0.4; // 60% reduction under reflector shield
+    if (o.shielded) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     o.hp -= dmg;
     knockback(u.target, u.x, u.y, dmg * 5);
     for (let i = 0; i < 2; i++) {

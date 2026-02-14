@@ -14,6 +14,8 @@ import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-has
 import { killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
+const REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER = 0.3;
+
 function steerHomingProjectile(p: Projectile, dt: number) {
   const tg = getUnit(p.targetIndex);
   if (tg.alive) {
@@ -78,7 +80,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex): boolean {
     const hs = getUnitType(o.type).size;
     if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
       let dmg = p.damage;
-      if (o.shielded) dmg *= 0.3;
+      if (o.shielded) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
       o.hp -= dmg;
       knockback(oi, p.x, p.y, p.damage * 12);
       spawnParticle(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
