@@ -28,6 +28,7 @@ jobs:
           wait
       - name: Check (parallel)
         run: |
+          export PATH="./node_modules/.bin:$HOME/.cargo/bin:$PATH"
           pids=()
           tsc --noEmit & pids+=($!)
           biome ci . & pids+=($!)
@@ -38,8 +39,6 @@ jobs:
           fail=0
           for pid in "${pids[@]}"; do wait "$pid" || fail=1; done
           exit $fail
-        env:
-          PATH: ./node_modules/.bin:${{ env.PATH }}
       - run: bun run build -- --base=/cosmarium/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
