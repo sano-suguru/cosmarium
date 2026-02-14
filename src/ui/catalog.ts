@@ -3,7 +3,7 @@ import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { beams, state } from '../state.ts';
-import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
+import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';
 import { DOM_ID_CAT_DESC, DOM_ID_CAT_LIST, DOM_ID_CAT_NAME, DOM_ID_CAT_STATS, DOM_ID_CATALOG } from './dom-ids.ts';
@@ -33,7 +33,82 @@ export function closeCatalog() {
   if (elCatalog) elCatalog.classList.remove('open');
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: per-unit-type demo setup with many branches
+function demoHealer() {
+  const ai = spawnUnit(0, 1, -60, 0);
+  if (ai !== NO_UNIT) {
+    catDemoUnits.push(ai);
+    getUnit(ai).hp = 3;
+  }
+  const ai2 = spawnUnit(0, 0, 60, -40);
+  if (ai2 !== NO_UNIT) {
+    catDemoUnits.push(ai2);
+    getUnit(ai2).hp = 1;
+  }
+  for (let i = 0; i < 3; i++) {
+    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
+function demoReflector(mi: UnitIndex) {
+  for (let i = 0; i < 5; i++) {
+    const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
+    if (ei !== NO_UNIT) {
+      catDemoUnits.push(ei);
+      getUnit(ei).target = mi;
+    }
+  }
+}
+
+function demoCarrier() {
+  for (let i = 0; i < 4; i++) {
+    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
+function demoEmp() {
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * 6.283,
+      r = 80 + Math.random() * 60;
+    const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
+function demoChain() {
+  for (let i = 0; i < 6; i++) {
+    const ei = spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
+function demoTeleporter() {
+  for (let i = 0; i < 4; i++) {
+    const ei = spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
+function demoRam(mi: UnitIndex) {
+  for (let i = 0; i < 3; i++) {
+    const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+  if (mi !== NO_UNIT) getUnit(mi).x = -200;
+}
+
+function demoDefault(t: UnitType) {
+  let cnt: number;
+  if (t.shape === 3) cnt = 6;
+  else if (t.shape === 8) cnt = 2;
+  else cnt = 4;
+  for (let i = 0; i < cnt; i++) {
+    const ei = spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
+    if (ei !== NO_UNIT) catDemoUnits.push(ei);
+  }
+}
+
 function setupCatDemo(typeIdx: number) {
   teardownCatDemo();
 
@@ -56,67 +131,14 @@ function setupCatDemo(typeIdx: number) {
     getUnit(mi).angle = 0;
   }
 
-  if (t.heals) {
-    const ai = spawnUnit(0, 1, -60, 0);
-    if (ai !== NO_UNIT) {
-      catDemoUnits.push(ai);
-      getUnit(ai).hp = 3;
-    }
-    const ai2 = spawnUnit(0, 0, 60, -40);
-    if (ai2 !== NO_UNIT) {
-      catDemoUnits.push(ai2);
-      getUnit(ai2).hp = 1;
-    }
-    for (let i = 0; i < 3; i++) {
-      const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  } else if (t.reflects) {
-    for (let i = 0; i < 5; i++) {
-      const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
-      if (ei !== NO_UNIT) {
-        catDemoUnits.push(ei);
-        getUnit(ei).target = mi;
-      }
-    }
-  } else if (t.spawns) {
-    for (let i = 0; i < 4; i++) {
-      const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  } else if (t.emp) {
-    for (let i = 0; i < 8; i++) {
-      const a = Math.random() * 6.283,
-        r = 80 + Math.random() * 60;
-      const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  } else if (t.chain) {
-    for (let i = 0; i < 6; i++) {
-      const ei = spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  } else if (t.teleports) {
-    for (let i = 0; i < 4; i++) {
-      const ei = spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  } else if (t.rams) {
-    for (let i = 0; i < 3; i++) {
-      const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-    if (mi !== NO_UNIT) getUnit(mi).x = -200;
-  } else {
-    let cnt: number;
-    if (t.shape === 3) cnt = 6;
-    else if (t.shape === 8) cnt = 2;
-    else cnt = 4;
-    for (let i = 0; i < cnt; i++) {
-      const ei = spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
-      if (ei !== NO_UNIT) catDemoUnits.push(ei);
-    }
-  }
+  if (t.heals) demoHealer();
+  else if (t.reflects) demoReflector(mi);
+  else if (t.spawns) demoCarrier();
+  else if (t.emp) demoEmp();
+  else if (t.chain) demoChain();
+  else if (t.teleports) demoTeleporter();
+  else if (t.rams) demoRam(mi);
+  else demoDefault(t);
 }
 
 export function updateCatDemo(dt: number) {
