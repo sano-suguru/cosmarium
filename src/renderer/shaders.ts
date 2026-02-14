@@ -5,6 +5,8 @@ import mainVertSrc from '../shaders/main.vert.glsl';
 import minimapFragSrc from '../shaders/minimap.frag.glsl';
 import minimapVertSrc from '../shaders/minimap.vert.glsl';
 import quadVertSrc from '../shaders/quad.vert.glsl';
+import { devError, devWarn } from '../ui/dev-overlay.ts';
+import { required } from './utils.ts';
 import { gl } from './webgl-setup.ts';
 
 export let mainProgram: WebGLProgram;
@@ -45,19 +47,27 @@ export let compositeLocations: {
 };
 
 function compileShader(s: string, t: number) {
-  const shader = gl.createShader(t)!;
+  const shader = required(gl.createShader(t), 'createShader');
   gl.shaderSource(shader, s);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(shader));
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(shader) ?? 'unknown error';
+    devError(log);
+    throw new Error(`Shader compile failed: ${log}`);
+  }
   return shader;
 }
 
 function createProgram(v: string, f: string) {
-  const p = gl.createProgram()!;
+  const p = required(gl.createProgram(), 'createProgram');
   gl.attachShader(p, compileShader(v, gl.VERTEX_SHADER));
   gl.attachShader(p, compileShader(f, gl.FRAGMENT_SHADER));
   gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    const log = gl.getProgramInfoLog(p) ?? 'unknown error';
+    devError(log);
+    throw new Error(`Program link failed: ${log}`);
+  }
   return p;
 }
 
@@ -110,6 +120,6 @@ export function initShaders() {
       'compositeLocations.uS': compositeLocations.uS,
       'compositeLocations.uB': compositeLocations.uB,
     };
-    for (const name in locs) if (locs[name] === null) console.warn('Uniform location is null:', name);
+    for (const name in locs) if (locs[name] === null) devWarn('Uniform location is null:', name);
   }
 }

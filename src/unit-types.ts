@@ -238,3 +238,10 @@ export const TYPES: UnitType[] = [
     attackDesc: 'チェーンライトニング（5体連鎖）',
   },
 ];
+
+/** TYPES配列への安全なアクセサ。noUncheckedIndexedAccess 下で ! を集約する */
+export function getUnitType(id: number): UnitType {
+  const t = TYPES[id];
+  if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
+  return t;
+}

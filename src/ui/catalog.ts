@@ -1,12 +1,19 @@
 import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
-import { particlePool, projectilePool, unitPool } from '../pools.ts';
+import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { beams, state } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnitType, TYPES } from '../unit-types.ts';
 import { DOM_ID_CAT_DESC, DOM_ID_CAT_LIST, DOM_ID_CAT_NAME, DOM_ID_CAT_STATS, DOM_ID_CATALOG } from './dom-ids.ts';
+
+// DOM element cache (populated by initCatalogDOM)
+let elCatalog: HTMLElement | null = null;
+let elCatName: HTMLElement | null = null;
+let elCatDesc: HTMLElement | null = null;
+let elCatStats: HTMLElement | null = null;
+let elCatList: HTMLElement | null = null;
 
 let catDemoUnits: UnitIndex[] = [];
 let catDemoTimer = 0;
@@ -23,41 +30,42 @@ export function closeCatalog() {
   if (!state.catalogOpen) return;
   teardownCatDemo();
   state.catalogOpen = false;
-  document.getElementById(DOM_ID_CATALOG)!.classList.remove('open');
+  if (elCatalog) elCatalog.classList.remove('open');
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: per-unit-type demo setup with many branches
 function setupCatDemo(typeIdx: number) {
   teardownCatDemo();
 
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    if (particlePool[i]!.alive) {
+    if (getParticle(i).alive) {
       killParticle(i as ParticleIndex);
     }
   }
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    if (projectilePool[i]!.alive) {
+    if (getProjectile(i).alive) {
       killProjectile(i as ProjectileIndex);
     }
   }
   beams.length = 0;
 
-  const t = TYPES[typeIdx]!;
+  const t = getUnitType(typeIdx);
   const mi = spawnUnit(0, typeIdx, 0, 0);
   if (mi !== NO_UNIT) {
     catDemoUnits.push(mi);
-    unitPool[mi]!.angle = 0;
+    getUnit(mi).angle = 0;
   }
 
   if (t.heals) {
     const ai = spawnUnit(0, 1, -60, 0);
     if (ai !== NO_UNIT) {
       catDemoUnits.push(ai);
-      unitPool[ai]!.hp = 3;
+      getUnit(ai).hp = 3;
     }
     const ai2 = spawnUnit(0, 0, 60, -40);
     if (ai2 !== NO_UNIT) {
       catDemoUnits.push(ai2);
-      unitPool[ai2]!.hp = 1;
+      getUnit(ai2).hp = 1;
     }
     for (let i = 0; i < 3; i++) {
       const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
@@ -68,7 +76,7 @@ function setupCatDemo(typeIdx: number) {
       const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
       if (ei !== NO_UNIT) {
         catDemoUnits.push(ei);
-        unitPool[ei]!.target = mi;
+        getUnit(ei).target = mi;
       }
     }
   } else if (t.spawns) {
@@ -98,7 +106,7 @@ function setupCatDemo(typeIdx: number) {
       const ei = spawnUnit(1, 3, 250, (i - 1) * 80);
       if (ei !== NO_UNIT) catDemoUnits.push(ei);
     }
-    if (mi !== NO_UNIT) unitPool[mi]!.x = -200;
+    if (mi !== NO_UNIT) getUnit(mi).x = -200;
   } else {
     let cnt: number;
     if (t.shape === 3) cnt = 6;
@@ -117,15 +125,15 @@ export function updateCatDemo(dt: number) {
     catDemoTimer = 0;
     let ec = 0;
     for (const idx of catDemoUnits) {
-      const unit = unitPool[idx]!;
+      const unit = getUnit(idx);
       if (unit.alive && unit.team === 1) ec++;
     }
     if (ec < 2) setupCatDemo(state.catSelected);
   }
   for (const idx of catDemoUnits) {
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     if (!u.alive) continue;
-    if (u.team === 0 && !TYPES[u.type]!.rams) {
+    if (u.team === 0 && !getUnitType(u.type).rams) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
@@ -134,41 +142,41 @@ export function updateCatDemo(dt: number) {
 }
 
 function updateCatPanel() {
-  const t = TYPES[state.catSelected]!;
+  if (!elCatName || !elCatDesc || !elCatStats) return;
+  const t = getUnitType(state.catSelected);
   const c0 = getColor(state.catSelected, 0),
     c1 = getColor(state.catSelected, 1);
-  const col = 'rgb(' + ((c0[0] * 255) | 0) + ',' + ((c0[1] * 255) | 0) + ',' + ((c0[2] * 255) | 0) + ')';
-  const col2 = 'rgb(' + ((c1[0] * 255) | 0) + ',' + ((c1[1] * 255) | 0) + ',' + ((c1[2] * 255) | 0) + ')';
-  document.getElementById(DOM_ID_CAT_NAME)!.textContent = t.name;
-  document.getElementById(DOM_ID_CAT_NAME)!.style.color = col;
-  document.getElementById(DOM_ID_CAT_DESC)!.textContent = t.description;
+  const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
+  const col2 = `rgb(${(c1[0] * 255) | 0},${(c1[1] * 255) | 0},${(c1[2] * 255) | 0})`;
+  elCatName.textContent = t.name;
+  elCatName.style.color = col;
+  elCatDesc.textContent = t.description;
 
   const mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
     const lbl = document.createElement('div');
-    lbl.textContent = label + ': ' + val;
+    lbl.textContent = `${label}: ${val}`;
     frag.appendChild(lbl);
     const barOuter = document.createElement('div');
     barOuter.className = 'cpBar';
     const barInner = document.createElement('div');
-    barInner.style.width = (val / max) * 100 + '%';
+    barInner.style.width = `${(val / max) * 100}%`;
     barInner.style.background = color;
     barOuter.appendChild(barInner);
     frag.appendChild(barOuter);
     return frag;
   };
-  const stats = document.getElementById(DOM_ID_CAT_STATS)!;
-  stats.textContent = '';
-  stats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
-  stats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
-  stats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
-  stats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
-  stats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
+  elCatStats.textContent = '';
+  elCatStats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
+  elCatStats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
+  elCatStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
+  elCatStats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
+  elCatStats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
   const atkDiv = document.createElement('div');
   atkDiv.style.marginTop = '8px';
   atkDiv.style.color = col;
-  atkDiv.textContent = ': ' + t.attackDesc;
-  stats.appendChild(atkDiv);
+  atkDiv.textContent = `: ${t.attackDesc}`;
+  elCatStats.appendChild(atkDiv);
   const teamDiv = document.createElement('div');
   teamDiv.style.marginTop = '4px';
   teamDiv.style.fontSize = '9px';
@@ -183,21 +191,22 @@ function updateCatPanel() {
   spanB.style.color = col2;
   spanB.textContent = 'B';
   teamDiv.appendChild(spanB);
-  stats.appendChild(teamDiv);
+  elCatStats.appendChild(teamDiv);
 }
 
 function buildCatUI() {
-  const list = document.getElementById(DOM_ID_CAT_LIST)!;
+  if (!elCatList) return;
+  const list = elCatList;
   list.textContent = '';
   TYPES.forEach((t, i) => {
     const item = document.createElement('div');
-    item.className = 'catItem' + (i === state.catSelected ? ' active' : '');
+    item.className = `catItem${i === state.catSelected ? ' active' : ''}`;
     const c = getColor(i, 0);
-    const rgb = 'rgb(' + ((c[0] * 255) | 0) + ',' + ((c[1] * 255) | 0) + ',' + ((c[2] * 255) | 0) + ')';
+    const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
     const dot = document.createElement('div');
     dot.className = 'ciDot';
     dot.style.background = rgb;
-    dot.style.boxShadow = '0 0 6px ' + rgb;
+    dot.style.boxShadow = `0 0 6px ${rgb}`;
     item.appendChild(dot);
     const info = document.createElement('div');
     const nameDiv = document.createElement('div');
@@ -225,9 +234,31 @@ export function toggleCat() {
     closeCatalog();
   } else {
     state.catalogOpen = true;
-    document.getElementById(DOM_ID_CATALOG)!.classList.add('open');
+    if (elCatalog) elCatalog.classList.add('open');
     buildCatUI();
     updateCatPanel();
     setupCatDemo(state.catSelected);
+  }
+}
+
+export function initCatalogDOM() {
+  elCatalog = document.getElementById(DOM_ID_CATALOG);
+  elCatName = document.getElementById(DOM_ID_CAT_NAME);
+  elCatDesc = document.getElementById(DOM_ID_CAT_DESC);
+  elCatStats = document.getElementById(DOM_ID_CAT_STATS);
+  elCatList = document.getElementById(DOM_ID_CAT_LIST);
+
+  {
+    const entries: [string, HTMLElement | null][] = [
+      [DOM_ID_CATALOG, elCatalog],
+      [DOM_ID_CAT_NAME, elCatName],
+      [DOM_ID_CAT_DESC, elCatDesc],
+      [DOM_ID_CAT_STATS, elCatStats],
+      [DOM_ID_CAT_LIST, elCatList],
+    ];
+    const missing = entries.filter(([, el]) => !el).map(([id]) => id);
+    if (missing.length > 0) {
+      throw new Error(`initCatalogDOM: missing DOM elements: ${missing.join(', ')}`);
+    }
   }
 }

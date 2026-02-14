@@ -1,6 +1,6 @@
 import type { Color3, Team } from './types.ts';
 
-const teamColors: Color3[][] = [
+const teamColors: ReadonlyArray<readonly [Color3, Color3]> = [
   [
     [0.2, 1, 0.55],
     [1, 0.45, 0.25],
@@ -63,7 +63,7 @@ const teamColors: Color3[][] = [
   ],
 ];
 
-const trailColors: Color3[][] = [
+const trailColors: ReadonlyArray<readonly [Color3, Color3]> = [
   [
     [0.1, 0.6, 0.35],
     [0.6, 0.25, 0.12],
@@ -127,8 +127,12 @@ const trailColors: Color3[][] = [
 ];
 
 export function getColor(t: number, tm: Team): Color3 {
-  return teamColors[t]![tm]!;
+  const row = teamColors[t];
+  if (row === undefined) throw new RangeError(`teamColors[${t}] out of range`);
+  return row[tm];
 }
 export function getTrailColor(t: number, tm: Team): Color3 {
-  return trailColors[t]![tm]!;
+  const row = trailColors[t];
+  if (row === undefined) throw new RangeError(`trailColors[${t}] out of range`);
+  return row[tm];
 }

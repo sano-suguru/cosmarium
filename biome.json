@@ -29,17 +29,17 @@
       "recommended": true,
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "off",
-        "useTemplate": "off",
-        "noNestedTernary": "warn",
-        "noParameterAssign": "warn",
-        "useNumberNamespace": "warn",
-        "useCollapsedElseIf": "warn",
-        "noYodaExpression": "warn"
+        "noNonNullAssertion": "error",
+        "useTemplate": "error",
+        "noNestedTernary": "error",
+        "noParameterAssign": "error",
+        "useNumberNamespace": "error",
+        "useCollapsedElseIf": "error",
+        "noYodaExpression": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noRedeclare": "off",
+        "noRedeclare": "error",
         "noConsole": {
           "level": "error",
           "options": {
@@ -53,7 +53,7 @@
       "correctness": {
         "noUnusedVariables": "error",
         "noUnusedImports": "error",
-        "noInnerDeclarations": "off"
+        "noInnerDeclarations": "error"
       },
       "performance": {
         "noDelete": "error",
@@ -61,14 +61,14 @@
         "noReExportAll": "error"
       },
       "complexity": {
-        "noForEach": "warn",
+        "noForEach": "error",
         "noExcessiveCognitiveComplexity": {
-          "level": "warn",
+          "level": "error",
           "options": {
             "maxAllowedComplexity": 25
           }
         },
-        "noUselessStringConcat": "warn"
+        "noUselessStringConcat": "error"
       }
     }
   },

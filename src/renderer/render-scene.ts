@@ -1,13 +1,15 @@
 import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { particlePool, projectilePool, unitPool } from '../pools.ts';
-import { asteroids, bases, beams, state } from '../state.ts';
-import type { Color3 } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { getParticle, getProjectile, getUnit } from '../pools.ts';
+import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
+import { type Color3, TEAMS } from '../types.ts';
+import { devWarn } from '../ui/dev-overlay.ts';
+import { getUnitType } from '../unit-types.ts';
 import { instanceData } from './buffers.ts';
 
 let _instanceOverflowWarned = false;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-pass WebGL renderer inherently complex
 export function renderScene(now: number): number {
   let idx = 0;
 
@@ -23,8 +25,8 @@ export function renderScene(now: number): number {
     shape: number,
   ) {
     if (idx >= MAX_INSTANCES) {
-      if (import.meta.env.DEV && !_instanceOverflowWarned) {
-        console.warn(`[DEV] writeInstance: idx(${idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);
+      if (!_instanceOverflowWarned) {
+        devWarn(`writeInstance: idx(${idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);
         _instanceOverflowWarned = true;
       }
       return;
@@ -45,15 +47,15 @@ export function renderScene(now: number): number {
   if (!state.catalogOpen) {
     // Asteroids
     for (let i = 0; i < asteroids.length; i++) {
-      const a = asteroids[i]!;
+      const a = getAsteroid(i);
       writeInstance(a.x, a.y, a.radius, 0.12, 0.1, 0.08, 0.7, a.angle, 3);
     }
     // Bases
     if (state.gameMode === 2) {
-      for (let i = 0; i < 2; i++) {
-        const b = bases[i]!,
+      for (const tm of TEAMS) {
+        const b = bases[tm],
           hr = b.hp / b.maxHp;
-        const bc: Color3 = i === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
+        const bc: Color3 = tm === 0 ? [0.2, 0.8, 1] : [1, 0.4, 0.8];
         writeInstance(b.x, b.y, 50, bc[0] * hr, bc[1] * hr, bc[2] * hr, 0.8, now * 0.2, 20);
         writeInstance(
           b.x,
@@ -74,7 +76,7 @@ export function renderScene(now: number): number {
 
   // Particles
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = particlePool[i]!;
+    const p = getParticle(i);
     if (!p.alive) continue;
     const al = Math.min(1, p.life / p.maxLife);
     let size = p.size * (0.5 + al * 0.5);
@@ -85,7 +87,7 @@ export function renderScene(now: number): number {
 
   // Beams
   for (let i = 0; i < beams.length; i++) {
-    const bm = beams[i]!;
+    const bm = getBeam(i);
     const al = bm.life / bm.maxLife;
     const dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
@@ -111,7 +113,7 @@ export function renderScene(now: number): number {
 
   // Projectiles
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const pr = projectilePool[i]!;
+    const pr = getProjectile(i);
     if (!pr.alive) continue;
     let shape: number;
     if (pr.homing) shape = 6;
@@ -122,9 +124,9 @@ export function renderScene(now: number): number {
 
   // Units
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = unitPool[i]!;
+    const u = getUnit(i);
     if (!u.alive) continue;
-    const ut = TYPES[u.type]!;
+    const ut = getUnitType(u.type);
     const c = getColor(u.type, u.team);
     const hr = u.hp / u.maxHp;
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;

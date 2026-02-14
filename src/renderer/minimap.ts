@@ -1,14 +1,15 @@
 import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam } from '../input/camera.ts';
-import { unitPool } from '../pools.ts';
-import { asteroids, bases, state } from '../state.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnit } from '../pools.ts';
+import { asteroids, bases, getAsteroid, state } from '../state.ts';
+import { TEAMS } from '../types.ts';
+import { getUnitType } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
-let mmDiv: HTMLElement;
+let mmDiv: HTMLElement | null = null;
 let minimapInstanceCount = 0;
 
 function writeMinimapInstance(
@@ -37,10 +38,14 @@ function writeMinimapInstance(
 }
 
 export function initMinimap() {
-  mmDiv = document.getElementById('minimap')!;
-  mmDiv.addEventListener('mousedown', (e) => {
+  mmDiv = document.getElementById('minimap');
+  if (!mmDiv) {
+    throw new Error('initMinimap: missing DOM element: minimap');
+  }
+  const div = mmDiv;
+  div.addEventListener('mousedown', (e) => {
     e.stopPropagation();
-    const rect = mmDiv.getBoundingClientRect();
+    const rect = div.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     const cw = rect.width,
@@ -49,7 +54,7 @@ export function initMinimap() {
     cam.targetY = WORLD_SIZE - (my / ch) * (WORLD_SIZE * 2);
     cam.targetZ = 1;
   });
-  mmDiv.addEventListener(
+  div.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
@@ -59,7 +64,7 @@ export function initMinimap() {
 }
 
 export function drawMinimap() {
-  if (!mmDiv.clientWidth) return;
+  if (!mmDiv || !mmDiv.clientWidth) return;
   minimapInstanceCount = 0;
   const S = 1.0 / WORLD_SIZE;
   const W = viewport.W,
@@ -70,22 +75,22 @@ export function drawMinimap() {
 
   // Asteroids
   for (let i = 0; i < asteroids.length; i++) {
-    const a = asteroids[i]!;
+    const a = getAsteroid(i);
     writeMinimapInstance(a.x * S, a.y * S, Math.max(0.008, a.radius * S), 0, 0.31, 0.235, 0.157, 0.4, 0);
   }
 
   // Bases
   if (state.gameMode === 2) {
-    for (let i = 0; i < 2; i++) {
-      const b = bases[i]!;
+    for (const tm of TEAMS) {
+      const b = bases[tm];
       writeMinimapInstance(
         b.x * S,
         b.y * S,
         0.05,
         0,
-        i === 0 ? 0 : 1,
-        i === 0 ? 0.784 : 0.392,
-        i === 0 ? 1 : 0.784,
+        tm === 0 ? 0 : 1,
+        tm === 0 ? 0.784 : 0.392,
+        tm === 0 ? 1 : 0.784,
         0.6,
         0,
       );
@@ -94,10 +99,10 @@ export function drawMinimap() {
 
   // Units
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = unitPool[i]!;
+    const u = getUnit(i);
     if (!u.alive) continue;
     const c = getColor(u.type, u.team);
-    const size = Math.max(0.008, TYPES[u.type]!.size * S * 1.5);
+    const size = Math.max(0.008, getUnitType(u.type).size * S * 1.5);
     writeMinimapInstance(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
   }
 

@@ -1,16 +1,16 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES } from '../constants.ts';
-import { projectilePool, unitPool } from '../pools.ts';
+import { getProjectile, getUnit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
-import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
+import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 function tgtDistOrClear(u: Unit): number {
   if (u.target === NO_UNIT) return -1;
-  const o = unitPool[u.target]!;
+  const o = getUnit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     return -1;
@@ -18,8 +18,9 @@ function tgtDistOrClear(u: Unit): number {
   return Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: combat branching is inherently complex
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
-  const t = TYPES[u.type]!;
+  const t = getUnitType(u.type);
   if (u.stun > 0) return;
   u.cooldown -= dt;
   u.abilityCooldown -= dt;
@@ -30,16 +31,16 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   if (t.rams) {
     const nn = getNeighbors(u.x, u.y, t.size * 2);
     for (let i = 0; i < nn; i++) {
-      const oi = neighborBuffer[i]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(i),
+        o = getUnit(oi);
       if (!o.alive || o.team === u.team) continue;
       const dx = o.x - u.x,
         dy = o.y - u.y;
       const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < t.size + TYPES[o.type]!.size) {
+      if (d < t.size + getUnitType(o.type).size) {
         o.hp -= Math.ceil(u.mass * 3 * vd);
         knockback(oi, u.x, u.y, u.mass * 55);
-        u.hp -= Math.ceil(TYPES[o.type]!.mass);
+        u.hp -= Math.ceil(getUnitType(o.type).mass);
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * 6.283;
           spawnParticle(
@@ -74,8 +75,8 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
     u.abilityCooldown = 0.35;
     const nn = getNeighbors(u.x, u.y, 160);
     for (let i = 0; i < nn; i++) {
-      const oi = neighborBuffer[i]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(i),
+        o = getUnit(oi);
       if (!o.alive || o.team !== u.team || oi === ui) continue;
       if (o.hp < o.maxHp) {
         o.hp = Math.min(o.maxHp, o.hp + 3);
@@ -89,7 +90,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   if (t.reflects) {
     const rr = t.range;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      const p = projectilePool[i]!;
+      const p = getProjectile(i);
       if (!p.alive || p.team === u.team) continue;
       if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {
         p.vx *= -1.2;
@@ -103,7 +104,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
       }
     }
     if (u.cooldown <= 0 && u.target !== NO_UNIT) {
-      const o = unitPool[u.target]!;
+      const o = getUnit(u.target);
       if (!o.alive) {
         u.target = NO_UNIT;
       } else {
@@ -181,8 +182,8 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
       u.abilityCooldown = t.fireRate;
       const nn = getNeighbors(u.x, u.y, t.range);
       for (let i = 0; i < nn; i++) {
-        const oi = neighborBuffer[i]!,
-          oo = unitPool[oi]!;
+        const oi = getNeighborAt(i),
+          oo = getUnit(oi);
         if (!oo.alive || oo.team === u.team) continue;
         if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
           oo.stun = 1.5;
@@ -218,7 +219,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   if (t.teleports) {
     u.teleportTimer -= dt;
     if (u.teleportTimer <= 0 && u.target !== NO_UNIT) {
-      const o = unitPool[u.target]!;
+      const o = getUnit(u.target);
       if (!o.alive) {
         u.target = NO_UNIT;
       } else {
@@ -275,7 +276,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   // --- BEAM ---
   if (t.beam) {
     if (u.target !== NO_UNIT) {
-      const o = unitPool[u.target]!;
+      const o = getUnit(u.target);
       if (o.alive) {
         const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
         if (d < t.range) {
@@ -334,7 +335,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
 
   // --- NORMAL FIRE ---
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
-    const o = unitPool[u.target]!;
+    const o = getUnit(u.target);
     if (!o.alive) {
       u.target = NO_UNIT;
       return;
