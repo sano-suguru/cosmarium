@@ -1,5 +1,5 @@
 import { getColor } from '../colors.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { beams, state } from '../state.ts';
@@ -23,17 +23,21 @@ let elCodexList: HTMLElement | null = null;
 
 let codexDemoUnits: UnitIndex[] = [];
 let codexDemoTimer = 0;
+let gameUnitSnapshot: Set<UnitIndex> = new Set();
 
 export function isCodexDemoUnit(idx: UnitIndex): boolean {
-  return codexDemoUnits.includes(idx);
+  return !gameUnitSnapshot.has(idx);
 }
 
 function teardownCodexDemo() {
-  for (const idx of codexDemoUnits) {
-    killUnit(idx);
+  for (let i = 0; i < POOL_UNITS; i++) {
+    if (getUnit(i).alive && !gameUnitSnapshot.has(i as UnitIndex)) {
+      killUnit(i as UnitIndex);
+    }
   }
   codexDemoUnits = [];
   codexDemoTimer = 0;
+  gameUnitSnapshot = new Set();
 }
 
 export function closeCodex() {
@@ -121,6 +125,12 @@ function demoDefault(t: UnitType) {
 
 function setupCodexDemo(typeIdx: number) {
   teardownCodexDemo();
+
+  // Snapshot alive game units before spawning demo units
+  gameUnitSnapshot = new Set();
+  for (let i = 0; i < POOL_UNITS; i++) {
+    if (getUnit(i).alive) gameUnitSnapshot.add(i as UnitIndex);
+  }
 
   for (let i = 0; i < POOL_PARTICLES; i++) {
     if (getParticle(i).alive) {
