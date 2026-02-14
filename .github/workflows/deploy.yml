@@ -32,6 +32,7 @@ jobs:
           tsc --noEmit & pids+=($!)
           biome ci . & pids+=($!)
           knip & pids+=($!)
+          jscpd src/ & pids+=($!)
           similarity-ts --min-lines 7 --threshold 0.87 src/ & pids+=($!)
           vitest run & pids+=($!)
           fail=0
