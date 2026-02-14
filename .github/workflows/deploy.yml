@@ -19,8 +19,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run check
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: |
+          cargo install similarity-ts &
+          bun install --frozen-lockfile &
+          wait
+      - name: Check (parallel)
+        run: |
+          pids=()
+          tsc --noEmit & pids+=($!)
+          biome ci . & pids+=($!)
+          knip & pids+=($!)
+          similarity-ts --min-lines 7 --threshold 0.87 src/ & pids+=($!)
+          vitest run & pids+=($!)
+          fail=0
+          for pid in "${pids[@]}"; do wait "$pid" || fail=1; done
+          exit $fail
+        env:
+          PATH: ./node_modules/.bin:${{ env.PATH }}
       - run: bun run build -- --base=/cosmarium/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

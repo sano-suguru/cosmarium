@@ -7,7 +7,7 @@
 - **言語**: 日本語で返答
 - **型チェック**: `bun run typecheck` — strict mode、`noUnusedLocals`/`noUnusedParameters` on
 - **ビルド**: `bun run build`
-- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd
+- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + similarity + test
 - **テスト**: `bun run test:run` — `src/simulation/*.test.ts`(7) + `src/*.test.ts`(4)。ヘルパー: `src/__test__/pool-helper.ts`
 - **Lint/Format**: Biome。`src/shaders/**`は除外。singleQuote, lineWidth=120
 - **Pre-commit**: `biome check --staged --write`。エラーのみブロック
