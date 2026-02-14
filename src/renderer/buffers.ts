@@ -12,54 +12,26 @@ export let mainVAO: WebGLVertexArrayObject;
 export let mmVAO: WebGLVertexArrayObject;
 export let qVAO: WebGLVertexArrayObject;
 
-function setupMainVAO() {
-  mainVAO = required(gl.createVertexArray(), 'mainVAO');
-  gl.bindVertexArray(mainVAO);
+interface AttribEntry {
+  loc: number;
+  size: number;
+  offset: number;
+}
+
+function setupVAO(name: string, instBuf: WebGLBuffer, attribs: readonly AttribEntry[]): WebGLVertexArrayObject {
+  const vao = required(gl.createVertexArray(), name);
+  gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.enableVertexAttribArray(mainLocations.aP);
   gl.vertexAttribPointer(mainLocations.aP, 2, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
-  gl.enableVertexAttribArray(mainLocations.aO);
-  gl.vertexAttribPointer(mainLocations.aO, 2, gl.FLOAT, false, STRIDE_BYTES, 0);
-  gl.vertexAttribDivisor(mainLocations.aO, 1);
-  gl.enableVertexAttribArray(mainLocations.aS);
-  gl.vertexAttribPointer(mainLocations.aS, 1, gl.FLOAT, false, STRIDE_BYTES, 8);
-  gl.vertexAttribDivisor(mainLocations.aS, 1);
-  gl.enableVertexAttribArray(mainLocations.aC);
-  gl.vertexAttribPointer(mainLocations.aC, 4, gl.FLOAT, false, STRIDE_BYTES, 12);
-  gl.vertexAttribDivisor(mainLocations.aC, 1);
-  gl.enableVertexAttribArray(mainLocations.aA);
-  gl.vertexAttribPointer(mainLocations.aA, 1, gl.FLOAT, false, STRIDE_BYTES, 28);
-  gl.vertexAttribDivisor(mainLocations.aA, 1);
-  gl.enableVertexAttribArray(mainLocations.aSh);
-  gl.vertexAttribPointer(mainLocations.aSh, 1, gl.FLOAT, false, STRIDE_BYTES, 32);
-  gl.vertexAttribDivisor(mainLocations.aSh, 1);
+  gl.bindBuffer(gl.ARRAY_BUFFER, instBuf);
+  for (const attr of attribs) {
+    gl.enableVertexAttribArray(attr.loc);
+    gl.vertexAttribPointer(attr.loc, attr.size, gl.FLOAT, false, STRIDE_BYTES, attr.offset);
+    gl.vertexAttribDivisor(attr.loc, 1);
+  }
   gl.bindVertexArray(null);
-}
-
-function setupMinimapVAO() {
-  mmVAO = required(gl.createVertexArray(), 'mmVAO');
-  gl.bindVertexArray(mmVAO);
-  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-  gl.enableVertexAttribArray(minimapLocations.aP);
-  gl.vertexAttribPointer(minimapLocations.aP, 2, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, minimapBuffer);
-  gl.enableVertexAttribArray(minimapLocations.aO);
-  gl.vertexAttribPointer(minimapLocations.aO, 2, gl.FLOAT, false, STRIDE_BYTES, 0);
-  gl.vertexAttribDivisor(minimapLocations.aO, 1);
-  gl.enableVertexAttribArray(minimapLocations.aS);
-  gl.vertexAttribPointer(minimapLocations.aS, 1, gl.FLOAT, false, STRIDE_BYTES, 8);
-  gl.vertexAttribDivisor(minimapLocations.aS, 1);
-  gl.enableVertexAttribArray(minimapLocations.aC);
-  gl.vertexAttribPointer(minimapLocations.aC, 4, gl.FLOAT, false, STRIDE_BYTES, 12);
-  gl.vertexAttribDivisor(minimapLocations.aC, 1);
-  gl.enableVertexAttribArray(minimapLocations.aSY);
-  gl.vertexAttribPointer(minimapLocations.aSY, 1, gl.FLOAT, false, STRIDE_BYTES, 28);
-  gl.vertexAttribDivisor(minimapLocations.aSY, 1);
-  gl.enableVertexAttribArray(minimapLocations.aSh);
-  gl.vertexAttribPointer(minimapLocations.aSh, 1, gl.FLOAT, false, STRIDE_BYTES, 32);
-  gl.vertexAttribDivisor(minimapLocations.aSh, 1);
-  gl.bindVertexArray(null);
+  return vao;
 }
 
 function setupQuadVAO() {
@@ -82,7 +54,23 @@ export function initBuffers() {
   minimapData = new Float32Array(MINIMAP_MAX * 9);
   minimapBuffer = required(gl.createBuffer(), 'minimapBuffer');
 
-  setupMainVAO();
-  setupMinimapVAO();
+  const mainAttribs: readonly AttribEntry[] = [
+    { loc: mainLocations.aO, size: 2, offset: 0 },
+    { loc: mainLocations.aS, size: 1, offset: 8 },
+    { loc: mainLocations.aC, size: 4, offset: 12 },
+    { loc: mainLocations.aA, size: 1, offset: 28 },
+    { loc: mainLocations.aSh, size: 1, offset: 32 },
+  ];
+  mainVAO = setupVAO('mainVAO', instanceBuffer, mainAttribs);
+
+  const mmAttribs: readonly AttribEntry[] = [
+    { loc: minimapLocations.aO, size: 2, offset: 0 },
+    { loc: minimapLocations.aS, size: 1, offset: 8 },
+    { loc: minimapLocations.aC, size: 4, offset: 12 },
+    { loc: minimapLocations.aSY, size: 1, offset: 28 },
+    { loc: minimapLocations.aSh, size: 1, offset: 32 },
+  ];
+  mmVAO = setupVAO('mmVAO', minimapBuffer, mmAttribs);
+
   setupQuadVAO();
 }
