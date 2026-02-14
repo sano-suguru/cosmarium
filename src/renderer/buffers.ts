@@ -12,18 +12,7 @@ export let mainVAO: WebGLVertexArrayObject;
 export let mmVAO: WebGLVertexArrayObject;
 export let qVAO: WebGLVertexArrayObject;
 
-export function initBuffers() {
-  quadBuffer = required(gl.createBuffer(), 'quadBuffer');
-  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-
-  instanceData = new Float32Array(MAX_INSTANCES * 9);
-  instanceBuffer = required(gl.createBuffer(), 'instanceBuffer');
-
-  minimapData = new Float32Array(MINIMAP_MAX * 9);
-  minimapBuffer = required(gl.createBuffer(), 'minimapBuffer');
-
-  /* --- mainVAO --- */
+function setupMainVAO() {
   mainVAO = required(gl.createVertexArray(), 'mainVAO');
   gl.bindVertexArray(mainVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -46,8 +35,9 @@ export function initBuffers() {
   gl.vertexAttribPointer(mainLocations.aSh, 1, gl.FLOAT, false, STRIDE_BYTES, 32);
   gl.vertexAttribDivisor(mainLocations.aSh, 1);
   gl.bindVertexArray(null);
+}
 
-  /* --- mmVAO --- */
+function setupMinimapVAO() {
   mmVAO = required(gl.createVertexArray(), 'mmVAO');
   gl.bindVertexArray(mmVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -70,12 +60,29 @@ export function initBuffers() {
   gl.vertexAttribPointer(minimapLocations.aSh, 1, gl.FLOAT, false, STRIDE_BYTES, 32);
   gl.vertexAttribDivisor(minimapLocations.aSh, 1);
   gl.bindVertexArray(null);
+}
 
-  /* --- qVAO --- */
+function setupQuadVAO() {
   qVAO = required(gl.createVertexArray(), 'qVAO');
   gl.bindVertexArray(qVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.bindVertexArray(null);
+}
+
+export function initBuffers() {
+  quadBuffer = required(gl.createBuffer(), 'quadBuffer');
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+
+  instanceData = new Float32Array(MAX_INSTANCES * 9);
+  instanceBuffer = required(gl.createBuffer(), 'instanceBuffer');
+
+  minimapData = new Float32Array(MINIMAP_MAX * 9);
+  minimapBuffer = required(gl.createBuffer(), 'minimapBuffer');
+
+  setupMainVAO();
+  setupMinimapVAO();
+  setupQuadVAO();
 }
