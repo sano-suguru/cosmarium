@@ -179,7 +179,7 @@ export function updateCodexDemo(dt: number) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
-    if (u.team === 1) u.hp = Math.min(u.maxHp, u.hp + dt * 2);
+    u.hp = Math.min(u.maxHp, u.hp + dt * 2);
   }
 }
 
