@@ -18,12 +18,17 @@ interface AttribEntry {
   offset: number;
 }
 
-function setupVAO(name: string, instBuf: WebGLBuffer, attribs: readonly AttribEntry[]): WebGLVertexArrayObject {
+function setupVAO(
+  name: string,
+  instBuf: WebGLBuffer,
+  posLoc: number,
+  attribs: readonly AttribEntry[],
+): WebGLVertexArrayObject {
   const vao = required(gl.createVertexArray(), name);
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-  gl.enableVertexAttribArray(mainLocations.aP);
-  gl.vertexAttribPointer(mainLocations.aP, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
   gl.bindBuffer(gl.ARRAY_BUFFER, instBuf);
   for (const attr of attribs) {
     gl.enableVertexAttribArray(attr.loc);
@@ -85,7 +90,7 @@ export function initBuffers() {
     { loc: mainLocations.aA, size: 1, offset: 28 },
     { loc: mainLocations.aSh, size: 1, offset: 32 },
   ];
-  mainVAO = setupVAO('mainVAO', instanceBuffer, mainAttribs);
+  mainVAO = setupVAO('mainVAO', instanceBuffer, mainLocations.aP, mainAttribs);
 
   const mmAttribs: readonly AttribEntry[] = [
     { loc: minimapLocations.aO, size: 2, offset: 0 },
@@ -94,7 +99,7 @@ export function initBuffers() {
     { loc: minimapLocations.aSY, size: 1, offset: 28 },
     { loc: minimapLocations.aSh, size: 1, offset: 32 },
   ];
-  mmVAO = setupVAO('mmVAO', minimapBuffer, mmAttribs);
+  mmVAO = setupVAO('mmVAO', minimapBuffer, minimapLocations.aP, mmAttribs);
 
   setupQuadVAO();
 }
