@@ -11,6 +11,7 @@ import {
   mainLocations,
   mainProgram,
 } from './shaders.ts';
+import { required } from './utils.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
 function drawQuad() {
@@ -20,9 +21,9 @@ function drawQuad() {
 }
 
 export function renderFrame(now: number) {
-  const sceneFBO = fbos.scene!;
-  const bloomFBO1 = fbos.bloom1!;
-  const bloomFBO2 = fbos.bloom2!;
+  const sceneFBO = required(fbos.scene, 'fbos.scene');
+  const bloomFBO1 = required(fbos.bloom1, 'fbos.bloom1');
+  const bloomFBO2 = required(fbos.bloom2, 'fbos.bloom2');
   const W = viewport.W,
     H = viewport.H;
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { poolCounts, unitPool } from '../pools.ts';
+import { getUnit, poolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -45,42 +45,42 @@ describe('explosion', () => {
 
   it('近くのユニットにノックバック適用 (vx/vy変化)', () => {
     const idx = spawnAt(0, 1, 30, 0);
-    unitPool[idx]!.vx = 0;
-    unitPool[idx]!.vy = 0;
+    getUnit(idx).vx = 0;
+    getUnit(idx).vy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 0, 0, NO_UNIT);
     // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
-    expect(unitPool[idx]!.vx).toBeGreaterThan(0);
+    expect(getUnit(idx).vx).toBeGreaterThan(0);
   });
 
   it('killer有効 → kills++ される', () => {
     const killer = spawnAt(0, 1, 100, 100);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    expect(unitPool[killer]!.kills).toBe(0);
+    expect(getUnit(killer).kills).toBe(0);
     explosion(0, 0, 1, 0, killer);
-    expect(unitPool[killer]!.kills).toBe(1);
+    expect(getUnit(killer).kills).toBe(1);
   });
 
   it('kills >= 3 → vet=1', () => {
     const killer = spawnAt(0, 1, 100, 100);
-    unitPool[killer]!.kills = 2;
+    getUnit(killer).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 1, 0, killer);
-    expect(unitPool[killer]!.kills).toBe(3);
-    expect(unitPool[killer]!.vet).toBe(1);
+    expect(getUnit(killer).kills).toBe(3);
+    expect(getUnit(killer).vet).toBe(1);
   });
 
   it('kills >= 8 → vet=2', () => {
     const killer = spawnAt(0, 1, 100, 100);
-    unitPool[killer]!.kills = 7;
+    getUnit(killer).kills = 7;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 1, 0, killer);
-    expect(unitPool[killer]!.kills).toBe(8);
-    expect(unitPool[killer]!.vet).toBe(2);
+    expect(getUnit(killer).kills).toBe(8);
+    expect(getUnit(killer).vet).toBe(2);
   });
 
   it('killer=-1 → vet処理スキップ', () => {
@@ -97,7 +97,7 @@ describe('trail', () => {
     const idx = spawnAt(0, 1, 50, 50);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const before = poolCounts.particleCount;
-    trail(unitPool[idx]!);
+    trail(getUnit(idx));
     expect(poolCounts.particleCount).toBe(before + 1);
   });
 });
@@ -114,11 +114,11 @@ describe('chainLightning', () => {
     const enemy = spawnAt(1, 1, 50, 0); // team 1
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hpBefore = unitPool[enemy]!.hp;
+    const hpBefore = getUnit(enemy).hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
     expect(beams).toHaveLength(1);
     // ch=0: damage * (1 - 0*0.12) = 4
-    expect(unitPool[enemy]!.hp).toBe(hpBefore - 4);
+    expect(getUnit(enemy).hp).toBe(hpBefore - 4);
   });
 
   it('連鎖ごとにダメージ12%減衰', () => {
@@ -126,13 +126,13 @@ describe('chainLightning', () => {
     const e2 = spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hp1Before = unitPool[e1]!.hp;
-    const hp2Before = unitPool[e2]!.hp;
+    const hp1Before = getUnit(e1).hp;
+    const hp2Before = getUnit(e2).hp;
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
     // ch=0: 10 * (1 - 0*0.12) = 10
-    expect(unitPool[e1]!.hp).toBeCloseTo(hp1Before - 10);
+    expect(getUnit(e1).hp).toBeCloseTo(hp1Before - 10);
     // ch=1: 10 * (1 - 1*0.12) = 8.8
-    expect(unitPool[e2]!.hp).toBeCloseTo(hp2Before - 8.8);
+    expect(getUnit(e2).hp).toBeCloseTo(hp2Before - 8.8);
     expect(beams).toHaveLength(2);
   });
 
@@ -141,10 +141,10 @@ describe('chainLightning', () => {
     const enemy = spawnAt(1, 1, 50, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hpBefore = unitPool[enemy]!.hp;
+    const hpBefore = getUnit(enemy).hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
     // 1体しかいないので1回だけダメージ
-    expect(unitPool[enemy]!.hp).toBe(hpBefore - 4);
+    expect(getUnit(enemy).hp).toBe(hpBefore - 4);
     expect(beams).toHaveLength(1);
   });
 
@@ -153,16 +153,16 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 100, 5, [1, 0, 0]); // damage=100 > hp=3
-    expect(unitPool[enemy]!.alive).toBe(false);
+    expect(getUnit(enemy).alive).toBe(false);
   });
 
   it('味方にはヒットしない', () => {
     const ally = spawnAt(0, 1, 50, 0); // team 0 (発射側と同チーム)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hpBefore = unitPool[ally]!.hp;
+    const hpBefore = getUnit(ally).hp;
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
-    expect(unitPool[ally]!.hp).toBe(hpBefore);
+    expect(getUnit(ally).hp).toBe(hpBefore);
     expect(beams).toHaveLength(0);
   });
 });

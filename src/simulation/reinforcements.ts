@@ -1,7 +1,7 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { unitPool } from '../pools.ts';
+import { getUnit } from '../pools.ts';
 import { state } from '../state.ts';
-import type { Team } from '../types.ts';
+import { TEAMS } from '../types.ts';
 import { spawnUnit } from './spawn.ts';
 
 // Reinforcement spawn probability distribution:
@@ -14,11 +14,10 @@ export function reinforce(dt: number) {
   state.reinforcementTimer += dt;
   if (state.reinforcementTimer < 2.5) return;
   state.reinforcementTimer = 0;
-  for (let ti = 0; ti < 2; ti++) {
-    const team = ti as Team;
+  for (const team of TEAMS) {
     let cnt = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      const u = unitPool[i]!;
+      const u = getUnit(i);
       if (u.alive && u.team === team) cnt++;
     }
     const lim = state.gameMode === 2 ? 100 : 130;

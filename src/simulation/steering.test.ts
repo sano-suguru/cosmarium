@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
-import { unitPool } from '../pools.ts';
+import { getUnit } from '../pools.ts';
 import { asteroids, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
 
@@ -17,7 +17,7 @@ afterEach(() => {
 describe('steer — スタン', () => {
   it('stun>0 → 速度0.93倍減衰、stun-=dt、位置更新', () => {
     const idx = spawnAt(0, 1, 100, 100);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.stun = 1.0;
     u.vx = 100;
     u.vy = 50;
@@ -36,7 +36,7 @@ describe('steer — スタン', () => {
 
   it('stun>0 → 通常操舵ロジックは実行されない（早期return）', () => {
     const idx = spawnAt(0, 1, 100, 100);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.stun = 0.5;
     u.target = NO_UNIT;
     buildHash();
@@ -51,7 +51,7 @@ describe('steer — スタン', () => {
 describe('steer — ベテラン速度', () => {
   it('vet=0 → spd×1.0', () => {
     const idx = spawnAt(0, 1, 0, 0);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.vet = 0;
     u.angle = 0;
     buildHash();
@@ -59,7 +59,7 @@ describe('steer — ベテラン速度', () => {
     // 長めのdtで速度を安定させる
     for (let i = 0; i < 100; i++) steer(u, 0.033);
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
-    const t = TYPES[1]!;
+    const t = getUnitType(1);
     // vet=0の目標速度はspd * 1.0
     expect(spd).toBeGreaterThan(0);
     expect(spd).toBeLessThanOrEqual(t.speed * 1.1); // マージン含む
@@ -68,13 +68,13 @@ describe('steer — ベテラン速度', () => {
   it('vet=2 → vet=0 より速い', () => {
     // vet=0
     const i0 = spawnAt(0, 1, 0, 0);
-    const u0 = unitPool[i0]!;
+    const u0 = getUnit(i0);
     u0.vet = 0;
     u0.angle = 0;
 
     // vet=2
     const i2 = spawnAt(0, 1, 500, 500); // 離れた位置
-    const u2 = unitPool[i2]!;
+    const u2 = getUnit(i2);
     u2.vet = 2;
     u2.angle = 0;
 
@@ -97,22 +97,22 @@ describe('steer — ターゲット探索', () => {
     spawnAt(1, 1, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    steer(unitPool[ally]!, 0.016);
-    expect(unitPool[ally]!.target).toBe(nearEnemy);
+    steer(getUnit(ally), 0.016);
+    expect(getUnit(ally).target).toBe(nearEnemy);
   });
 
   it('死亡ターゲットクリア: tgt先がalive=false → tgt=-1', () => {
     const ally = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 80, 0);
-    unitPool[ally]!.target = enemy;
-    unitPool[enemy]!.alive = false;
+    getUnit(ally).target = enemy;
+    getUnit(enemy).alive = false;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    steer(unitPool[ally]!, 0.016);
+    steer(getUnit(ally), 0.016);
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
-    expect(unitPool[ally]!.target).toBe(NO_UNIT);
+    expect(getUnit(ally).target).toBe(NO_UNIT);
   });
 });
 
@@ -120,12 +120,12 @@ describe('steer — RAM型', () => {
   it('RAM型はターゲットに向かって強い力で突進', () => {
     const ram = spawnAt(0, 9, 0, 0); // type 9 = Ram
     const enemy = spawnAt(1, 1, 200, 0);
-    unitPool[ram]!.target = enemy;
+    getUnit(ram).target = enemy;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    steer(unitPool[ram]!, 0.033);
+    steer(getUnit(ram), 0.033);
     // ターゲットはx正方向なので、vxが正方向に増加
-    expect(unitPool[ram]!.vx).toBeGreaterThan(0);
+    expect(getUnit(ram).vx).toBeGreaterThan(0);
   });
 });
 
@@ -133,32 +133,32 @@ describe('steer — Mode 2 フォールバック', () => {
   it('tgt<0 → 敵基地方向に力', () => {
     state.gameMode = 2;
     const ally = spawnAt(0, 1, 0, 0); // team 0 → 敵基地 = bases[1] (x=1800)
-    unitPool[ally]!.target = NO_UNIT;
+    getUnit(ally).target = NO_UNIT;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    for (let i = 0; i < 50; i++) steer(unitPool[ally]!, 0.033);
+    for (let i = 0; i < 50; i++) steer(getUnit(ally), 0.033);
     // team 0 → bases[1].x = 1800 なので右方向に移動
-    expect(unitPool[ally]!.x).toBeGreaterThan(0);
+    expect(getUnit(ally).x).toBeGreaterThan(0);
   });
 
   it('team=1 → bases[0] (x=-1800) 方向に力', () => {
     state.gameMode = 2;
     const ally = spawnAt(1, 1, 0, 0); // team 1 → 敵基地 = bases[0] (x=-1800)
-    unitPool[ally]!.target = NO_UNIT;
+    getUnit(ally).target = NO_UNIT;
     // wanderAngle=PI にして wandering force を左方向に揃え、Mode2力と干渉しない
-    unitPool[ally]!.wanderAngle = Math.PI;
+    getUnit(ally).wanderAngle = Math.PI;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    for (let i = 0; i < 50; i++) steer(unitPool[ally]!, 0.033);
+    for (let i = 0; i < 50; i++) steer(getUnit(ally), 0.033);
     // team 1 → bases[0].x = -1800 なので左方向に移動
-    expect(unitPool[ally]!.x).toBeLessThan(0);
+    expect(getUnit(ally).x).toBeLessThan(0);
   });
 });
 
 describe('steer — 小惑星衝突', () => {
   it('小惑星と重なった場合、押し戻し + 速度加算', () => {
     const idx = spawnAt(0, 1, 55, 0);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.vx = 0;
     u.vy = 0;
     // 小惑星 (x=50, r=40) と ユニット (x=55, size=7) → d=5, a.r+t.size=47 → 重なり
@@ -178,16 +178,16 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    for (let i = 0; i < 30; i++) steer(unitPool[healer]!, 0.033);
+    for (let i = 0; i < 30; i++) steer(getUnit(healer), 0.033);
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
-    expect(unitPool[healer]!.x).toBeGreaterThan(0);
+    expect(getUnit(healer).x).toBeGreaterThan(0);
   });
 });
 
 describe('steer — ワールド境界', () => {
   it('|x| > WORLD_SIZE*0.8 → 内向き力', () => {
     const idx = spawnAt(0, 1, WORLD_SIZE * 0.85, 0);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.vx = 0;
     u.vy = 0;
     u.target = NO_UNIT;
@@ -200,7 +200,7 @@ describe('steer — ワールド境界', () => {
 
   it('|y| > WORLD_SIZE*0.8 → 内向き力', () => {
     const idx = spawnAt(0, 1, 0, -WORLD_SIZE * 0.85);
-    const u = unitPool[idx]!;
+    const u = getUnit(idx);
     u.vx = 0;
     u.vy = 0;
     u.target = NO_UNIT;

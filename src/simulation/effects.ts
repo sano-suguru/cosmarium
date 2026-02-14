@@ -1,14 +1,15 @@
 import { getColor, getTrailColor } from '../colors.ts';
+import { POOL_UNITS } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { unitPool } from '../pools.ts';
+import { getUnit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
-import { getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
+import { getUnitType } from '../unit-types.ts';
+import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex) {
-  const size = TYPES[type]!.size;
+  const size = getUnitType(type).size;
   const c = getColor(type, team);
   const cnt = Math.min((18 + size * 3) | 0, 50);
 
@@ -67,15 +68,15 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
   const nn = getNeighbors(x, y, size * 8);
   for (let i = 0; i < nn; i++) {
-    const o = unitPool[neighborBuffer[i]!]!;
+    const o = getUnit(getNeighborAt(i));
     if (!o.alive) continue;
     const ddx = o.x - x,
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < size * 8) knockback(neighborBuffer[i]!, x, y, (size * 50) / (dd * 0.1 + 1));
+    if (dd < size * 8) knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
   }
-  if (killer !== NO_UNIT && killer < unitPool.length) {
-    const ku = unitPool[killer]!;
+  if (killer !== NO_UNIT && killer < POOL_UNITS) {
+    const ku = getUnit(killer);
     if (ku.alive) {
       ku.kills++;
       if (ku.kills >= 3) ku.vet = 1;
@@ -85,7 +86,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 }
 
 export function trail(u: Unit) {
-  const t = TYPES[u.type]!,
+  const t = getUnitType(u.type),
     c = getTrailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
@@ -112,8 +113,8 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     let bd = 200,
       bi: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
-      const oi = neighborBuffer[i]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(i),
+        o = getUnit(oi);
       if (!o.alive || o.team === team || hit.has(oi)) continue;
       const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
       if (d < bd) {
@@ -123,7 +124,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     }
     if (bi === NO_UNIT) break;
     hit.add(bi);
-    const o = unitPool[bi]!;
+    const o = getUnit(bi);
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
     for (let i = 0; i < 3; i++) {
       spawnParticle(

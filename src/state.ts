@@ -22,6 +22,18 @@ export const state: State = {
 
 export const beams: Beam[] = [];
 export const asteroids: Asteroid[] = [];
+
+export function getAsteroid(i: number): Asteroid {
+  const a = asteroids[i];
+  if (a === undefined) throw new RangeError(`Invalid asteroid index: ${i}`);
+  return a;
+}
+export function getBeam(i: number): Beam {
+  const b = beams[i];
+  if (b === undefined) throw new RangeError(`Invalid beam index: ${i}`);
+  return b;
+}
+
 export const bases: [Base, Base] = [
   { x: -1800, y: 0, hp: 500, maxHp: 500 },
   { x: 1800, y: 0, hp: 500, maxHp: 500 },

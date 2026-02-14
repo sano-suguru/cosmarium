@@ -29,7 +29,7 @@
       "recommended": true,
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "error",
         "useTemplate": "off",
         "noNestedTernary": "warn",
         "noParameterAssign": "warn",

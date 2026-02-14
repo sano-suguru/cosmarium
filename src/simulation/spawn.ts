@@ -1,23 +1,25 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
+import {
+  decParticleCount,
+  decProjectileCount,
+  decUnitCount,
+  getParticle,
+  getProjectile,
+  getUnit,
+  incParticleCount,
+  incProjectileCount,
+  incUnitCount,
+} from '../pools.ts';
 import { beams } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
-
-type MutablePoolCounts = { -readonly [K in keyof typeof poolCounts]: (typeof poolCounts)[K] };
-/**
- * poolCounts への唯一の mutable alias — カウンタ変更は spawn.ts（と resetPoolCounts）に集約。
- * 他ファイルで同様の `as MutablePoolCounts` キャストを行わないこと。
- * Readonly<> はうっかり防止であり `as` で容易にバイパスできるため、この集約が唯一の防御線。
- */
-const _counts = poolCounts as MutablePoolCounts;
+import { getUnitType } from '../unit-types.ts';
 
 export function spawnUnit(team: Team, type: number, x: number, y: number): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
-    if (!unitPool[i]!.alive) {
-      const u = unitPool[i]!,
-        t = TYPES[type]!;
+    const u = getUnit(i);
+    if (!u.alive) {
+      const t = getUnitType(type);
       u.alive = true;
       u.team = team;
       u.type = type;
@@ -41,7 +43,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.beamOn = 0;
       u.kills = 0;
       u.vet = 0;
-      _counts.unitCount++;
+      incUnitCount();
       return i as UnitIndex;
     }
   }
@@ -49,23 +51,26 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
 }
 
 export function killUnit(i: UnitIndex) {
-  if (unitPool[i]!.alive) {
-    unitPool[i]!.alive = false;
-    _counts.unitCount--;
+  const u = getUnit(i);
+  if (u.alive) {
+    u.alive = false;
+    decUnitCount();
   }
 }
 
 export function killParticle(i: ParticleIndex) {
-  if (particlePool[i]!.alive) {
-    particlePool[i]!.alive = false;
-    _counts.particleCount--;
+  const p = getParticle(i);
+  if (p.alive) {
+    p.alive = false;
+    decParticleCount();
   }
 }
 
 export function killProjectile(i: ProjectileIndex) {
-  if (projectilePool[i]!.alive) {
-    projectilePool[i]!.alive = false;
-    _counts.projectileCount--;
+  const p = getProjectile(i);
+  if (p.alive) {
+    p.alive = false;
+    decProjectileCount();
   }
 }
 
@@ -82,8 +87,8 @@ export function spawnParticle(
   shape: number,
 ): ParticleIndex {
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    if (!particlePool[i]!.alive) {
-      const p = particlePool[i]!;
+    const p = getParticle(i);
+    if (!p.alive) {
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -96,7 +101,7 @@ export function spawnParticle(
       p.g = g;
       p.b = b;
       p.shape = shape || 0;
-      _counts.particleCount++;
+      incParticleCount();
       return i as ParticleIndex;
     }
   }
@@ -120,8 +125,8 @@ export function spawnProjectile(
   targetIndex?: UnitIndex,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    if (!projectilePool[i]!.alive) {
-      const p = projectilePool[i]!;
+    const p = getProjectile(i);
+    if (!p.alive) {
       p.alive = true;
       p.x = x;
       p.y = y;
@@ -137,17 +142,11 @@ export function spawnProjectile(
       p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
       p.targetIndex = targetIndex ?? NO_UNIT;
-      _counts.projectileCount++;
+      incProjectileCount();
       return i as ProjectileIndex;
     }
   }
   return NO_PROJECTILE;
-}
-
-export function resetPoolCounts() {
-  _counts.unitCount = 0;
-  _counts.particleCount = 0;
-  _counts.projectileCount = 0;
 }
 
 export function addBeam(

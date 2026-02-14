@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools } from '../__test__/pool-helper.ts';
-import { unitPool } from '../pools.ts';
+import { getUnit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
-import { buildHash, getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
+import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killUnit, spawnUnit } from './spawn.ts';
 
 afterEach(() => {
@@ -29,7 +29,7 @@ describe('buildHash + getNeighbors', () => {
     buildHash();
     const n = getNeighbors(50, 50, 200);
     expect(n).toBe(1);
-    expect(neighborBuffer[0]).toBe(0);
+    expect(getNeighborAt(0)).toBe(0);
   });
 
   it('同セル内の複数ユニットを検出する', () => {
@@ -38,7 +38,7 @@ describe('buildHash + getNeighbors', () => {
     buildHash();
     const n = getNeighbors(15, 15, 200);
     expect(n).toBe(2);
-    const found = [neighborBuffer[0], neighborBuffer[1]].sort();
+    const found = [getNeighborAt(0), getNeighborAt(1)].sort();
     expect(found).toEqual([0, 1]);
   });
 
@@ -49,7 +49,7 @@ describe('buildHash + getNeighbors', () => {
     buildHash();
     const n = getNeighbors(55, 55, 200);
     expect(n).toBe(1);
-    expect(neighborBuffer[0]).toBe(0);
+    expect(getNeighborAt(0)).toBe(0);
   });
 
   it('範囲外のユニットは検出されない', () => {
@@ -58,7 +58,7 @@ describe('buildHash + getNeighbors', () => {
     buildHash();
     const n = getNeighbors(0, 0, 100);
     expect(n).toBe(1);
-    expect(neighborBuffer[0]).toBe(0);
+    expect(getNeighborAt(0)).toBe(0);
   });
 
   it('移動後に再構築で新位置を反映', () => {
@@ -67,8 +67,8 @@ describe('buildHash + getNeighbors', () => {
     let n = getNeighbors(50, 50, 100);
     expect(n).toBe(1);
 
-    unitPool[idx]!.x = 2000;
-    unitPool[idx]!.y = 2000;
+    getUnit(idx).x = 2000;
+    getUnit(idx).y = 2000;
     buildHash();
     n = getNeighbors(50, 50, 100);
     expect(n).toBe(0);
@@ -80,44 +80,44 @@ describe('buildHash + getNeighbors', () => {
 describe('knockback', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 0);
-    unitPool[idx]!.vx = 0;
-    unitPool[idx]!.vy = 0;
+    getUnit(idx).vx = 0;
+    getUnit(idx).vy = 0;
     knockback(idx, 0, 0, 50);
-    expect(unitPool[idx]!.vx).toBeGreaterThan(0);
-    expect(unitPool[idx]!.vy).toBeCloseTo(0);
+    expect(getUnit(idx).vx).toBeGreaterThan(0);
+    expect(getUnit(idx).vy).toBeCloseTo(0);
   });
 
   it('斜め方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 100);
-    unitPool[idx]!.vx = 0;
-    unitPool[idx]!.vy = 0;
+    getUnit(idx).vx = 0;
+    getUnit(idx).vy = 0;
     knockback(idx, 0, 0, 50);
-    expect(unitPool[idx]!.vx).toBeGreaterThan(0);
-    expect(unitPool[idx]!.vy).toBeGreaterThan(0);
-    expect(unitPool[idx]!.vx).toBeCloseTo(unitPool[idx]!.vy);
+    expect(getUnit(idx).vx).toBeGreaterThan(0);
+    expect(getUnit(idx).vy).toBeGreaterThan(0);
+    expect(getUnit(idx).vx).toBeCloseTo(getUnit(idx).vy);
   });
 
   it('既存速度に加算される', () => {
     const idx = spawnAt(0, 100, 0);
-    unitPool[idx]!.vx = 10;
-    unitPool[idx]!.vy = 5;
+    getUnit(idx).vx = 10;
+    getUnit(idx).vy = 5;
     knockback(idx, 0, 0, 50);
-    expect(unitPool[idx]!.vx).toBeGreaterThan(10);
-    expect(unitPool[idx]!.vy).toBeCloseTo(5);
+    expect(getUnit(idx).vx).toBeGreaterThan(10);
+    expect(getUnit(idx).vy).toBeCloseTo(5);
   });
 
   it('mass が大きいほどノックバックが小さい', () => {
     const i1 = spawnAt(0, 100, 0);
-    unitPool[i1]!.vx = 0;
-    unitPool[i1]!.mass = 1;
+    getUnit(i1).vx = 0;
+    getUnit(i1).mass = 1;
     knockback(i1, 0, 0, 50);
-    const lightKB = unitPool[i1]!.vx;
+    const lightKB = getUnit(i1).vx;
 
     const i2 = spawnAt(1, 100, 0);
-    unitPool[i2]!.vx = 0;
-    unitPool[i2]!.mass = 10;
+    getUnit(i2).vx = 0;
+    getUnit(i2).mass = 10;
     knockback(i2, 0, 0, 50);
-    const heavyKB = unitPool[i2]!.vx;
+    const heavyKB = getUnit(i2).vx;
 
     expect(lightKB).toBeGreaterThan(heavyKB);
   });

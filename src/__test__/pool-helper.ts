@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { resetPoolCounts, spawnUnit } from '../simulation/spawn.ts';
+import { getParticle, getProjectile, getUnit, resetPoolCounts, setUnitCount } from '../pools.ts';
+import { spawnUnit } from '../simulation/spawn.ts';
 import type { State } from '../state.ts';
 import { asteroids, bases, beams, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
@@ -9,7 +9,7 @@ import { NO_UNIT } from '../types.ts';
 
 export function resetPools() {
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = unitPool[i]!;
+    const u = getUnit(i);
     u.alive = false;
     u.team = 0;
     u.type = 0;
@@ -35,7 +35,7 @@ export function resetPools() {
     u.vet = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = particlePool[i]!;
+    const p = getParticle(i);
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -50,7 +50,7 @@ export function resetPools() {
     p.shape = 0;
   }
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const p = projectilePool[i]!;
+    const p = getProjectile(i);
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -73,8 +73,8 @@ export function resetPools() {
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
 export function fillUnitPool() {
-  for (let i = 0; i < POOL_UNITS; i++) unitPool[i]!.alive = true;
-  (poolCounts as { unitCount: number }).unitCount = POOL_UNITS;
+  for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = true;
+  setUnitCount(POOL_UNITS);
 }
 
 const stateDefaults: State = {

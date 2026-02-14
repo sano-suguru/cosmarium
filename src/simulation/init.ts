@@ -1,8 +1,8 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { particlePool, projectilePool, unitPool } from '../pools.ts';
+import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
 import { asteroids, bases, beams, state } from '../state.ts';
-import type { Team } from '../types.ts';
-import { resetPoolCounts, spawnUnit } from './spawn.ts';
+import { TEAMS } from '../types.ts';
+import { spawnUnit } from './spawn.ts';
 
 function genAsteroids() {
   asteroids.length = 0;
@@ -18,9 +18,9 @@ function genAsteroids() {
 }
 
 export function initUnits() {
-  for (let i = 0; i < POOL_UNITS; i++) unitPool[i]!.alive = false;
-  for (let i = 0; i < POOL_PARTICLES; i++) particlePool[i]!.alive = false;
-  for (let i = 0; i < POOL_PROJECTILES; i++) projectilePool[i]!.alive = false;
+  for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
+  for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = false;
+  for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
   resetPoolCounts();
   beams.length = 0;
   bases[0].hp = bases[0].maxHp;
@@ -29,11 +29,14 @@ export function initUnits() {
 
   const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
   if (state.gameMode === 1) {
-    for (let i = 0; i < n.length; i++) n[i] = Math.ceil(n[i]! * 0.7);
+    for (let i = 0; i < n.length; i++) {
+      const v = n[i];
+      if (v === undefined) throw new RangeError(`Invalid n index: ${i}`);
+      n[i] = Math.ceil(v * 0.7);
+    }
   }
 
-  for (let ti = 0; ti < 2; ti++) {
-    const team = ti as Team;
+  for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;
     const cy = team === 0 ? -300 : 300;
     const s = (tp: number, count: number, spread: number) => {
@@ -41,20 +44,29 @@ export function initUnits() {
         spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       }
     };
-    s(4, n[0]!, 200);
-    s(7, n[1]!, 150);
-    s(3, n[2]!, 500);
-    s(2, n[3]!, 400);
-    s(1, n[4]!, 700);
-    s(0, n[5]!, 900);
-    s(5, n[6]!, 400);
-    s(6, n[7]!, 300);
-    s(8, n[8]!, 600);
-    s(9, n[9]!, 400);
-    s(10, n[10]!, 500);
-    s(11, n[11]!, 400);
-    s(12, n[12]!, 400);
-    s(13, n[13]!, 400);
-    s(14, n[14]!, 400);
+    const spawns: [number, number][] = [
+      [4, 200],
+      [7, 150],
+      [3, 500],
+      [2, 400],
+      [1, 700],
+      [0, 900],
+      [5, 400],
+      [6, 300],
+      [8, 600],
+      [9, 400],
+      [10, 500],
+      [11, 400],
+      [12, 400],
+      [13, 400],
+      [14, 400],
+    ];
+    for (let k = 0; k < spawns.length; k++) {
+      const sp = spawns[k];
+      if (sp === undefined) throw new RangeError(`Invalid spawns index: ${k}`);
+      const count = n[k];
+      if (count === undefined) throw new RangeError(`Invalid n index: ${k}`);
+      s(sp[0], count, sp[1]);
+    }
   }
 }

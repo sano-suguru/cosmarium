@@ -135,6 +135,7 @@ export type Color3 = [number, number, number];
 export type GameState = 'menu' | 'play' | 'win';
 export type GameMode = 0 | 1 | 2;
 export type Team = 0 | 1;
+export const TEAMS: readonly [Team, Team] = [0, 1];
 
 /** プールインデックスの branded type（型レベルで異なるプール間のインデックス混用を防止） */
 export type UnitIndex = number & { readonly __brand: 'UnitIndex' };

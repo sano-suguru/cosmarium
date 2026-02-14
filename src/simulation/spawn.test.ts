@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fillUnitPool, resetPools } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
+import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnitType } from '../unit-types.ts';
 import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 afterEach(() => {
@@ -16,7 +16,7 @@ describe('spawnParticle', () => {
     const idx = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
     expect(idx).toBe(0);
     expect(poolCounts.particleCount).toBe(1);
-    const p = particlePool[0]!;
+    const p = getParticle(0);
     expect(p.alive).toBe(true);
     expect(p.x).toBe(10);
     expect(p.y).toBe(20);
@@ -45,7 +45,7 @@ describe('spawnProjectile', () => {
     const idx = spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(idx).toBe(0);
     expect(poolCounts.projectileCount).toBe(1);
-    const p = projectilePool[0]!;
+    const p = getProjectile(0);
     expect(p.alive).toBe(true);
     expect(p.x).toBe(100);
     expect(p.y).toBe(200);
@@ -59,7 +59,7 @@ describe('spawnProjectile', () => {
   it('オプション引数が反映される', () => {
     const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42 as UnitIndex);
     expect(idx).toBe(0);
-    const p = projectilePool[0]!;
+    const p = getProjectile(0);
     expect(p.homing).toBe(true);
     expect(p.aoe).toBe(70);
     expect(p.targetIndex).toBe(42);
@@ -72,8 +72,8 @@ describe('spawnUnit', () => {
     const idx = spawnUnit(0, 1, 100, 200);
     expect(idx).toBe(0);
     expect(poolCounts.unitCount).toBe(1);
-    const u = unitPool[0]!;
-    const fighter = TYPES[1]!;
+    const u = getUnit(0);
+    const fighter = getUnitType(1);
     expect(u.alive).toBe(true);
     expect(u.team).toBe(0);
     expect(u.type).toBe(1);
@@ -102,8 +102,8 @@ describe('spawnUnit', () => {
     killUnit(0 as UnitIndex);
     const reused = spawnUnit(1, 1, 50, 50);
     expect(reused).toBe(0);
-    expect(unitPool[0]!.team).toBe(1);
-    expect(unitPool[0]!.x).toBe(50);
+    expect(getUnit(0).team).toBe(1);
+    expect(getUnit(0).x).toBe(50);
   });
 });
 
@@ -113,7 +113,7 @@ describe('killUnit', () => {
     spawnUnit(0, 0, 0, 0);
     expect(poolCounts.unitCount).toBe(1);
     killUnit(0 as UnitIndex);
-    expect(unitPool[0]!.alive).toBe(false);
+    expect(getUnit(0).alive).toBe(false);
     expect(poolCounts.unitCount).toBe(0);
   });
 
@@ -131,7 +131,7 @@ describe('killParticle', () => {
     spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
     expect(poolCounts.particleCount).toBe(1);
     killParticle(0 as ParticleIndex);
-    expect(particlePool[0]!.alive).toBe(false);
+    expect(getParticle(0).alive).toBe(false);
     expect(poolCounts.particleCount).toBe(0);
   });
 
@@ -148,7 +148,7 @@ describe('killProjectile', () => {
     spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(poolCounts.projectileCount).toBe(1);
     killProjectile(0 as ProjectileIndex);
-    expect(projectilePool[0]!.alive).toBe(false);
+    expect(getProjectile(0).alive).toBe(false);
     expect(poolCounts.projectileCount).toBe(0);
   });
 

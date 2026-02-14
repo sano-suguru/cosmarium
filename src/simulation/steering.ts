@@ -1,10 +1,10 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
-import { unitPool } from '../pools.ts';
-import { asteroids, bases, state } from '../state.ts';
+import { getUnit } from '../pools.ts';
+import { asteroids, bases, getAsteroid, state } from '../state.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
-import { getNeighbors, neighborBuffer } from './spatial-hash.ts';
+import { getUnitType } from '../unit-types.ts';
+import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
@@ -15,7 +15,7 @@ export function steer(u: Unit, dt: number) {
     u.y += u.vy * dt;
     return;
   }
-  const t = TYPES[u.type]!;
+  const t = getUnitType(u.type);
   let fx = 0,
     fy = 0;
   const nn = getNeighbors(u.x, u.y, 200);
@@ -30,8 +30,8 @@ export function steer(u: Unit, dt: number) {
   const sd = t.size * 4;
 
   for (let i = 0; i < nn; i++) {
-    const oi = neighborBuffer[i]!,
-      o = unitPool[oi]!;
+    const oi = getNeighborAt(i),
+      o = getUnit(oi);
     if (!o.alive || o === u) continue;
     const dx = u.x - o.x,
       dy = u.y - o.y;
@@ -68,7 +68,7 @@ export function steer(u: Unit, dt: number) {
 
   // Avoid asteroids
   for (let i = 0; i < asteroids.length; i++) {
-    const a = asteroids[i]!;
+    const a = getAsteroid(i);
     const dx = u.x - a.x,
       dy = u.y - a.y;
     const d = Math.sqrt(dx * dx + dy * dy);
@@ -79,13 +79,13 @@ export function steer(u: Unit, dt: number) {
   }
 
   // Find target
-  let tgt: UnitIndex = u.target !== NO_UNIT && unitPool[u.target]!.alive ? u.target : NO_UNIT;
+  let tgt: UnitIndex = u.target !== NO_UNIT && getUnit(u.target).alive ? u.target : NO_UNIT;
   if (tgt === NO_UNIT) {
     let bd = t.range * 3,
       bi: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
-      const oi = neighborBuffer[i]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(i),
+        o = getUnit(oi);
       if (o.team === u.team || !o.alive) continue;
       const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
       if (d < bd) {
@@ -96,7 +96,7 @@ export function steer(u: Unit, dt: number) {
     if (bi === NO_UNIT && Math.random() < 0.012) {
       bd = 1e18;
       for (let i = 0; i < POOL_UNITS; i++) {
-        const o = unitPool[i]!;
+        const o = getUnit(i);
         if (!o.alive || o.team === u.team) continue;
         const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
         if (d2 < bd) {
@@ -116,7 +116,7 @@ export function steer(u: Unit, dt: number) {
   }
 
   if (tgt !== NO_UNIT) {
-    const o = unitPool[tgt]!;
+    const o = getUnit(tgt);
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -144,16 +144,16 @@ export function steer(u: Unit, dt: number) {
     let bm = 0,
       bi2: UnitIndex = NO_UNIT;
     for (let i = 0; i < nn; i++) {
-      const oi = neighborBuffer[i]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(i),
+        o = getUnit(oi);
       if (o.team !== u.team || !o.alive || o === u) continue;
-      if (TYPES[o.type]!.mass > bm) {
-        bm = TYPES[o.type]!.mass;
+      if (getUnitType(o.type).mass > bm) {
+        bm = getUnitType(o.type).mass;
         bi2 = oi;
       }
     }
     if (bi2 !== NO_UNIT) {
-      const o = unitPool[bi2]!;
+      const o = getUnit(bi2);
       fx += (o.x - u.x) * 0.05;
       fy += (o.y - u.y) * 0.05;
     }
@@ -181,7 +181,7 @@ export function steer(u: Unit, dt: number) {
 
   // Asteroid collision
   for (let i = 0; i < asteroids.length; i++) {
-    const a = asteroids[i]!;
+    const a = getAsteroid(i);
     const dx = u.x - a.x,
       dy = u.y - a.y;
     const d = Math.sqrt(dx * dx + dy * dy);

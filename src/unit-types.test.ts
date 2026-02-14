@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TYPES } from './unit-types.ts';
+import { getUnitType, TYPES } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
   it('要素数が15', () => {
@@ -49,52 +49,52 @@ describe('TYPES 配列', () => {
   });
 
   it('特殊フラグ: idx 2 (Bomber) は aoe を持つ', () => {
-    expect(TYPES[2]!.aoe).toBe(70);
+    expect(getUnitType(2).aoe).toBe(70);
   });
 
   it('特殊フラグ: idx 3 (Cruiser) は beam を持つ', () => {
-    expect(TYPES[3]!.beam).toBe(true);
+    expect(getUnitType(3).beam).toBe(true);
   });
 
   it('特殊フラグ: idx 5 (Healer) は heals を持つ', () => {
-    expect(TYPES[5]!.heals).toBe(true);
+    expect(getUnitType(5).heals).toBe(true);
   });
 
   it('特殊フラグ: idx 6 (Reflector) は reflects を持つ', () => {
-    expect(TYPES[6]!.reflects).toBe(true);
+    expect(getUnitType(6).reflects).toBe(true);
   });
 
   it('特殊フラグ: idx 7 (Carrier) は spawns を持つ', () => {
-    expect(TYPES[7]!.spawns).toBe(true);
+    expect(getUnitType(7).spawns).toBe(true);
   });
 
   it('特殊フラグ: idx 9 (Ram) は rams を持つ', () => {
-    expect(TYPES[9]!.rams).toBe(true);
+    expect(getUnitType(9).rams).toBe(true);
   });
 
   it('特殊フラグ: idx 10 (Missile) は homing を持つ', () => {
-    expect(TYPES[10]!.homing).toBe(true);
+    expect(getUnitType(10).homing).toBe(true);
   });
 
   it('特殊フラグ: idx 11 (EMP) は emp を持つ', () => {
-    expect(TYPES[11]!.emp).toBe(true);
+    expect(getUnitType(11).emp).toBe(true);
   });
 
   it('特殊フラグ: idx 12 (Beam Frig.) は beam を持つ', () => {
-    expect(TYPES[12]!.beam).toBe(true);
+    expect(getUnitType(12).beam).toBe(true);
   });
 
   it('特殊フラグ: idx 13 (Teleporter) は teleports を持つ', () => {
-    expect(TYPES[13]!.teleports).toBe(true);
+    expect(getUnitType(13).teleports).toBe(true);
   });
 
   it('特殊フラグ: idx 14 (Chain Bolt) は chain を持つ', () => {
-    expect(TYPES[14]!.chain).toBe(true);
+    expect(getUnitType(14).chain).toBe(true);
   });
 
   it('フラグを持たないタイプ (Drone, Fighter, Flagship, Sniper) は特殊フラグなし', () => {
     for (const idx of [0, 1, 4, 8]) {
-      const t = TYPES[idx]!;
+      const t = getUnitType(idx);
       expect(t.beam).toBeUndefined();
       expect(t.heals).toBeUndefined();
       expect(t.reflects).toBeUndefined();

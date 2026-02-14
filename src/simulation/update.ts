@@ -1,16 +1,16 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { particlePool, poolCounts, projectilePool, unitPool } from '../pools.ts';
-import { asteroids, bases, beams, state } from '../state.ts';
+import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { asteroids, bases, beams, getAsteroid, getBeam, state } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { enemyTeam, NO_UNIT } from '../types.ts';
 import { updateCatDemo } from '../ui/catalog.ts';
 import { showWin } from '../ui/game-control.ts';
-import { TYPES } from '../unit-types.ts';
+import { getUnitType } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
-import { buildHash, getNeighbors, knockback, neighborBuffer } from './spatial-hash.ts';
+import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
@@ -19,7 +19,7 @@ export function update(rawDt: number, now: number) {
   buildHash();
 
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
-    const u = unitPool[i]!;
+    const u = getUnit(i);
     if (!u.alive) continue;
     urem--;
     u.shielded = false;
@@ -34,25 +34,25 @@ export function update(rawDt: number, now: number) {
 
   // Reflector shields
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
-    const u = unitPool[i]!;
+    const u = getUnit(i);
     if (!u.alive) continue;
     urem2--;
-    if (!TYPES[u.type]!.reflects) continue;
+    if (!getUnitType(u.type).reflects) continue;
     const nn = getNeighbors(u.x, u.y, 100);
     for (let j = 0; j < nn; j++) {
-      const o = unitPool[neighborBuffer[j]!]!;
+      const o = getUnit(getNeighborAt(j));
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
 
   // Projectiles
   for (let i = 0, prem = poolCounts.projectileCount; i < POOL_PROJECTILES && prem > 0; i++) {
-    const p = projectilePool[i]!;
+    const p = getProjectile(i);
     if (!p.alive) continue;
     prem--;
 
     if (p.homing && p.targetIndex !== NO_UNIT) {
-      const tg = unitPool[p.targetIndex]!;
+      const tg = getUnit(p.targetIndex);
       if (tg.alive) {
         let ca = Math.atan2(p.vy, p.vx);
         const da = Math.atan2(tg.y - p.y, tg.x - p.x);
@@ -91,8 +91,8 @@ export function update(rawDt: number, now: number) {
       if (p.aoe > 0) {
         const nn = getNeighbors(p.x, p.y, p.aoe);
         for (let j = 0; j < nn; j++) {
-          const oi = neighborBuffer[j]!,
-            o = unitPool[oi]!;
+          const oi = getNeighborAt(j),
+            o = getUnit(oi);
           if (!o.alive || o.team === p.team) continue;
           const ddx = o.x - p.x,
             ddy = o.y - p.y;
@@ -132,10 +132,10 @@ export function update(rawDt: number, now: number) {
     const nn2 = getNeighbors(p.x, p.y, 30);
     let hit = false;
     for (let j = 0; j < nn2; j++) {
-      const oi = neighborBuffer[j]!,
-        o = unitPool[oi]!;
+      const oi = getNeighborAt(j),
+        o = getUnit(oi);
       if (!o.alive || o.team === p.team) continue;
-      const hs = TYPES[o.type]!.size;
+      const hs = getUnitType(o.type).size;
       if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
         let dmg = p.damage;
         if (o.shielded) dmg *= 0.3;
@@ -154,7 +154,7 @@ export function update(rawDt: number, now: number) {
 
     if (!hit && !state.catalogOpen) {
       for (let j = 0; j < asteroids.length; j++) {
-        const ast = asteroids[j]!;
+        const ast = getAsteroid(j);
         if ((p.x - ast.x) * (p.x - ast.x) + (p.y - ast.y) * (p.y - ast.y) < ast.radius * ast.radius) {
           spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.1, 2, 0.6, 0.5, 0.3, 0);
           killProjectile(i as ProjectileIndex);
@@ -166,7 +166,7 @@ export function update(rawDt: number, now: number) {
 
   // Particles
   for (let i = 0, rem = poolCounts.particleCount; i < POOL_PARTICLES && rem > 0; i++) {
-    const pp = particlePool[i]!;
+    const pp = getParticle(i);
     if (!pp.alive) continue;
     rem--;
     pp.x += pp.vx * dt;
@@ -181,7 +181,7 @@ export function update(rawDt: number, now: number) {
 
   // Beams
   for (let i = beams.length - 1; i >= 0; i--) {
-    const bm = beams[i]!;
+    const bm = getBeam(i);
     bm.life -= dt;
     if (bm.life <= 0) beams.splice(i, 1);
   }
@@ -190,20 +190,20 @@ export function update(rawDt: number, now: number) {
     // Base damage
     if (state.gameMode === 2) {
       for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
-        const u = unitPool[i]!;
+        const u = getUnit(i);
         if (!u.alive) continue;
         urem3--;
         const eb = bases[enemyTeam(u.team)];
         const d = Math.sqrt((u.x - eb.x) * (u.x - eb.x) + (u.y - eb.y) * (u.y - eb.y));
         if (d < 80) {
-          eb.hp -= TYPES[u.type]!.damage * dt * 3;
+          eb.hp -= getUnitType(u.type).damage * dt * 3;
           if (eb.hp < 0) eb.hp = 0;
         }
       }
     }
 
     for (let i = 0; i < asteroids.length; i++) {
-      const ast = asteroids[i]!;
+      const ast = getAsteroid(i);
       ast.angle += ast.angularVelocity * dt;
     }
     reinforce(dt);
@@ -216,7 +216,7 @@ export function update(rawDt: number, now: number) {
       let ac = 0,
         bc = 0;
       for (let i = 0, urem4 = poolCounts.unitCount; i < POOL_UNITS && urem4 > 0; i++) {
-        const u = unitPool[i]!;
+        const u = getUnit(i);
         if (!u.alive) continue;
         urem4--;
         if (u.team === 0) ac++;

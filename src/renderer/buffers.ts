@@ -1,5 +1,6 @@
 import { MAX_INSTANCES, MINIMAP_MAX, STRIDE_BYTES } from '../constants.ts';
 import { mainLocations, minimapLocations } from './shaders.ts';
+import { required } from './utils.ts';
 import { gl } from './webgl-setup.ts';
 
 let quadBuffer: WebGLBuffer;
@@ -12,18 +13,18 @@ export let mmVAO: WebGLVertexArrayObject;
 export let qVAO: WebGLVertexArrayObject;
 
 export function initBuffers() {
-  quadBuffer = gl.createBuffer()!;
+  quadBuffer = required(gl.createBuffer(), 'quadBuffer');
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
 
   instanceData = new Float32Array(MAX_INSTANCES * 9);
-  instanceBuffer = gl.createBuffer()!;
+  instanceBuffer = required(gl.createBuffer(), 'instanceBuffer');
 
   minimapData = new Float32Array(MINIMAP_MAX * 9);
-  minimapBuffer = gl.createBuffer()!;
+  minimapBuffer = required(gl.createBuffer(), 'minimapBuffer');
 
   /* --- mainVAO --- */
-  mainVAO = gl.createVertexArray()!;
+  mainVAO = required(gl.createVertexArray(), 'mainVAO');
   gl.bindVertexArray(mainVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.enableVertexAttribArray(mainLocations.aP);
@@ -47,7 +48,7 @@ export function initBuffers() {
   gl.bindVertexArray(null);
 
   /* --- mmVAO --- */
-  mmVAO = gl.createVertexArray()!;
+  mmVAO = required(gl.createVertexArray(), 'mmVAO');
   gl.bindVertexArray(mmVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.enableVertexAttribArray(minimapLocations.aP);
@@ -71,7 +72,7 @@ export function initBuffers() {
   gl.bindVertexArray(null);
 
   /* --- qVAO --- */
-  qVAO = gl.createVertexArray()!;
+  qVAO = required(gl.createVertexArray(), 'qVAO');
   gl.bindVertexArray(qVAO);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.enableVertexAttribArray(0);
