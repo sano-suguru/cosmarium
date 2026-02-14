@@ -2,16 +2,17 @@ import { cam } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { state } from '../state.ts';
 import type { GameMode } from '../types.ts';
-// NOTE: catalog.ts → game-control.ts の逆方向 import は循環依存になるため禁止
-import { closeCatalog, initCatalogDOM, toggleCat } from './catalog.ts';
+// NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
+import { closeCodex, initCodexDOM, toggleCodex } from './codex.ts';
 import {
   DOM_ID_BASE_HP,
   DOM_ID_BTN_ANNIHILATION,
   DOM_ID_BTN_BASE_ASSAULT,
   DOM_ID_BTN_INFINITE,
   DOM_ID_BTN_MENU,
-  DOM_ID_CAT_BTN,
-  DOM_ID_CAT_CLOSE,
+  DOM_ID_CODEX_BTN,
+  DOM_ID_CODEX_CLOSE,
+  DOM_ID_CODEX_MENU_BTN,
   DOM_ID_CONTROLS,
   DOM_ID_HUD,
   DOM_ID_MENU,
@@ -23,10 +24,9 @@ import {
   DOM_ID_WIN_TEXT,
 } from './dom-ids.ts';
 
-// DOM element cache (populated by initUI)
 let elMenu: HTMLElement | null = null;
 let elHud: HTMLElement | null = null;
-let elCatBtn: HTMLElement | null = null;
+let elCodexBtn: HTMLElement | null = null;
 let elMinimap: HTMLElement | null = null;
 let elControls: HTMLElement | null = null;
 let elSpeed: HTMLElement | null = null;
@@ -53,7 +53,7 @@ function startGame(mode: GameMode) {
   cam.targetZ = 1;
   if (elMenu) elMenu.style.display = 'none';
   if (elHud) elHud.style.display = 'block';
-  if (elCatBtn) elCatBtn.style.display = 'block';
+  if (elCodexBtn) elCodexBtn.style.display = 'block';
   if (elMinimap) elMinimap.style.display = 'block';
   if (elControls) elControls.style.display = 'block';
   if (elSpeed) elSpeed.style.display = 'flex';
@@ -72,7 +72,7 @@ function startGame(mode: GameMode) {
 }
 
 export function showWin() {
-  closeCatalog();
+  closeCodex();
   state.gameState = 'win';
   if (elWin) elWin.style.display = 'flex';
   if (elWinText) {
@@ -82,12 +82,23 @@ export function showWin() {
 }
 
 function backToMenu() {
-  closeCatalog();
+  closeCodex();
   state.gameState = 'menu';
   if (elMenu) elMenu.style.display = 'flex';
-  const els = [elHud, elCatBtn, elMinimap, elControls, elObjective, elWin, elSpeed];
+  const els = [elHud, elCodexBtn, elMinimap, elControls, elObjective, elWin, elSpeed];
   for (const el of els) {
     if (el) el.style.display = 'none';
+  }
+}
+
+function handleCodexToggle() {
+  if (state.gameState === 'win') return;
+  toggleCodex();
+  if (state.gameState === 'menu') {
+    if (elMenu) elMenu.style.display = state.codexOpen ? 'none' : 'flex';
+  }
+  if (elCodexBtn && state.gameState === 'play') {
+    elCodexBtn.style.display = state.codexOpen ? 'none' : 'block';
   }
 }
 
@@ -108,10 +119,9 @@ function stepSpd(dir: number) {
 }
 
 export function initUI() {
-  // Cache DOM elements
   elMenu = document.getElementById(DOM_ID_MENU);
   elHud = document.getElementById(DOM_ID_HUD);
-  elCatBtn = document.getElementById(DOM_ID_CAT_BTN);
+  elCodexBtn = document.getElementById(DOM_ID_CODEX_BTN);
   elMinimap = document.getElementById(DOM_ID_MINIMAP);
   elControls = document.getElementById(DOM_ID_CONTROLS);
   elSpeed = document.getElementById(DOM_ID_SPEED);
@@ -124,7 +134,8 @@ export function initUI() {
   const elBtnInfinite = document.getElementById(DOM_ID_BTN_INFINITE);
   const elBtnAnnihilation = document.getElementById(DOM_ID_BTN_ANNIHILATION);
   const elBtnBaseAssault = document.getElementById(DOM_ID_BTN_BASE_ASSAULT);
-  const elCatClose = document.getElementById(DOM_ID_CAT_CLOSE);
+  const elCodexClose = document.getElementById(DOM_ID_CODEX_CLOSE);
+  const elCodexMenuBtn = document.getElementById(DOM_ID_CODEX_MENU_BTN);
   const elBtnMenu = document.getElementById(DOM_ID_BTN_MENU);
 
   {
@@ -132,8 +143,9 @@ export function initUI() {
       [DOM_ID_BTN_INFINITE, elBtnInfinite],
       [DOM_ID_BTN_ANNIHILATION, elBtnAnnihilation],
       [DOM_ID_BTN_BASE_ASSAULT, elBtnBaseAssault],
-      [DOM_ID_CAT_BTN, elCatBtn],
-      [DOM_ID_CAT_CLOSE, elCatClose],
+      [DOM_ID_CODEX_BTN, elCodexBtn],
+      [DOM_ID_CODEX_CLOSE, elCodexClose],
+      [DOM_ID_CODEX_MENU_BTN, elCodexMenuBtn],
       [DOM_ID_BTN_MENU, elBtnMenu],
       [DOM_ID_MENU, elMenu],
       [DOM_ID_HUD, elHud],
@@ -152,7 +164,6 @@ export function initUI() {
     }
   }
 
-  // Menu buttons
   elBtnInfinite?.addEventListener('click', () => {
     startGame(0);
   });
@@ -163,31 +174,30 @@ export function initUI() {
     startGame(2);
   });
 
-  // Catalog buttons
-  elCatBtn?.addEventListener('click', () => {
-    toggleCat();
+  elCodexBtn?.addEventListener('click', () => {
+    handleCodexToggle();
   });
-  elCatClose?.addEventListener('click', () => {
-    toggleCat();
+  elCodexClose?.addEventListener('click', () => {
+    handleCodexToggle();
+  });
+  elCodexMenuBtn?.addEventListener('click', () => {
+    handleCodexToggle();
   });
 
-  // Win screen
   elBtnMenu?.addEventListener('click', () => {
     backToMenu();
   });
 
-  // Speed buttons
   for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
     btn.addEventListener('click', () => {
       setSpd(Number.parseFloat(btn.dataset.spd || '0.55'));
     });
   }
 
-  // Keyboard shortcuts for catalog and speed
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if ((e.code === 'Tab' || e.code === 'Escape') && state.gameState === 'play') {
+    if ((e.code === 'Tab' || e.code === 'Escape') && (state.gameState === 'play' || state.gameState === 'menu')) {
       e.preventDefault();
-      toggleCat();
+      handleCodexToggle();
     }
     if (state.gameState === 'play') {
       if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
@@ -201,5 +211,5 @@ export function initUI() {
     }
   });
 
-  initCatalogDOM();
+  initCodexDOM();
 }

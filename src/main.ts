@@ -12,25 +12,22 @@ import { state } from './state.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 
-// Initialize renderer (order matters)
+// Init order matters: WebGL context → shader compile → FBOs → vertex buffers
 initWebGL();
 initShaders();
 createFBOs();
 initBuffers();
 
-// Resize handler
 addEventListener('resize', () => {
   resize();
   createFBOs();
 });
 
-// Initialize UI and input
 initUI();
 initHUD();
 initCamera();
 initMinimap();
 
-// Main loop state
 let lastTime = 0,
   frameCount = 0,
   fpsTime = 0,
@@ -64,16 +61,15 @@ function frame(now: number) {
     cam.shake = 0;
   }
 
-  if (state.gameState === 'play') {
-    update(dt * state.timeScale, t);
-
+  if (state.codexOpen) {
+    update(dt, t);
     renderFrame(t);
-
-    // HUD updates
-    if (!state.catalogOpen) {
-      updateHUD(displayFps);
-      if (frameCount % 2 === 0) drawMinimap();
-    }
+  } else if (state.gameState === 'play') {
+    const scaledDt = dt * state.timeScale;
+    update(scaledDt, t);
+    renderFrame(t);
+    updateHUD(displayFps);
+    if (frameCount % 2 === 0) drawMinimap();
   }
 
   requestAnimationFrame(frame);

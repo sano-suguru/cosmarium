@@ -19,12 +19,12 @@ describe('初期値', () => {
     expect(state.winTeam).toBe(-1);
   });
 
-  it('catalogOpen は false', () => {
-    expect(state.catalogOpen).toBe(false);
+  it('codexOpen は false', () => {
+    expect(state.codexOpen).toBe(false);
   });
 
-  it('catSelected は 0', () => {
-    expect(state.catSelected).toBe(0);
+  it('codexSelected は 0', () => {
+    expect(state.codexSelected).toBe(0);
   });
 
   it('timeScale は 0.55', () => {
@@ -58,16 +58,16 @@ describe('直接代入', () => {
     expect(state.winTeam).toBe(1);
   });
 
-  it('state.catalogOpen を更新できる', () => {
-    state.catalogOpen = true;
-    expect(state.catalogOpen).toBe(true);
-    state.catalogOpen = false;
-    expect(state.catalogOpen).toBe(false);
+  it('state.codexOpen を更新できる', () => {
+    state.codexOpen = true;
+    expect(state.codexOpen).toBe(true);
+    state.codexOpen = false;
+    expect(state.codexOpen).toBe(false);
   });
 
-  it('state.catSelected を更新できる', () => {
-    state.catSelected = 7;
-    expect(state.catSelected).toBe(7);
+  it('state.codexSelected を更新できる', () => {
+    state.codexSelected = 7;
+    expect(state.codexSelected).toBe(7);
   });
 
   it('state.timeScale を更新できる', () => {

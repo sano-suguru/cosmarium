@@ -12,7 +12,7 @@
 `shaders.ts`(location定義+get) → attribなら`buffers.ts`(VAOセットアップ、`vertexAttribDivisor(loc,1)`必須) → uniformなら`render-pass.ts`
 
 ### 新エンティティ描画追加
-`render-scene.ts`の`renderScene()`に`writeInstance()`追加。描画順: asteroids→bases→particles→beams→projectiles→units。`catalogOpen`時はasteroids/basesスキップ。`MAX_INSTANCES`超過で描画消失→`constants.ts`の値を確認。
+`render-scene.ts`の`renderScene()`に`writeInstance()`追加。描画順: asteroids→bases→particles→beams→projectiles→units。`codexOpen`時はasteroids/basesスキップ。`MAX_INSTANCES`超過で描画消失→`constants.ts`の値を確認。
 
 ### ミニマップ描画追加
 `minimap.ts`の`drawMinimap()`に`writeMinimapInstance()`追加。座標=ワールド×`1/WORLD_SIZE`で正規化。

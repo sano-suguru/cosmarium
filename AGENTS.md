@@ -26,13 +26,13 @@
 
 - main loop: `gameState==='play'`時のみ実行
 - dt二重クランプ: main.ts(0.05s) → update.ts(0.033s)
-- update順: `buildHash()` → per unit(`steer`→`combat`) → reflector pass → projectile pass → particle/beam pass → `!catalogOpen`時のみ(base damage/reinforce/win check)
-- `catalogOpen`時: steps 7-10スキップ → `updateCatDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化
+- update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ(base damage/reinforce/win check)
+- `codexOpen`時: 非デモユニットのsteer/combatスキップ + steps 7-10スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
 
 ## ファイル変更ガイド
 
 ### 新ユニット追加
-`unit-types.ts` → `types.ts`(新フラグ時) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts`(特殊移動時) → `simulation/spawn.ts`(新プロパティ時) → `ui/catalog.ts` → `src/shaders/main.frag.glsl`(新シェイプ時)
+`unit-types.ts` → `types.ts`(新フラグ時) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts`(特殊移動時) → `simulation/spawn.ts`(新プロパティ時) → `ui/codex.ts` → `src/shaders/main.frag.glsl`(新シェイプ時)
 
 ### 新エフェクト追加
 `simulation/effects.ts` にエフェクト関数追加 → 呼び出し元からインポート
@@ -85,7 +85,7 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 ## Critical Gotchas
 
 - `neighborBuffer`は共有バッファ: `getNeighbors()`が書込み、戻り値=有効数。コピーせず即使用
-- `catalogOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
+- `codexOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
 - `bases`は`[Base, Base]`タプル: `0`/`1`または`Team`型indexなら`!`不要
 - GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可
 - シェーダは`vite-plugin-glsl`経由でimport。`#include`展開もplugin側で処理

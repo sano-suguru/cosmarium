@@ -57,7 +57,7 @@ src/
   renderer/          # WebGL 2 setup, shaders, FBO, buffers, scene/bloom/minimap rendering
   simulation/        # Spatial hash, spawn/kill, effects, steering, combat, update tick
   input/camera.ts    # Camera (cam object), mouse/wheel/drag, addShake()
-  ui/                # Catalog, game controls, HUD
+  ui/                # Codex, game controls, HUD
 ```
 
 **Init order** (main.ts): initWebGL → initShaders → createFBOs → initBuffers → initUI → initCamera → initMinimap
@@ -68,12 +68,12 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
   → update(dt * timeScale)  — dt re-clamped to 0.033
       buildHash() → per unit: steer()+combat() → reflector pass
       → projectile pass → particle/beam pass
-      [!catalogOpen: reinforce() → win check]
-      [catalogOpen: updateCatDemo(dt)]
+      [!codexOpen: reinforce() → win check]
+      [codexOpen: updateCodexDemo(dt), non-demo units skip steer/combat]
   → renderFrame()
       renderScene() → GPU upload → drawArraysInstanced
       → bloom H/V → composite + drawMinimap()
-      [catalogOpen: camera locked to origin z=2.5, HUD/minimap hidden]
+      [codexOpen: camera locked to origin z=2.5, HUD/minimap hidden]
 ```
 
 **Detailed change guides** in AGENTS.md files:
@@ -81,7 +81,7 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
 - `src/renderer/AGENTS.md` — VAO/FBO structure, instance data layout
 - `src/simulation/AGENTS.md` — tick order, combat branching, reinforcement table
 - `src/shaders/AGENTS.md` — `#include` mechanism, shape ID→SDF mapping
-- `src/ui/AGENTS.md` — catalog pool side effects, demo scenarios
+- `src/ui/AGENTS.md` — codex pool side effects, demo scenarios
 
 ## Coding Conventions
 
@@ -146,9 +146,9 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 
 | 罠 | 理由 |
 |----|------|
-| `catalogOpen`は複数層に影響 | simulation(steps 1-6常時実行、7-10スキップ→updateCatDemo)、renderer(カメラ固定)、input(操作無効化)、main(HUD/minimap省略) |
+| `codexOpen`は複数層に影響 | simulation(非デモユニットのsteer/combatスキップ、steps 7-10スキップ→updateCodexDemo)、renderer(カメラ固定)、input(操作無効化)、main(HUD/minimap省略) |
 | GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
-| カタログがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
+| Codexがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
 | `neighborBuffer`は共有バッファ | `getNeighbors()`後に即使用。`buildHash()`後のみ有効（途中のユニット追加は反映されない） |
 | `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止。意図的な安全策 |
 | プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |

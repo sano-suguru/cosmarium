@@ -4,8 +4,8 @@
 
 ## Tick順序（update.ts）
 
-1-6は常時実行: `buildHash()` → per unit(`shielded=false` → `steer` → `combat` → trail) → reflector pass → projectile pass → particle pass → beam pass
-7-10は`!catalogOpen`時のみ: base damage(mode=2) → asteroid rotation → `reinforce(dt)` → win checks。catalogOpen時は`updateCatDemo(dt)`実行。
+1-6は常時実行: `buildHash()` → per unit(`shielded=false` → `steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → reflector pass → projectile pass → particle pass → beam pass
+7-10は`!codexOpen`時のみ: base damage(mode=2) → asteroid rotation → `reinforce(dt)` → win checks。codexOpen時は`updateCodexDemo(dt)`実行。
 
 **重要**: Reflector付与(step 3)はcombat(step 2)の後→shieldedは次フレームで有効。
 
