@@ -151,14 +151,7 @@ function demoDefault(t: UnitType) {
   }
 }
 
-function setupCodexDemo(typeIdx: number) {
-  teardownCodexDemo();
-
-  gameUnitSnapshot = new Set();
-  for (let i = 0; i < POOL_UNITS; i++) {
-    if (getUnit(i).alive) gameUnitSnapshot.add(i as UnitIndex);
-  }
-
+function clearDemoEffects() {
   for (let i = 0; i < POOL_PARTICLES; i++) {
     if (getParticle(i).alive) {
       killParticle(i as ParticleIndex);
@@ -170,6 +163,28 @@ function setupCodexDemo(typeIdx: number) {
     }
   }
   beams.length = 0;
+}
+
+function countDemoEnemies(): number {
+  let ec = 0;
+  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+    const u = getUnit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (!gameUnitSnapshot.has(i as UnitIndex) && u.team === 1) ec++;
+  }
+  return ec;
+}
+
+function setupCodexDemo(typeIdx: number) {
+  teardownCodexDemo();
+
+  gameUnitSnapshot = new Set();
+  for (let i = 0; i < POOL_UNITS; i++) {
+    if (getUnit(i).alive) gameUnitSnapshot.add(i as UnitIndex);
+  }
+
+  clearDemoEffects();
 
   const t = getUnitType(typeIdx);
   const mi = spawnUnit(0, typeIdx, 0, 0);
@@ -195,13 +210,7 @@ export function updateCodexDemo(dt: number) {
   codexDemoTimer += dt;
   if (codexDemoTimer > 3) {
     codexDemoTimer = 0;
-    let ec = 0;
-    for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
-      const u = getUnit(i);
-      if (!u.alive) continue;
-      rem--;
-      if (!gameUnitSnapshot.has(i as UnitIndex) && u.team === 1) ec++;
-    }
+    const ec = countDemoEnemies();
     if (ec < 2) setupCodexDemo(state.codexSelected);
   }
   for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {

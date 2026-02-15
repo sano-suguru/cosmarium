@@ -2,6 +2,7 @@ import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import { beams, getBeam } from '../state.ts';
+import type { Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';
 import { instanceData, writeSlots } from './buffers.ts';
@@ -28,6 +29,27 @@ function writeInstance(
   }
 }
 
+function renderStunStars(u: Unit, ut: UnitType, now: number) {
+  if (u.stun > 0) {
+    for (let j = 0; j < 2; j++) {
+      const sa = now * 5 + j * 3.14;
+      writeInstance(u.x + Math.cos(sa) * ut.size * 0.7, u.y + Math.sin(sa) * ut.size * 0.7, 2, 0.5, 0.5, 1, 0.5, 0, 0);
+    }
+  }
+}
+
+function renderHpBar(u: Unit, ut: UnitType) {
+  const hr = u.hp / u.maxHp;
+  if (ut.size >= 10 && hr < 1) {
+    const bw = ut.size * 1.5;
+    const barY = u.y - ut.size * 1.3;
+    writeInstance(u.x, barY, bw * 0.5, 0.04, 0.05, 0.08, 0.35, 0, 21);
+    const hpW = bw * hr;
+    const hpB = Math.max(0, (hr - 0.5) * 1.4);
+    writeInstance(u.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, hpB, 0.75, 0, 21);
+  }
+}
+
 function renderUnits(now: number) {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = getUnit(i);
@@ -39,33 +61,11 @@ function renderUnits(now: number) {
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
     if (u.shielded) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.18, 0, 5);
-    if (u.stun > 0) {
-      for (let j = 0; j < 2; j++) {
-        const sa = now * 5 + j * 3.14;
-        writeInstance(
-          u.x + Math.cos(sa) * ut.size * 0.7,
-          u.y + Math.sin(sa) * ut.size * 0.7,
-          2,
-          0.5,
-          0.5,
-          1,
-          0.5,
-          0,
-          0,
-        );
-      }
-    }
+    renderStunStars(u, ut, now);
     if (u.vet > 0) writeInstance(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, 0, 10);
     if (u.swarmN > 0) writeInstance(u.x, u.y, ut.size * 2.2, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, 0, 10);
     writeInstance(u.x, u.y, ut.size, c[0] * flash * sf, c[1] * flash * sf, c[2] * flash * sf, 0.9, u.angle, ut.shape);
-    if (ut.size >= 10 && hr < 1) {
-      const bw = ut.size * 1.5;
-      const barY = u.y - ut.size * 1.3;
-      writeInstance(u.x, barY, bw * 0.5, 0.04, 0.05, 0.08, 0.35, 0, 21);
-      const hpW = bw * hr;
-      const hpB = Math.max(0, (hr - 0.5) * 1.4);
-      writeInstance(u.x - (bw - hpW) * 0.5, barY, hpW * 0.5, 1 - hr, hr, hpB, 0.75, 0, 21);
-    }
+    renderHpBar(u, ut);
     if (u.vet >= 1) writeInstance(u.x + ut.size * 1.1, u.y - ut.size * 1.1, 2, 1, 1, 0.3, 0.8, now * 3, 7);
     if (u.vet >= 2) writeInstance(u.x + ut.size * 1.1 + 5, u.y - ut.size * 1.1, 2, 1, 0.5, 0.3, 0.8, now * 3, 7);
   }
