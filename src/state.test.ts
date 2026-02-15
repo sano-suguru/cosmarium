@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
-import { beams, getBeam, state } from './state.ts';
+import { beams, getBeam, getSeed, rng, seedRng, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -78,5 +78,87 @@ describe('getBeam', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => getBeam(0)).toThrow(RangeError);
     expect(() => getBeam(-1)).toThrow(RangeError);
+  });
+});
+
+describe('PRNG (mulberry32)', () => {
+  it('rng() は [0, 1) の数値を返す', () => {
+    seedRng(42);
+    const value = rng();
+    expect(value).toBeGreaterThanOrEqual(0);
+    expect(value).toBeLessThan(1);
+  });
+
+  it('rng() は連続呼び出しで異なる値を返す', () => {
+    seedRng(42);
+    const first = rng();
+    const second = rng();
+    const third = rng();
+    expect(first).not.toBe(second);
+    expect(second).not.toBe(third);
+    expect(first).not.toBe(third);
+  });
+
+  it('同じシードで同じシーケンスが得られる', () => {
+    seedRng(12345);
+    const seq1 = [rng(), rng(), rng(), rng(), rng()];
+
+    seedRng(12345);
+    const seq2 = [rng(), rng(), rng(), rng(), rng()];
+
+    expect(seq1).toEqual(seq2);
+  });
+
+  it('異なるシードで異なるシーケンスが得られる', () => {
+    seedRng(111);
+    const seq1 = [rng(), rng(), rng()];
+
+    seedRng(222);
+    const seq2 = [rng(), rng(), rng()];
+
+    expect(seq1).not.toEqual(seq2);
+  });
+
+  it('seedRng() でシーケンスがリセットされる', () => {
+    seedRng(999);
+    const first = rng();
+
+    seedRng(999);
+    const reset = rng();
+
+    expect(first).toBe(reset);
+  });
+
+  it('getSeed() は現在のシードを返す', () => {
+    seedRng(7777);
+    expect(getSeed()).toBe(7777);
+
+    seedRng(8888);
+    expect(getSeed()).toBe(8888);
+  });
+
+  it('state.rng は直接呼び出せる', () => {
+    seedRng(555);
+    const value = state.rng();
+    expect(value).toBeGreaterThanOrEqual(0);
+    expect(value).toBeLessThan(1);
+  });
+
+  it('state.rng プロパティはテストでオーバーライド可能', () => {
+    state.rng = () => 0.75;
+    expect(state.rng()).toBe(0.75);
+    expect(rng()).toBe(0.75);
+
+    seedRng(42);
+    expect(rng()).not.toBe(0.75);
+  });
+
+  it('100回連続呼び出しが [0, 1) 範囲内', () => {
+    seedRng(12321);
+    const samples = Array.from({ length: 100 }, () => rng());
+
+    expect(samples.every((v) => v >= 0 && v < 1)).toBe(true);
+    const unique = new Set(samples);
+    expect(unique.size).toBeGreaterThan(90);
   });
 });

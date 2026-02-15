@@ -10,8 +10,7 @@ import {
   setUnitCountForTest,
 } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
-import type { State } from '../state.ts';
-import { beams, state } from '../state.ts';
+import { beams, seedRng, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 
@@ -99,8 +98,8 @@ export function fillProjectilePool() {
   setProjectileCountForTest(POOL_PROJECTILES);
 }
 
-const stateDefaults: State = {
-  gameState: 'menu',
+const stateDefaults = {
+  gameState: 'menu' as const,
   codexOpen: false,
   codexSelected: 0,
   timeScale: 0.55,
@@ -109,6 +108,7 @@ const stateDefaults: State = {
 
 export function resetState() {
   Object.assign(state, stateDefaults);
+  seedRng(Date.now());
   beams.length = 0;
 }
 
