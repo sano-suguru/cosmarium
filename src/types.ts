@@ -97,6 +97,8 @@ export interface Beam {
   life: number;
   maxLife: number;
   width: number;
+  tapered?: boolean;
+  stepDiv?: number;
 }
 
 export interface Camera {

@@ -29,8 +29,9 @@ void main(){
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
   else if(sh==11){ float bx=abs(vU.x),by=abs(vU.y);
     a=step(by,bx*0.8)*smoothstep(1.0,0.65,d)+exp(-d*2.0)*0.35; }
-  else if(sh==12){ float by=abs(vU.y);
-    a=exp(-by*6.0)*1.0+exp(-by*2.5)*0.4+exp(-d*1.5)*0.2; }
+  else if(sh==12){ float by=abs(vU.y),bx=abs(vU.x);
+    float xf=smoothstep(1.0,0.4,bx);
+    a=(exp(-by*6.0)*1.0+exp(-by*2.5)*0.4)*xf+exp(-d*1.5)*0.2; }
   else if(sh==13){ float dd=manDist(vU);
     a=(smoothstep(1.0,0.65,dd)-smoothstep(0.55,0.35,dd))*0.8+exp(-dd*2.0)*0.5; }
   else if(sh==14){ float r=polarR(vU,3.0,0.55,0.3);

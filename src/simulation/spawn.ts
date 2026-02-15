@@ -11,7 +11,7 @@ import {
   incUnitCount,
 } from '../pools.ts';
 import { beams } from '../state.ts';
-import type { ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
+import type { Beam, ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 
@@ -169,6 +169,11 @@ export function addBeam(
   b: number,
   life: number,
   width: number,
+  tapered?: boolean,
+  stepDiv?: number,
 ) {
-  beams.push({ x1: x1, y1: y1, x2: x2, y2: y2, r: r, g: g, b: b, life: life, maxLife: life, width: width });
+  const bm: Beam = { x1, y1, x2, y2, r, g, b, life, maxLife: life, width };
+  if (tapered) bm.tapered = true;
+  if (stepDiv !== undefined && stepDiv > 1) bm.stepDiv = stepDiv;
+  beams.push(bm);
 }

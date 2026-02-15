@@ -395,17 +395,86 @@ function handleSweepBeam(ctx: CombatContext) {
 
   const beamEndX = u.x + Math.cos(currAngle) * t.range;
   const beamEndY = u.y + Math.sin(currAngle) * t.range;
-  addBeam(
-    u.x + Math.cos(u.angle) * t.size * 0.5,
-    u.y + Math.sin(u.angle) * t.size * 0.5,
-    beamEndX,
-    beamEndY,
-    c[0],
-    c[1],
-    c[2],
-    0.06,
-    6,
-  );
+  const ox = u.x + Math.cos(u.angle) * t.size * 0.5;
+  const oy = u.y + Math.sin(u.angle) * t.size * 0.5;
+  addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);
+
+  // afterimage trail 1 (phase - 0.08)
+  if (u.sweepPhase > 0.08) {
+    const trailAngle1 = u.sweepBaseAngle + easeAt(u.sweepPhase - 0.08);
+    addBeam(
+      ox,
+      oy,
+      u.x + Math.cos(trailAngle1) * t.range,
+      u.y + Math.sin(trailAngle1) * t.range,
+      c[0] * 0.35,
+      c[1] * 0.35,
+      c[2] * 0.35,
+      0.1,
+      4,
+      false,
+      2,
+    );
+  }
+  // afterimage trail 2 (phase - 0.18)
+  if (u.sweepPhase > 0.18) {
+    const trailAngle2 = u.sweepBaseAngle + easeAt(u.sweepPhase - 0.18);
+    addBeam(
+      ox,
+      oy,
+      u.x + Math.cos(trailAngle2) * t.range,
+      u.y + Math.sin(trailAngle2) * t.range,
+      c[0] * 0.15,
+      c[1] * 0.15,
+      c[2] * 0.15,
+      0.12,
+      2.5,
+      false,
+      2,
+    );
+  }
+
+  // tip spark — full random scatter
+  if (Math.random() < 0.55) {
+    const pa = Math.random() * Math.PI * 2;
+    const ps = 40 + Math.random() * 100;
+    spawnParticle(
+      beamEndX,
+      beamEndY,
+      Math.cos(pa) * ps,
+      Math.sin(pa) * ps,
+      0.12 + Math.random() * 0.1,
+      3 + Math.random() * 2,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+  }
+  // beam path micro-particles
+  if (Math.random() < 0.3) {
+    const along = 0.3 + Math.random() * 0.6;
+    const px = ox + (beamEndX - ox) * along;
+    const py = oy + (beamEndY - oy) * along;
+    const drift = (Math.random() - 0.5) * 30;
+    const perp = currAngle + Math.PI * 0.5;
+    spawnParticle(
+      px + Math.cos(perp) * drift,
+      py + Math.sin(perp) * drift,
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 20,
+      0.06 + Math.random() * 0.04,
+      1.5 + Math.random() * 1.5,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+  }
+  // glow ring
+  if (Math.random() < 0.25) {
+    spawnParticle(beamEndX, beamEndY, 0, 0, 0.1, 12 + Math.random() * 6, c[0], c[1], c[2], 10);
+  }
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
 

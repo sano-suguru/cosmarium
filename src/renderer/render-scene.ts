@@ -89,19 +89,27 @@ function renderBeams(now: number) {
     const dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
     const d = Math.sqrt(dx * dx + dy * dy);
-    const steps = Math.max(3, (d / 5) | 0);
+    const divisor = bm.stepDiv ?? 1;
+    const steps = Math.max(3, (d / (5 * divisor)) | 0);
     const ang = Math.atan2(dy, dx);
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
       const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
+      let tipScale = 1;
+      if (bm.tapered) {
+        const tail = steps - j;
+        if (tail === 0) tipScale = 0.25;
+        else if (tail === 1) tipScale = 0.5;
+        else if (tail === 2) tipScale = 0.8;
+      }
       writeInstance(
         bm.x1 + dx * t,
         bm.y1 + dy * t,
-        bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25),
+        bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
         bm.r * al * fl,
         bm.g * al * fl,
         bm.b * al * fl,
-        al * 0.85,
+        al * 0.85 * tipScale,
         ang,
         12,
       );
