@@ -1,5 +1,6 @@
 import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
+import { rng } from '../state.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -29,7 +30,7 @@ function findTarget(u: Unit, nn: number, range: number): UnitIndex {
       bi = oi;
     }
   }
-  if (bi === NO_UNIT && Math.random() < 0.012) {
+  if (bi === NO_UNIT && rng() < 0.012) {
     bd = 1e18;
     for (let i = 0; i < POOL_UNITS; i++) {
       const o = getUnit(i);
@@ -121,7 +122,7 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
     _force.y = (dx / d) * t.speed * 0.8;
     return _force;
   }
-  u.wanderAngle += (Math.random() - 0.5) * 2 * dt;
+  u.wanderAngle += (rng() - 0.5) * 2 * dt;
   _force.x = Math.cos(u.wanderAngle) * t.speed * 0.5;
   _force.y = Math.sin(u.wanderAngle) * t.speed * 0.5;
   return _force;

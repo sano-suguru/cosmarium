@@ -1,6 +1,6 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { beams } from '../state.ts';
+import { beams, rng } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
@@ -43,7 +43,7 @@ export function initUnits() {
     const cy = team === 0 ? -300 : 300;
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
-        spawnUnit(team, type, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread);
       }
     }
   }

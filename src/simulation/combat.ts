@@ -1,6 +1,7 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES } from '../constants.ts';
 import { getProjectile, getUnit } from '../pools.ts';
+import { rng } from '../state.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -64,14 +65,14 @@ function handleRam(ctx: CombatContext) {
       knockback(oi, u.x, u.y, u.mass * 55);
       u.hp -= Math.ceil(getUnitType(o.type).mass);
       for (let k = 0; k < 10; k++) {
-        const a = Math.random() * 6.283;
+        const a = rng() * 6.283;
         spawnParticle(
           (u.x + o.x) / 2,
           (u.y + o.y) / 2,
-          Math.cos(a) * (80 + Math.random() * 160),
-          Math.sin(a) * (80 + Math.random() * 160),
+          Math.cos(a) * (80 + rng() * 160),
+          Math.sin(a) * (80 + rng() * 160),
           0.15,
-          2 + Math.random() * 2,
+          2 + rng() * 2,
           1,
           0.9,
           0.4,
@@ -120,7 +121,7 @@ function handleReflector(ctx: CombatContext) {
       p.r = c[0];
       p.g = c[1];
       p.b = c[2];
-      spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, 0.12, 3, c[0], c[1], c[2], 0);
+      spawnParticle(p.x, p.y, (rng() - 0.5) * 60, (rng() - 0.5) * 60, 0.12, 3, c[0], c[1], c[2], 0);
       spawnParticle(p.x, p.y, 0, 0, 0.1, 8, 1, 1, 1, 10);
     }
   }
@@ -151,10 +152,10 @@ function handleReflector(ctx: CombatContext) {
       }
     }
   }
-  if (Math.random() < 0.1) {
+  if (rng() < 0.1) {
     spawnParticle(
-      u.x + (Math.random() - 0.5) * rr * 1.5,
-      u.y + (Math.random() - 0.5) * rr * 1.5,
+      u.x + (rng() - 0.5) * rr * 1.5,
+      u.y + (rng() - 0.5) * rr * 1.5,
       0,
       0,
       0.15,
@@ -171,18 +172,18 @@ function handleCarrier(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
   u.spawnCooldown -= dt;
   if (u.spawnCooldown <= 0) {
-    u.spawnCooldown = 4 + Math.random() * 2;
+    u.spawnCooldown = 4 + rng() * 2;
     for (let i = 0; i < 4; i++) {
-      const a = Math.random() * 6.283;
+      const a = rng() * 6.283;
       spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2);
     }
     for (let i = 0; i < 10; i++) {
-      const a = Math.random() * 6.283;
+      const a = rng() * 6.283;
       spawnParticle(
         u.x + Math.cos(a) * t.size,
         u.y + Math.sin(a) * t.size,
-        (Math.random() - 0.5) * 50,
-        (Math.random() - 0.5) * 50,
+        (rng() - 0.5) * 50,
+        (rng() - 0.5) * 50,
         0.3,
         3,
         c[0],
@@ -219,8 +220,8 @@ function handleEmp(ctx: CombatContext) {
     spawnParticle(
       u.x + Math.cos(a) * r,
       u.y + Math.sin(a) * r,
-      (Math.random() - 0.5) * 25,
-      (Math.random() - 0.5) * 25,
+      (rng() - 0.5) * 25,
+      (rng() - 0.5) * 25,
       0.35,
       3,
       0.5,
@@ -243,23 +244,23 @@ function handleTeleporter(ctx: CombatContext) {
   }
   const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
   if (d < 500 && d > 80) {
-    u.teleportTimer = 3 + Math.random() * 2;
+    u.teleportTimer = 3 + rng() * 2;
     for (let i = 0; i < 8; i++) {
-      const a = Math.random() * 6.283;
+      const a = rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
-    const ta = Math.random() * 6.283,
-      td = 55 + Math.random() * 35;
+    const ta = rng() * 6.283,
+      td = 55 + rng() * 35;
     u.x = o.x + Math.cos(ta) * td;
     u.y = o.y + Math.sin(ta) * td;
     for (let i = 0; i < 8; i++) {
-      const a = Math.random() * 6.283;
+      const a = rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
     for (let i = 0; i < 5; i++) {
-      const ba = Math.random() * 6.283;
+      const ba = rng() * 6.283;
       spawnProjectile(
         u.x,
         u.y,
@@ -324,10 +325,10 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     n.hp -= dmg;
     knockback(ni, u.x, u.y, dmg * 3);
     spawnParticle(
-      n.x + (Math.random() - 0.5) * 8,
-      n.y + (Math.random() - 0.5) * 8,
-      (Math.random() - 0.5) * 50,
-      (Math.random() - 0.5) * 50,
+      n.x + (rng() - 0.5) * 8,
+      n.y + (rng() - 0.5) * 8,
+      (rng() - 0.5) * 50,
+      (rng() - 0.5) * 50,
       0.08,
       2,
       c[0],
@@ -436,16 +437,16 @@ function handleSweepBeam(ctx: CombatContext) {
   }
 
   // tip spark — full random scatter
-  if (Math.random() < 0.55) {
-    const pa = Math.random() * Math.PI * 2;
-    const ps = 40 + Math.random() * 100;
+  if (rng() < 0.55) {
+    const pa = rng() * Math.PI * 2;
+    const ps = 40 + rng() * 100;
     spawnParticle(
       beamEndX,
       beamEndY,
       Math.cos(pa) * ps,
       Math.sin(pa) * ps,
-      0.12 + Math.random() * 0.1,
-      3 + Math.random() * 2,
+      0.12 + rng() * 0.1,
+      3 + rng() * 2,
       c[0],
       c[1],
       c[2],
@@ -453,19 +454,19 @@ function handleSweepBeam(ctx: CombatContext) {
     );
   }
   // beam path micro-particles
-  if (Math.random() < 0.3) {
-    const along = 0.3 + Math.random() * 0.6;
+  if (rng() < 0.3) {
+    const along = 0.3 + rng() * 0.6;
     const px = ox + (beamEndX - ox) * along;
     const py = oy + (beamEndY - oy) * along;
-    const drift = (Math.random() - 0.5) * 30;
+    const drift = (rng() - 0.5) * 30;
     const perp = currAngle + Math.PI * 0.5;
     spawnParticle(
       px + Math.cos(perp) * drift,
       py + Math.sin(perp) * drift,
-      (Math.random() - 0.5) * 20,
-      (Math.random() - 0.5) * 20,
-      0.06 + Math.random() * 0.04,
-      1.5 + Math.random() * 1.5,
+      (rng() - 0.5) * 20,
+      (rng() - 0.5) * 20,
+      0.06 + rng() * 0.04,
+      1.5 + rng() * 1.5,
       c[0],
       c[1],
       c[2],
@@ -473,8 +474,8 @@ function handleSweepBeam(ctx: CombatContext) {
     );
   }
   // glow ring
-  if (Math.random() < 0.25) {
-    spawnParticle(beamEndX, beamEndY, 0, 0, 0.1, 12 + Math.random() * 6, c[0], c[1], c[2], 10);
+  if (rng() < 0.25) {
+    spawnParticle(beamEndX, beamEndY, 0, 0, 0.1, 12 + rng() * 6, c[0], c[1], c[2], 10);
   }
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
@@ -519,10 +520,10 @@ function handleFocusBeam(ctx: CombatContext) {
     const pSpeed = 50 + u.beamOn * 25;
     for (let i = 0; i < pCount; i++) {
       spawnParticle(
-        o.x + (Math.random() - 0.5) * 8,
-        o.y + (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * pSpeed,
-        (Math.random() - 0.5) * pSpeed,
+        o.x + (rng() - 0.5) * 8,
+        o.y + (rng() - 0.5) * 8,
+        (rng() - 0.5) * pSpeed,
+        (rng() - 0.5) * pSpeed,
         0.08,
         pSize,
         c[0],
@@ -678,7 +679,7 @@ function fireNormal(ctx: CombatContext) {
     );
     addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
     for (let i = 0; i < 4; i++) {
-      const a2 = ang + (Math.random() - 0.5) * 0.4;
+      const a2 = ang + (rng() - 0.5) * 0.4;
       spawnParticle(
         u.x + Math.cos(ang) * t.size * 1.5,
         u.y + Math.sin(ang) * t.size * 1.5,
@@ -702,10 +703,10 @@ function fireNormal(ctx: CombatContext) {
       spawnParticle(
         u.x + Math.cos(u.angle) * t.size,
         u.y + Math.sin(u.angle) * t.size,
-        Math.cos(ang) * (60 + Math.random() * 60) + (Math.random() - 0.5) * 35,
-        Math.sin(ang) * (60 + Math.random() * 60) + (Math.random() - 0.5) * 35,
+        Math.cos(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
+        Math.sin(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
         0.07,
-        2 + Math.random() * 1.5,
+        2 + rng() * 1.5,
         c[0],
         c[1],
         c[2],

@@ -1,6 +1,6 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { state } from '../state.ts';
+import { rng, state } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
@@ -61,10 +61,10 @@ function countAlive(team: Team): number {
 
 function spawnWave(team: Team, cnt: number) {
   const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
-  const cy = (Math.random() - 0.5) * WORLD_SIZE;
-  const r = Math.random();
+  const cy = (rng() - 0.5) * WORLD_SIZE;
+  const r = rng();
   const s = (tp: number, spread: number) => {
-    spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+    spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread);
   };
   for (let i = 0; i < 8; i++) s(DRONE, 100);
   for (let i = 0; i < 2; i++) s(FIGHTER, 80);

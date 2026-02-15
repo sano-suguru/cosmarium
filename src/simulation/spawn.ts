@@ -10,7 +10,7 @@ import {
   incProjectileCount,
   incUnitCount,
 } from '../pools.ts';
-import { beams } from '../state.ts';
+import { beams, rng } from '../state.ts';
 import type { Beam, ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -34,12 +34,12 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.y = y;
       u.vx = 0;
       u.vy = 0;
-      u.angle = Math.random() * 6.283;
+      u.angle = rng() * 6.283;
       u.hp = t.hp;
       u.maxHp = t.hp;
-      u.cooldown = Math.random() * t.fireRate;
+      u.cooldown = rng() * t.fireRate;
       u.target = NO_UNIT;
-      u.wanderAngle = Math.random() * 6.283;
+      u.wanderAngle = rng() * 6.283;
       u.trailTimer = 0;
       u.mass = t.mass;
       u.abilityCooldown = 0;

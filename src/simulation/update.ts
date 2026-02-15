@@ -1,7 +1,7 @@
 import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SWARM_RADIUS_SQ, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams, getBeam, state } from '../state.ts';
+import { beams, getBeam, rng, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
@@ -28,8 +28,8 @@ function steerHomingProjectile(p: Projectile, dt: number) {
     p.vx = Math.cos(ca) * sp;
     p.vy = Math.sin(ca) * sp;
   }
-  if (Math.random() < 0.5) {
-    spawnParticle(p.x, p.y, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
+  if (rng() < 0.5) {
+    spawnParticle(p.x, p.y, (rng() - 0.5) * 18, (rng() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
   }
 }
 
@@ -52,14 +52,14 @@ function detonateAoe(p: Projectile) {
     }
   }
   for (let j = 0; j < 16; j++) {
-    const a = Math.random() * 6.283;
+    const a = rng() * 6.283;
     spawnParticle(
       p.x,
       p.y,
-      Math.cos(a) * (40 + Math.random() * 110),
-      Math.sin(a) * (40 + Math.random() * 110),
-      0.3 + Math.random() * 0.3,
-      3 + Math.random() * 3,
+      Math.cos(a) * (40 + rng() * 110),
+      Math.sin(a) * (40 + rng() * 110),
+      0.3 + rng() * 0.3,
+      3 + rng() * 3,
       1,
       0.55,
       0.15,
@@ -82,7 +82,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex): boolean {
       if (o.shielded) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
       o.hp -= dmg;
       knockback(oi, p.x, p.y, p.damage * 12);
-      spawnParticle(p.x, p.y, (Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
+      spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
       if (o.hp <= 0) {
         killUnit(oi);
         explosion(o.x, o.y, o.team, o.type, NO_UNIT);
@@ -105,12 +105,12 @@ function updateProjectiles(dt: number) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.life -= dt;
-    if (Math.random() < 0.25) {
+    if (rng() < 0.25) {
       spawnParticle(
         p.x,
         p.y,
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 10,
+        (rng() - 0.5) * 10,
+        (rng() - 0.5) * 10,
         0.04,
         p.size * 0.35,
         p.r * 0.5,
@@ -191,7 +191,7 @@ function updateUnits(dt: number, now: number) {
     combat(u, i as UnitIndex, dt, now);
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
-      u.trailTimer = 0.03 + Math.random() * 0.02;
+      u.trailTimer = 0.03 + rng() * 0.02;
       trail(u);
     }
   }
