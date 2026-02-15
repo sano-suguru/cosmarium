@@ -39,6 +39,8 @@ export function resetPools() {
     u.spawnCooldown = 0;
     u.teleportTimer = 0;
     u.beamOn = 0;
+    u.sweepPhase = 0;
+    u.sweepBaseAngle = 0;
     u.kills = 0;
     u.vet = 0;
   }

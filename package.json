@@ -14,8 +14,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "cpd": "jscpd src/",
-    "similarity": "similarity-ts --min-lines 7 --threshold 0.87 src/",
-    "check": "tsc --noEmit && biome ci . && knip && jscpd src/ && similarity-ts --min-lines 7 --threshold 0.87 src/ && vitest run",
+    "similarity": "similarity-ts --min-lines 7 --threshold 0.92 src/",
+    "check": "tsc --noEmit && biome ci . && knip && jscpd src/ && similarity-ts --min-lines 7 --threshold 0.92 src/ && vitest run",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {

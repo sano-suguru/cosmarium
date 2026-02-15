@@ -52,8 +52,8 @@ describe('TYPES 配列', () => {
     expect(getUnitType(2).aoe).toBe(70);
   });
 
-  it('特殊フラグ: idx 3 (Cruiser) は beam を持つ', () => {
-    expect(getUnitType(3).beam).toBe(true);
+  it('特殊フラグ: idx 3 (Cruiser) は sweep を持つ', () => {
+    expect(getUnitType(3).sweep).toBe(true);
   });
 
   it('特殊フラグ: idx 5 (Healer) は heals を持つ', () => {

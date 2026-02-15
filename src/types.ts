@@ -20,6 +20,8 @@ export interface Unit {
   spawnCooldown: number;
   teleportTimer: number;
   beamOn: number;
+  sweepPhase: number;
+  sweepBaseAngle: number;
   kills: number;
   vet: number;
 }
@@ -81,6 +83,7 @@ export interface UnitType {
   emp?: boolean;
   teleports?: boolean;
   chain?: boolean;
+  sweep?: boolean;
 }
 
 export interface Beam {

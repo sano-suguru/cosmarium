@@ -15,6 +15,13 @@ import type { ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.t
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 
+type KillUnitHook = (i: UnitIndex) => void;
+const killUnitHooks: KillUnitHook[] = [];
+
+export function onKillUnit(hook: KillUnitHook) {
+  killUnitHooks.push(hook);
+}
+
 export function spawnUnit(team: Team, type: number, x: number, y: number): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = getUnit(i);
@@ -41,6 +48,8 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.spawnCooldown = 0;
       u.teleportTimer = 0;
       u.beamOn = 0;
+      u.sweepPhase = 0;
+      u.sweepBaseAngle = 0;
       u.kills = 0;
       u.vet = 0;
       incUnitCount();
@@ -55,6 +64,7 @@ export function killUnit(i: UnitIndex) {
   if (u.alive) {
     u.alive = false;
     decUnitCount();
+    for (const hook of killUnitHooks) hook(i);
   }
 }
 

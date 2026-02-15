@@ -95,6 +95,8 @@ for (let i = 0; i < POOL_UNITS; i++) {
     spawnCooldown: 0,
     teleportTimer: 0,
     beamOn: 0,
+    sweepPhase: 0,
+    sweepBaseAngle: 0,
     kills: 0,
     vet: 0,
   };

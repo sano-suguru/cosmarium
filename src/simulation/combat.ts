@@ -6,9 +6,18 @@ import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
-import { addBeam, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
+const SWEEP_DURATION = 0.8;
+const HALF_ARC = 0.524; // ±30°
+const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
+
+export function _resetSweepHits() {
+  sweepHitMap.clear();
+}
+
+onKillUnit((i) => sweepHitMap.delete(i));
 
 interface CombatContext {
   u: Unit;
@@ -278,29 +287,174 @@ function handleChain(ctx: CombatContext): void {
   }
 }
 
-function fireBeamAtTarget(ctx: CombatContext, o: Unit) {
+function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: number) {
+  const { u, c, t, vd } = ctx;
+  const base = u.sweepBaseAngle;
+  const TOL = 0.05;
+  const nn = getNeighbors(u.x, u.y, t.range);
+
+  const normalize = (a: number): number => {
+    let r = a - base;
+    while (r > Math.PI) r -= Math.PI * 2;
+    while (r < -Math.PI) r += Math.PI * 2;
+    return r;
+  };
+
+  const relPrev = normalize(prevAngle);
+  const relCurr = normalize(currAngle);
+  const lo = Math.min(relPrev, relCurr) - TOL;
+  const hi = Math.max(relPrev, relCurr) + TOL;
+
+  for (let i = 0; i < nn; i++) {
+    const ni = getNeighborAt(i);
+    const n = getUnit(ni);
+    if (!n.alive || n.team === u.team) continue;
+    const ndx = n.x - u.x,
+      ndy = n.y - u.y;
+    const nd = Math.sqrt(ndx * ndx + ndy * ndy);
+    if (nd >= t.range) continue;
+    const nAngle = Math.atan2(ndy, ndx);
+    const relEnemy = normalize(nAngle);
+    if (relEnemy < lo || relEnemy > hi) continue;
+    if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
+    sweepHitMap.get(ctx.ui)?.add(ni);
+    let dmg = t.damage * vd;
+    if (n.shielded) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
+    n.hp -= dmg;
+    knockback(ni, u.x, u.y, dmg * 3);
+    spawnParticle(
+      n.x + (Math.random() - 0.5) * 8,
+      n.y + (Math.random() - 0.5) * 8,
+      (Math.random() - 0.5) * 50,
+      (Math.random() - 0.5) * 50,
+      0.08,
+      2,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+    if (n.hp <= 0) {
+      killUnit(ni);
+      explosion(n.x, n.y, n.team, n.type, ctx.ui);
+    }
+  }
+}
+
+function handleSweepBeam(ctx: CombatContext) {
+  const { u, c, t, dt } = ctx;
+
+  if (u.target === NO_UNIT) {
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.sweepPhase = 0;
+    sweepHitMap.delete(ctx.ui);
+    return;
+  }
+  const o = getUnit(u.target);
+  if (!o.alive) {
+    u.target = NO_UNIT;
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.sweepPhase = 0;
+    sweepHitMap.delete(ctx.ui);
+    return;
+  }
+  const dx = o.x - u.x,
+    dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d >= t.range) {
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.sweepPhase = 0;
+    sweepHitMap.delete(ctx.ui);
+    return;
+  }
+
+  if (u.sweepPhase === 0 && u.cooldown > 0) {
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    return;
+  }
+
+  if (u.sweepPhase === 0) {
+    u.sweepBaseAngle = Math.atan2(dy, dx);
+    u.sweepPhase = 0.001;
+    u.beamOn = 1;
+    sweepHitMap.set(ctx.ui, new Set());
+  }
+
+  const prevPhase = u.sweepPhase;
+  u.sweepPhase = Math.min(u.sweepPhase + dt / SWEEP_DURATION, 1);
+
+  // smoothstep: +HALF_ARC → -HALF_ARC
+  const easeAt = (p: number): number => {
+    const e = p * p * (3 - 2 * p);
+    return HALF_ARC - e * HALF_ARC * 2;
+  };
+  const prevOffset = easeAt(prevPhase);
+  const currOffset = easeAt(u.sweepPhase);
+  const prevAngle = u.sweepBaseAngle + prevOffset;
+  const currAngle = u.sweepBaseAngle + currOffset;
+
+  const beamEndX = u.x + Math.cos(currAngle) * t.range;
+  const beamEndY = u.y + Math.sin(currAngle) * t.range;
+  addBeam(
+    u.x + Math.cos(u.angle) * t.size * 0.5,
+    u.y + Math.sin(u.angle) * t.size * 0.5,
+    beamEndX,
+    beamEndY,
+    c[0],
+    c[1],
+    c[2],
+    0.06,
+    6,
+  );
+
+  sweepThroughDamage(ctx, prevAngle, currAngle);
+
+  if (u.sweepPhase >= 1) {
+    u.cooldown = t.fireRate;
+    u.sweepPhase = 0;
+    sweepHitMap.delete(ctx.ui);
+  }
+}
+
+function handleFocusBeam(ctx: CombatContext) {
   const { u, ui, c, t, dt, vd } = ctx;
-  const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
+  if (u.target === NO_UNIT) {
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    return;
+  }
+  const o = getUnit(u.target);
+  if (!o.alive) {
+    u.target = NO_UNIT;
+    u.beamOn = 0;
+    return;
+  }
+  const dx = o.x - u.x,
+    dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= t.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * 3);
     return;
   }
-  u.beamOn = Math.min(u.beamOn + dt * 2, 1);
-  u.cooldown -= dt;
+
+  u.beamOn = Math.min(u.beamOn + dt * 0.8, 2);
+
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
     let dmg = t.damage * u.beamOn * vd;
     if (o.shielded) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     o.hp -= dmg;
     knockback(u.target, u.x, u.y, dmg * 5);
-    for (let i = 0; i < 2; i++) {
+    const pCount = 1 + Math.floor(u.beamOn * 2);
+    const pSize = 2 + u.beamOn * 0.5;
+    const pSpeed = 50 + u.beamOn * 25;
+    for (let i = 0; i < pCount; i++) {
       spawnParticle(
         o.x + (Math.random() - 0.5) * 8,
         o.y + (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * 50,
-        (Math.random() - 0.5) * 50,
+        (Math.random() - 0.5) * pSpeed,
+        (Math.random() - 0.5) * pSpeed,
         0.08,
-        2,
+        pSize,
         c[0],
         c[1],
         c[2],
@@ -313,34 +467,20 @@ function fireBeamAtTarget(ctx: CombatContext, o: Unit) {
       u.beamOn = 0;
     }
   }
-  const bw = (t.size >= 15 ? 6 : 4) * u.beamOn;
+
+  const bw = 2 + u.beamOn * 2;
+  const brightness = Math.min(1, 0.5 + u.beamOn * 0.25);
   addBeam(
     u.x + Math.cos(u.angle) * t.size * 0.5,
     u.y + Math.sin(u.angle) * t.size * 0.5,
     o.x,
     o.y,
-    c[0],
-    c[1],
-    c[2],
+    c[0] * brightness,
+    c[1] * brightness,
+    c[2] * brightness,
     0.08,
     bw,
   );
-}
-
-function handleBeam(ctx: CombatContext): boolean {
-  const { u, t, dt } = ctx;
-  if (u.target !== NO_UNIT) {
-    const o = getUnit(u.target);
-    if (o.alive) {
-      fireBeamAtTarget(ctx, o);
-    } else {
-      u.target = NO_UNIT;
-      u.beamOn = Math.max(0, u.beamOn - dt * 3);
-    }
-  } else {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
-  }
-  return !t.spawns;
 }
 
 function fireNormal(ctx: CombatContext) {
@@ -507,8 +647,13 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
     handleChain(_ctx);
     return;
   }
+  if (t.sweep) {
+    handleSweepBeam(_ctx);
+    return;
+  }
   if (t.beam) {
-    if (handleBeam(_ctx)) return;
+    handleFocusBeam(_ctx);
+    return;
   }
   fireNormal(_ctx);
 }

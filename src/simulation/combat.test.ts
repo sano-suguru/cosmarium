@@ -14,11 +14,12 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { combat } from './combat.ts';
+import { _resetSweepHits, combat } from './combat.ts';
 
 afterEach(() => {
   resetPools();
   resetState();
+  _resetSweepHits();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -359,99 +360,6 @@ describe('combat — CHAIN LIGHTNING', () => {
   });
 });
 
-describe('combat — BEAM', () => {
-  it('beamOn が dt×2 で蓄積（max 1）', () => {
-    const cruiser = spawnAt(0, 3, 0, 0); // Cruiser (beam=true, rng=350)
-    const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 0;
-    getUnit(cruiser).cooldown = 999; // ダメージ発動をスキップしてbeamOnのみ確認
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
-    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.2); // dt*2 = 0.1*2
-  });
-
-  it('beamOn の上限は 1', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 0.95;
-    getUnit(cruiser).cooldown = 999;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
-    expect(getUnit(cruiser).beamOn).toBe(1); // min(0.95 + 0.2, 1) = 1
-  });
-
-  it('shielded時60%軽減', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 1;
-    getUnit(cruiser).cooldown = 0;
-    getUnit(enemy).shielded = true;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
-    // damage = 3 * 1 * 1 * 0.4 = 1.2 (shielded → 60% reduction)
-    expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - 1.2);
-  });
-
-  it('shielded なしの場合のフルダメージ', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 1;
-    getUnit(cruiser).cooldown = 0;
-    getUnit(enemy).shielded = false;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
-    // damage = 3 * 1 * 1 = 3 (no shield reduction)
-    expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - 3);
-  });
-
-  it('addBeam が呼ばれる', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 0.5;
-    getUnit(cruiser).cooldown = 999;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
-    expect(beams.length).toBeGreaterThan(0);
-  });
-
-  it('敵HP<=0 → killUnit + beamOn=0', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 0, 100, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 1;
-    getUnit(cruiser).cooldown = 0;
-    getUnit(enemy).hp = 1;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
-    expect(getUnit(enemy).alive).toBe(false);
-    expect(getUnit(cruiser).beamOn).toBe(0);
-  });
-
-  it('距離>=range → beamOn 減衰', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 500, 0);
-    getUnit(cruiser).target = enemy;
-    getUnit(cruiser).beamOn = 0.5;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
-    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
-  });
-});
-
 describe('combat — NORMAL FIRE', () => {
   it('射程内で cooldown<=0 → プロジェクタイル発射', () => {
     const fighter = spawnAt(0, 1, 0, 0); // Fighter (rng=170, fireRate=0.35)
@@ -564,5 +472,372 @@ describe('combat — NORMAL FIRE', () => {
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(getUnit(fighter).target).toBe(NO_UNIT);
     expect(poolCounts.projectileCount).toBe(0);
+  });
+});
+
+describe('combat — UNIT STATS', () => {
+  it('Cruiser(type 3) に sweep: true がある', () => {
+    expect(getUnitType(3).sweep).toBe(true);
+  });
+
+  it('Cruiser の fireRate は 1.5', () => {
+    expect(getUnitType(3).fireRate).toBe(1.5);
+  });
+
+  it('Cruiser の damage は 8', () => {
+    expect(getUnitType(3).damage).toBe(8);
+  });
+
+  it('Beam Frig(type 12) の fireRate は 0.1', () => {
+    expect(getUnitType(12).fireRate).toBe(0.1);
+  });
+
+  it('Beam Frig の damage は 0.8', () => {
+    expect(getUnitType(12).damage).toBe(0.8);
+  });
+
+  it('Beam Frig に sweep がない', () => {
+    expect(getUnitType(12).sweep).toBeUndefined();
+  });
+});
+
+describe('combat — COOLDOWN REGRESSION', () => {
+  it('Fighter(type 1) の cooldown は dt 分だけ減少する', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    getUnit(fighter).cooldown = 1.0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.1, 0);
+    expect(getUnit(fighter).cooldown).toBeCloseTo(0.9);
+  });
+
+  it('Beam unit(Cruiser type 3) の cooldown も dt 分だけ減少する（二重デクリメントしない）', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(cruiser).cooldown = 1.0;
+    getUnit(cruiser).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).cooldown).toBeCloseTo(0.9);
+  });
+});
+
+describe('combat — SWEEP BEAM (CD-triggered)', () => {
+  it('IDLE: cooldown>0 → スイープ不発、beamOn減衰', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 1.0;
+    getUnit(cruiser).beamOn = 0.5;
+    getUnit(cruiser).sweepPhase = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).sweepPhase).toBe(0);
+    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    expect(beams.length).toBe(0);
+  });
+
+  it('cooldown満了 → スイープ開始 (sweepPhase>0, beamOn=1)', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 0;
+    getUnit(cruiser).sweepPhase = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    expect(getUnit(cruiser).sweepPhase).toBeGreaterThan(0);
+    expect(getUnit(cruiser).beamOn).toBe(1);
+  });
+
+  it('sweepPhase進行: += dt / SWEEP_DURATION(0.8)', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.2;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    // 0.2 + 0.1/0.8 = 0.325
+    expect(getUnit(cruiser).sweepPhase).toBeCloseTo(0.325);
+  });
+
+  it('スイープ完了 → CDリセット (sweepPhase=0, cooldown=1.5)', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.9;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    // dt=0.1 → 0.9 + 0.1/0.8 = 1.025 → clamped to 1 → complete
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).sweepPhase).toBe(0);
+    expect(getUnit(cruiser).cooldown).toBeCloseTo(1.5);
+  });
+
+  it('sweep-through命中: arc中心付近の敵にdamage=8', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.4;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    getUnit(cruiser).angle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(enemy).hp;
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(enemy).hp).toBe(hpBefore - 8);
+  });
+
+  it('arc外ミス: 全スイープ実行しても遠方の敵は無傷', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    const farEnemy = spawnAt(1, 1, 0, 200); // 90°方向 → arc外
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 0;
+    getUnit(cruiser).sweepPhase = 0;
+    getUnit(cruiser).angle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(farEnemy).hp;
+    for (let i = 0; i < 30; i++) {
+      combat(getUnit(cruiser), cruiser, 0.016, 0);
+    }
+    expect(getUnit(farEnemy).hp).toBe(hpBefore);
+  });
+
+  it('shielded 60%軽減: 8 * 0.4 = 3.2', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.4;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    getUnit(cruiser).angle = 0;
+    getUnit(enemy).shielded = true;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(enemy).hp;
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - 3.2);
+  });
+
+  it('敵kill: hp<=0 → killUnit', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 0, 200, 0); // Drone hp=3
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.4;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    getUnit(cruiser).angle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(enemy).alive).toBe(false);
+  });
+
+  it('ターゲットロスト → beamOn減衰、sweepPhase=0', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    getUnit(cruiser).beamOn = 0.5;
+    getUnit(cruiser).sweepPhase = 0.3;
+    getUnit(cruiser).target = NO_UNIT;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    expect(getUnit(cruiser).sweepPhase).toBe(0);
+    expect(beams.length).toBe(0);
+  });
+
+  it('ビーム描画: SWEEPING中のみaddBeam', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).sweepPhase = 0.5;
+    getUnit(cruiser).sweepBaseAngle = 0;
+    getUnit(cruiser).angle = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    expect(beams.length).toBeGreaterThan(0);
+  });
+
+  it('IDLE中はビーム描画なし', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 1.0;
+    getUnit(cruiser).beamOn = 0;
+    getUnit(cruiser).sweepPhase = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    expect(beams.length).toBe(0);
+  });
+
+  it('DPS検証: 2-5の範囲', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(cruiser).angle = 0;
+    getUnit(enemy).hp = 9999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(enemy).hp;
+    for (let i = 0; i < 300; i++) {
+      combat(getUnit(cruiser), cruiser, 0.033, 0);
+    }
+    const totalDmg = hpBefore - getUnit(enemy).hp;
+    const dps = totalDmg / (300 * 0.033);
+    expect(dps).toBeGreaterThanOrEqual(2);
+    expect(dps).toBeLessThanOrEqual(5);
+  });
+
+  it('距離>=range → beamOn減衰、sweepPhase=0', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 500, 0); // 距離500 > range=350
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).beamOn = 0.5;
+    getUnit(cruiser).sweepPhase = 0.3;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    expect(getUnit(cruiser).sweepPhase).toBe(0);
+  });
+});
+
+describe('combat — FOCUS BEAM', () => {
+  it('beamOn が dt×0.8 で蓄積', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 0;
+    getUnit(frig).cooldown = 999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.1, 0);
+    expect(getUnit(frig).beamOn).toBeCloseTo(0.08);
+  });
+
+  it('beamOn の上限は 2.0', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 1.95;
+    getUnit(frig).cooldown = 999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.1, 0);
+    expect(getUnit(frig).beamOn).toBeCloseTo(2.0);
+  });
+
+  it('ターゲット死亡で beamOn リセット', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 1.5;
+    getUnit(frig).cooldown = 0;
+    getUnit(enemy).hp = 0.1;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.016, 0);
+    expect(getUnit(frig).beamOn).toBe(0);
+  });
+
+  it('ダメージは damage × beamOn × vd', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 1.5;
+    getUnit(frig).cooldown = 0;
+    getUnit(frig).vet = 0;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(enemy).hp;
+    combat(getUnit(frig), frig, 0.016, 0);
+    const expectedDmg = 0.8 * (1.5 + 0.016 * 0.8) * 1.0;
+    expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - expectedDmg);
+  });
+
+  it('ビーム幅は (2 + beamOn * 2)', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 1.0;
+    getUnit(frig).cooldown = 999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.016, 0);
+    expect(beams.length).toBeGreaterThan(0);
+    const expectedBeamOn = 1.0 + 0.016 * 0.8;
+    const b = beams[0];
+    expect(b).toBeDefined();
+    if (b) expect(b.width).toBeCloseTo(2 + expectedBeamOn * 2);
+  });
+
+  it('beamOn=0 → ヒットパーティクル1個', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 0;
+    getUnit(frig).cooldown = 0;
+    getUnit(enemy).hp = 9999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.016, 0);
+    // beamOn=0+dt*0.8≈0.0128 → floor(0.0128*2)=0 → 1+0=1個
+    expect(poolCounts.particleCount).toBe(1);
+  });
+
+  it('beamOn=2 → ヒットパーティクル5個', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).beamOn = 2;
+    getUnit(frig).cooldown = 0;
+    getUnit(enemy).hp = 9999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(frig), frig, 0.016, 0);
+    // beamOn=2(clamped) → floor(2*2)=4 → 1+4=5個
+    expect(poolCounts.particleCount).toBe(5);
+  });
+
+  it('DPS検証: 10秒で Beam Frig DPS ≈ 8-16', () => {
+    const frig = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(frig).target = enemy;
+    getUnit(frig).cooldown = 0;
+    getUnit(frig).beamOn = 0;
+    getUnit(frig).vet = 0;
+    getUnit(enemy).hp = 9999;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hpBefore = getUnit(enemy).hp;
+    for (let i = 0; i < 300; i++) {
+      combat(getUnit(frig), frig, 0.033, 0);
+    }
+    const totalDmg = hpBefore - getUnit(enemy).hp;
+    const dps = totalDmg / (300 * 0.033);
+    expect(dps).toBeGreaterThanOrEqual(6);
+    expect(dps).toBeLessThanOrEqual(18);
   });
 });

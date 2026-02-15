@@ -101,6 +101,22 @@ function demoRam(mi: UnitIndex) {
   if (mi !== NO_UNIT) getUnit(mi).x = -200;
 }
 
+function demoSweepBeam(mi: UnitIndex) {
+  if (mi !== NO_UNIT) getUnit(mi).cooldown = 0;
+  for (let i = 0; i < 6; i++) {
+    const angle = ((i - 2.5) / 5) * 1.2;
+    spawnUnit(1, 0, 200 + Math.cos(angle) * 40, Math.sin(angle) * 120);
+  }
+}
+
+function demoFocusBeam() {
+  const ti = spawnUnit(1, 1, 200, 0);
+  if (ti !== NO_UNIT) getUnit(ti).hp = getUnit(ti).maxHp;
+  for (let i = 0; i < 2; i++) {
+    spawnUnit(1, 0, 250, (i === 0 ? -1 : 1) * 100);
+  }
+}
+
 function demoDefault(t: UnitType) {
   let cnt: number;
   if (t.shape === 3) cnt = 6;
@@ -144,6 +160,8 @@ function setupCodexDemo(typeIdx: number) {
   else if (t.chain) demoChain();
   else if (t.teleports) demoTeleporter();
   else if (t.rams) demoRam(mi);
+  else if (t.sweep) demoSweepBeam(mi);
+  else if (t.beam) demoFocusBeam();
   else demoDefault(t);
 }
 

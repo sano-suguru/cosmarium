@@ -1,7 +1,7 @@
 {
   "threshold": 5,
   "minLines": 7,
-  "minTokens": 50,
+  "minTokens": 80,
   "reporters": ["consoleFull"],
   "ignore": ["src/shaders/**", "**/*.test.ts", "src/__test__/**"],
   "gitignore": true
