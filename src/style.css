@@ -29,19 +29,38 @@ canvas#c {
   background: radial-gradient(ellipse at center, rgba(0, 10, 30, 0.95), #000);
 }
 #menu h1 {
+  font-family: "Orbitron", sans-serif;
   font-size: 44px;
-  color: #0ff;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0ff 0%, #f0f 50%, #0ff 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   text-shadow:
     0 0 30px #0ff,
-    0 0 60px #08f;
+    0 0 60px #f0f;
   letter-spacing: 10px;
   margin-bottom: 6px;
+  animation: shimmer 8s ease-in-out infinite;
 }
 #menu .sub {
+  font-family: "Orbitron", sans-serif;
+  font-weight: 400;
   color: #666;
   font-size: 12px;
   margin-bottom: 40px;
   letter-spacing: 4px;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .mbtn {
