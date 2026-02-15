@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
   getParticle,
@@ -108,15 +107,15 @@ const stateDefaults = {
 
 export function resetState() {
   Object.assign(state, stateDefaults);
-  seedRng(Date.now());
+  seedRng(12345);
   beams.length = 0;
 }
 
-/** spawnUnit() の Math.random 依存（angle, cooldown, wanderAngle）をモックして確定的にユニットを生成する共通ヘルパー */
+/** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値でモックして確定的にユニットを生成する共通ヘルパー */
 export function spawnAt(team: 0 | 1, type: number, x: number, y: number): UnitIndex {
-  vi.spyOn(Math, 'random')
-    .mockReturnValueOnce(0) // angle
-    .mockReturnValueOnce(0) // cooldown
-    .mockReturnValueOnce(0); // wanderAngle
-  return spawnUnit(team, type, x, y);
+  const originalRng = state.rng;
+  state.rng = () => 0; // 固定値: angle, cooldown, wanderAngle に 0 を返す
+  const result = spawnUnit(team, type, x, y);
+  state.rng = originalRng;
+  return result;
 }
