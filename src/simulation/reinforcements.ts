@@ -7,7 +7,7 @@ import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
 
 // Reinforcement spawn probability distribution:
-// Each wave spawns 5 Drones + 2 Fighters as baseline, then rolls r∈[0,1)
+// Each wave spawns 8 Drones + 2 Fighters as baseline, then rolls r∈[0,1)
 // for conditional spawns. Ranges overlap intentionally so multiple types
 // can spawn in the same wave. Low-count gates (cnt<50/40) ensure rare
 // powerful units appear only when the team is losing.
@@ -66,7 +66,7 @@ function spawnWave(team: Team, cnt: number) {
   const s = (tp: number, spread: number) => {
     spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
   };
-  for (let i = 0; i < 5; i++) s(DRONE, 100);
+  for (let i = 0; i < 8; i++) s(DRONE, 100);
   for (let i = 0; i < 2; i++) s(FIGHTER, 80);
   for (let i = 0; i < REINFORCEMENT_TABLE.length; i++) {
     const entry = REINFORCEMENT_TABLE[i];

@@ -43,6 +43,7 @@ export function resetPools() {
     u.sweepBaseAngle = 0;
     u.kills = 0;
     u.vet = 0;
+    u.burstCount = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = getParticle(i);

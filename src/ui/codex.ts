@@ -45,6 +45,30 @@ function closeCodex() {
   if (elCodex) elCodex.classList.remove('open');
 }
 
+function demoDroneSwarm(mi: UnitIndex) {
+  // 味方 Drone 5体を展示ユニット周囲に配置
+  for (let i = 0; i < 5; i++) {
+    const a = ((i + 1) / 6) * Math.PI * 2;
+    spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40);
+  }
+  // 敵 Drone 6体
+  for (let i = 0; i < 6; i++) {
+    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
+    if (ei !== NO_UNIT) {
+      getUnit(ei).target = mi;
+    }
+  }
+}
+
+function demoBurstFighter(mi: UnitIndex) {
+  for (let i = 0; i < 3; i++) {
+    const ei = spawnUnit(1, 1, 200 + (Math.random() - 0.5) * 60, (i - 1) * 60);
+    if (ei !== NO_UNIT) {
+      getUnit(ei).target = mi;
+    }
+  }
+}
+
 function demoHealer() {
   const ai = spawnUnit(0, 1, -60, 0);
   if (ai !== NO_UNIT) {
@@ -153,7 +177,9 @@ function setupCodexDemo(typeIdx: number) {
     getUnit(mi).angle = 0;
   }
 
-  if (t.heals) demoHealer();
+  if (t.swarm) demoDroneSwarm(mi);
+  else if (t.burst) demoBurstFighter(mi);
+  else if (t.heals) demoHealer();
   else if (t.reflects) demoReflector(mi);
   else if (t.spawns) demoCarrier();
   else if (t.emp) demoEmp();

@@ -99,6 +99,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     sweepBaseAngle: 0,
     kills: 0,
     vet: 0,
+    burstCount: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {

@@ -24,6 +24,7 @@ export interface Unit {
   sweepBaseAngle: number;
   kills: number;
   vet: number;
+  burstCount: number;
 }
 
 export interface Particle {
@@ -84,6 +85,8 @@ export interface UnitType {
   teleports?: boolean;
   chain?: boolean;
   sweep?: boolean;
+  swarm?: boolean;
+  burst?: number;
 }
 
 export interface Beam {

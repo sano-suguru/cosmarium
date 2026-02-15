@@ -19,7 +19,7 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Cruiser'), count: 4, spread: 500 },
   { type: T('Bomber'), count: 3, spread: 400 },
   { type: T('Fighter'), count: 20, spread: 700 },
-  { type: T('Drone'), count: 50, spread: 900 },
+  { type: T('Drone'), count: 65, spread: 900 },
   { type: T('Healer'), count: 3, spread: 400 },
   { type: T('Reflector'), count: 2, spread: 300 },
   { type: T('Sniper'), count: 4, spread: 600 },

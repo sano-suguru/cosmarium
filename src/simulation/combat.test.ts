@@ -362,7 +362,7 @@ describe('combat — CHAIN LIGHTNING', () => {
 
 describe('combat — NORMAL FIRE', () => {
   it('射程内で cooldown<=0 → プロジェクタイル発射', () => {
-    const fighter = spawnAt(0, 1, 0, 0); // Fighter (rng=170, fireRate=0.35)
+    const fighter = spawnAt(0, 1, 0, 0); // Fighter (rng=170, fireRate=0.9, burst=3)
     const enemy = spawnAt(1, 1, 100, 0);
     getUnit(fighter).cooldown = 0;
     getUnit(fighter).target = enemy;
@@ -370,7 +370,8 @@ describe('combat — NORMAL FIRE', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
-    expect(getUnit(fighter).cooldown).toBeCloseTo(getUnitType(1).fireRate);
+    // Fighter はバースト中なので中間クールダウン (0.07)
+    expect(getUnit(fighter).cooldown).toBeCloseTo(0.07);
   });
 
   it('射程外 → プロジェクタイルなし', () => {
@@ -839,5 +840,145 @@ describe('combat — FOCUS BEAM', () => {
     const dps = totalDmg / (300 * 0.033);
     expect(dps).toBeGreaterThanOrEqual(6);
     expect(dps).toBeLessThanOrEqual(18);
+  });
+});
+
+describe('combat — DRONE SWARM', () => {
+  it('孤立 Drone: ダメージ倍率 ×1.0', () => {
+    const drone = spawnAt(0, 0, 0, 0); // Drone (swarm, dmg=1)
+    const enemy = spawnAt(1, 1, 50, 0);
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    expect(poolCounts.projectileCount).toBe(1);
+    // dmg = 1 * 1.0 (vd) * 1.0 (no allies) = 1.0
+    expect(getProjectile(0).damage).toBeCloseTo(1.0);
+  });
+
+  it('味方 Drone 3体: ダメージ倍率 ×1.45', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    // 味方 Drone を周囲に 3体配置 (80以内)
+    spawnAt(0, 0, 20, 0);
+    spawnAt(0, 0, -20, 0);
+    spawnAt(0, 0, 0, 20);
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
+    expect(getProjectile(0).damage).toBeCloseTo(1.45);
+  });
+
+  it('味方 6+体: 上限 ×1.9', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    for (let i = 0; i < 8; i++) {
+      spawnAt(0, 0, 10 + i * 5, 10);
+    }
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
+    expect(getProjectile(0).damage).toBeCloseTo(1.9);
+  });
+
+  it('他タイプの味方は除外される', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    // Fighter (type=1) は同型ではないのでカウントされない
+    spawnAt(0, 1, 20, 0);
+    spawnAt(0, 1, -20, 0);
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    expect(getProjectile(0).damage).toBeCloseTo(1.0);
+  });
+
+  it('敵チームの同型は除外される', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    // 敵チームの Drone
+    spawnAt(1, 0, 20, 0);
+    spawnAt(1, 0, -20, 0);
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    expect(getProjectile(0).damage).toBeCloseTo(1.0);
+  });
+});
+
+describe('combat — FIGHTER BURST', () => {
+  it('初発でバーストカウント開始 (burst=3 → burstCount=2 after shot)', () => {
+    const fighter = spawnAt(0, 1, 0, 0); // Fighter (burst=3)
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(fighter).cooldown = 0;
+    getUnit(fighter).burstCount = 0;
+    getUnit(fighter).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.016, 0);
+    expect(poolCounts.projectileCount).toBe(1);
+    expect(getUnit(fighter).burstCount).toBe(2);
+  });
+
+  it('バースト中間: cooldown = BURST_INTERVAL (0.07)', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(fighter).cooldown = 0;
+    getUnit(fighter).burstCount = 0;
+    getUnit(fighter).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.016, 0);
+    // burstCount=2 (>0) → cooldown = 0.07
+    expect(getUnit(fighter).cooldown).toBeCloseTo(0.07);
+  });
+
+  it('最終弾: cooldown = fireRate (0.9)', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(fighter).cooldown = 0;
+    getUnit(fighter).burstCount = 1; // 残り1発
+    getUnit(fighter).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.016, 0);
+    // burstCount=0 → cooldown = fireRate = 0.9
+    expect(getUnit(fighter).burstCount).toBe(0);
+    expect(getUnit(fighter).cooldown).toBeCloseTo(0.9);
+  });
+
+  it('ターゲットロスト → burstCount リセット', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    getUnit(fighter).burstCount = 2;
+    getUnit(fighter).target = NO_UNIT;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.016, 0);
+    expect(getUnit(fighter).burstCount).toBe(0);
+  });
+
+  it('ターゲット死亡 → burstCount リセット', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(fighter).cooldown = 0;
+    getUnit(fighter).burstCount = 2;
+    getUnit(fighter).target = enemy;
+    getUnit(enemy).alive = false;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(fighter), fighter, 0.016, 0);
+    expect(getUnit(fighter).burstCount).toBe(0);
+    expect(getUnit(fighter).target).toBe(NO_UNIT);
   });
 });

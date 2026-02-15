@@ -52,6 +52,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.sweepBaseAngle = 0;
       u.kills = 0;
       u.vet = 0;
+      u.burstCount = 0;
       incUnitCount();
       return i as UnitIndex;
     }
