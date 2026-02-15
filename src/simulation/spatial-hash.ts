@@ -12,15 +12,6 @@ export function getNeighborAt(i: number): UnitIndex {
   return v;
 }
 
-/** Copy neighborBuffer[0..count) into `dst`. Use when calling getNeighbors inside another neighbor loop. */
-export function copyNeighbors(dst: UnitIndex[], count: number): void {
-  for (let i = 0; i < count; i++) {
-    const v = neighborBuffer[i];
-    if (v === undefined) throw new RangeError(`Invalid neighbor index: ${i}`);
-    dst[i] = v;
-  }
-}
-
 const _pooled: UnitIndex[][] = [];
 const _used: UnitIndex[][] = [];
 

@@ -7,6 +7,7 @@ import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { spawnProjectile } from './spawn.ts';
+import { updateSwarmN } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -867,6 +868,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
+    updateSwarmN();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
@@ -882,6 +884,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
+    updateSwarmN();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
@@ -914,6 +917,42 @@ describe('combat — DRONE SWARM', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
+  });
+
+  it('孤立 Drone: プロジェクタイル size/color は変化なし', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    const p = getProjectile(0);
+    expect(p.size).toBeCloseTo(1.2);
+    expect(p.r).toBeCloseTo(0.2);
+    expect(p.g).toBeCloseTo(1);
+    expect(p.b).toBeCloseTo(0.55);
+  });
+
+  it('味方 6体: プロジェクタイル size 拡大 + 白寄りの色', () => {
+    const drone = spawnAt(0, 0, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    for (let i = 0; i < 6; i++) {
+      spawnAt(0, 0, 10 + i * 5, 10);
+    }
+    getUnit(drone).cooldown = 0;
+    getUnit(drone).target = enemy;
+    buildHash();
+    updateSwarmN();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(drone), drone, 0.016, 0);
+    const p = getProjectile(0);
+    // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=1.2*1.45=1.74
+    expect(p.size).toBeCloseTo(1.74);
+    // wb=(1.9-1)*0.4=0.36
+    expect(p.r).toBeCloseTo(0.2 + 0.8 * 0.36);
+    expect(p.g).toBeCloseTo(1 + 0 * 0.36);
+    expect(p.b).toBeCloseTo(0.55 + 0.45 * 0.36);
   });
 });
 

@@ -33,7 +33,9 @@ import { update } from './update.ts';
 afterEach(() => {
   resetPools();
   resetState();
-  // vi.mock() ファクトリで作成した vi.fn() の呼び出し履歴は restoreAllMocks ではクリアされないため必要
+  // restoreAllMocks はモジュールトップレベルの vi.mock() には効かないため、
+  // isCodexDemoUnit のデフォルト戻り値を明示リセットする
+  vi.mocked(isCodexDemoUnit).mockReturnValue(false);
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -174,7 +176,6 @@ describe('Reflector shield', () => {
     getUnit(ally).trailTimer = 99;
     update(0.016, 0);
     expect(getUnit(ally).shielded).toBe(true);
-    vi.mocked(isCodexDemoUnit).mockReturnValue(false);
   });
 });
 
@@ -321,5 +322,89 @@ describe('codexOpen 分岐', () => {
     getUnit(enemy).trailTimer = 99;
     update(0.016, 0);
     expect(getUnit(idx).target).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ============================================================
+// 8. swarmN 更新
+// ============================================================
+describe('swarmN 更新', () => {
+  it('同型味方3体が近傍 → swarmN=3', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0); // Drone (swarm:true)
+    const b = spawnAt(0, 0, 20, 0);
+    const c = spawnAt(0, 0, 0, 20);
+    const d = spawnAt(0, 0, 20, 20);
+    getUnit(a).trailTimer = 99;
+    getUnit(b).trailTimer = 99;
+    getUnit(c).trailTimer = 99;
+    getUnit(d).trailTimer = 99;
+    update(0.016, 0);
+    // a の近傍に b,c,d → swarmN=3
+    expect(getUnit(a).swarmN).toBe(3);
+  });
+
+  it('異なる type は swarmN にカウントされない', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0); // Drone
+    const b = spawnAt(0, 1, 20, 0); // Fighter (type !== 0)
+    getUnit(a).trailTimer = 99;
+    getUnit(b).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(0);
+  });
+
+  it('非 swarm ユニットは swarmN=0', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 1, 0, 0); // Fighter (swarm:false)
+    const b = spawnAt(0, 1, 20, 0);
+    getUnit(a).trailTimer = 99;
+    getUnit(b).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(0);
+  });
+
+  it('敵チームの同型は swarmN にカウントされない', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0);
+    spawnAt(1, 0, 20, 0);
+    spawnAt(1, 0, 0, 20);
+    getUnit(a).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(0);
+  });
+
+  it('7体以上でも swarmN は 6 にクランプされる', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0);
+    for (let i = 0; i < 8; i++) {
+      const idx = spawnAt(0, 0, 10 + i * 5, 10);
+      getUnit(idx).trailTimer = 99;
+    }
+    getUnit(a).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(6);
+  });
+
+  it('半径80外の味方はカウントされない', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0);
+    // CELL_SIZE=100, cr=ceil(80/100)=1 → 3x3セル走査。確実にセル外にするため距離201を使用
+    const far = spawnAt(0, 0, 201, 0);
+    getUnit(a).trailTimer = 99;
+    getUnit(far).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(0);
+  });
+
+  it('codexOpen=true → 非デモユニットの swarmN は更新されない', () => {
+    state.codexOpen = true;
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(0, 0, 20, 0);
+    getUnit(a).trailTimer = 99;
+    getUnit(b).trailTimer = 99;
+    update(0.016, 0);
+    expect(getUnit(a).swarmN).toBe(0);
   });
 });

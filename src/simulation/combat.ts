@@ -1,11 +1,11 @@
 import { getColor } from '../colors.ts';
-import { NEIGHBOR_BUFFER_SIZE, POOL_PROJECTILES } from '../constants.ts';
+import { POOL_PROJECTILES } from '../constants.ts';
 import { getProjectile, getUnit } from '../pools.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
-import { copyNeighbors, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
@@ -553,24 +553,15 @@ function handleFocusBeam(ctx: CombatContext) {
   );
 }
 
-const _swarmBuf: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);
-
 function swarmDmgMul(u: Unit): number {
-  const sn = getNeighbors(u.x, u.y, 80);
-  copyNeighbors(_swarmBuf, sn);
-  let allies = 0;
-  for (let si = 0; si < sn; si++) {
-    const idx = _swarmBuf[si];
-    if (idx === undefined) break;
-    const so = getUnit(idx);
-    if (so !== u && so.alive && so.team === u.team && so.type === u.type) allies++;
-  }
-  return 1 + Math.min(allies, 6) * 0.15;
+  return 1 + u.swarmN * 0.15;
 }
 
-function fireBurst(ctx: CombatContext, ang: number, d: number) {
+function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
   const { u, c, t, vd } = ctx;
   if (u.burstCount <= 0) u.burstCount = t.burst ?? 1;
+  const sizeMul = 1 + (dmgMul - 1) * 0.5;
+  const wb = (dmgMul - 1) * 0.4;
   const sp = 480 + t.damage * 12;
   spawnProjectile(
     u.x + Math.cos(u.angle) * t.size,
@@ -578,12 +569,12 @@ function fireBurst(ctx: CombatContext, ang: number, d: number) {
     Math.cos(ang) * sp + u.vx * 0.3,
     Math.sin(ang) * sp + u.vy * 0.3,
     d / sp + 0.1,
-    t.damage * vd,
+    t.damage * vd * dmgMul,
     u.team,
-    1 + t.damage * 0.2,
-    c[0],
-    c[1],
-    c[2],
+    (1 + t.damage * 0.2) * sizeMul,
+    c[0] + (1 - c[0]) * wb,
+    c[1] + (1 - c[1]) * wb,
+    c[2] + (1 - c[2]) * wb,
   );
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -617,9 +608,8 @@ function fireNormal(ctx: CombatContext) {
     return;
   }
 
-  u.cooldown = t.fireRate;
-
   if (t.homing) {
+    u.cooldown = t.fireRate;
     spawnProjectile(
       u.x,
       u.y,
@@ -637,6 +627,7 @@ function fireNormal(ctx: CombatContext) {
       u.target,
     );
   } else if (t.aoe) {
+    u.cooldown = t.fireRate;
     spawnProjectile(
       u.x,
       u.y,
@@ -653,6 +644,7 @@ function fireNormal(ctx: CombatContext) {
       t.aoe,
     );
   } else if (t.shape === 3) {
+    u.cooldown = t.fireRate;
     for (let i = -2; i <= 2; i++) {
       const ba = ang + i * 0.25;
       spawnProjectile(
@@ -670,6 +662,7 @@ function fireNormal(ctx: CombatContext) {
       );
     }
   } else if (t.shape === 8) {
+    u.cooldown = t.fireRate;
     spawnProjectile(
       u.x + Math.cos(ang) * t.size,
       u.y + Math.sin(ang) * t.size,
@@ -701,20 +694,7 @@ function fireNormal(ctx: CombatContext) {
     }
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
-    const sp = 480 + t.damage * 12;
-    spawnProjectile(
-      u.x + Math.cos(u.angle) * t.size,
-      u.y + Math.sin(u.angle) * t.size,
-      Math.cos(ang) * sp + u.vx * 0.3,
-      Math.sin(ang) * sp + u.vy * 0.3,
-      d / sp + 0.1,
-      t.damage * vd * dmgMul,
-      u.team,
-      1 + t.damage * 0.2,
-      c[0],
-      c[1],
-      c[2],
-    );
+    fireBurst(ctx, ang, d, dmgMul);
   }
 
   if (!t.homing && !t.aoe && t.shape !== 8) {

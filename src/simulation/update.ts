@@ -1,4 +1,4 @@
-import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, TAU } from '../constants.ts';
+import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SWARM_RADIUS_SQ, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams, getBeam, state } from '../state.ts';
@@ -154,6 +154,32 @@ function updateBeams(dt: number) {
   }
 }
 
+export function updateSwarmN() {
+  for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
+    const u = getUnit(i);
+    if (!u.alive) continue;
+    urem3--;
+    if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) {
+      u.swarmN = 0;
+      continue;
+    }
+    if (!getUnitType(u.type).swarm) {
+      u.swarmN = 0;
+      continue;
+    }
+    const nn = getNeighbors(u.x, u.y, 80);
+    let allies = 0;
+    for (let j = 0; j < nn; j++) {
+      const o = getUnit(getNeighborAt(j));
+      if (o === u || !o.alive || o.team !== u.team || o.type !== u.type) continue;
+      const dx = o.x - u.x,
+        dy = o.y - u.y;
+      if (dx * dx + dy * dy < SWARM_RADIUS_SQ) allies++;
+    }
+    u.swarmN = Math.min(allies, 6);
+  }
+}
+
 function updateUnits(dt: number, now: number) {
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
     const u = getUnit(i);
@@ -174,6 +200,7 @@ function updateUnits(dt: number, now: number) {
 export function update(rawDt: number, now: number) {
   const dt = Math.min(rawDt, 0.033);
   buildHash();
+  updateSwarmN();
 
   updateUnits(dt, now);
 

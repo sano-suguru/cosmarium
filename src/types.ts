@@ -25,6 +25,7 @@ export interface Unit {
   kills: number;
   vet: number;
   burstCount: number;
+  swarmN: number;
 }
 
 export interface Particle {

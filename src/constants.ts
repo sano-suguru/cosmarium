@@ -7,5 +7,6 @@ export const MAX_INSTANCES = 100000;
 export const MINIMAP_MAX = 1200;
 export const STRIDE_BYTES = 36;
 export const NEIGHBOR_BUFFER_SIZE = 350;
+export const SWARM_RADIUS_SQ = 80 * 80;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;

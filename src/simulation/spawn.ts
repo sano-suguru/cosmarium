@@ -53,6 +53,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.kills = 0;
       u.vet = 0;
       u.burstCount = 0;
+      u.swarmN = 0;
       incUnitCount();
       return i as UnitIndex;
     }

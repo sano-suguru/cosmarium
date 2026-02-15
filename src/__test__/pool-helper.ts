@@ -44,6 +44,7 @@ export function resetPools() {
     u.kills = 0;
     u.vet = 0;
     u.burstCount = 0;
+    u.swarmN = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = getParticle(i);

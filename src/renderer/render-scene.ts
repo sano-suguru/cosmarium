@@ -56,6 +56,7 @@ function renderUnits(now: number) {
       }
     }
     if (u.vet > 0) writeInstance(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, 0, 10);
+    if (u.swarmN > 0) writeInstance(u.x, u.y, ut.size * 2.2, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, 0, 10);
     writeInstance(u.x, u.y, ut.size, c[0] * flash * sf, c[1] * flash * sf, c[2] * flash * sf, 0.9, u.angle, ut.shape);
     if (ut.size >= 10 && hr < 1) {
       const bw = ut.size * 1.5;

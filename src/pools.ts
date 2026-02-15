@@ -100,6 +100,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     kills: 0,
     vet: 0,
     burstCount: 0,
+    swarmN: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {
