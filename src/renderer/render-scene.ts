@@ -29,6 +29,27 @@ function writeInstance(
   }
 }
 
+function writeOverlay(x: number, y: number, size: number, r: number, g: number, b: number, a: number, shape: number) {
+  writeInstance(x, y, size, r, g, b, a, 0, shape);
+}
+
+function writeParticle(x: number, y: number, size: number, r: number, g: number, b: number, a: number, shape: number) {
+  writeInstance(x, y, size, r, g, b, a, 0, shape);
+}
+
+function writeBeamSegment(
+  x: number,
+  y: number,
+  size: number,
+  r: number,
+  g: number,
+  b: number,
+  a: number,
+  angle: number,
+) {
+  writeInstance(x, y, size, r, g, b, a, angle, 12);
+}
+
 function renderStunStars(u: Unit, ut: UnitType, now: number) {
   if (u.stun > 0) {
     for (let j = 0; j < 2; j++) {
@@ -60,14 +81,46 @@ function renderUnits(now: number) {
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
-    if (u.shielded) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.18, 0, 5);
+    if (u.shielded) writeOverlay(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.18, 5);
     renderStunStars(u, ut, now);
-    if (u.vet > 0) writeInstance(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, 0, 10);
-    if (u.swarmN > 0) writeInstance(u.x, u.y, ut.size * 2.2, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, 0, 10);
-    writeInstance(u.x, u.y, ut.size, c[0] * flash * sf, c[1] * flash * sf, c[2] * flash * sf, 0.9, u.angle, ut.shape);
+    if (u.vet > 0) writeOverlay(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, 10);
+    if (u.swarmN > 0) writeOverlay(u.x, u.y, ut.size * 2.2, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, 10);
+    writeInstance(
+      u.x,
+      u.y,
+      ut.size,
+      /*r*/ c[0] * flash * sf,
+      /*g*/ c[1] * flash * sf,
+      /*b*/ c[2] * flash * sf,
+      /*a*/ 0.9,
+      u.angle,
+      ut.shape,
+    );
     renderHpBar(u, ut);
-    if (u.vet >= 1) writeInstance(u.x + ut.size * 1.1, u.y - ut.size * 1.1, 2, 1, 1, 0.3, 0.8, now * 3, 7);
-    if (u.vet >= 2) writeInstance(u.x + ut.size * 1.1 + 5, u.y - ut.size * 1.1, 2, 1, 0.5, 0.3, 0.8, now * 3, 7);
+    if (u.vet >= 1)
+      writeInstance(
+        u.x + ut.size * 1.1,
+        u.y - ut.size * 1.1,
+        /*size*/ 2,
+        /*r*/ 1,
+        /*g*/ 1,
+        /*b*/ 0.3,
+        /*a*/ 0.8,
+        now * 3,
+        /*shape*/ 7,
+      );
+    if (u.vet >= 2)
+      writeInstance(
+        u.x + ut.size * 1.1 + 5,
+        u.y - ut.size * 1.1,
+        /*size*/ 2,
+        /*r*/ 1,
+        /*g*/ 0.5,
+        /*b*/ 0.3,
+        /*a*/ 0.8,
+        now * 3,
+        /*shape*/ 7,
+      );
   }
 }
 
@@ -79,7 +132,7 @@ function renderParticles() {
     let size = p.size * (0.5 + al * 0.5);
     const shape = p.shape;
     if (shape === 10) size = p.size * (2.2 - al * 1.7);
-    writeInstance(p.x, p.y, size, p.r * al, p.g * al, p.b * al, al * 0.8, 0, shape);
+    writeParticle(p.x, p.y, size, p.r * al, p.g * al, p.b * al, al * 0.8, shape);
   }
 }
 
@@ -103,7 +156,7 @@ function renderBeams(now: number) {
         else if (tail === 1) tipScale = 0.5;
         else if (tail === 2) tipScale = 0.8;
       }
-      writeInstance(
+      writeBeamSegment(
         bm.x1 + dx * t,
         bm.y1 + dy * t,
         bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
@@ -112,7 +165,6 @@ function renderBeams(now: number) {
         bm.b * al * fl,
         al * 0.85 * tipScale,
         ang,
-        12,
       );
     }
   }
@@ -126,7 +178,7 @@ function renderProjectiles() {
     if (pr.homing) shape = 6;
     else if (pr.aoe > 0) shape = 0;
     else shape = 1;
-    writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
+    writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, /*a*/ 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 }
 
