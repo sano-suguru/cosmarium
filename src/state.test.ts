@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
-import { beams, state } from './state.ts';
+import { beams, getBeam, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -62,5 +62,21 @@ describe('mutableオブジェクト', () => {
     expect(beams).toHaveLength(0);
     beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
     expect(beams).toHaveLength(1);
+  });
+});
+
+describe('getBeam', () => {
+  it('有効インデックスでBeam返却', () => {
+    beams.push({ x1: 10, y1: 20, x2: 30, y2: 40, r: 1, g: 0, b: 0, life: 0.5, maxLife: 0.5, width: 2 });
+    const b = getBeam(0);
+    expect(b.x1).toBe(10);
+    expect(b.y1).toBe(20);
+    expect(b.x2).toBe(30);
+    expect(b.y2).toBe(40);
+  });
+
+  it('範囲外インデックスでRangeError', () => {
+    expect(() => getBeam(0)).toThrow(RangeError);
+    expect(() => getBeam(-1)).toThrow(RangeError);
   });
 });

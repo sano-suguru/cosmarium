@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getUnitType, TYPES } from './unit-types.ts';
+import { getUnitType, TYPES, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
   it('要素数が15', () => {
@@ -104,6 +104,35 @@ describe('TYPES 配列', () => {
       expect(t.emp).toBeUndefined();
       expect(t.teleports).toBeUndefined();
       expect(t.chain).toBeUndefined();
+    }
+  });
+});
+
+describe('getUnitType — エラーパス', () => {
+  it('負のインデックスでRangeError', () => {
+    expect(() => getUnitType(-1)).toThrow(RangeError);
+  });
+
+  it('TYPES.length以上のインデックスでRangeError', () => {
+    expect(() => getUnitType(TYPES.length)).toThrow(RangeError);
+  });
+});
+
+describe('unitTypeIndex', () => {
+  it('既知の名前でインデックスを返す', () => {
+    expect(unitTypeIndex('Drone')).toBe(0);
+    expect(unitTypeIndex('Fighter')).toBe(1);
+    expect(unitTypeIndex('Chain Bolt')).toBe(14);
+  });
+
+  it('存在しない名前でRangeError', () => {
+    expect(() => unitTypeIndex('NonExistent')).toThrow(RangeError);
+  });
+
+  it('全タイプ名が正引き可能', () => {
+    for (let i = 0; i < TYPES.length; i++) {
+      const t = getUnitType(i);
+      expect(unitTypeIndex(t.name)).toBe(i);
     }
   });
 });

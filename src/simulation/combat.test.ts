@@ -156,6 +156,17 @@ describe('combat — HEALER', () => {
     combat(getUnit(healer), healer, 0.016, 0);
     expect(beams.length).toBeGreaterThan(0);
   });
+
+  it('abilityCooldown>0 → 回復スキップ', () => {
+    const healer = spawnAt(0, 5, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    getUnit(healer).abilityCooldown = 1.0;
+    getUnit(ally).hp = 5;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(healer), healer, 0.016, 0);
+    expect(getUnit(ally).hp).toBe(5);
+  });
 });
 
 describe('combat — REFLECTOR', () => {
@@ -171,6 +182,31 @@ describe('combat — REFLECTOR', () => {
     // 反射: vx *= -1.2
     expect(p.vx).toBeCloseTo(vxBefore * -1.2);
     expect(p.team).toBe(0); // team変更
+  });
+
+  it('自チーム弾は反射しない', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    spawnProjectile(50, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
+    const p = getProjectile(0);
+    const vxBefore = p.vx;
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    expect(p.vx).toBe(vxBefore);
+  });
+
+  it('cooldown<=0 かつ target あり → 射撃', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    const enemy = spawnAt(1, 1, 50, 0);
+    // combat() は cooldown -= dt を先に実行してからチェックするため、0 でも射撃条件を満たす
+    getUnit(reflector).cooldown = 0;
+    getUnit(reflector).target = enemy;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    expect(poolCounts.projectileCount).toBe(1);
+    expect(getProjectile(0).team).toBe(0);
+    expect(getUnit(reflector).cooldown).toBeCloseTo(getUnitType(6).fireRate);
   });
 });
 
@@ -388,6 +424,31 @@ describe('combat — BEAM', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.016, 0);
     expect(beams.length).toBeGreaterThan(0);
+  });
+
+  it('敵HP<=0 → killUnit + beamOn=0', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 0, 100, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).beamOn = 1;
+    getUnit(cruiser).cooldown = 0;
+    getUnit(enemy).hp = 1;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    expect(getUnit(enemy).alive).toBe(false);
+    expect(getUnit(cruiser).beamOn).toBe(0);
+  });
+
+  it('距離>=range → beamOn 減衰', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const enemy = spawnAt(1, 1, 500, 0);
+    getUnit(cruiser).target = enemy;
+    getUnit(cruiser).beamOn = 0.5;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
   });
 });
 

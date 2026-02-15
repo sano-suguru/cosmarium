@@ -44,6 +44,12 @@ export function resetPoolCounts() {
 export function setUnitCountForTest(n: number) {
   _counts.unitCount = n;
 }
+export function setParticleCountForTest(n: number) {
+  _counts.particleCount = n;
+}
+export function setProjectileCountForTest(n: number) {
+  _counts.projectileCount = n;
+}
 
 /*
  * プール配列への安全なアクセサ — noUncheckedIndexedAccess 下で

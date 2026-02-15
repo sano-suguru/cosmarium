@@ -2,7 +2,34 @@ import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
 import { TEAMS } from '../types.ts';
+import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
+
+interface InitSpawn {
+  readonly type: number;
+  readonly count: number;
+  readonly spread: number;
+}
+
+const T = unitTypeIndex;
+
+export const INIT_SPAWNS: readonly InitSpawn[] = [
+  { type: T('Flagship'), count: 2, spread: 200 },
+  { type: T('Carrier'), count: 1, spread: 150 },
+  { type: T('Cruiser'), count: 4, spread: 500 },
+  { type: T('Bomber'), count: 3, spread: 400 },
+  { type: T('Fighter'), count: 20, spread: 700 },
+  { type: T('Drone'), count: 50, spread: 900 },
+  { type: T('Healer'), count: 3, spread: 400 },
+  { type: T('Reflector'), count: 2, spread: 300 },
+  { type: T('Sniper'), count: 4, spread: 600 },
+  { type: T('Ram'), count: 3, spread: 400 },
+  { type: T('Missile'), count: 3, spread: 500 },
+  { type: T('EMP'), count: 2, spread: 400 },
+  { type: T('Beam Frig.'), count: 3, spread: 400 },
+  { type: T('Teleporter'), count: 2, spread: 400 },
+  { type: T('Chain Bolt'), count: 2, spread: 400 },
+];
 
 export function initUnits() {
   for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
@@ -11,38 +38,13 @@ export function initUnits() {
   resetPoolCounts();
   beams.length = 0;
 
-  const n = [2, 1, 4, 3, 20, 50, 3, 2, 4, 3, 3, 2, 3, 2, 2];
   for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;
     const cy = team === 0 ? -300 : 300;
-    const s = (tp: number, count: number, spread: number) => {
+    for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
-        spawnUnit(team, tp, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
+        spawnUnit(team, type, cx + (Math.random() - 0.5) * spread, cy + (Math.random() - 0.5) * spread);
       }
-    };
-    const spawns: [number, number][] = [
-      [4, 200],
-      [7, 150],
-      [3, 500],
-      [2, 400],
-      [1, 700],
-      [0, 900],
-      [5, 400],
-      [6, 300],
-      [8, 600],
-      [9, 400],
-      [10, 500],
-      [11, 400],
-      [12, 400],
-      [13, 400],
-      [14, 400],
-    ];
-    for (let k = 0; k < spawns.length; k++) {
-      const sp = spawns[k];
-      if (sp === undefined) throw new RangeError(`Invalid spawns index: ${k}`);
-      const count = n[k];
-      if (count === undefined) throw new RangeError(`Invalid n index: ${k}`);
-      s(sp[0], count, sp[1]);
     }
   }
 }

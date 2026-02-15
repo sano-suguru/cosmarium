@@ -53,3 +53,17 @@ describe('getTrailColor', () => {
     }
   });
 });
+
+describe('getColor — エラーパス', () => {
+  it('範囲外インデックスでRangeError', () => {
+    expect(() => getColor(-1, 0)).toThrow(RangeError);
+    expect(() => getColor(15, 0)).toThrow(RangeError);
+  });
+});
+
+describe('getTrailColor — エラーパス', () => {
+  it('範囲外インデックスでRangeError', () => {
+    expect(() => getTrailColor(-1, 0)).toThrow(RangeError);
+    expect(() => getTrailColor(15, 0)).toThrow(RangeError);
+  });
+});

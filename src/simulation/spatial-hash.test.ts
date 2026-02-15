@@ -77,6 +77,12 @@ describe('buildHash + getNeighbors', () => {
   });
 });
 
+describe('getNeighborAt — エラーパス', () => {
+  it('範囲外インデックスでRangeError', () => {
+    expect(() => getNeighborAt(999999)).toThrow(RangeError);
+  });
+});
+
 describe('knockback', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 100, 0);

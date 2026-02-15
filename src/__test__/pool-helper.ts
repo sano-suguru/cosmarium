@@ -1,6 +1,14 @@
 import { vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getParticle, getProjectile, getUnit, resetPoolCounts, setUnitCountForTest } from '../pools.ts';
+import {
+  getParticle,
+  getProjectile,
+  getUnit,
+  resetPoolCounts,
+  setParticleCountForTest,
+  setProjectileCountForTest,
+  setUnitCountForTest,
+} from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { State } from '../state.ts';
 import { beams, state } from '../state.ts';
@@ -75,6 +83,16 @@ export function resetPools() {
 export function fillUnitPool() {
   for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = true;
   setUnitCountForTest(POOL_UNITS);
+}
+
+export function fillParticlePool() {
+  for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = true;
+  setParticleCountForTest(POOL_PARTICLES);
+}
+
+export function fillProjectilePool() {
+  for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = true;
+  setProjectileCountForTest(POOL_PROJECTILES);
 }
 
 const stateDefaults: State = {

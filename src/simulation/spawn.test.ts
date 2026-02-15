@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fillUnitPool, resetPools } from '../__test__/pool-helper.ts';
+import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
@@ -38,6 +39,12 @@ describe('spawnParticle', () => {
     expect(i2).toBe(1);
     expect(poolCounts.particleCount).toBe(2);
   });
+
+  it('プール満杯時に NO_PARTICLE を返す', () => {
+    fillParticlePool();
+    const idx = spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
+    expect(idx).toBe(NO_PARTICLE);
+  });
 });
 
 describe('spawnProjectile', () => {
@@ -63,6 +70,12 @@ describe('spawnProjectile', () => {
     expect(p.homing).toBe(true);
     expect(p.aoe).toBe(70);
     expect(p.targetIndex).toBe(42);
+  });
+
+  it('プール満杯時に NO_PROJECTILE を返す', () => {
+    fillProjectilePool();
+    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 0, 2, 1, 0, 0);
+    expect(idx).toBe(NO_PROJECTILE);
   });
 });
 
