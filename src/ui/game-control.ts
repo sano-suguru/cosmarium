@@ -56,7 +56,7 @@ function handleCodexToggle() {
   }
 }
 
-const speeds = [0.2, 0.4, 0.55, 0.75, 1, 1.5, 2.5];
+const speeds = [0.5, 0.75, 1, 1.5, 2, 3, 5];
 
 function unreachable(idx: number): never {
   throw new RangeError(`Invalid speed index: ${idx}`);
@@ -64,7 +64,7 @@ function unreachable(idx: number): never {
 
 function stepSpd(dir: number) {
   const i = speeds.indexOf(state.timeScale);
-  const def = speeds.indexOf(0.55);
+  const def = speeds.indexOf(1);
   if (dir < 0) {
     if (i > 0) setSpd(speeds[i - 1] ?? unreachable(i - 1));
     else if (i < 0) setSpd(speeds[def - 1] ?? unreachable(def - 1));
@@ -120,7 +120,7 @@ export function initUI() {
 
   for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
     btn.addEventListener('click', () => {
-      setSpd(Number.parseFloat(btn.dataset.spd || '0.55'));
+      setSpd(Number.parseFloat(btn.dataset.spd || '1'));
     });
   }
 

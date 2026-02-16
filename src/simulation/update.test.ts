@@ -66,8 +66,8 @@ describe('パーティクル pass', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
     update(0.016, 0);
     expect(getParticle(0).x).toBeCloseTo(100 * 0.016, 1);
-    expect(getParticle(0).vx).toBeCloseTo(97);
-    expect(getParticle(0).vy).toBeCloseTo(200 * 0.97);
+    expect(getParticle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
+    expect(getParticle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * 30));
   });
 
   it('life<=0 で消滅', () => {
