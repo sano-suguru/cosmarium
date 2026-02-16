@@ -71,6 +71,33 @@ function renderHpBar(u: Unit, ut: UnitType) {
   }
 }
 
+function renderVetBadges(u: Unit, ut: UnitType, now: number) {
+  if (u.vet >= 1)
+    writeInstance(
+      u.x + ut.size * 1.1,
+      u.y - ut.size * 1.1,
+      /*size*/ 2,
+      /*r*/ 1,
+      /*g*/ 1,
+      /*b*/ 0.3,
+      /*a*/ 0.8,
+      now * 3,
+      /*shape*/ 7,
+    );
+  if (u.vet >= 2)
+    writeInstance(
+      u.x + ut.size * 1.1 + 5,
+      u.y - ut.size * 1.1,
+      /*size*/ 2,
+      /*r*/ 1,
+      /*g*/ 0.5,
+      /*b*/ 0.3,
+      /*a*/ 0.8,
+      now * 3,
+      /*shape*/ 7,
+    );
+}
+
 function renderUnits(now: number) {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = getUnit(i);
@@ -97,30 +124,7 @@ function renderUnits(now: number) {
       ut.shape,
     );
     renderHpBar(u, ut);
-    if (u.vet >= 1)
-      writeInstance(
-        u.x + ut.size * 1.1,
-        u.y - ut.size * 1.1,
-        /*size*/ 2,
-        /*r*/ 1,
-        /*g*/ 1,
-        /*b*/ 0.3,
-        /*a*/ 0.8,
-        now * 3,
-        /*shape*/ 7,
-      );
-    if (u.vet >= 2)
-      writeInstance(
-        u.x + ut.size * 1.1 + 5,
-        u.y - ut.size * 1.1,
-        /*size*/ 2,
-        /*r*/ 1,
-        /*g*/ 0.5,
-        /*b*/ 0.3,
-        /*a*/ 0.8,
-        now * 3,
-        /*shape*/ 7,
-      );
+    renderVetBadges(u, ut, now);
   }
 }
 
@@ -136,6 +140,14 @@ function renderParticles() {
   }
 }
 
+function computeTaperScale(tapered: boolean, tail: number): number {
+  if (!tapered) return 1;
+  if (tail === 0) return 0.25;
+  if (tail === 1) return 0.5;
+  if (tail === 2) return 0.8;
+  return 1;
+}
+
 function renderBeams(now: number) {
   for (let i = 0; i < beams.length; i++) {
     const bm = getBeam(i);
@@ -149,13 +161,8 @@ function renderBeams(now: number) {
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
       const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
-      let tipScale = 1;
-      if (bm.tapered) {
-        const tail = steps - j;
-        if (tail === 0) tipScale = 0.25;
-        else if (tail === 1) tipScale = 0.5;
-        else if (tail === 2) tipScale = 0.8;
-      }
+      const tail = steps - j;
+      const tipScale = computeTaperScale(bm.tapered ?? false, tail);
       writeBeamSegment(
         bm.x1 + dx * t,
         bm.y1 + dy * t,
