@@ -158,3 +158,55 @@ describe('steer — ワールド境界', () => {
     expect(u.y).toBeGreaterThan(-WORLD_SIZE * 0.85);
   });
 });
+
+describe('steer — Boids Separation', () => {
+  it('近接ユニットから離れる方向に力が働く', () => {
+    const u1 = spawnAt(0, 1, 0, 0);
+    const u2 = spawnAt(0, 1, 8, 0);
+    getUnit(u1).target = NO_UNIT;
+    getUnit(u2).target = NO_UNIT;
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(getUnit(u1), 0.033);
+      steer(getUnit(u2), 0.033);
+    }
+    expect(getUnit(u1).x).toBeLessThan(getUnit(u2).x);
+  });
+});
+
+describe('steer — Boids Alignment', () => {
+  it('同タイプ味方の速度方向に揃う', () => {
+    const subject = spawnAt(0, 1, 0, 0);
+    getUnit(subject).vx = 0;
+    getUnit(subject).vy = 0;
+    getUnit(subject).target = NO_UNIT;
+    for (let j = 1; j <= 3; j++) {
+      const ally = spawnAt(0, 1, 50 * j, 0);
+      getUnit(ally).vx = 100;
+      getUnit(ally).vy = 0;
+    }
+    buildHash();
+    for (let i = 0; i < 50; i++) {
+      buildHash();
+      steer(getUnit(subject), 0.033);
+    }
+    expect(getUnit(subject).vx).toBeGreaterThan(0);
+  });
+});
+
+describe('steer — Boids Cohesion', () => {
+  it('味方集団の重心に引き寄せられる', () => {
+    const loner = spawnAt(0, 1, 0, 0);
+    getUnit(loner).target = NO_UNIT;
+    spawnAt(0, 1, 100, 0);
+    spawnAt(0, 1, 120, 0);
+    spawnAt(0, 1, 110, 10);
+    buildHash();
+    for (let i = 0; i < 50; i++) {
+      buildHash();
+      steer(getUnit(loner), 0.033);
+    }
+    expect(getUnit(loner).x).toBeGreaterThan(0);
+  });
+});

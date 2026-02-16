@@ -14,7 +14,10 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
-const codexDemoTable: [keyof UnitType, (mi: UnitIndex) => void][] = [
+type DemoFlag = keyof UnitType &
+  ('swarm' | 'burst' | 'heals' | 'reflects' | 'spawns' | 'emp' | 'chain' | 'teleports' | 'rams' | 'sweep' | 'beam');
+
+const codexDemoTable: [DemoFlag, (mi: UnitIndex) => void][] = [
   ['swarm', (mi) => demoDroneSwarm(mi)],
   ['burst', (mi) => demoBurstFighter(mi)],
   ['heals', () => demoHealer()],

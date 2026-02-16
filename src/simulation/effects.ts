@@ -128,6 +128,7 @@ function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex
   return bi;
 }
 
+// 不変条件: explosion() は chainLightning を再帰呼出ししない
 function applyChainHit(
   cx: number,
   cy: number,
@@ -135,13 +136,16 @@ function applyChainHit(
   damage: number,
   ch: number,
   col: Color3,
-): { x: number; y: number } {
+): { hx: number; hy: number } {
   const o = getUnit(bi);
-  addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
+  // kill 前に退避 — killUnit でスロットが再利用されると座標が壊れる
+  const hx = o.x,
+    hy = o.y;
+  addBeam(cx, cy, hx, hy, col[0], col[1], col[2], 0.2, 1.5);
   for (let i = 0; i < 3; i++) {
     spawnParticle(
-      o.x + (rng() - 0.5) * 8,
-      o.y + (rng() - 0.5) * 8,
+      hx + (rng() - 0.5) * 8,
+      hy + (rng() - 0.5) * 8,
       (rng() - 0.5) * 50,
       (rng() - 0.5) * 50,
       0.1,
@@ -157,9 +161,9 @@ function applyChainHit(
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
     killUnit(bi);
-    explosion(o.x, o.y, o.team, o.type, NO_UNIT);
+    explosion(hx, hy, o.team, o.type, NO_UNIT);
   }
-  return { x: o.x, y: o.y };
+  return { hx, hy };
 }
 
 export function chainLightning(sx: number, sy: number, team: Team, damage: number, max: number, col: Color3) {
@@ -171,7 +175,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     if (bi === NO_UNIT) break;
     hit.add(bi);
     const pos = applyChainHit(cx, cy, bi, damage, ch, col);
-    cx = pos.x;
-    cy = pos.y;
+    cx = pos.hx;
+    cy = pos.hy;
   }
 }
