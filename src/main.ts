@@ -1,5 +1,6 @@
 import './style.css';
 
+import { BASE_SPEED, REF_FPS } from './constants.ts';
 import { cam, initCamera } from './input/camera.ts';
 import { initBuffers } from './renderer/buffers.ts';
 import { createFBOs } from './renderer/fbo.ts';
@@ -55,7 +56,7 @@ function frame(now: number) {
     // 純粋なビジュアルエフェクトなので seeded PRNG ではなく Math.random() を使用（決定性に影響しない）
     cam.shakeX = (Math.random() - 0.5) * cam.shake;
     cam.shakeY = (Math.random() - 0.5) * cam.shake;
-    cam.shake *= 0.82;
+    cam.shake *= 0.82 ** (dt * REF_FPS);
   } else {
     cam.shakeX = 0;
     cam.shakeY = 0;
@@ -64,10 +65,10 @@ function frame(now: number) {
 
   if (state.codexOpen) {
     // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
-    update(dt, t);
+    update(dt * BASE_SPEED, t);
     renderFrame(t);
   } else if (state.gameState === 'play') {
-    const scaledDt = dt * state.timeScale;
+    const scaledDt = dt * state.timeScale * BASE_SPEED;
     update(scaledDt, t);
     renderFrame(t);
     updateHUD(displayFps);

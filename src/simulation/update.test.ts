@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { POOL_UNITS } from '../constants.ts';
+import { POOL_UNITS, REF_FPS } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams, state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -26,8 +26,17 @@ vi.mock('../ui/game-control.ts', () => ({
   initUI: vi.fn(),
 }));
 
+vi.mock('./spatial-hash.ts', async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import('./spatial-hash.ts');
+  return {
+    ...actual,
+    buildHash: vi.fn(actual.buildHash),
+  };
+});
+
 import { addShake } from '../input/camera.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
+import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
 
 afterEach(() => {
@@ -41,14 +50,54 @@ afterEach(() => {
 });
 
 // ============================================================
-// 1. dt clamping
+// 0. buildHash call count (sub-stepping verification)
 // ============================================================
-describe('dt clamping', () => {
-  it('rawDt > 0.033 はクランプされる', () => {
+describe('buildHash call count — sub-stepping検証', () => {
+  it('rawDt <= 1/REF_FPS (0.0333...): buildHash は1回だけ呼ばれる', () => {
+    spawnAt(0, 0, 0, 0);
+    vi.mocked(buildHash).mockClear();
+    update(0.02, 0);
+    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(1);
+  });
+
+  it('rawDt > 1/REF_FPS: 適切な回数サブステップが実行される (rawDt=0.066 → 2ステップ)', () => {
+    spawnAt(0, 0, 0, 0);
+    vi.mocked(buildHash).mockClear();
+    update(0.066, 0);
+    // maxStep = 1/30 ≈ 0.0333, steps = ceil(0.066/0.0333) = 2
+    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(2);
+  });
+
+  it('rawDt > 1/REF_FPS: 3ステップ以上の分割 (rawDt=0.12 → 4ステップ)', () => {
+    spawnAt(0, 0, 0, 0);
+    vi.mocked(buildHash).mockClear();
+    update(0.12, 0);
+    // maxStep ≈ 0.0333, steps = ceil(0.12/0.0333) = 4
+    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(4);
+  });
+
+  it('MAX_STEPS_PER_FRAME (8) を超える rawDt: ステップ数がキャップされる', () => {
+    spawnAt(0, 0, 0, 0);
+    vi.mocked(buildHash).mockClear();
+    const maxStep = 1 / REF_FPS;
+    const excessiveDt = maxStep * 15; // 15ステップ分の dt
+    update(excessiveDt, 0);
+    // min(ceil(15), 8) = 8
+    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(8);
+  });
+});
+
+// ============================================================
+// 1. dt sub-stepping
+// ============================================================
+describe('dt sub-stepping', () => {
+  it('rawDt > 0.033 はサブステップに分割される', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
     update(0.05, 0);
-    expect(getParticle(0).life).toBeCloseTo(1.0 - 0.033);
+    // rawDt=0.05, maxStep=0.033, steps=ceil(0.05/0.033)=2, dt=0.05/2=0.025
+    // life = 1.0 - 0.025*2 = 0.95
+    expect(getParticle(0).life).toBeCloseTo(1.0 - 0.05);
   });
 
   it('rawDt <= 0.033 はそのまま使われる', () => {
@@ -66,8 +115,8 @@ describe('パーティクル pass', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
     update(0.016, 0);
     expect(getParticle(0).x).toBeCloseTo(100 * 0.016, 1);
-    expect(getParticle(0).vx).toBeCloseTo(97);
-    expect(getParticle(0).vy).toBeCloseTo(200 * 0.97);
+    expect(getParticle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
+    expect(getParticle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * 30));
   });
 
   it('life<=0 で消滅', () => {

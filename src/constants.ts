@@ -10,3 +10,6 @@ export const NEIGHBOR_BUFFER_SIZE = 350;
 export const SWARM_RADIUS_SQ = 80 * 80;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;
+export const BASE_SPEED = 0.55;
+export const REF_FPS = 30;
+export const MAX_STEPS_PER_FRAME = 8;

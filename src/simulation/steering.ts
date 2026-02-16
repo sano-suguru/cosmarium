@@ -1,4 +1,4 @@
-import { PI, POOL_UNITS, TAU, WORLD_SIZE } from '../constants.ts';
+import { PI, POOL_UNITS, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
@@ -15,7 +15,7 @@ interface SteerForce {
 // 呼び出し側は返却後すぐに fx/fy に転写すること
 const _force: SteerForce = { x: 0, y: 0 };
 
-function findTarget(u: Unit, nn: number, range: number): UnitIndex {
+function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
   if (u.target !== NO_UNIT && getUnit(u.target).alive) return u.target;
 
   let bd = range * 3,
@@ -30,7 +30,7 @@ function findTarget(u: Unit, nn: number, range: number): UnitIndex {
       bi = oi;
     }
   }
-  if (bi === NO_UNIT && rng() < 0.012) {
+  if (bi === NO_UNIT && rng() < 1 - (1 - 0.012) ** (dt * REF_FPS)) {
     bd = 1e18;
     for (let i = 0; i < POOL_UNITS; i++) {
       const o = getUnit(i);
@@ -154,8 +154,9 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;
-    u.vx *= 0.93;
-    u.vy *= 0.93;
+    const stunDrag = 0.93 ** (dt * REF_FPS);
+    u.vx *= stunDrag;
+    u.vy *= stunDrag;
     u.x += u.vx * dt;
     u.y += u.vy * dt;
     return;
@@ -167,7 +168,7 @@ export function steer(u: Unit, dt: number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const tgt = findTarget(u, nn, t.range);
+  const tgt = findTarget(u, nn, t.range, dt);
   u.target = tgt;
 
   const engage = computeEngagementForce(u, tgt, t, dt);
@@ -195,8 +196,9 @@ export function steer(u: Unit, dt: number) {
   const spd = t.speed * (1 + u.vet * 0.12);
   u.vx += (Math.cos(u.angle) * spd - u.vx) * dt * 3;
   u.vy += (Math.sin(u.angle) * spd - u.vy) * dt * 3;
-  u.vx *= 1 - dt * 0.5;
-  u.vy *= 1 - dt * 0.5;
+  const moveDrag = (1 - 0.5 / REF_FPS) ** (dt * REF_FPS);
+  u.vx *= moveDrag;
+  u.vy *= moveDrag;
   u.x += u.vx * dt;
   u.y += u.vy * dt;
 }

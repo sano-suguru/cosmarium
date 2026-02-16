@@ -101,7 +101,7 @@ const stateDefaults = {
   gameState: 'menu' as const,
   codexOpen: false,
   codexSelected: 0,
-  timeScale: 0.55,
+  timeScale: 1,
   reinforcementTimer: 0,
   rng: () => 0,
 };

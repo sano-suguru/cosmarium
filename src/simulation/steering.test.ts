@@ -25,8 +25,8 @@ describe('steer — スタン', () => {
     buildHash();
     steer(u, 0.016);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
-    expect(u.vx).toBeCloseTo(100 * 0.93);
-    expect(u.vy).toBeCloseTo(50 * 0.93);
+    expect(u.vx).toBeCloseTo(100 * 0.93 ** (0.016 * 30));
+    expect(u.vy).toBeCloseTo(50 * 0.93 ** (0.016 * 30));
     // 位置は更新される（vx * dt 分移動）
     expect(u.x).toBeGreaterThan(xBefore);
     expect(u.y).toBeGreaterThan(yBefore);

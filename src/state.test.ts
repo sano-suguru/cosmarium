@@ -19,8 +19,8 @@ describe('初期値', () => {
     expect(state.codexSelected).toBe(0);
   });
 
-  it('timeScale は 0.55', () => {
-    expect(state.timeScale).toBe(0.55);
+  it('timeScale は 1', () => {
+    expect(state.timeScale).toBe(1);
   });
 
   it('reinforcementTimer は 0', () => {
