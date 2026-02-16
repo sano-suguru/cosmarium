@@ -577,8 +577,125 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
 }
 
-function fireNormal(ctx: CombatContext) {
+function fireHoming(ctx: CombatContext, ang: number, d: number) {
   const { u, c, t, vd } = ctx;
+  u.cooldown = t.fireRate;
+  spawnProjectile(
+    u.x,
+    u.y,
+    Math.cos(ang) * 280,
+    Math.sin(ang) * 280,
+    d / 280 + 1,
+    t.damage * vd,
+    u.team,
+    2.5,
+    c[0],
+    c[1],
+    c[2],
+    true,
+    0,
+    u.target,
+  );
+}
+
+function fireAoe(ctx: CombatContext, ang: number, d: number) {
+  const { u, c, t, vd } = ctx;
+  u.cooldown = t.fireRate;
+  spawnProjectile(
+    u.x,
+    u.y,
+    Math.cos(ang) * 170,
+    Math.sin(ang) * 170,
+    d / 170 + 0.2,
+    t.damage * vd,
+    u.team,
+    5,
+    c[0] * 0.8,
+    c[1] * 0.7 + 0.3,
+    c[2],
+    false,
+    t.aoe,
+  );
+}
+
+function fireFlagshipSpread(ctx: CombatContext, ang: number) {
+  const { u, c, t, vd } = ctx;
+  u.cooldown = t.fireRate;
+  for (let i = -2; i <= 2; i++) {
+    const ba = ang + i * 0.25;
+    spawnProjectile(
+      u.x + Math.cos(ba) * t.size,
+      u.y + Math.sin(ba) * t.size,
+      Math.cos(ba) * 420,
+      Math.sin(ba) * 420,
+      t.range / 420 + 0.1,
+      t.damage * vd,
+      u.team,
+      2,
+      c[0],
+      c[1],
+      c[2],
+    );
+  }
+}
+
+function fireRailgun(ctx: CombatContext, ang: number) {
+  const { u, c, t, vd } = ctx;
+  u.cooldown = t.fireRate;
+  spawnProjectile(
+    u.x + Math.cos(ang) * t.size,
+    u.y + Math.sin(ang) * t.size,
+    Math.cos(ang) * 900,
+    Math.sin(ang) * 900,
+    t.range / 900 + 0.05,
+    t.damage * vd,
+    u.team,
+    3,
+    c[0] * 0.5 + 0.5,
+    c[1] * 0.5 + 0.5,
+    c[2] * 0.5 + 0.5,
+  );
+  addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
+  for (let i = 0; i < 4; i++) {
+    const a2 = ang + (rng() - 0.5) * 0.4;
+    spawnParticle(
+      u.x + Math.cos(ang) * t.size * 1.5,
+      u.y + Math.sin(ang) * t.size * 1.5,
+      Math.cos(a2) * 160,
+      Math.sin(a2) * 160,
+      0.08,
+      2.5,
+      1,
+      1,
+      0.8,
+      0,
+    );
+  }
+}
+
+function spawnMuzzleFlash(ctx: CombatContext, ang: number) {
+  const { u, c, t } = ctx;
+  const mx = u.x + Math.cos(u.angle) * t.size;
+  const my = u.y + Math.sin(u.angle) * t.size;
+  for (let i = 0; i < 3; i++) {
+    spawnParticle(
+      mx,
+      my,
+      Math.cos(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
+      Math.sin(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
+      0.06 + rng() * 0.03,
+      2.5 + rng() * 2,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+  }
+  spawnParticle(mx, my, 0, 0, 0.05, 3 + t.damage * 0.5, 1, 1, 1, 0);
+}
+
+function fireNormal(ctx: CombatContext) {
+  const { u, t } = ctx;
   if (u.target === NO_UNIT) {
     u.burstCount = 0;
     return;
@@ -606,112 +723,20 @@ function fireNormal(ctx: CombatContext) {
   }
 
   if (t.homing) {
-    u.cooldown = t.fireRate;
-    spawnProjectile(
-      u.x,
-      u.y,
-      Math.cos(ang) * 280,
-      Math.sin(ang) * 280,
-      d / 280 + 1,
-      t.damage * vd,
-      u.team,
-      2.5,
-      c[0],
-      c[1],
-      c[2],
-      true,
-      0,
-      u.target,
-    );
+    fireHoming(ctx, ang, d);
   } else if (t.aoe) {
-    u.cooldown = t.fireRate;
-    spawnProjectile(
-      u.x,
-      u.y,
-      Math.cos(ang) * 170,
-      Math.sin(ang) * 170,
-      d / 170 + 0.2,
-      t.damage * vd,
-      u.team,
-      5,
-      c[0] * 0.8,
-      c[1] * 0.7 + 0.3,
-      c[2],
-      false,
-      t.aoe,
-    );
+    fireAoe(ctx, ang, d);
   } else if (t.shape === 3) {
-    u.cooldown = t.fireRate;
-    for (let i = -2; i <= 2; i++) {
-      const ba = ang + i * 0.25;
-      spawnProjectile(
-        u.x + Math.cos(ba) * t.size,
-        u.y + Math.sin(ba) * t.size,
-        Math.cos(ba) * 420,
-        Math.sin(ba) * 420,
-        t.range / 420 + 0.1,
-        t.damage * vd,
-        u.team,
-        2,
-        c[0],
-        c[1],
-        c[2],
-      );
-    }
+    fireFlagshipSpread(ctx, ang);
   } else if (t.shape === 8) {
-    u.cooldown = t.fireRate;
-    spawnProjectile(
-      u.x + Math.cos(ang) * t.size,
-      u.y + Math.sin(ang) * t.size,
-      Math.cos(ang) * 900,
-      Math.sin(ang) * 900,
-      t.range / 900 + 0.05,
-      t.damage * vd,
-      u.team,
-      3,
-      c[0] * 0.5 + 0.5,
-      c[1] * 0.5 + 0.5,
-      c[2] * 0.5 + 0.5,
-    );
-    addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
-    for (let i = 0; i < 4; i++) {
-      const a2 = ang + (rng() - 0.5) * 0.4;
-      spawnParticle(
-        u.x + Math.cos(ang) * t.size * 1.5,
-        u.y + Math.sin(ang) * t.size * 1.5,
-        Math.cos(a2) * 160,
-        Math.sin(a2) * 160,
-        0.08,
-        2.5,
-        1,
-        1,
-        0.8,
-        0,
-      );
-    }
+    fireRailgun(ctx, ang);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
     fireBurst(ctx, ang, d, dmgMul);
   }
 
   if (!t.homing && !t.aoe && t.shape !== 8) {
-    const mx = u.x + Math.cos(u.angle) * t.size;
-    const my = u.y + Math.sin(u.angle) * t.size;
-    for (let i = 0; i < 3; i++) {
-      spawnParticle(
-        mx,
-        my,
-        Math.cos(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
-        Math.sin(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
-        0.06 + rng() * 0.03,
-        2.5 + rng() * 2,
-        c[0],
-        c[1],
-        c[2],
-        0,
-      );
-    }
-    spawnParticle(mx, my, 0, 0, 0.05, 3 + t.damage * 0.5, 1, 1, 1, 0);
+    spawnMuzzleFlash(ctx, ang);
   }
 }
 
