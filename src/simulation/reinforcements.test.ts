@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getUnit, poolCounts } from '../pools.ts';
@@ -8,6 +8,7 @@ import { reinforce } from './reinforcements.ts';
 afterEach(() => {
   resetPools();
   resetState();
+  vi.restoreAllMocks();
 });
 
 describe('reinforce', () => {

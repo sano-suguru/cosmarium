@@ -52,6 +52,7 @@ function frame(now: number) {
   cam.z += (cam.targetZ - cam.z) * ct;
 
   if (cam.shake > 0.1) {
+    // 純粋なビジュアルエフェクトなので seeded PRNG ではなく Math.random() を使用（決定性に影響しない）
     cam.shakeX = (Math.random() - 0.5) * cam.shake;
     cam.shakeY = (Math.random() - 0.5) * cam.shake;
     cam.shake *= 0.82;
