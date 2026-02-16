@@ -220,8 +220,10 @@ export function steer(u: Unit, dt: number) {
   u.angle += ad * t.turnRate * dt;
 
   const spd = t.speed * (1 + u.vet * 0.12);
-  u.vx += (Math.cos(u.angle) * spd - u.vx) * dt * 3;
-  u.vy += (Math.sin(u.angle) * spd - u.vy) * dt * 3;
+  const inertia = 1 / u.mass ** 0.25;
+  const response = dt * 3 * inertia;
+  u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
+  u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
   const moveDrag = (1 - 0.5 / REF_FPS) ** (dt * REF_FPS);
   u.vx *= moveDrag;
   u.vy *= moveDrag;
