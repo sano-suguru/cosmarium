@@ -210,3 +210,75 @@ describe('steer — Boids Cohesion', () => {
     expect(getUnit(loner).x).toBeGreaterThan(0);
   });
 });
+
+describe('steer — 慣性（mass-based inertia）', () => {
+  it('mass=1 で応答スケーリングが 1.0', () => {
+    const idx = spawnAt(0, 0, 0, 0); // Drone (mass=1)
+    const u = getUnit(idx);
+    u.angle = 0;
+    u.vx = 0;
+    u.vy = 0;
+    u.target = NO_UNIT;
+    buildHash();
+    // 1回のsteer呼び出しで速度変化を確認
+    steer(u, 0.016);
+    // inertia = 1 / 1^0.25 = 1.0
+    // response = 0.016 * 3 * 1.0 = 0.048
+    // u.type = 0 (Drone) の速度は220
+    // vx = (220 - 0) * 0.048 = 10.56、その後moveDrag適用
+    // moveDrag = (1 - 0.5/30)^(0.016*30) ≈ 0.9922
+    // 最終: vx ≈ 10.56 * 0.9922 ≈ 10.48
+    expect(u.vx).toBeGreaterThan(10.4);
+    expect(u.vx).toBeLessThan(10.6);
+    expect(u.vy).toBeCloseTo(0, 1);
+  });
+
+  it('mass が大きいほど速度応答が遅い', () => {
+    const light = spawnAt(0, 0, 0, 0); // Drone (mass=1)
+    const lightU = getUnit(light);
+    lightU.angle = 0;
+    lightU.vx = 0;
+    lightU.vy = 0;
+    lightU.target = NO_UNIT;
+
+    const heavy = spawnAt(0, 3, 100, 0); // Cruiser (mass=10)
+    const heavyU = getUnit(heavy);
+    heavyU.angle = 0;
+    heavyU.vx = 0;
+    heavyU.vy = 0;
+    heavyU.target = NO_UNIT;
+
+    buildHash();
+    for (let i = 0; i < 50; i++) {
+      steer(lightU, 0.016);
+      steer(heavyU, 0.016);
+    }
+
+    const lightSpeed = Math.sqrt(lightU.vx ** 2 + lightU.vy ** 2);
+    const heavySpeed = Math.sqrt(heavyU.vx ** 2 + heavyU.vy ** 2);
+    expect(lightSpeed).toBeGreaterThan(heavySpeed);
+  });
+
+  it('mass=30 の応答が mass=1 の 1/30 より大きい（サブリニア）', () => {
+    const baseline = 1 / 1 ** 0.25; // 1.0
+    const flagship = 1 / 30 ** 0.25; // ~0.43
+
+    // sublinear: 0.43 > 1/30 (0.033)
+    expect(flagship).toBeGreaterThan(baseline / 30);
+    expect(flagship).toBeCloseTo(0.43, 1);
+  });
+
+  it('境界押し戻しが mass=30 でも機能する', () => {
+    const idx = spawnAt(0, 4, 2500, 0); // Flagship (mass=30) outside boundary
+    const u = getUnit(idx);
+    u.target = NO_UNIT;
+    buildHash();
+
+    for (let i = 0; i < 200; i++) {
+      steer(u, 0.016);
+    }
+
+    const BOUNDARY = WORLD_SIZE * 0.8; // 3200
+    expect(Math.abs(u.x)).toBeLessThan(BOUNDARY);
+  });
+});
