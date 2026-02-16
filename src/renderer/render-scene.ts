@@ -140,8 +140,7 @@ function renderParticles() {
   }
 }
 
-function computeTaperScale(tapered: boolean | undefined, tail: number): number {
-  if (!tapered) return 1;
+function computeTaperScale(tail: number): number {
   if (tail === 0) return 0.25;
   if (tail === 1) return 0.5;
   if (tail === 2) return 0.8;
@@ -161,8 +160,7 @@ function renderBeams(now: number) {
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
       const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
-      const tail = steps - j;
-      const tipScale = computeTaperScale(bm.tapered, tail);
+      const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
       writeBeamSegment(
         bm.x1 + dx * t,
         bm.y1 + dy * t,

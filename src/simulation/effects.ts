@@ -138,9 +138,11 @@ function applyChainHit(
   col: Color3,
 ): { hx: number; hy: number } {
   const o = getUnit(bi);
-  // kill 前に退避 — killUnit でスロットが再利用されると座標が壊れる
+  // kill 前に退避 — killUnit でスロットが再利用されると値が壊れる
   const hx = o.x,
-    hy = o.y;
+    hy = o.y,
+    hTeam = o.team,
+    hType = o.type;
   addBeam(cx, cy, hx, hy, col[0], col[1], col[2], 0.2, 1.5);
   for (let i = 0; i < 3; i++) {
     spawnParticle(
@@ -161,7 +163,7 @@ function applyChainHit(
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
     killUnit(bi);
-    explosion(hx, hy, o.team, o.type, NO_UNIT);
+    explosion(hx, hy, hTeam, hType, NO_UNIT);
   }
   return { hx, hy };
 }

@@ -60,10 +60,11 @@ function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
   return NO_UNIT;
 }
 
-// computeBoidsForce の accumulator
+// computeBoidsForce 専用 accumulator — computeBoidsForce がリセットし
+// accumulateBoidsNeighbor が累積する。外部から直接呼ばないこと
 const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
 
-// computeBoidsForce ヘルパー: 近傍単体の Boids 力を集約
+// computeBoidsForce 内部ヘルパー: 近傍単体の Boids 力を _boids に集約
 function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number) {
   const dx = u.x - o.x,
     dy = u.y - o.y;
