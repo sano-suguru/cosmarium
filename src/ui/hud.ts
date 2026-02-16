@@ -9,7 +9,6 @@ let elCountB: HTMLElement | null = null;
 let elParticleNum: HTMLElement | null = null;
 let elFps: HTMLElement | null = null;
 
-/** Initialize HUD DOM node cache (call after DOM ready) */
 export function initHUD() {
   elCountA = document.getElementById(DOM_ID_COUNT_A);
   elCountB = document.getElementById(DOM_ID_COUNT_B);

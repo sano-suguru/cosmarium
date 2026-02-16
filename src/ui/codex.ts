@@ -46,12 +46,11 @@ function closeCodex() {
 }
 
 function demoDroneSwarm(mi: UnitIndex) {
-  // 味方 Drone 5体を展示ユニット周囲に配置
   for (let i = 0; i < 5; i++) {
     const a = ((i + 1) / 6) * Math.PI * 2;
     spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40);
   }
-  // 敵 Drone 6体 — Codex デモはゲームプレイ決定性に影響しないため Math.random() を許容
+  // 決定性に影響しないため Math.random() を許容
   for (let i = 0; i < 6; i++) {
     const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
     if (ei !== NO_UNIT) {

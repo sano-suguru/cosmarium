@@ -30,7 +30,6 @@ interface CombatContext {
   t: UnitType;
 }
 
-// 再利用オブジェクト — combat() 呼び出しごとにフィールドを上書きして使う
 const _ctx: CombatContext = {
   u: getUnit(0 as UnitIndex),
   ui: 0 as UnitIndex,
@@ -343,6 +342,67 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   }
 }
 
+function sweepAfterimage(u: Unit, ox: number, oy: number, easeAt: (p: number) => number, c: Color3, range: number) {
+  const trails: [number, number, number, number][] = [
+    [0.08, 0.35, 4, 0.1],
+    [0.18, 0.15, 2.5, 0.12],
+  ];
+  for (const [phaseOffset, colorMul, width, opacity] of trails) {
+    if (u.sweepPhase > phaseOffset) {
+      const angle = u.sweepBaseAngle + easeAt(u.sweepPhase - phaseOffset);
+      addBeam(
+        ox,
+        oy,
+        u.x + Math.cos(angle) * range,
+        u.y + Math.sin(angle) * range,
+        c[0] * colorMul,
+        c[1] * colorMul,
+        c[2] * colorMul,
+        opacity,
+        width,
+        false,
+        2,
+      );
+    }
+  }
+}
+
+function sweepTipSpark(x: number, y: number, c: Color3) {
+  if (rng() < 0.55) {
+    const a = rng() * Math.PI * 2;
+    const s = 40 + rng() * 100;
+    spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s, 0.12 + rng() * 0.1, 3 + rng() * 2, c[0], c[1], c[2], 0);
+  }
+}
+
+function sweepPathParticles(ox: number, oy: number, endX: number, endY: number, beamAngle: number, c: Color3) {
+  if (rng() < 0.3) {
+    const along = 0.3 + rng() * 0.6;
+    const px = ox + (endX - ox) * along;
+    const py = oy + (endY - oy) * along;
+    const drift = (rng() - 0.5) * 30;
+    const perp = beamAngle + Math.PI * 0.5;
+    spawnParticle(
+      px + Math.cos(perp) * drift,
+      py + Math.sin(perp) * drift,
+      (rng() - 0.5) * 20,
+      (rng() - 0.5) * 20,
+      0.06 + rng() * 0.04,
+      1.5 + rng() * 1.5,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+  }
+}
+
+function sweepGlowRing(x: number, y: number, c: Color3) {
+  if (rng() < 0.25) {
+    spawnParticle(x, y, 0, 0, 0.1, 12 + rng() * 6, c[0], c[1], c[2], 10);
+  }
+}
+
 function handleSweepBeam(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
 
@@ -401,82 +461,10 @@ function handleSweepBeam(ctx: CombatContext) {
   const oy = u.y + Math.sin(u.angle) * t.size * 0.5;
   addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);
 
-  // afterimage trail 1 (phase - 0.08)
-  if (u.sweepPhase > 0.08) {
-    const trailAngle1 = u.sweepBaseAngle + easeAt(u.sweepPhase - 0.08);
-    addBeam(
-      ox,
-      oy,
-      u.x + Math.cos(trailAngle1) * t.range,
-      u.y + Math.sin(trailAngle1) * t.range,
-      c[0] * 0.35,
-      c[1] * 0.35,
-      c[2] * 0.35,
-      0.1,
-      4,
-      false,
-      2,
-    );
-  }
-  // afterimage trail 2 (phase - 0.18)
-  if (u.sweepPhase > 0.18) {
-    const trailAngle2 = u.sweepBaseAngle + easeAt(u.sweepPhase - 0.18);
-    addBeam(
-      ox,
-      oy,
-      u.x + Math.cos(trailAngle2) * t.range,
-      u.y + Math.sin(trailAngle2) * t.range,
-      c[0] * 0.15,
-      c[1] * 0.15,
-      c[2] * 0.15,
-      0.12,
-      2.5,
-      false,
-      2,
-    );
-  }
-
-  // tip spark — full random scatter
-  if (rng() < 0.55) {
-    const pa = rng() * Math.PI * 2;
-    const ps = 40 + rng() * 100;
-    spawnParticle(
-      beamEndX,
-      beamEndY,
-      Math.cos(pa) * ps,
-      Math.sin(pa) * ps,
-      0.12 + rng() * 0.1,
-      3 + rng() * 2,
-      c[0],
-      c[1],
-      c[2],
-      0,
-    );
-  }
-  // beam path micro-particles
-  if (rng() < 0.3) {
-    const along = 0.3 + rng() * 0.6;
-    const px = ox + (beamEndX - ox) * along;
-    const py = oy + (beamEndY - oy) * along;
-    const drift = (rng() - 0.5) * 30;
-    const perp = currAngle + Math.PI * 0.5;
-    spawnParticle(
-      px + Math.cos(perp) * drift,
-      py + Math.sin(perp) * drift,
-      (rng() - 0.5) * 20,
-      (rng() - 0.5) * 20,
-      0.06 + rng() * 0.04,
-      1.5 + rng() * 1.5,
-      c[0],
-      c[1],
-      c[2],
-      0,
-    );
-  }
-  // glow ring
-  if (rng() < 0.25) {
-    spawnParticle(beamEndX, beamEndY, 0, 0, 0.1, 12 + rng() * 6, c[0], c[1], c[2], 10);
-  }
+  sweepAfterimage(u, ox, oy, easeAt, c, t.range);
+  sweepTipSpark(beamEndX, beamEndY, c);
+  sweepPathParticles(ox, oy, beamEndX, beamEndY, currAngle, c);
+  sweepGlowRing(beamEndX, beamEndY, c);
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
 

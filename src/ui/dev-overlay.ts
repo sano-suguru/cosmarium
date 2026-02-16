@@ -59,7 +59,6 @@ function addLine(msg: string, color: string) {
   }, FADE_MS);
 }
 
-/** Show warning on screen (DEV only). Also forwards to console.warn. */
 export function devWarn(...args: unknown[]) {
   if (!import.meta.env.DEV) return;
   const msg = args.map(String).join(' ');
@@ -67,7 +66,6 @@ export function devWarn(...args: unknown[]) {
   addLine(`⚠ ${msg}`, '#fc0');
 }
 
-/** Show error on screen (DEV only). Also forwards to console.error. */
 export function devError(...args: unknown[]) {
   if (!import.meta.env.DEV) return;
   const msg = args.map(String).join(' ');

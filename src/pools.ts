@@ -51,11 +51,7 @@ export function setProjectileCountForTest(n: number) {
   _counts.projectileCount = n;
 }
 
-/*
- * プール配列への安全なアクセサ — noUncheckedIndexedAccess 下で
- * undefined チェックを集約し、不正 index には throw で防御する。
- * state.ts の getBeam も同じパターンに統一済み。
- */
+/* プール配列アクセサ — noUncheckedIndexedAccess の undefined チェックを集約 */
 export function getUnit(i: number): Unit {
   const u = unitPool[i];
   if (u === undefined) throw new RangeError(`Invalid unit index: ${i}`);

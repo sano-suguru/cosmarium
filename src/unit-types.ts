@@ -241,7 +241,7 @@ export const TYPES: UnitType[] = [
   },
 ];
 
-/** TYPES配列への安全なアクセサ。noUncheckedIndexedAccess 下で ! を集約する */
+/** pools.ts と同パターンの安全アクセサ */
 export function getUnitType(id: number): UnitType {
   const t = TYPES[id];
   if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
