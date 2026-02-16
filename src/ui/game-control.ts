@@ -84,11 +84,11 @@ function unreachable(idx: number): never {
 function stepSpd(dir: number) {
   const i = speeds.indexOf(state.timeScale);
   const def = speeds.indexOf(1);
-  if (dir < 0) {
+  if (i < 0) {
+    setSpd(speeds[def] ?? unreachable(def));
+  } else if (dir < 0) {
     if (i > 0) setSpd(speeds[i - 1] ?? unreachable(i - 1));
-    else if (i < 0) setSpd(speeds[def - 1] ?? unreachable(def - 1));
-  } else if (i >= 0 && i < speeds.length - 1) setSpd(speeds[i + 1] ?? unreachable(i + 1));
-  else if (i < 0) setSpd(speeds[def + 1] ?? unreachable(def + 1));
+  } else if (i < speeds.length - 1) setSpd(speeds[i + 1] ?? unreachable(i + 1));
 }
 
 export function initUI() {
