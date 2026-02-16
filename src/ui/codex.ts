@@ -14,6 +14,20 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
+const codexDemoTable: [keyof UnitType, (mi: UnitIndex) => void][] = [
+  ['swarm', (mi) => demoDroneSwarm(mi)],
+  ['burst', (mi) => demoBurstFighter(mi)],
+  ['heals', () => demoHealer()],
+  ['reflects', (mi) => demoReflector(mi)],
+  ['spawns', () => demoCarrier()],
+  ['emp', () => demoEmp()],
+  ['chain', () => demoChain()],
+  ['teleports', () => demoTeleporter()],
+  ['rams', (mi) => demoRam(mi)],
+  ['sweep', (mi) => demoSweepBeam(mi)],
+  ['beam', () => demoFocusBeam()],
+];
+
 let elCodex: HTMLElement | null = null;
 let elCodexName: HTMLElement | null = null;
 let elCodexDesc: HTMLElement | null = null;
@@ -191,18 +205,15 @@ function setupCodexDemo(typeIdx: number) {
     getUnit(mi).angle = 0;
   }
 
-  if (t.swarm) demoDroneSwarm(mi);
-  else if (t.burst) demoBurstFighter(mi);
-  else if (t.heals) demoHealer();
-  else if (t.reflects) demoReflector(mi);
-  else if (t.spawns) demoCarrier();
-  else if (t.emp) demoEmp();
-  else if (t.chain) demoChain();
-  else if (t.teleports) demoTeleporter();
-  else if (t.rams) demoRam(mi);
-  else if (t.sweep) demoSweepBeam(mi);
-  else if (t.beam) demoFocusBeam();
-  else demoDefault(t);
+  let matched = false;
+  for (const [flag, fn] of codexDemoTable) {
+    if (t[flag]) {
+      fn(mi);
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) demoDefault(t);
 }
 
 export function updateCodexDemo(dt: number) {
