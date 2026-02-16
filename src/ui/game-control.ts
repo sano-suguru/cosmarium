@@ -64,13 +64,13 @@ function handlePlayKeydown(e: KeyboardEvent) {
     stepSpd(1);
     e.preventDefault();
   } else if (e.code === 'Digit1') {
-    setSpd(1);
+    setSpd(speeds[0] ?? unreachable(0));
     e.preventDefault();
   } else if (e.code === 'Digit2') {
-    setSpd(2);
+    setSpd(speeds[1] ?? unreachable(1));
     e.preventDefault();
   } else if (e.code === 'Digit3') {
-    setSpd(4);
+    setSpd(speeds[2] ?? unreachable(2));
     e.preventDefault();
   }
 }
