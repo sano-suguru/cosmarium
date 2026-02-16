@@ -9,11 +9,8 @@ import { getUnitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
-export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex) {
-  const size = getUnitType(type).size;
-  const c = getColor(type, team);
+function spawnExplosionDebris(x: number, y: number, size: number, c: Color3) {
   const cnt = Math.min((18 + size * 3) | 0, 50);
-
   for (let i = 0; i < cnt; i++) {
     const a = rng() * 6.283;
     const sp = 40 + rng() * 200 * (size / 10);
@@ -31,6 +28,9 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
       0,
     );
   }
+}
+
+function spawnExplosionFlash(x: number, y: number, size: number) {
   for (let i = 0; i < 5; i++) {
     const a = rng() * 6.283;
     spawnParticle(
@@ -46,6 +46,38 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
       0,
     );
   }
+}
+
+function applyKnockbackToNeighbors(x: number, y: number, size: number) {
+  const nn = getNeighbors(x, y, size * 8);
+  for (let i = 0; i < nn; i++) {
+    const o = getUnit(getNeighborAt(i));
+    if (!o.alive) continue;
+    const ddx = o.x - x,
+      ddy = o.y - y;
+    const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+    if (dd < size * 8) knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
+  }
+}
+
+function updateKillerVet(killer: UnitIndex) {
+  if (killer !== NO_UNIT && killer < POOL_UNITS) {
+    const ku = getUnit(killer);
+    if (ku.alive) {
+      ku.kills++;
+      if (ku.kills >= 3) ku.vet = 1;
+      if (ku.kills >= 8) ku.vet = 2;
+    }
+  }
+}
+
+export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex) {
+  const size = getUnitType(type).size;
+  const c = getColor(type, team);
+
+  spawnExplosionDebris(x, y, size, c);
+  spawnExplosionFlash(x, y, size);
+
   const dc = Math.min((size * 2) | 0, 14);
   for (let i = 0; i < dc; i++) {
     const a = rng() * 6.283;
@@ -56,23 +88,8 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 
   if (size >= 14) addShake(size * 0.8);
 
-  const nn = getNeighbors(x, y, size * 8);
-  for (let i = 0; i < nn; i++) {
-    const o = getUnit(getNeighborAt(i));
-    if (!o.alive) continue;
-    const ddx = o.x - x,
-      ddy = o.y - y;
-    const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < size * 8) knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
-  }
-  if (killer !== NO_UNIT && killer < POOL_UNITS) {
-    const ku = getUnit(killer);
-    if (ku.alive) {
-      ku.kills++;
-      if (ku.kills >= 3) ku.vet = 1;
-      if (ku.kills >= 8) ku.vet = 2;
-    }
-  }
+  applyKnockbackToNeighbors(x, y, size);
+  updateKillerVet(killer);
 }
 
 export function trail(u: Unit) {
@@ -94,50 +111,67 @@ export function trail(u: Unit) {
   );
 }
 
+function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex>): UnitIndex {
+  const nn = getNeighbors(cx, cy, 200);
+  let bd = 200,
+    bi: UnitIndex = NO_UNIT;
+  for (let i = 0; i < nn; i++) {
+    const oi = getNeighborAt(i),
+      o = getUnit(oi);
+    if (!o.alive || o.team === team || hit.has(oi)) continue;
+    const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
+    if (d < bd) {
+      bd = d;
+      bi = oi;
+    }
+  }
+  return bi;
+}
+
+function applyChainHit(
+  cx: number,
+  cy: number,
+  bi: UnitIndex,
+  damage: number,
+  ch: number,
+  col: Color3,
+): { x: number; y: number } {
+  const o = getUnit(bi);
+  addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
+  for (let i = 0; i < 3; i++) {
+    spawnParticle(
+      o.x + (rng() - 0.5) * 8,
+      o.y + (rng() - 0.5) * 8,
+      (rng() - 0.5) * 50,
+      (rng() - 0.5) * 50,
+      0.1,
+      2,
+      col[0],
+      col[1],
+      col[2],
+      0,
+    );
+  }
+  const dd = damage * (1 - ch * 0.12);
+  o.hp -= dd;
+  knockback(bi, cx, cy, dd * 8);
+  if (o.hp <= 0) {
+    killUnit(bi);
+    explosion(o.x, o.y, o.team, o.type, NO_UNIT);
+  }
+  return { x: o.x, y: o.y };
+}
+
 export function chainLightning(sx: number, sy: number, team: Team, damage: number, max: number, col: Color3) {
   let cx = sx,
     cy = sy;
-  const hit = new Set();
+  const hit = new Set<UnitIndex>();
   for (let ch = 0; ch < max; ch++) {
-    const nn = getNeighbors(cx, cy, 200);
-    let bd = 200,
-      bi: UnitIndex = NO_UNIT;
-    for (let i = 0; i < nn; i++) {
-      const oi = getNeighborAt(i),
-        o = getUnit(oi);
-      if (!o.alive || o.team === team || hit.has(oi)) continue;
-      const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
-      if (d < bd) {
-        bd = d;
-        bi = oi;
-      }
-    }
+    const bi = findNearestEnemy(cx, cy, team, hit);
     if (bi === NO_UNIT) break;
     hit.add(bi);
-    const o = getUnit(bi);
-    addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
-    for (let i = 0; i < 3; i++) {
-      spawnParticle(
-        o.x + (rng() - 0.5) * 8,
-        o.y + (rng() - 0.5) * 8,
-        (rng() - 0.5) * 50,
-        (rng() - 0.5) * 50,
-        0.1,
-        2,
-        col[0],
-        col[1],
-        col[2],
-        0,
-      );
-    }
-    const dd = damage * (1 - ch * 0.12);
-    o.hp -= dd;
-    knockback(bi, cx, cy, dd * 8);
-    if (o.hp <= 0) {
-      killUnit(bi);
-      explosion(o.x, o.y, o.team, o.type, NO_UNIT);
-    }
-    cx = o.x;
-    cy = o.y;
+    const pos = applyChainHit(cx, cy, bi, damage, ch, col);
+    cx = pos.x;
+    cy = pos.y;
   }
 }
