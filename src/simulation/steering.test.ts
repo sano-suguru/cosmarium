@@ -221,6 +221,9 @@ describe('steer — 慣性（mass-based inertia）', () => {
     u.target = NO_UNIT;
     buildHash();
     // 1回のsteer呼び出しで速度変化を確認
+    // 前提: spawnAt の固定rng (()=>0) により wanderAngle=0。
+    //   target=NO_UNIT → wander force = (cos(0)*220*0.5, sin(0)*...) = (110, 0)
+    //   angle=0 と一致するため da=0 → angle 変化なし → cos(angle)=1 が維持される
     steer(u, 0.016);
     // inertia = 1 / 1^0.25 = 1.0
     // response = 0.016 * 3 * 1.0 = 0.048
