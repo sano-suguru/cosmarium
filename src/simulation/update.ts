@@ -1,4 +1,13 @@
-import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, REF_FPS, SWARM_RADIUS_SQ, TAU } from '../constants.ts';
+import {
+  MAX_STEPS_PER_FRAME,
+  PI,
+  POOL_PARTICLES,
+  POOL_PROJECTILES,
+  POOL_UNITS,
+  REF_FPS,
+  SWARM_RADIUS_SQ,
+  TAU,
+} from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams, getBeam, rng, state } from '../state.ts';
@@ -198,8 +207,7 @@ function updateUnits(dt: number, now: number) {
   }
 }
 
-export function update(rawDt: number, now: number) {
-  const dt = Math.min(rawDt, 1 / REF_FPS);
+function stepOnce(dt: number, now: number) {
   buildHash();
   updateSwarmN();
 
@@ -226,5 +234,18 @@ export function update(rawDt: number, now: number) {
     reinforce(dt);
   } else {
     updateCodexDemo(dt);
+  }
+}
+
+export function update(rawDt: number, now: number) {
+  const maxStep = 1 / REF_FPS;
+  if (rawDt <= maxStep) {
+    stepOnce(rawDt, now);
+  } else {
+    const steps = Math.min(Math.ceil(rawDt / maxStep), MAX_STEPS_PER_FRAME);
+    const dt = rawDt / steps;
+    for (let s = 0; s < steps; s++) {
+      stepOnce(dt, now);
+    }
   }
 }

@@ -26,8 +26,8 @@ let elSpdValue: HTMLElement | null = null;
 
 function setSpd(v: number) {
   state.timeScale = v;
-  for (const b of document.querySelectorAll('.sbtn')) {
-    b.classList.toggle('active', Number.parseFloat(b.textContent || '') === v);
+  for (const b of document.querySelectorAll<HTMLElement>('.sbtn')) {
+    b.classList.toggle('active', Number.parseFloat(b.dataset.spd || '') === v);
   }
   if (elSpdValue) elSpdValue.textContent = `${v}x`;
 }
@@ -56,7 +56,26 @@ function handleCodexToggle() {
   }
 }
 
-const speeds = [0.5, 0.75, 1, 1.5, 2, 3, 5];
+function handlePlayKeydown(e: KeyboardEvent) {
+  if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+    stepSpd(-1);
+    e.preventDefault();
+  } else if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+    stepSpd(1);
+    e.preventDefault();
+  } else if (e.code === 'Digit1') {
+    setSpd(1);
+    e.preventDefault();
+  } else if (e.code === 'Digit2') {
+    setSpd(2);
+    e.preventDefault();
+  } else if (e.code === 'Digit3') {
+    setSpd(4);
+    e.preventDefault();
+  }
+}
+
+const speeds = [1, 2, 4];
 
 function unreachable(idx: number): never {
   throw new RangeError(`Invalid speed index: ${idx}`);
@@ -130,14 +149,7 @@ export function initUI() {
       handleCodexToggle();
     }
     if (state.gameState === 'play') {
-      if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
-        stepSpd(-1);
-        e.preventDefault();
-      }
-      if (e.code === 'Equal' || e.code === 'NumpadAdd') {
-        stepSpd(1);
-        e.preventDefault();
-      }
+      handlePlayKeydown(e);
     }
   });
 

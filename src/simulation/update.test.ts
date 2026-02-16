@@ -41,14 +41,16 @@ afterEach(() => {
 });
 
 // ============================================================
-// 1. dt clamping
+// 1. dt sub-stepping
 // ============================================================
-describe('dt clamping', () => {
-  it('rawDt > 0.033 はクランプされる', () => {
+describe('dt sub-stepping', () => {
+  it('rawDt > 0.033 はサブステップに分割される', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
     update(0.05, 0);
-    expect(getParticle(0).life).toBeCloseTo(1.0 - 0.033);
+    // rawDt=0.05, maxStep=0.033, steps=ceil(0.05/0.033)=2, dt=0.05/2=0.025
+    // life = 1.0 - 0.025*2 = 0.95
+    expect(getParticle(0).life).toBeCloseTo(1.0 - 0.05);
   });
 
   it('rawDt <= 0.033 はそのまま使われる', () => {
