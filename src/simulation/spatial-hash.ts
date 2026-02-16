@@ -39,6 +39,19 @@ export function buildHash() {
   }
 }
 
+/** Collect units from a single hash cell into neighborBuffer */
+function collectCellNeighbors(key: number, count: number): number {
+  const a = hashMap.get(key);
+  if (!a) return count;
+  let n = count;
+  for (let i = 0; i < a.length; i++) {
+    const idx = a[i];
+    if (idx === undefined) throw new RangeError(`Invalid cell entry at position ${i}`);
+    if (n < neighborBuffer.length) neighborBuffer[n++] = idx;
+  }
+  return n;
+}
+
 export function getNeighbors(x: number, y: number, r: number): number {
   let n = 0;
   const cr = Math.ceil(r / CELL_SIZE);
@@ -46,14 +59,7 @@ export function getNeighbors(x: number, y: number, r: number): number {
     cy = (y / CELL_SIZE) | 0;
   for (let dx = -cr; dx <= cr; dx++) {
     for (let dy = -cr; dy <= cr; dy++) {
-      const a = hashMap.get(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663));
-      if (a) {
-        for (let i = 0; i < a.length; i++) {
-          const idx = a[i];
-          if (idx === undefined) throw new RangeError(`Invalid cell entry at position ${i}`);
-          if (n < neighborBuffer.length) neighborBuffer[n++] = idx;
-        }
-      }
+      n = collectCellNeighbors(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663), n);
     }
   }
   return n;
