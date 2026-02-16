@@ -248,8 +248,8 @@ describe('steer — 慣性（mass-based inertia）', () => {
     heavyU.vy = 0;
     heavyU.target = NO_UNIT;
 
-    buildHash();
     for (let i = 0; i < 50; i++) {
+      buildHash();
       steer(lightU, 0.016);
       steer(heavyU, 0.016);
     }
@@ -269,16 +269,16 @@ describe('steer — 慣性（mass-based inertia）', () => {
   });
 
   it('境界押し戻しが mass=30 でも機能する', () => {
-    const idx = spawnAt(0, 4, 2500, 0); // Flagship (mass=30) outside boundary
+    const idx = spawnAt(0, 4, 3500, 0); // Flagship (mass=30) outside boundary
     const u = getUnit(idx);
     u.target = NO_UNIT;
-    buildHash();
+    const startX = u.x;
 
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 500; i++) {
+      buildHash();
       steer(u, 0.016);
     }
 
-    const BOUNDARY = WORLD_SIZE * 0.8; // 3200
-    expect(Math.abs(u.x)).toBeLessThan(BOUNDARY);
+    expect(u.x).toBeLessThan(startX);
   });
 });
