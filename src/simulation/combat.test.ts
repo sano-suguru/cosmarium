@@ -33,7 +33,6 @@ describe('combat — 共通', () => {
     u.cooldown = 0;
     u.target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(u, idx, 0.016, 0);
     // cooldown はスタン中変化しない
     expect(u.cooldown).toBe(0);
@@ -46,7 +45,6 @@ describe('combat — 共通', () => {
     u.abilityCooldown = 0.5;
     u.target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(u, idx, 0.016, 0);
     expect(u.cooldown).toBeCloseTo(1.0 - 0.016);
     expect(u.abilityCooldown).toBeCloseTo(0.5 - 0.016);
@@ -58,7 +56,6 @@ describe('combat — RAM', () => {
     const ram = spawnAt(0, 9, 0, 0); // Ram (mass=12)
     const enemy = spawnAt(1, 1, 5, 0); // Fighter (mass=2, size=7)
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ramHpBefore = getUnit(ram).hp;
     const enemyHpBefore = getUnit(enemy).hp;
     combat(getUnit(ram), ram, 0.016, 0);
@@ -76,7 +73,6 @@ describe('combat — RAM', () => {
     getUnit(enemy).vx = 0;
     getUnit(enemy).vy = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(ram), ram, 0.016, 0);
     // ノックバックで敵のvxが変化
     expect(getUnit(enemy).vx).not.toBe(0);
@@ -86,7 +82,6 @@ describe('combat — RAM', () => {
     const ram = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, size=4)
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(ram), ram, 0.016, 0);
     // Ram damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
     expect(getUnit(enemy).alive).toBe(false);
@@ -97,7 +92,6 @@ describe('combat — RAM', () => {
     getUnit(ram).hp = 1; // HP1にする
     spawnAt(1, 4, 5, 0); // Flagship (mass=30)
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(ram), ram, 0.016, 0);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
     expect(getUnit(ram).alive).toBe(false);
@@ -111,7 +105,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0; // クールダウン切れ
     getUnit(ally).hp = 5; // ダメージ受けた状態
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(getUnit(ally).hp).toBe(8); // 5 + 3
   });
@@ -122,7 +115,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 9; // maxHp=10, hp=9 → +3 → clamp to 10
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(getUnit(ally).hp).toBe(10);
   });
@@ -133,7 +125,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 5;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(getUnit(healer).abilityCooldown).toBeCloseTo(0.35);
   });
@@ -143,7 +134,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(healer).hp = 5;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(getUnit(healer).hp).toBe(5); // 変化なし
   });
@@ -154,7 +144,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 5;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(beams.length).toBeGreaterThan(0);
   });
@@ -165,7 +154,6 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 1.0;
     getUnit(ally).hp = 5;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(healer), healer, 0.016, 0);
     expect(getUnit(ally).hp).toBe(5);
   });
@@ -175,7 +163,6 @@ describe('combat — REFLECTOR', () => {
   it('敵弾の速度を×-1.2反転 + team変更', () => {
     const reflector = spawnAt(0, 6, 0, 0); // Reflector (rng=130)
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0); // team=1 の敵弾 (x=50, rng内)
     const p = getProjectile(0);
     expect(p.team).toBe(1);
@@ -189,7 +176,6 @@ describe('combat — REFLECTOR', () => {
   it('自チーム弾は反射しない', () => {
     const reflector = spawnAt(0, 6, 0, 0);
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     spawnProjectile(50, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
     const p = getProjectile(0);
     const vxBefore = p.vx;
@@ -204,7 +190,6 @@ describe('combat — REFLECTOR', () => {
     getUnit(reflector).cooldown = 0;
     getUnit(reflector).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(reflector), reflector, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).team).toBe(0);
@@ -218,7 +203,6 @@ describe('combat — CARRIER', () => {
     getUnit(carrier).spawnCooldown = 0; // クールダウン切れ
     const ucBefore = poolCounts.unitCount;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(carrier), carrier, 0.016, 0);
     // Drone×4 生成
     expect(poolCounts.unitCount).toBe(ucBefore + 4);
@@ -235,7 +219,6 @@ describe('combat — CARRIER', () => {
     getUnit(carrier).spawnCooldown = 5.0;
     const ucBefore = poolCounts.unitCount;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(carrier), carrier, 0.016, 0);
     expect(poolCounts.unitCount).toBe(ucBefore);
   });
@@ -244,10 +227,10 @@ describe('combat — CARRIER', () => {
     const carrier = spawnAt(0, 7, 0, 0);
     getUnit(carrier).spawnCooldown = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(carrier), carrier, 0.016, 0);
-    // spawnCooldown = 4 + random * 2 = 4 + 0.5*2 = 5.0
-    expect(getUnit(carrier).spawnCooldown).toBeCloseTo(5.0);
+    // spawnCooldown = 4 + random * 2 (PRNG sequence value)
+    expect(getUnit(carrier).spawnCooldown).toBeGreaterThan(4);
+    expect(getUnit(carrier).spawnCooldown).toBeLessThan(6);
   });
 });
 
@@ -258,7 +241,6 @@ describe('combat — EMP', () => {
     getUnit(emp).abilityCooldown = 0;
     getUnit(emp).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     combat(getUnit(emp), emp, 0.016, 0);
     expect(getUnit(enemy).stun).toBe(1.5);
@@ -270,7 +252,6 @@ describe('combat — EMP', () => {
     getUnit(emp).abilityCooldown = 0;
     getUnit(emp).target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(emp), emp, 0.016, 0);
     expect(poolCounts.particleCount).toBe(0); // パーティクルなし = 何も実行されず
   });
@@ -282,7 +263,6 @@ describe('combat — EMP', () => {
     getUnit(emp).abilityCooldown = 0;
     getUnit(emp).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(emp), emp, 0.016, 0);
     expect(getUnit(ally).stun).toBe(0);
     expect(getUnit(enemy).stun).toBe(1.5);
@@ -296,7 +276,6 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).teleportTimer = 0; // クールダウン切れ
     getUnit(tp).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(tp), tp, 0.016, 0);
     // テレポート後: tp > 0 にリセット
     expect(getUnit(tp).teleportTimer).toBeGreaterThan(0);
@@ -313,7 +292,6 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).target = enemy;
     getUnit(tp).cooldown = 999; // NORMAL FIREも防ぐ
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(tp), tp, 0.016, 0);
     // tp はdt分減少するだけ
     expect(getUnit(tp).teleportTimer).toBeCloseTo(3.0 - 0.016);
@@ -327,7 +305,6 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).target = enemy;
     getUnit(tp).cooldown = 999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(tp), tp, 0.016, 0);
     // tp -= dt は常に実行されるのでtp = 0 - 0.016
     expect(getUnit(tp).teleportTimer).toBeCloseTo(-0.016);
@@ -342,7 +319,6 @@ describe('combat — CHAIN LIGHTNING', () => {
     getUnit(chain).cooldown = 0;
     getUnit(chain).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(chain), chain, 0.016, 0);
     // cooldown = fireRate = 2
     expect(getUnit(chain).cooldown).toBeCloseTo(getUnitType(14).fireRate);
@@ -355,7 +331,6 @@ describe('combat — CHAIN LIGHTNING', () => {
     getUnit(chain).cooldown = 0;
     getUnit(chain).target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(chain), chain, 0.016, 0);
     expect(beams.length).toBe(0);
   });
@@ -368,7 +343,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).cooldown = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     // Fighter はバースト中なので中間クールダウン (0.07)
@@ -381,7 +355,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).cooldown = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(0);
   });
@@ -393,7 +366,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(fighter).vet = 1;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     // Fighter damage=2, vet=1 → 2 * 1.2 = 2.4
     expect(getProjectile(0).damage).toBeCloseTo(2.4);
@@ -406,7 +378,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(fighter).vet = 2;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     // Fighter damage=2, vet=2 → 2 * 1.4 = 2.8
     expect(getProjectile(0).damage).toBeCloseTo(2.8);
@@ -418,7 +389,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(missile).cooldown = 0;
     getUnit(missile).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(missile), missile, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).homing).toBe(true);
@@ -431,7 +401,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(bomber).cooldown = 0;
     getUnit(bomber).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(bomber), bomber, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).aoe).toBe(70);
@@ -443,7 +412,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(flagship).cooldown = 0;
     getUnit(flagship).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(flagship), flagship, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(5);
   });
@@ -454,7 +422,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(sniper).cooldown = 0;
     getUnit(sniper).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(sniper), sniper, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     // tracerビームが追加される
@@ -470,7 +437,6 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(enemy).alive = false; // 死亡状態
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(getUnit(fighter).target).toBe(NO_UNIT);
     expect(poolCounts.projectileCount).toBe(0);
@@ -508,7 +474,6 @@ describe('combat — COOLDOWN REGRESSION', () => {
     const fighter = spawnAt(0, 1, 0, 0);
     getUnit(fighter).cooldown = 1.0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.1, 0);
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.9);
   });
@@ -519,7 +484,6 @@ describe('combat — COOLDOWN REGRESSION', () => {
     getUnit(cruiser).cooldown = 1.0;
     getUnit(cruiser).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(cruiser).cooldown).toBeCloseTo(0.9);
   });
@@ -534,7 +498,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0.5;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
@@ -549,7 +512,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.016, 0);
     expect(getUnit(cruiser).sweepPhase).toBeGreaterThan(0);
     expect(getUnit(cruiser).beamOn).toBe(1);
@@ -564,7 +526,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.2;
     getUnit(cruiser).sweepBaseAngle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     // 0.2 + 0.1/0.8 = 0.325
     expect(getUnit(cruiser).sweepPhase).toBeCloseTo(0.325);
@@ -579,7 +540,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.9;
     getUnit(cruiser).sweepBaseAngle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // dt=0.1 → 0.9 + 0.1/0.8 = 1.025 → clamped to 1 → complete
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
@@ -596,7 +556,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(enemy).hp).toBe(hpBefore - 8);
@@ -612,7 +571,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(farEnemy).hp;
     for (let i = 0; i < 30; i++) {
       combat(getUnit(cruiser), cruiser, 0.016, 0);
@@ -631,7 +589,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).angle = 0;
     getUnit(enemy).shielded = true;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - 3.2);
@@ -647,7 +604,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(enemy).alive).toBe(false);
   });
@@ -658,7 +614,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.3;
     getUnit(cruiser).target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
@@ -675,7 +630,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.016, 0);
     expect(beams.length).toBeGreaterThan(0);
   });
@@ -688,7 +642,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.016, 0);
     expect(beams.length).toBe(0);
   });
@@ -701,7 +654,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).angle = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     for (let i = 0; i < 300; i++) {
       combat(getUnit(cruiser), cruiser, 0.033, 0);
@@ -719,7 +671,6 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0.5;
     getUnit(cruiser).sweepPhase = 0.3;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(cruiser), cruiser, 0.1, 0);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
@@ -734,7 +685,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 0;
     getUnit(frig).cooldown = 999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.1, 0);
     expect(getUnit(frig).beamOn).toBeCloseTo(0.08);
   });
@@ -746,7 +696,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 1.95;
     getUnit(frig).cooldown = 999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.1, 0);
     expect(getUnit(frig).beamOn).toBeCloseTo(2.0);
   });
@@ -759,7 +708,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 0.1;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.016, 0);
     expect(getUnit(frig).beamOn).toBe(0);
   });
@@ -772,7 +720,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(frig).vet = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     combat(getUnit(frig), frig, 0.016, 0);
     const expectedDmg = 0.8 * (1.5 + 0.016 * 0.8) * 1.0;
@@ -786,7 +733,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 1.0;
     getUnit(frig).cooldown = 999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.016, 0);
     expect(beams.length).toBeGreaterThan(0);
     const expectedBeamOn = 1.0 + 0.016 * 0.8;
@@ -803,7 +749,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.016, 0);
     // beamOn=0+dt*0.8≈0.0128 → floor(0.0128*2)=0 → 1+0=1個
     expect(poolCounts.particleCount).toBe(1);
@@ -817,7 +762,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(frig), frig, 0.016, 0);
     // beamOn=2(clamped) → floor(2*2)=4 → 1+4=5個
     expect(poolCounts.particleCount).toBe(5);
@@ -832,7 +776,6 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).vet = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
     for (let i = 0; i < 300; i++) {
       combat(getUnit(frig), frig, 0.033, 0);
@@ -851,7 +794,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     // dmg = 1 * 1.0 (vd) * 1.0 (no allies) = 1.0
@@ -869,7 +811,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).target = enemy;
     buildHash();
     updateSwarmN();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
     expect(getProjectile(0).damage).toBeCloseTo(1.45);
@@ -885,7 +826,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).target = enemy;
     buildHash();
     updateSwarmN();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
     expect(getProjectile(0).damage).toBeCloseTo(1.9);
@@ -900,7 +840,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
   });
@@ -914,7 +853,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
   });
@@ -925,7 +863,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     const p = getProjectile(0);
     expect(p.size).toBeCloseTo(1.2);
@@ -944,7 +881,6 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).target = enemy;
     buildHash();
     updateSwarmN();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(drone), drone, 0.016, 0);
     const p = getProjectile(0);
     // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=1.2*1.45=1.74
@@ -964,7 +900,6 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getUnit(fighter).burstCount).toBe(2);
@@ -977,7 +912,6 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     // burstCount=2 (>0) → cooldown = 0.07
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.07);
@@ -990,7 +924,6 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 1; // 残り1発
     getUnit(fighter).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     // burstCount=0 → cooldown = fireRate = 0.9
     expect(getUnit(fighter).burstCount).toBe(0);
@@ -1002,7 +935,6 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 2;
     getUnit(fighter).target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(getUnit(fighter).burstCount).toBe(0);
   });
@@ -1015,7 +947,6 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).target = enemy;
     getUnit(enemy).alive = false;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     combat(getUnit(fighter), fighter, 0.016, 0);
     expect(getUnit(fighter).burstCount).toBe(0);
     expect(getUnit(fighter).target).toBe(NO_UNIT);

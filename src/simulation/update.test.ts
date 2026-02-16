@@ -93,7 +93,6 @@ describe('ビーム pass', () => {
 // ============================================================
 describe('steer + combat + trail', () => {
   it('shielded が毎フレーム false にリセットされる', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 0, 0, 0); // Drone
     getUnit(idx).shielded = true;
     getUnit(idx).trailTimer = 99; // trail 抑制
@@ -102,7 +101,6 @@ describe('steer + combat + trail', () => {
   });
 
   it('steer→combat 順序: tgt 設定と即発射', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 1, 0, 0);
     const b = spawnAt(1, 1, 100, 0);
     getUnit(a).trailTimer = 99;
@@ -113,7 +111,6 @@ describe('steer + combat + trail', () => {
   });
 
   it('trail timer: trailTimer<=0 でパーティクル生成', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 0, 500, 500);
     getUnit(idx).trailTimer = 0.001;
     update(0.016, 0);
@@ -126,7 +123,6 @@ describe('steer + combat + trail', () => {
 // ============================================================
 describe('Reflector shield', () => {
   it('範囲内の味方が shielded=true になる', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
@@ -136,7 +132,6 @@ describe('Reflector shield', () => {
   });
 
   it('範囲外の味方は shielded=false', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 250, 0);
     getUnit(ref).trailTimer = 99;
@@ -146,7 +141,6 @@ describe('Reflector shield', () => {
   });
 
   it('敵チームは shielded=false', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ref = spawnAt(0, 6, 0, 0);
     const enemy = spawnAt(1, 0, 50, 0);
     getUnit(ref).trailTimer = 99;
@@ -157,7 +151,6 @@ describe('Reflector shield', () => {
 
   it('codexOpen=true → 非デモ Reflector は shielded を付与しない', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
@@ -168,7 +161,6 @@ describe('Reflector shield', () => {
 
   it('codexOpen=true → デモ Reflector は shielded を付与する', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     vi.mocked(isCodexDemoUnit).mockReturnValue(true);
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
@@ -184,14 +176,12 @@ describe('Reflector shield', () => {
 // ============================================================
 describe('projectile pass', () => {
   it('移動: x += vx*dt', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
     update(0.016, 0);
     expect(getProjectile(0).x).toBeCloseTo(4.8);
   });
 
   it('life<=0 で消滅 (aoe=0)', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     spawnProjectile(0, 0, 0, 0, 0.01, 5, 0, 2, 1, 0, 0);
     expect(poolCounts.projectileCount).toBe(1);
     update(0.016, 0);
@@ -200,7 +190,6 @@ describe('projectile pass', () => {
   });
 
   it('AOE 爆発: 範囲内の敵にダメージ + addShake(3)', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const enemy = spawnAt(1, 1, 30, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
@@ -210,7 +199,6 @@ describe('projectile pass', () => {
   });
 
   it('ユニットヒット: 通常ダメージ', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const enemy = spawnAt(1, 1, 5, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
@@ -220,7 +208,6 @@ describe('projectile pass', () => {
   });
 
   it('shielded ヒット: 0.3 倍ダメージ', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const rng = getUnitType(6).range;
     const reflector = spawnAt(1, 6, 0, rng + 10);
     const target = spawnAt(1, 1, 0, 0);
@@ -232,7 +219,6 @@ describe('projectile pass', () => {
   });
 
   it('ヒットで HP<=0 → ユニット死亡', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const enemy = spawnAt(1, 0, 3, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
@@ -242,7 +228,6 @@ describe('projectile pass', () => {
   });
 
   it('homing: ターゲット生存時に追尾で曲がる', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const target = spawnAt(1, 1, 0, 200);
     getUnit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
@@ -251,7 +236,6 @@ describe('projectile pass', () => {
   });
 
   it('homing: ターゲット死亡時は直進', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const target = spawnAt(1, 1, 0, 200);
     getUnit(target).alive = false;
     decUnitCount();
@@ -268,7 +252,6 @@ describe('projectile pass', () => {
 describe('reinforce', () => {
   it('reinforce が呼び出され両チームにユニットが増える', () => {
     state.reinforcementTimer = 2.49;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     update(0.016, 0);
     let t0 = 0;
     let t1 = 0;
@@ -289,7 +272,6 @@ describe('reinforce', () => {
 describe('codexOpen 分岐', () => {
   it('codexOpen=true → reinforce スキップ + updateCodexDemo 呼出', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
     update(0.016, 0);
@@ -298,7 +280,6 @@ describe('codexOpen 分岐', () => {
 
   it('codexOpen=true → 非デモユニットの steer/combat スキップ', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnAt(0, 1, 0, 0);
     const u = getUnit(idx);
     u.trailTimer = 99;
@@ -313,7 +294,6 @@ describe('codexOpen 分岐', () => {
 
   it('codexOpen=true → デモユニットは steer/combat が走る', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     vi.mocked(isCodexDemoUnit).mockReturnValue(true);
     const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
@@ -330,7 +310,6 @@ describe('codexOpen 分岐', () => {
 // ============================================================
 describe('swarmN 更新', () => {
   it('同型味方3体が近傍 → swarmN=3', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0); // Drone (swarm:true)
     const b = spawnAt(0, 0, 20, 0);
     const c = spawnAt(0, 0, 0, 20);
@@ -345,7 +324,6 @@ describe('swarmN 更新', () => {
   });
 
   it('異なる type は swarmN にカウントされない', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0); // Drone
     const b = spawnAt(0, 1, 20, 0); // Fighter (type !== 0)
     getUnit(a).trailTimer = 99;
@@ -355,7 +333,6 @@ describe('swarmN 更新', () => {
   });
 
   it('非 swarm ユニットは swarmN=0', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 1, 0, 0); // Fighter (swarm:false)
     const b = spawnAt(0, 1, 20, 0);
     getUnit(a).trailTimer = 99;
@@ -365,7 +342,6 @@ describe('swarmN 更新', () => {
   });
 
   it('敵チームの同型は swarmN にカウントされない', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0);
     spawnAt(1, 0, 20, 0);
     spawnAt(1, 0, 0, 20);
@@ -375,7 +351,6 @@ describe('swarmN 更新', () => {
   });
 
   it('7体以上でも swarmN は 6 にクランプされる', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0);
     for (let i = 0; i < 8; i++) {
       const idx = spawnAt(0, 0, 10 + i * 5, 10);
@@ -387,7 +362,6 @@ describe('swarmN 更新', () => {
   });
 
   it('半径80外の味方はカウントされない', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0);
     // CELL_SIZE=100, cr=ceil(80/100)=1 → 3x3セル走査。確実にセル外にするため距離201を使用
     const far = spawnAt(0, 0, 201, 0);
@@ -399,7 +373,6 @@ describe('swarmN 更新', () => {
 
   it('codexOpen=true → 非デモユニットの swarmN は更新されない', () => {
     state.codexOpen = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const a = spawnAt(0, 0, 0, 0);
     const b = spawnAt(0, 0, 20, 0);
     getUnit(a).trailTimer = 99;

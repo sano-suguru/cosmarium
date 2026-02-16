@@ -23,14 +23,12 @@ describe('initUnits', () => {
   it('全ユニットの alive を false にリセットしてから再生成する', () => {
     getUnit(0).alive = true;
     getUnit(1).alive = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     expect(poolCounts.unitCount).toBeGreaterThan(0);
   });
 
   it('全パーティクルの alive を false にリセットする', () => {
     getParticle(0).alive = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     let aliveCount = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
@@ -41,7 +39,6 @@ describe('initUnits', () => {
 
   it('全プロジェクタイルの alive を false にリセットする', () => {
     getProjectile(0).alive = true;
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     let aliveCount = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
@@ -52,20 +49,17 @@ describe('initUnits', () => {
 
   it('beams を空にする', () => {
     beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     expect(beams).toHaveLength(0);
   });
 
   it('両チーム合計 n合計 × 2チーム ユニットを生成する', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
     expect(poolCounts.unitCount).toBe(perTeam * 2);
   });
 
   it('生成ユニットは全て alive', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     let aliveCount = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
@@ -76,7 +70,6 @@ describe('initUnits', () => {
   });
 
   it('両チームが存在する', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     initUnits();
     let team0 = 0;
     let team1 = 0;

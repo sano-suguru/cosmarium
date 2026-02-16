@@ -23,7 +23,6 @@ describe('steer — スタン', () => {
     const xBefore = u.x;
     const yBefore = u.y;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(u, 0.016);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
     expect(u.vx).toBeCloseTo(100 * 0.93);
@@ -39,7 +38,6 @@ describe('steer — スタン', () => {
     u.stun = 0.5;
     u.target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const angBefore = u.angle;
     steer(u, 0.016);
     // angle はスタン中変化しない
@@ -54,7 +52,6 @@ describe('steer — ベテラン速度', () => {
     u.vet = 0;
     u.angle = 0;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // 長めのdtで速度を安定させる
     for (let i = 0; i < 100; i++) steer(u, 0.033);
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
@@ -78,7 +75,6 @@ describe('steer — ベテラン速度', () => {
     u2.angle = 0;
 
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 100; i++) {
       steer(u0, 0.033);
       steer(u2, 0.033);
@@ -95,7 +91,6 @@ describe('steer — ターゲット探索', () => {
     const nearEnemy = spawnAt(1, 1, 80, 0);
     spawnAt(1, 1, 150, 0);
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(getUnit(ally), 0.016);
     expect(getUnit(ally).target).toBe(nearEnemy);
   });
@@ -106,7 +101,6 @@ describe('steer — ターゲット探索', () => {
     getUnit(ally).target = enemy;
     getUnit(enemy).alive = false;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(getUnit(ally), 0.016);
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
@@ -121,7 +115,6 @@ describe('steer — RAM型', () => {
     const enemy = spawnAt(1, 1, 200, 0);
     getUnit(ram).target = enemy;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     steer(getUnit(ram), 0.033);
     // ターゲットはx正方向なので、vxが正方向に増加
     expect(getUnit(ram).vx).toBeGreaterThan(0);
@@ -134,7 +127,6 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(getUnit(healer), 0.033);
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
     expect(getUnit(healer).x).toBeGreaterThan(0);
@@ -149,7 +141,6 @@ describe('steer — ワールド境界', () => {
     u.vy = 0;
     u.target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
     // 境界の外側にいるので内側（左方向）に力
     expect(u.x).toBeLessThan(WORLD_SIZE * 0.85);
@@ -162,7 +153,6 @@ describe('steer — ワールド境界', () => {
     u.vy = 0;
     u.target = NO_UNIT;
     buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     for (let i = 0; i < 30; i++) steer(u, 0.033);
     // y < -WORLD_SIZE*0.8 なので上方向（yが増える方向）に力
     expect(u.y).toBeGreaterThan(-WORLD_SIZE * 0.85);

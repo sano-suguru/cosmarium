@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools } from '../__test__/pool-helper.ts';
+import { afterEach, describe, expect, it } from 'vitest';
+import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
@@ -10,6 +10,7 @@ import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnPr
 
 afterEach(() => {
   resetPools();
+  resetState();
 });
 
 describe('spawnParticle', () => {
@@ -81,7 +82,6 @@ describe('spawnProjectile', () => {
 
 describe('spawnUnit', () => {
   it('Fighterユニットを生成する (type=1)', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const idx = spawnUnit(0, 1, 100, 200);
     expect(idx).toBe(0);
     expect(poolCounts.unitCount).toBe(1);
@@ -109,7 +109,6 @@ describe('spawnUnit', () => {
   });
 
   it('dead スロットを再利用する', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     spawnUnit(0, 0, 0, 0);
     killUnit(0 as UnitIndex);
@@ -122,7 +121,6 @@ describe('spawnUnit', () => {
 
 describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     expect(poolCounts.unitCount).toBe(1);
     killUnit(0 as UnitIndex);
@@ -131,7 +129,6 @@ describe('killUnit', () => {
   });
 
   it('二重killしても poolCounts が負にならない', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0);
     spawnUnit(0, 0, 0, 0);
     killUnit(0 as UnitIndex);
     killUnit(0 as UnitIndex);
