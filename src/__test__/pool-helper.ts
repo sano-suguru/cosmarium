@@ -105,6 +105,7 @@ const stateDefaults = {
   reinforcementTimer: 0,
 };
 
+/** テスト分離用リセット。固定シード(12345)で PRNG を初期化し、各テストが同一の乱数列から開始する */
 export function resetState() {
   Object.assign(state, stateDefaults);
   seedRng(12345);

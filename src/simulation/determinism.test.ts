@@ -110,6 +110,33 @@ describe('determinism', () => {
     }
   });
 
+  it('同一シード → 同一結果（300tick — 複数増援サイクル）', () => {
+    const snapshot1 = runSimulation(42, 300);
+    const snapshot2 = runSimulation(42, 300);
+
+    expect(snapshot1.length).toBeGreaterThan(0);
+    expect(snapshot2.length).toBe(snapshot1.length);
+
+    for (let i = 0; i < snapshot1.length; i++) {
+      const s1 = snapshot1[i];
+      const s2 = snapshot2[i];
+
+      if (s1 === undefined || s2 === undefined) {
+        throw new Error(`Snapshot undefined at index ${i}`);
+      }
+
+      expect(s2.x).toBeCloseTo(s1.x, 10);
+      expect(s2.y).toBeCloseTo(s1.y, 10);
+      expect(s2.hp).toBeCloseTo(s1.hp, 10);
+      expect(s2.alive).toBe(s1.alive);
+      expect(s2.angle).toBeCloseTo(s1.angle, 10);
+      expect(s2.cooldown).toBeCloseTo(s1.cooldown, 10);
+      expect(s2.target).toBe(s1.target);
+      expect(s2.team).toBe(s1.team);
+      expect(s2.type).toBe(s1.type);
+    }
+  });
+
   it('異なるシード → 異なる結果', () => {
     const snapshot1 = runSimulation(12345, 100);
     const snapshot2 = runSimulation(99999, 100);
