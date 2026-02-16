@@ -572,7 +572,7 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
     d / sp + 0.1,
     t.damage * vd * dmgMul,
     u.team,
-    (1 + t.damage * 0.2) * sizeMul,
+    (1.8 + t.damage * 0.25) * sizeMul,
     c[0] + (1 - c[0]) * wb,
     c[1] + (1 - c[1]) * wb,
     c[2] + (1 - c[2]) * wb,
@@ -699,20 +699,23 @@ function fireNormal(ctx: CombatContext) {
   }
 
   if (!t.homing && !t.aoe && t.shape !== 8) {
-    for (let i = 0; i < 2; i++) {
+    const mx = u.x + Math.cos(u.angle) * t.size;
+    const my = u.y + Math.sin(u.angle) * t.size;
+    for (let i = 0; i < 3; i++) {
       spawnParticle(
-        u.x + Math.cos(u.angle) * t.size,
-        u.y + Math.sin(u.angle) * t.size,
+        mx,
+        my,
         Math.cos(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
         Math.sin(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
-        0.07,
-        2 + rng() * 1.5,
+        0.06 + rng() * 0.03,
+        2.5 + rng() * 2,
         c[0],
         c[1],
         c[2],
         0,
       );
     }
+    spawnParticle(mx, my, 0, 0, 0.05, 3 + t.damage * 0.5, 1, 1, 1, 0);
   }
 }
 

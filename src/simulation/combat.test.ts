@@ -865,7 +865,7 @@ describe('combat — DRONE SWARM', () => {
     buildHash();
     combat(getUnit(drone), drone, 0.016, 0);
     const p = getProjectile(0);
-    expect(p.size).toBeCloseTo(1.2);
+    expect(p.size).toBeCloseTo(2.05);
     expect(p.r).toBeCloseTo(0.2);
     expect(p.g).toBeCloseTo(1);
     expect(p.b).toBeCloseTo(0.55);
@@ -883,8 +883,8 @@ describe('combat — DRONE SWARM', () => {
     updateSwarmN();
     combat(getUnit(drone), drone, 0.016, 0);
     const p = getProjectile(0);
-    // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=1.2*1.45=1.74
-    expect(p.size).toBeCloseTo(1.74);
+    // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725
+    expect(p.size).toBeCloseTo(2.9725);
     // wb=(1.9-1)*0.4=0.36
     expect(p.r).toBeCloseTo(0.2 + 0.8 * 0.36);
     expect(p.g).toBeCloseTo(1 + 0 * 0.36);

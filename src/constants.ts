@@ -1,5 +1,5 @@
 export const POOL_UNITS = 800;
-export const POOL_PARTICLES = 35000;
+export const POOL_PARTICLES = 45000;
 export const POOL_PROJECTILES = 6000;
 export const WORLD_SIZE = 4000;
 export const CELL_SIZE = 100;

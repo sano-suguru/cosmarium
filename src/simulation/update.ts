@@ -105,17 +105,17 @@ function updateProjectiles(dt: number) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.life -= dt;
-    if (rng() < 0.25) {
+    if (rng() < 0.35) {
       spawnParticle(
         p.x,
         p.y,
         (rng() - 0.5) * 10,
         (rng() - 0.5) * 10,
         0.04,
-        p.size * 0.35,
-        p.r * 0.5,
-        p.g * 0.5,
-        p.b * 0.5,
+        p.size * 0.5,
+        p.r * 0.6,
+        p.g * 0.6,
+        p.b * 0.6,
         0,
       );
     }
