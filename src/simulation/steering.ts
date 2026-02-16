@@ -196,8 +196,9 @@ export function steer(u: Unit, dt: number) {
   const spd = t.speed * (1 + u.vet * 0.12);
   u.vx += (Math.cos(u.angle) * spd - u.vx) * dt * 3;
   u.vy += (Math.sin(u.angle) * spd - u.vy) * dt * 3;
-  u.vx *= 1 - dt * 0.5;
-  u.vy *= 1 - dt * 0.5;
+  const moveDrag = (1 - 0.5 / REF_FPS) ** (dt * REF_FPS);
+  u.vx *= moveDrag;
+  u.vy *= moveDrag;
   u.x += u.vx * dt;
   u.y += u.vy * dt;
 }
