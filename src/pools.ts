@@ -86,7 +86,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     trailTimer: 0,
     mass: 1,
     abilityCooldown: 0,
-    shielded: false,
+    shieldLingerTimer: 0,
     stun: 0,
     spawnCooldown: 0,
     teleportTimer: 0,

@@ -40,18 +40,58 @@ function getWriteCalls() {
 }
 
 describe('writeOverlay', () => {
-  it('shield overlay は angle=0 で描画される', () => {
+  it('active shield overlay は SH_OCT_SHIELD(22) で now=0 時に angle=0, a=0.5 で描画される', () => {
     const idx = spawnAt(0, 0, 100, 100);
     const u = getUnit(idx);
-    u.shielded = true;
+    u.shieldLingerTimer = 1.0;
     u.angle = 1.5;
 
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 5);
+    const shieldCall = calls.find((c) => c.shape === 22);
     expect(shieldCall).toBeDefined();
     expect(shieldCall?.angle).toBe(0);
+    expect(shieldCall?.a).toBe(0.5);
+  });
+
+  it('passive shield (Reflector class) は a=0.15 で描画される', () => {
+    const idx = spawnAt(0, 6, 100, 100);
+    const u = getUnit(idx);
+    u.shieldLingerTimer = 0;
+
+    renderScene(0);
+
+    const calls = getWriteCalls();
+    const shieldCall = calls.find((c) => c.shape === 22);
+    expect(shieldCall).toBeDefined();
+    expect(shieldCall?.a).toBe(0.15);
+  });
+
+  it('active shield は passive shield より優先される (Reflector + shieldLingerTimer > 0)', () => {
+    const idx = spawnAt(0, 6, 100, 100);
+    const u = getUnit(idx);
+    u.shieldLingerTimer = 1.0;
+
+    renderScene(0);
+
+    const calls = getWriteCalls();
+    const shieldCalls = calls.filter((c) => c.shape === 22);
+    expect(shieldCalls).toHaveLength(1);
+    expect(shieldCalls[0]?.a).toBe(0.5);
+  });
+
+  it('active shield overlay の angle は now*0.5 で回転する', () => {
+    const idx = spawnAt(0, 0, 100, 100);
+    const u = getUnit(idx);
+    u.shieldLingerTimer = 1.0;
+
+    renderScene(2);
+
+    const calls = getWriteCalls();
+    const shieldCall = calls.find((c) => c.shape === 22);
+    expect(shieldCall).toBeDefined();
+    expect(shieldCall?.angle).toBeCloseTo(1, 5);
   });
 
   it('vet overlay は angle=0 で描画される', () => {

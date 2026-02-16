@@ -1,12 +1,15 @@
 export const POOL_UNITS = 800;
 export const POOL_PARTICLES = 45000;
 export const POOL_PROJECTILES = 6000;
+export const POOL_TRACKING_BEAMS = 200;
 export const WORLD_SIZE = 4000;
 export const CELL_SIZE = 100;
 export const MAX_INSTANCES = 100000;
 export const MINIMAP_MAX = 1200;
 export const STRIDE_BYTES = 36;
 export const NEIGHBOR_BUFFER_SIZE = 350;
+export const REFLECTOR_SHIELD_LINGER = 2;
+export const REFLECTOR_TETHER_BEAM_LIFE = 0.7;
 export const SWARM_RADIUS_SQ = 80 * 80;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;

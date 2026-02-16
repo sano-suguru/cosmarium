@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { POOL_UNITS, REF_FPS } from '../constants.ts';
+import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams, state } from '../state.ts';
+import { beams, state, trackingBeams } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -141,12 +141,12 @@ describe('ビーム pass', () => {
 // 3. steer + combat + trail (Step 2)
 // ============================================================
 describe('steer + combat + trail', () => {
-  it('shielded が毎フレーム false にリセットされる', () => {
+  it('shieldLingerTimer が毎フレーム減衰する', () => {
     const idx = spawnAt(0, 0, 0, 0); // Drone
-    getUnit(idx).shielded = true;
+    getUnit(idx).shieldLingerTimer = 1.0;
     getUnit(idx).trailTimer = 99; // trail 抑制
     update(0.016, 0);
-    expect(getUnit(idx).shielded).toBe(false);
+    expect(getUnit(idx).shieldLingerTimer).toBeCloseTo(1.0 - 0.016);
   });
 
   it('steer→combat 順序: tgt 設定と即発射', () => {
@@ -171,44 +171,44 @@ describe('steer + combat + trail', () => {
 // 4. Reflector shield (Step 3)
 // ============================================================
 describe('Reflector shield', () => {
-  it('範囲内の味方が shielded=true になる', () => {
+  it('範囲内の味方が shieldLingerTimer=REFLECTOR_SHIELD_LINGER になる', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
     update(0.016, 0);
-    expect(getUnit(ally).shielded).toBe(true);
+    expect(getUnit(ally).shieldLingerTimer).toBe(REFLECTOR_SHIELD_LINGER);
   });
 
-  it('範囲外の味方は shielded=false', () => {
+  it('範囲外の味方は shieldLingerTimer=0', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 250, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
     update(0.016, 0);
-    expect(getUnit(ally).shielded).toBe(false);
+    expect(getUnit(ally).shieldLingerTimer).toBe(0);
   });
 
-  it('敵チームは shielded=false', () => {
+  it('敵チームは shieldLingerTimer=0', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const enemy = spawnAt(1, 0, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(enemy).trailTimer = 99;
     update(0.016, 0);
-    expect(getUnit(enemy).shielded).toBe(false);
+    expect(getUnit(enemy).shieldLingerTimer).toBe(0);
   });
 
-  it('codexOpen=true → 非デモ Reflector は shielded を付与しない', () => {
+  it('codexOpen=true → 非デモ Reflector は shieldLingerTimer を付与しない', () => {
     state.codexOpen = true;
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
     update(0.016, 0);
-    expect(getUnit(ally).shielded).toBe(false);
+    expect(getUnit(ally).shieldLingerTimer).toBe(0);
   });
 
-  it('codexOpen=true → デモ Reflector は shielded を付与する', () => {
+  it('codexOpen=true → デモ Reflector は shieldLingerTimer を付与する', () => {
     state.codexOpen = true;
     vi.mocked(isCodexDemoUnit).mockReturnValue(true);
     const ref = spawnAt(0, 6, 0, 0);
@@ -216,7 +216,66 @@ describe('Reflector shield', () => {
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
     update(0.016, 0);
-    expect(getUnit(ally).shielded).toBe(true);
+    expect(getUnit(ally).shieldLingerTimer).toBe(REFLECTOR_SHIELD_LINGER);
+  });
+
+  it('範囲内の味方にシールドテザービームが生成される', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    spawnAt(0, 1, 50, 0);
+    getUnit(ref).trailTimer = 99;
+    getUnit(0).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0);
+    expect(trackingBeams.length).toBeGreaterThan(0);
+  });
+
+  it('範囲外の味方にはシールドテザービームが生成されない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    spawnAt(0, 1, 250, 0);
+    getUnit(ref).trailTimer = 99;
+    getUnit(0).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0);
+    expect(trackingBeams.length).toBe(0);
+  });
+
+  it('シールド持続中に範囲内にいてもテザービームは再発射されない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    getUnit(ref).trailTimer = 99;
+    getUnit(ally).trailTimer = 99;
+    getUnit(ally).shieldLingerTimer = 1.0;
+    trackingBeams.length = 0;
+    update(0.016, 0);
+    expect(trackingBeams.length).toBe(0);
+  });
+
+  it('テザービームがユニットの移動に追従する', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    getUnit(ref).trailTimer = 99;
+    getUnit(ally).trailTimer = 99;
+    update(0.016, 0);
+    expect(trackingBeams.length).toBeGreaterThan(0);
+    update(0.016, 0);
+    const tb = trackingBeams[0];
+    expect(tb).toBeDefined();
+    if (tb === undefined) return;
+    expect(tb.x1).toBe(getUnit(ref).x);
+    expect(tb.y1).toBe(getUnit(ref).y);
+    expect(tb.x2).toBe(getUnit(ally).x);
+    expect(tb.y2).toBe(getUnit(ally).y);
+  });
+
+  it('Reflector範囲から出てもシールドは持続する', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    getUnit(ref).trailTimer = 99;
+    getUnit(ally).trailTimer = 99;
+    update(0.016, 0);
+    getUnit(ally).x = 500;
+    update(0.016, 0);
+    expect(getUnit(ally).shieldLingerTimer).toBeGreaterThan(0);
   });
 });
 

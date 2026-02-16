@@ -2,7 +2,7 @@ import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
-import { beams, state } from '../state.ts';
+import { beams, state, trackingBeams } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';
@@ -100,8 +100,12 @@ function demoHealer() {
 }
 
 function demoReflector(mi: UnitIndex) {
+  for (let i = 0; i < 3; i++) {
+    const a = ((i + 1) / 4) * Math.PI * 2;
+    spawnUnit(0, 0, Math.cos(a) * 50, Math.sin(a) * 50);
+  }
   for (let i = 0; i < 5; i++) {
-    const ei = spawnUnit(1, 1, 180 + Math.random() * 60, (i - 2) * 50);
+    const ei = spawnUnit(1, 1, 80 + Math.random() * 40, (i - 2) * 40);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -179,6 +183,7 @@ function clearDemoEffects() {
     }
   }
   beams.length = 0;
+  trackingBeams.length = 0;
 }
 
 function countDemoEnemies(): number {

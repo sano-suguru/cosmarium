@@ -15,7 +15,7 @@ export interface Unit {
   trailTimer: number;
   mass: number;
   abilityCooldown: number;
-  shielded: boolean;
+  shieldLingerTimer: number;
   stun: number;
   spawnCooldown: number;
   teleportTimer: number;
@@ -103,6 +103,21 @@ export interface Beam {
   width: number;
   tapered?: boolean;
   stepDiv?: number;
+}
+
+export interface TrackingBeam {
+  srcUnit: UnitIndex;
+  tgtUnit: UnitIndex;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  r: number;
+  g: number;
+  b: number;
+  life: number;
+  maxLife: number;
+  width: number;
 }
 
 export interface Camera {

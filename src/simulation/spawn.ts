@@ -1,4 +1,4 @@
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
   decParticleCount,
   decProjectileCount,
@@ -10,8 +10,8 @@ import {
   incProjectileCount,
   incUnitCount,
 } from '../pools.ts';
-import { beams, rng } from '../state.ts';
-import type { Beam, ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
+import { beams, rng, trackingBeams } from '../state.ts';
+import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 
@@ -43,7 +43,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number): UnitI
       u.trailTimer = 0;
       u.mass = t.mass;
       u.abilityCooldown = 0;
-      u.shielded = false;
+      u.shieldLingerTimer = 0;
       u.stun = 0;
       u.spawnCooldown = 0;
       u.teleportTimer = 0;
@@ -178,4 +178,33 @@ export function addBeam(
   if (tapered) bm.tapered = true;
   if (stepDiv !== undefined && stepDiv > 1) bm.stepDiv = stepDiv;
   beams.push(bm);
+}
+
+export function addTrackingBeam(
+  srcUnit: UnitIndex,
+  tgtUnit: UnitIndex,
+  r: number,
+  g: number,
+  b: number,
+  life: number,
+  width: number,
+) {
+  const src = getUnit(srcUnit);
+  const tgt = getUnit(tgtUnit);
+  const tb: TrackingBeam = {
+    srcUnit,
+    tgtUnit,
+    x1: src.x,
+    y1: src.y,
+    x2: tgt.x,
+    y2: tgt.y,
+    r,
+    g,
+    b,
+    life,
+    maxLife: life,
+    width,
+  };
+  if (trackingBeams.length >= POOL_TRACKING_BEAMS) return;
+  trackingBeams.push(tb);
 }

@@ -1,6 +1,6 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { beams, rng } from '../state.ts';
+import { beams, rng, trackingBeams } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
@@ -37,6 +37,7 @@ export function initUnits() {
   for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
   resetPoolCounts();
   beams.length = 0;
+  trackingBeams.length = 0;
 
   for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;

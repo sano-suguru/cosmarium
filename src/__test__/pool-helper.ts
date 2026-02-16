@@ -9,7 +9,7 @@ import {
   setUnitCountForTest,
 } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
-import { beams, seedRng, state } from '../state.ts';
+import { beams, seedRng, state, trackingBeams } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 
@@ -32,7 +32,7 @@ export function resetPools() {
     u.trailTimer = 0;
     u.mass = 1;
     u.abilityCooldown = 0;
-    u.shielded = false;
+    u.shieldLingerTimer = 0;
     u.stun = 0;
     u.spawnCooldown = 0;
     u.teleportTimer = 0;
@@ -79,6 +79,7 @@ export function resetPools() {
   }
   resetPoolCounts();
   beams.length = 0;
+  trackingBeams.length = 0;
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
@@ -111,6 +112,7 @@ export function resetState() {
   Object.assign(state, stateDefaults);
   seedRng(12345);
   beams.length = 0;
+  trackingBeams.length = 0;
 }
 
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値でモックして確定的にユニットを生成する共通ヘルパー */

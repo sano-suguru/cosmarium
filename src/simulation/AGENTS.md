@@ -4,10 +4,10 @@
 
 ## Tick順序（update.ts）
 
-1-6は常時実行: `buildHash()` → per unit(`shielded=false` → `steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → reflector pass → projectile pass → particle pass → beam pass
+1-6は常時実行: `buildHash()` → `updateSwarmN()` → `resetReflectedSet()` → per unit(`steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → `applyReflectorShields(dt)`（`decayShieldTimers` → `shieldNearbyAllies`） → projectile pass → particle pass → beam pass → trackingBeam pass
 7は`!codexOpen`時のみ: `reinforce(dt)`。codexOpen時は`updateCodexDemo(dt)`実行。
 
-**重要**: Reflector付与(step 3)はcombat(step 2)の後→shieldedは次フレームで有効。
+**重要**: Reflector付与(step 4)はcombat(step 3)の後→`shieldLingerTimer`は次フレームで有効。`shieldLingerTimer`はReflector範囲内にいる間は毎フレーム`REFLECTOR_SHIELD_LINGER`にリセットされ、範囲離脱後に減衰を開始する。
 
 ## 変更ガイド
 
@@ -28,7 +28,7 @@
 - `dt`は0.033でクランプ（`update()`冒頭）
 - `killUnit()`はプールindex引数。Unit参照ではない
 - `u.target`はプールindex。-1=なし。ターゲットの`.alive`必ずチェック
-- `beams`は動的配列で`.splice()`削除→逆順ループ必須
+- `beams`/`trackingBeams`は動的配列でswap-and-pop削除→順序不定
 - `explosion()`のkiller引数: -1=不明、有効indexならvet/kills加算
 - `getNeighbors()`は`buildHash()`後のみ有効。途中のユニット追加は反映されない
 

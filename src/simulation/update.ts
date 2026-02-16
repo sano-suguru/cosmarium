@@ -5,21 +5,23 @@ import {
   POOL_PROJECTILES,
   POOL_UNITS,
   REF_FPS,
+  REFLECTOR_SHIELD_LINGER,
+  REFLECTOR_TETHER_BEAM_LIFE,
   SWARM_RADIUS_SQ,
   TAU,
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams, getBeam, rng, state } from '../state.ts';
+import { beams, getBeam, getTrackingBeam, rng, state, trackingBeams } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
-import { combat } from './combat.ts';
+import { combat, resetReflectedSet } from './combat.ts';
 import { explosion, trail } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
-import { killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
+import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
 const REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER = 0.3;
@@ -88,7 +90,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex): boolean {
     const hs = getUnitType(o.type).size;
     if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
       let dmg = p.damage;
-      if (o.shielded) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
+      if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
       o.hp -= dmg;
       knockback(oi, p.x, p.y, p.damage * 12);
       spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
@@ -157,10 +159,36 @@ function updateParticles(dt: number) {
 }
 
 function updateBeams(dt: number) {
-  for (let i = beams.length - 1; i >= 0; i--) {
+  for (let i = 0; i < beams.length; ) {
     const bm = getBeam(i);
     bm.life -= dt;
-    if (bm.life <= 0) beams.splice(i, 1);
+    if (bm.life <= 0) {
+      const last = beams[beams.length - 1];
+      if (last !== undefined) beams[i] = last;
+      beams.pop();
+    } else {
+      i++;
+    }
+  }
+}
+
+function updateTrackingBeams(dt: number) {
+  for (let i = 0; i < trackingBeams.length; ) {
+    const tb = getTrackingBeam(i);
+    tb.life -= dt;
+    const src = getUnit(tb.srcUnit);
+    const tgt = getUnit(tb.tgtUnit);
+    if (tb.life <= 0 || !src.alive || !tgt.alive) {
+      const last = trackingBeams[trackingBeams.length - 1];
+      if (last !== undefined) trackingBeams[i] = last;
+      trackingBeams.pop();
+      continue;
+    }
+    tb.x1 = src.x;
+    tb.y1 = src.y;
+    tb.x2 = tgt.x;
+    tb.y2 = tgt.y;
+    i++;
   }
 }
 
@@ -199,7 +227,6 @@ function updateUnits(dt: number, now: number) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem--;
-    u.shielded = false;
     if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
     steer(u, dt);
     combat(u, i as UnitIndex, dt, now);
@@ -211,32 +238,51 @@ function updateUnits(dt: number, now: number) {
   }
 }
 
-function applyReflectorShields() {
+function decayShieldTimers(dt: number) {
+  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+    const u = getUnit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.shieldLingerTimer > 0) u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
+  }
+}
+
+function shieldNearbyAllies(u: Unit, i: number) {
+  const nn = getNeighbors(u.x, u.y, 100);
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j);
+    const o = getUnit(oi);
+    if (!o.alive || o.team !== u.team || oi === i) continue;
+    if (o.shieldLingerTimer <= 0) addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, REFLECTOR_TETHER_BEAM_LIFE, 1.5);
+    o.shieldLingerTimer = REFLECTOR_SHIELD_LINGER;
+  }
+}
+
+function applyReflectorShields(dt: number) {
+  decayShieldTimers(dt);
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem2--;
     if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
     if (!getUnitType(u.type).reflects) continue;
-    const nn = getNeighbors(u.x, u.y, 100);
-    for (let j = 0; j < nn; j++) {
-      const o = getUnit(getNeighborAt(j));
-      if (o.alive && o.team === u.team) o.shielded = true;
-    }
+    shieldNearbyAllies(u, i);
   }
 }
 
 function stepOnce(dt: number, now: number) {
   buildHash();
   updateSwarmN();
+  resetReflectedSet();
 
   updateUnits(dt, now);
 
-  applyReflectorShields();
+  applyReflectorShields(dt);
 
   updateProjectiles(dt);
   updateParticles(dt);
   updateBeams(dt);
+  updateTrackingBeams(dt);
 
   if (!state.codexOpen) {
     reinforce(dt);

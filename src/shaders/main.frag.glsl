@@ -1,7 +1,7 @@
 #version 300 es
 precision mediump float;
 #include includes/sdf.glsl;
-in vec4 vC; in vec2 vU; in float vSh;
+in vec4 vC; in vec2 vU; in float vSh,vA;
 out vec4 fragColor;
 void main(){
   float d=length(vU), a=0.0;
@@ -45,6 +45,23 @@ void main(){
     a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
+  else if(sh==22){ float od=octDist(vU);
+    float edge=abs(od-0.75);
+    a=smoothstep(0.06,0.01,edge)*0.7;
+    float t=vA*4.0;
+    vec2 v0=vec2(0.75,0.311); vec2 v1=vec2(0.311,0.75);
+    vec2 v2=vec2(-0.311,0.75); vec2 v3=vec2(-0.75,0.311);
+    vec2 v4=vec2(-0.75,-0.311); vec2 v5=vec2(-0.311,-0.75);
+    vec2 v6=vec2(0.311,-0.75); vec2 v7=vec2(0.75,-0.311);
+    float n0=exp(-length(vU-v0)*22.0)*(0.3+0.7*(0.5+0.5*sin(t)));
+    float n1=exp(-length(vU-v1)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+0.785)));
+    float n2=exp(-length(vU-v2)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+1.571)));
+    float n3=exp(-length(vU-v3)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+2.356)));
+    float n4=exp(-length(vU-v4)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+3.142)));
+    float n5=exp(-length(vU-v5)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+3.927)));
+    float n6=exp(-length(vU-v6)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+4.712)));
+    float n7=exp(-length(vU-v7)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+5.498)));
+    a+=n0+n1+n2+n3+n4+n5+n6+n7; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
 }

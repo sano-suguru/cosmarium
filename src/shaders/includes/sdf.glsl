@@ -4,6 +4,13 @@ float hexDist(vec2 uv) {
   return max(av.x * 0.866 + av.y * 0.5, av.y);
 }
 
+// octDist — octagon distance (sh==22)
+float octDist(vec2 uv) {
+  vec2 av = abs(uv);
+  // 0.7071 = 1/(1+tan(pi/8))
+  return max(max(av.x, av.y), (av.x + av.y) * 0.7071);
+}
+
 // manDist — manhattan distance (sh==1, sh==13)
 float manDist(vec2 uv) {
   return abs(uv.x) + abs(uv.y);

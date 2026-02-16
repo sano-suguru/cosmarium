@@ -1,6 +1,6 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
-import { getProjectile, getUnit } from '../pools.ts';
+import { getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -14,9 +14,15 @@ const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
+/** 同一フレーム内で反射済みのプロジェクタイルインデックス。対向リフレクター間の無限バウンスを防止 */
+const reflectedThisFrame = new Set<number>();
 
 export function _resetSweepHits() {
   sweepHitMap.clear();
+}
+
+export function resetReflectedSet() {
+  reflectedThisFrame.clear();
 }
 
 onKillUnit((i) => sweepHitMap.delete(i));
@@ -107,23 +113,64 @@ function handleHealer(ctx: CombatContext) {
   spawnParticle(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, 10);
 }
 
-function handleReflector(ctx: CombatContext) {
-  const { u, c, t, vd } = ctx;
-  const rr = t.range;
-  for (let i = 0; i < POOL_PROJECTILES; i++) {
+const REFLECT_RADIUS_MULT = 3;
+const REFLECT_SCATTER = 0.524; // 全幅30°（±15°）
+const REFLECT_SPEED_MULT = 1.0;
+const REFLECT_LIFE = 0.5;
+
+function reflectProjectile(
+  ux: number,
+  uy: number,
+  p: { x: number; y: number; vx: number; vy: number; life: number; team: number; r: number; g: number; b: number },
+  team: number,
+  c: Color3,
+) {
+  const dx = p.x - ux;
+  const dy = p.y - uy;
+  const nd = Math.sqrt(dx * dx + dy * dy) || 1;
+  const nx = dx / nd;
+  const ny = dy / nd;
+  // v' = v - 2(v·n)n
+  const dot = p.vx * nx + p.vy * ny;
+  const rvx = p.vx - 2 * dot * nx;
+  const rvy = p.vy - 2 * dot * ny;
+  const scatter = (rng() - 0.5) * REFLECT_SCATTER;
+  const cs = Math.cos(scatter);
+  const sn = Math.sin(scatter);
+  p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
+  p.vy = (rvx * sn + rvy * cs) * REFLECT_SPEED_MULT;
+  p.life = REFLECT_LIFE;
+  p.team = team;
+  p.r = c[0];
+  p.g = c[1];
+  p.b = c[2];
+  addBeam(ux, uy, p.x, p.y, c[0], c[1], c[2], 0.15, 1.5);
+  for (let j = 0; j < 4; j++) {
+    spawnParticle(p.x, p.y, (rng() - 0.5) * 80, (rng() - 0.5) * 80, 0.15, 3 + rng() * 2, c[0], c[1], c[2], 0);
+  }
+  spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, 10);
+}
+
+function reflectNearbyProjectiles(u: Unit, reflectR: number, team: number, c: Color3) {
+  for (let i = 0, rem = poolCounts.projectileCount; i < POOL_PROJECTILES && rem > 0; i++) {
     const p = getProjectile(i);
-    if (!p.alive || p.team === u.team) continue;
-    if ((p.x - u.x) * (p.x - u.x) + (p.y - u.y) * (p.y - u.y) < rr * rr) {
-      p.vx *= -1.2;
-      p.vy *= -1.2;
-      p.team = u.team;
-      p.r = c[0];
-      p.g = c[1];
-      p.b = c[2];
-      spawnParticle(p.x, p.y, (rng() - 0.5) * 60, (rng() - 0.5) * 60, 0.12, 3, c[0], c[1], c[2], 0);
-      spawnParticle(p.x, p.y, 0, 0, 0.1, 8, 1, 1, 1, 10);
+    if (!p.alive) continue;
+    rem--;
+    if (reflectedThisFrame.has(i) || p.team === team) continue;
+    const dx = p.x - u.x;
+    const dy = p.y - u.y;
+    if (dx * dx + dy * dy < reflectR * reflectR) {
+      reflectProjectile(u.x, u.y, p, team, c);
+      reflectedThisFrame.add(i);
     }
   }
+}
+
+function handleReflector(ctx: CombatContext) {
+  const { u, c, t, vd } = ctx;
+  const fireRange = t.range;
+  const reflectR = t.size * REFLECT_RADIUS_MULT;
+  reflectNearbyProjectiles(u, reflectR, u.team, c);
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
     const o = getUnit(u.target);
     if (!o.alive) {
@@ -132,7 +179,7 @@ function handleReflector(ctx: CombatContext) {
       const dx = o.x - u.x,
         dy = o.y - u.y;
       const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < rr) {
+      if (d < fireRange) {
         u.cooldown = t.fireRate;
         const ang = Math.atan2(dy, dx);
         spawnProjectile(
@@ -153,8 +200,8 @@ function handleReflector(ctx: CombatContext) {
   }
   if (rng() < 1 - 0.9 ** (ctx.dt * REF_FPS)) {
     spawnParticle(
-      u.x + (rng() - 0.5) * rr * 1.5,
-      u.y + (rng() - 0.5) * rr * 1.5,
+      u.x + (rng() - 0.5) * fireRange * 1.5,
+      u.y + (rng() - 0.5) * fireRange * 1.5,
       0,
       0,
       0.15,
@@ -320,7 +367,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
     sweepHitMap.get(ctx.ui)?.add(ni);
     let dmg = t.damage * vd;
-    if (n.shielded) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
+    if (n.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     n.hp -= dmg;
     knockback(ni, u.x, u.y, dmg * 3);
     spawnParticle(
@@ -508,7 +555,7 @@ function handleFocusBeam(ctx: CombatContext) {
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
     let dmg = t.damage * u.beamOn * vd;
-    if (o.shielded) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
+    if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     o.hp -= dmg;
     knockback(u.target, u.x, u.y, dmg * 5);
     const pCount = 1 + Math.floor(u.beamOn * 2);

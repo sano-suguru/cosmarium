@@ -3,10 +3,11 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams } from '../state.ts';
+import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
-import { spawnProjectile } from './spawn.ts';
+import { killProjectile, spawnProjectile } from './spawn.ts';
 import { updateSwarmN } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -15,12 +16,13 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { _resetSweepHits, combat } from './combat.ts';
+import { _resetSweepHits, combat, resetReflectedSet } from './combat.ts';
 
 afterEach(() => {
   resetPools();
   resetState();
   _resetSweepHits();
+  resetReflectedSet();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -160,33 +162,62 @@ describe('combat — HEALER', () => {
 });
 
 describe('combat — REFLECTOR', () => {
-  it('敵弾の速度を×-1.2反転 + team変更', () => {
-    const reflector = spawnAt(0, 6, 0, 0); // Reflector (rng=130)
+  it('本体付近の敵弾を法線ベースで反射 + team変更', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
     buildHash();
-    spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0); // team=1 の敵弾 (x=50, rng内)
+    spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
     expect(p.team).toBe(1);
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    expect(p.vx).toBeGreaterThan(0);
+    expect(p.team).toBe(0);
+  });
+
+  it('反射距離外の敵弾は反射しない', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    buildHash();
+    spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    const p = getProjectile(0);
     const vxBefore = p.vx;
     combat(getUnit(reflector), reflector, 0.016, 0);
-    // 反射: vx *= -1.2
-    expect(p.vx).toBeCloseTo(vxBefore * -1.2);
-    expect(p.team).toBe(0); // team変更
+    expect(p.vx).toBe(vxBefore);
+    expect(p.team).toBe(1);
   });
 
   it('自チーム弾は反射しない', () => {
     const reflector = spawnAt(0, 6, 0, 0);
     buildHash();
-    spawnProjectile(50, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
+    spawnProjectile(20, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
     const p = getProjectile(0);
     const vxBefore = p.vx;
     combat(getUnit(reflector), reflector, 0.016, 0);
     expect(p.vx).toBe(vxBefore);
   });
 
+  it('反射後に p.life が REFLECT_LIFE(0.5) にリセットされる', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    buildHash();
+    spawnProjectile(20, 0, -100, 0, 0.1, 5, 1, 2, 1, 0, 0);
+    const p = getProjectile(0);
+    expect(p.life).toBeCloseTo(0.1);
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    expect(p.life).toBeCloseTo(0.5);
+  });
+
+  it('反射後の弾速が元と同等（加速しない）', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    buildHash();
+    spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    const p = getProjectile(0);
+    const speedBefore = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    const speedAfter = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    expect(speedAfter).toBeCloseTo(speedBefore, 1);
+  });
+
   it('cooldown<=0 かつ target あり → 射撃', () => {
     const reflector = spawnAt(0, 6, 0, 0);
     const enemy = spawnAt(1, 1, 50, 0);
-    // combat() は cooldown -= dt を先に実行してからチェックするため、0 でも射撃条件を満たす
     getUnit(reflector).cooldown = 0;
     getUnit(reflector).target = enemy;
     buildHash();
@@ -194,6 +225,35 @@ describe('combat — REFLECTOR', () => {
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).team).toBe(0);
     expect(getUnit(reflector).cooldown).toBeCloseTo(getUnitType(6).fireRate);
+  });
+
+  it('dead弾をスキップしてlive敵弾を正しく反射する', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    buildHash();
+    // slot 0, 1 にlive敵弾を作り、slot 0 をkillしてdead状態にする
+    spawnProjectile(10, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    killProjectile(0 as ProjectileIndex);
+    expect(getProjectile(0).alive).toBe(false);
+    expect(getProjectile(1).alive).toBe(true);
+    expect(getProjectile(1).team).toBe(1);
+    combat(getUnit(reflector), reflector, 0.016, 0);
+    expect(getProjectile(1).team).toBe(0);
+    expect(getProjectile(1).vx).toBeGreaterThan(0);
+  });
+
+  it('同一フレーム内で2体のReflectorが同じ弾を二重反射しない', () => {
+    const r1 = spawnAt(0, 6, 0, 0);
+    const r2 = spawnAt(0, 6, 25, 0);
+    buildHash();
+    spawnProjectile(12, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    const p = getProjectile(0);
+    combat(getUnit(r1), r1, 0.016, 0);
+    expect(p.team).toBe(0);
+    const vxAfterFirst = p.vx;
+    combat(getUnit(r2), r2, 0.016, 0);
+    expect(p.vx).toBe(vxAfterFirst);
+    expect(p.team).toBe(0);
   });
 });
 
@@ -587,7 +647,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.4;
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
-    getUnit(enemy).shielded = true;
+    getUnit(enemy).shieldLingerTimer = 1.0;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
     combat(getUnit(cruiser), cruiser, 0.1, 0);
