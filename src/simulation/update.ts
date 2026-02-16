@@ -1,4 +1,4 @@
-import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SWARM_RADIUS_SQ, TAU } from '../constants.ts';
+import { PI, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, REF_FPS, SWARM_RADIUS_SQ, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams, getBeam, rng, state } from '../state.ts';
@@ -28,7 +28,7 @@ function steerHomingProjectile(p: Projectile, dt: number) {
     p.vx = Math.cos(ca) * sp;
     p.vy = Math.sin(ca) * sp;
   }
-  if (rng() < 0.5) {
+  if (rng() < 1 - 0.5 ** (dt * REF_FPS)) {
     spawnParticle(p.x, p.y, (rng() - 0.5) * 18, (rng() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
   }
 }
@@ -105,7 +105,7 @@ function updateProjectiles(dt: number) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.life -= dt;
-    if (rng() < 0.35) {
+    if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
       spawnParticle(
         p.x,
         p.y,
@@ -137,8 +137,9 @@ function updateParticles(dt: number) {
     rem--;
     pp.x += pp.vx * dt;
     pp.y += pp.vy * dt;
-    pp.vx *= 0.97;
-    pp.vy *= 0.97;
+    const drag = 0.97 ** (dt * REF_FPS);
+    pp.vx *= drag;
+    pp.vy *= drag;
     pp.life -= dt;
     if (pp.life <= 0) {
       killParticle(i as ParticleIndex);
@@ -198,7 +199,7 @@ function updateUnits(dt: number, now: number) {
 }
 
 export function update(rawDt: number, now: number) {
-  const dt = Math.min(rawDt, 0.033);
+  const dt = Math.min(rawDt, 1 / REF_FPS);
   buildHash();
   updateSwarmN();
 

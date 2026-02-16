@@ -1,5 +1,5 @@
 import { getColor } from '../colors.ts';
-import { POOL_PROJECTILES } from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
 import { getProjectile, getUnit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -151,7 +151,7 @@ function handleReflector(ctx: CombatContext) {
       }
     }
   }
-  if (rng() < 0.1) {
+  if (rng() < 1 - 0.9 ** (ctx.dt * REF_FPS)) {
     spawnParticle(
       u.x + (rng() - 0.5) * rr * 1.5,
       u.y + (rng() - 0.5) * rr * 1.5,
@@ -367,16 +367,24 @@ function sweepAfterimage(u: Unit, ox: number, oy: number, easeAt: (p: number) =>
   }
 }
 
-function sweepTipSpark(x: number, y: number, c: Color3) {
-  if (rng() < 0.55) {
+function sweepTipSpark(x: number, y: number, c: Color3, dt: number) {
+  if (rng() < 1 - 0.45 ** (dt * REF_FPS)) {
     const a = rng() * Math.PI * 2;
     const s = 40 + rng() * 100;
     spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s, 0.12 + rng() * 0.1, 3 + rng() * 2, c[0], c[1], c[2], 0);
   }
 }
 
-function sweepPathParticles(ox: number, oy: number, endX: number, endY: number, beamAngle: number, c: Color3) {
-  if (rng() < 0.3) {
+function sweepPathParticles(
+  ox: number,
+  oy: number,
+  endX: number,
+  endY: number,
+  beamAngle: number,
+  c: Color3,
+  dt: number,
+) {
+  if (rng() < 1 - 0.7 ** (dt * REF_FPS)) {
     const along = 0.3 + rng() * 0.6;
     const px = ox + (endX - ox) * along;
     const py = oy + (endY - oy) * along;
@@ -397,8 +405,8 @@ function sweepPathParticles(ox: number, oy: number, endX: number, endY: number, 
   }
 }
 
-function sweepGlowRing(x: number, y: number, c: Color3) {
-  if (rng() < 0.25) {
+function sweepGlowRing(x: number, y: number, c: Color3, dt: number) {
+  if (rng() < 1 - 0.75 ** (dt * REF_FPS)) {
     spawnParticle(x, y, 0, 0, 0.1, 12 + rng() * 6, c[0], c[1], c[2], 10);
   }
 }
@@ -462,9 +470,9 @@ function handleSweepBeam(ctx: CombatContext) {
   addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);
 
   sweepAfterimage(u, ox, oy, easeAt, c, t.range);
-  sweepTipSpark(beamEndX, beamEndY, c);
-  sweepPathParticles(ox, oy, beamEndX, beamEndY, currAngle, c);
-  sweepGlowRing(beamEndX, beamEndY, c);
+  sweepTipSpark(beamEndX, beamEndY, c, dt);
+  sweepPathParticles(ox, oy, beamEndX, beamEndY, currAngle, c, dt);
+  sweepGlowRing(beamEndX, beamEndY, c, dt);
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
 
