@@ -11,7 +11,7 @@ import {
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { beams, getBeam, rng, state } from '../state.ts';
-import type { ParticleIndex, Projectile, ProjectileIndex, UnitIndex } from '../types.ts';
+import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -164,6 +164,19 @@ function updateBeams(dt: number) {
   }
 }
 
+function countSwarmAllies(u: Unit): number {
+  const nn = getNeighbors(u.x, u.y, 80);
+  let allies = 0;
+  for (let j = 0; j < nn; j++) {
+    const o = getUnit(getNeighborAt(j));
+    if (o === u || !o.alive || o.team !== u.team || o.type !== u.type) continue;
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    if (dx * dx + dy * dy < SWARM_RADIUS_SQ) allies++;
+  }
+  return Math.min(allies, 6);
+}
+
 export function updateSwarmN() {
   for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
     const u = getUnit(i);
@@ -177,16 +190,7 @@ export function updateSwarmN() {
       u.swarmN = 0;
       continue;
     }
-    const nn = getNeighbors(u.x, u.y, 80);
-    let allies = 0;
-    for (let j = 0; j < nn; j++) {
-      const o = getUnit(getNeighborAt(j));
-      if (o === u || !o.alive || o.team !== u.team || o.type !== u.type) continue;
-      const dx = o.x - u.x,
-        dy = o.y - u.y;
-      if (dx * dx + dy * dy < SWARM_RADIUS_SQ) allies++;
-    }
-    u.swarmN = Math.min(allies, 6);
+    u.swarmN = countSwarmAllies(u);
   }
 }
 
@@ -207,12 +211,7 @@ function updateUnits(dt: number, now: number) {
   }
 }
 
-function stepOnce(dt: number, now: number) {
-  buildHash();
-  updateSwarmN();
-
-  updateUnits(dt, now);
-
+function applyReflectorShields() {
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
@@ -225,6 +224,15 @@ function stepOnce(dt: number, now: number) {
       if (o.alive && o.team === u.team) o.shielded = true;
     }
   }
+}
+
+function stepOnce(dt: number, now: number) {
+  buildHash();
+  updateSwarmN();
+
+  updateUnits(dt, now);
+
+  applyReflectorShields();
 
   updateProjectiles(dt);
   updateParticles(dt);
