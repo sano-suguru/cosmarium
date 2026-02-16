@@ -15,9 +15,8 @@ interface SteerForce {
 // 呼び出し側は返却後すぐに fx/fy に転写すること
 const _force: SteerForce = { x: 0, y: 0 };
 
-function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
-  if (u.target !== NO_UNIT && getUnit(u.target).alive) return u.target;
-
+// findTarget ヘルパー: 近傍から最近接敵を検索
+function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
   let bd = range * 3,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
@@ -30,67 +29,93 @@ function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
       bi = oi;
     }
   }
-  if (bi === NO_UNIT && rng() < 1 - (1 - 0.012) ** (dt * REF_FPS)) {
-    bd = 1e18;
-    for (let i = 0; i < POOL_UNITS; i++) {
-      const o = getUnit(i);
-      if (!o.alive || o.team === u.team) continue;
-      const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
-      if (d2 < bd) {
-        bd = d2;
-        bi = i as UnitIndex;
-      }
+  return bi;
+}
+
+// findTarget ヘルパー: 全ユニットから最近接敵を検索
+function findNearestGlobalEnemy(u: Unit): UnitIndex {
+  let bd = 1e18,
+    bi: UnitIndex = NO_UNIT;
+  for (let i = 0; i < POOL_UNITS; i++) {
+    const o = getUnit(i);
+    if (!o.alive || o.team === u.team) continue;
+    const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
+    if (d2 < bd) {
+      bd = d2;
+      bi = i as UnitIndex;
     }
   }
   return bi;
 }
 
-function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
-  let sx = 0,
-    sy = 0,
-    ax = 0,
-    ay = 0,
-    ac = 0,
-    chx = 0,
-    chy = 0,
-    cc = 0;
-  const sd = t.size * 4;
+function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
+  if (u.target !== NO_UNIT && getUnit(u.target).alive) return u.target;
 
+  const localTarget = findNearestLocalEnemy(u, nn, range);
+  if (localTarget !== NO_UNIT) return localTarget;
+
+  if (rng() < 1 - (1 - 0.012) ** (dt * REF_FPS)) {
+    return findNearestGlobalEnemy(u);
+  }
+  return NO_UNIT;
+}
+
+// computeBoidsForce の accumulator
+const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
+
+// computeBoidsForce ヘルパー: 近傍単体の Boids 力を集約
+function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number) {
+  const dx = u.x - o.x,
+    dy = u.y - o.y;
+  const d2 = dx * dx + dy * dy;
+  if (d2 < 1) return;
+  const d = Math.sqrt(d2);
+
+  if (d < sd) {
+    _boids.sx += (dx / d / d2) * 200;
+    _boids.sy += (dy / d / d2) * 200;
+  }
+  if (o.team === u.team) {
+    if (d < 150) {
+      _boids.chx += o.x;
+      _boids.chy += o.y;
+      _boids.cc++;
+    }
+    if (o.type === u.type && d < 120) {
+      _boids.ax += o.vx;
+      _boids.ay += o.vy;
+      _boids.ac++;
+    }
+  }
+}
+
+function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
+  _boids.sx = 0;
+  _boids.sy = 0;
+  _boids.ax = 0;
+  _boids.ay = 0;
+  _boids.ac = 0;
+  _boids.chx = 0;
+  _boids.chy = 0;
+  _boids.cc = 0;
+
+  const sd = t.size * 4;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = getUnit(oi);
     if (!o.alive || o === u) continue;
-    const dx = u.x - o.x,
-      dy = u.y - o.y;
-    const d2 = dx * dx + dy * dy;
-    if (d2 < 1) continue;
-    const d = Math.sqrt(d2);
-    if (d < sd) {
-      sx += (dx / d / d2) * 200;
-      sy += (dy / d / d2) * 200;
-    }
-    if (o.team === u.team) {
-      if (d < 150) {
-        chx += o.x;
-        chy += o.y;
-        cc++;
-      }
-      if (o.type === u.type && d < 120) {
-        ax += o.vx;
-        ay += o.vy;
-        ac++;
-      }
-    }
+    accumulateBoidsNeighbor(u, o, sd);
   }
-  let fx = sx * 3,
-    fy = sy * 3;
-  if (ac > 0) {
-    fx += (ax / ac - u.vx) * 0.5;
-    fy += (ay / ac - u.vy) * 0.5;
+
+  let fx = _boids.sx * 3,
+    fy = _boids.sy * 3;
+  if (_boids.ac > 0) {
+    fx += (_boids.ax / _boids.ac - u.vx) * 0.5;
+    fy += (_boids.ay / _boids.ac - u.vy) * 0.5;
   }
-  if (cc > 0) {
-    fx += (chx / cc - u.x) * 0.01;
-    fy += (chy / cc - u.y) * 0.01;
+  if (_boids.cc > 0) {
+    fx += (_boids.chx / _boids.cc - u.x) * 0.01;
+    fy += (_boids.chy / _boids.cc - u.y) * 0.01;
   }
   _force.x = fx;
   _force.y = fy;
