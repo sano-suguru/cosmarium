@@ -2,6 +2,7 @@ import { getColor, getTrailColor } from '../colors.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
+import { rng } from '../state.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -14,16 +15,16 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   const cnt = Math.min((18 + size * 3) | 0, 50);
 
   for (let i = 0; i < cnt; i++) {
-    const a = Math.random() * 6.283;
-    const sp = 40 + Math.random() * 200 * (size / 10);
-    const lf = 0.3 + Math.random() * 0.8;
+    const a = rng() * 6.283;
+    const sp = 40 + rng() * 200 * (size / 10);
+    const lf = 0.3 + rng() * 0.8;
     spawnParticle(
       x,
       y,
       Math.cos(a) * sp,
       Math.sin(a) * sp,
       lf,
-      2 + Math.random() * size * 0.4,
+      2 + rng() * size * 0.4,
       c[0] * 0.5 + 0.5,
       c[1] * 0.5 + 0.5,
       c[2] * 0.5 + 0.5,
@@ -31,14 +32,14 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
     );
   }
   for (let i = 0; i < 5; i++) {
-    const a = Math.random() * 6.283;
+    const a = rng() * 6.283;
     spawnParticle(
       x,
       y,
-      Math.cos(a) * Math.random() * 50,
-      Math.sin(a) * Math.random() * 50,
-      0.1 + Math.random() * 0.12,
-      size * 0.7 + Math.random() * 3,
+      Math.cos(a) * rng() * 50,
+      Math.sin(a) * rng() * 50,
+      0.1 + rng() * 0.12,
+      size * 0.7 + rng() * 3,
       1,
       1,
       1,
@@ -47,20 +48,9 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   }
   const dc = Math.min((size * 2) | 0, 14);
   for (let i = 0; i < dc; i++) {
-    const a = Math.random() * 6.283;
-    const sp = 15 + Math.random() * 140;
-    spawnParticle(
-      x,
-      y,
-      Math.cos(a) * sp,
-      Math.sin(a) * sp,
-      0.5 + Math.random() * 2,
-      1 + Math.random() * 2,
-      0.5,
-      0.35,
-      0.2,
-      0,
-    );
+    const a = rng() * 6.283;
+    const sp = 15 + rng() * 140;
+    spawnParticle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.5 + rng() * 2, 1 + rng() * 2, 0.5, 0.35, 0.2, 0);
   }
   spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
 
@@ -91,12 +81,12 @@ export function trail(u: Unit) {
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
   spawnParticle(
-    bx + (Math.random() - 0.5) * t.size * 0.3,
-    by + (Math.random() - 0.5) * t.size * 0.3,
-    -Math.cos(u.angle) * 25 + (Math.random() - 0.5) * 15,
-    -Math.sin(u.angle) * 25 + (Math.random() - 0.5) * 15,
-    0.1 + Math.random() * 0.22 * t.trailInterval,
-    t.size * 0.3 + Math.random() * 1.5,
+    bx + (rng() - 0.5) * t.size * 0.3,
+    by + (rng() - 0.5) * t.size * 0.3,
+    -Math.cos(u.angle) * 25 + (rng() - 0.5) * 15,
+    -Math.sin(u.angle) * 25 + (rng() - 0.5) * 15,
+    0.1 + rng() * 0.22 * t.trailInterval,
+    t.size * 0.3 + rng() * 1.5,
     c[0],
     c[1],
     c[2],
@@ -128,10 +118,10 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     addBeam(cx, cy, o.x, o.y, col[0], col[1], col[2], 0.2, 1.5);
     for (let i = 0; i < 3; i++) {
       spawnParticle(
-        o.x + (Math.random() - 0.5) * 8,
-        o.y + (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * 50,
-        (Math.random() - 0.5) * 50,
+        o.x + (rng() - 0.5) * 8,
+        o.y + (rng() - 0.5) * 8,
+        (rng() - 0.5) * 50,
+        (rng() - 0.5) * 50,
         0.1,
         2,
         col[0],
