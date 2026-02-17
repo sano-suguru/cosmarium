@@ -125,9 +125,15 @@ function reflectProjectile(
   team: number,
   c: Color3,
 ) {
-  const dx = p.x - ux;
-  const dy = p.y - uy;
-  const nd = Math.sqrt(dx * dx + dy * dy) || 1;
+  let dx = p.x - ux;
+  let dy = p.y - uy;
+  let nd = Math.sqrt(dx * dx + dy * dy);
+  if (nd < 0.001) {
+    // 弾がReflector中心と一致: 速度の逆方向を法線として使用
+    dx = -p.vx;
+    dy = -p.vy;
+    nd = Math.sqrt(dx * dx + dy * dy) || 1;
+  }
   const nx = dx / nd;
   const ny = dy / nd;
   // v' = v - 2(v·n)n

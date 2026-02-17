@@ -178,7 +178,7 @@ function updateTrackingBeams(dt: number) {
     tb.life -= dt;
     const src = getUnit(tb.srcUnit);
     const tgt = getUnit(tb.tgtUnit);
-    if (tb.life <= 0 || !src.alive || !tgt.alive) {
+    if (tb.life <= 0 || !src.alive || !tgt.alive || src.team !== tgt.team) {
       const last = trackingBeams[trackingBeams.length - 1];
       if (last !== undefined) trackingBeams[i] = last;
       trackingBeams.pop();
@@ -252,7 +252,7 @@ function shieldNearbyAllies(u: Unit, i: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = getUnit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) continue;
+    if (!o.alive || o.team !== u.team || oi === i || getUnitType(o.type).reflects) continue;
     if (o.shieldLingerTimer <= 0) addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, REFLECTOR_TETHER_BEAM_LIFE, 1.5);
     o.shieldLingerTimer = REFLECTOR_SHIELD_LINGER;
   }
