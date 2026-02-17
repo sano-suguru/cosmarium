@@ -18,7 +18,7 @@ import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat, resetReflectedSet } from './combat.ts';
-import { explosion, trail, updatePendingChains } from './effects.ts';
+import { boostBurst, boostTrail, explosion, trail, updatePendingChains } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
@@ -228,12 +228,17 @@ function updateUnits(dt: number, now: number) {
     if (!u.alive) continue;
     urem--;
     if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
+    const wasNotBoosting = u.boostTimer <= 0;
     steer(u, dt);
     combat(u, i as UnitIndex, dt, now);
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + rng() * 0.02;
       trail(u);
+    }
+    if (u.boostTimer > 0 && u.stun <= 0) {
+      boostTrail(u, dt);
+      if (wasNotBoosting) boostBurst(u);
     }
   }
 }

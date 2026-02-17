@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { getUnit, poolCounts } from '../pools.ts';
-import { beams } from '../state.ts';
+import { getParticle, getUnit, poolCounts } from '../pools.ts';
+import { beams, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
 
@@ -12,7 +12,7 @@ vi.mock('../input/camera.ts', () => ({
 }));
 
 import { addShake } from '../input/camera.ts';
-import { chainLightning, explosion, trail, updatePendingChains } from './effects.ts';
+import { boostBurst, boostTrail, chainLightning, explosion, trail, updatePendingChains } from './effects.ts';
 
 afterEach(() => {
   resetPools();
@@ -279,5 +279,80 @@ describe('chainLightning', () => {
     updatePendingChains(0.06);
     expect(beams[1]?.x1).toBe(snapshotX);
     expect(beams[1]?.y1).toBe(snapshotY);
+  });
+});
+
+describe('boostBurst', () => {
+  it('パーティクルが10個生成される', () => {
+    state.rng = () => 0.5;
+    const idx = spawnAt(0, 0, 100, 100);
+    const before = poolCounts.particleCount;
+    boostBurst(getUnit(idx));
+    expect(poolCounts.particleCount).toBe(before + 10);
+  });
+
+  it('パーティクルのライフが0.3s以下（rng最大値）', () => {
+    state.rng = () => 0.999;
+    const idx = spawnAt(0, 0, 100, 100);
+    boostBurst(getUnit(idx));
+    // life = 0.15 + 0.999 * 0.1 = 0.2499
+    for (let i = 0; i < 10; i++) {
+      const p = getParticle(i);
+      if (p.alive) {
+        expect(p.life).toBeLessThanOrEqual(0.3);
+      }
+    }
+  });
+
+  it('明るいトレイルカラー使用', () => {
+    state.rng = () => 0.5;
+    const idx = spawnAt(0, 0, 100, 100);
+    boostBurst(getUnit(idx));
+    // getTrailColor(0, 0) = [0.1, 0.6, 0.35]
+    // bright variant: [0.55, 0.8, 0.675]
+    const p = getParticle(0);
+    expect(p.r).toBeCloseTo(0.55, 2);
+    expect(p.g).toBeCloseTo(0.8, 2);
+    expect(p.b).toBeCloseTo(0.675, 2);
+  });
+});
+
+describe('boostTrail', () => {
+  it('rng < 閾値でパーティクルが1個生成される', () => {
+    state.rng = () => 0.0;
+    const idx = spawnAt(0, 0, 100, 100);
+    const before = poolCounts.particleCount;
+    boostTrail(getUnit(idx), 1 / 30);
+    // rng()=0.0 < 1 - 0.6^1 ≈ 0.4 → spawn
+    expect(poolCounts.particleCount).toBe(before + 1);
+  });
+
+  it('rng >= 閾値でパーティクルが生成されない', () => {
+    state.rng = () => 0.99;
+    const idx = spawnAt(0, 0, 100, 100);
+    const before = poolCounts.particleCount;
+    boostTrail(getUnit(idx), 1 / 30);
+    // rng()=0.99 >= 0.4 → スキップ
+    expect(poolCounts.particleCount).toBe(before);
+  });
+
+  it('パーティクルがユニット背面に生成される', () => {
+    state.rng = () => 0.0;
+    const idx = spawnAt(0, 0, 200, 200);
+    const u = getUnit(idx);
+    u.angle = 0; // cos(0)=1, sin(0)=0
+    boostTrail(u, 1 / 30);
+    const p = getParticle(0);
+    // ox = 200 - 1 * 4 * 0.8 + (0 - 0.5) * 4 * 0.5 = 200 - 3.2 - 1.0 = 195.8
+    expect(p.x).toBeLessThan(u.x);
+  });
+
+  it('パーティクルのライフが0.3s以下', () => {
+    state.rng = () => 0.0;
+    const idx = spawnAt(0, 0, 100, 100);
+    boostTrail(getUnit(idx), 1 / 30);
+    const p = getParticle(0);
+    // life = 0.08 + rng() * 0.12 = 0.08 (rng=0)
+    expect(p.life).toBeLessThanOrEqual(0.3);
   });
 });

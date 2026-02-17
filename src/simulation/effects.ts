@@ -1,5 +1,5 @@
 import { getColor, getTrailColor } from '../colors.ts';
-import { POOL_UNITS } from '../constants.ts';
+import { POOL_UNITS, REF_FPS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
 import { rng } from '../state.ts';
@@ -278,5 +278,38 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
   }
   if (hops.length > 0) {
     pendingChains.push({ hops, team, elapsed: 0, nextHop: 0 });
+  }
+}
+
+export function boostBurst(u: Unit) {
+  const t = getUnitType(u.type);
+  const c = getTrailColor(u.type, u.team);
+  const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
+  const by = u.y - Math.sin(u.angle) * t.size * 0.8;
+
+  for (let i = 0; i < 10; i++) {
+    const angle = i * (TAU / 10) + rng() * 0.3;
+    const speed = 60 + rng() * 40;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    const life = 0.15 + rng() * 0.1;
+    const size = t.size * 0.4 + rng() * 2;
+    spawnParticle(bx, by, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, 0);
+  }
+}
+
+export function boostTrail(u: Unit, dt: number) {
+  if (rng() < 1 - 0.6 ** (dt * REF_FPS)) {
+    const t = getUnitType(u.type);
+    const c = getTrailColor(u.type, u.team);
+    const cos = Math.cos(u.angle);
+    const sin = Math.sin(u.angle);
+    const ox = u.x - cos * t.size * 0.8 + (rng() - 0.5) * t.size * 0.5;
+    const oy = u.y - sin * t.size * 0.8 + (rng() - 0.5) * t.size * 0.5;
+    const vx = -cos * 40 + (rng() - 0.5) * 20;
+    const vy = -sin * 40 + (rng() - 0.5) * 20;
+    const life = 0.08 + rng() * 0.12;
+    const size = t.size * 0.5 + rng() * 2;
+    spawnParticle(ox, oy, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, 0);
   }
 }
