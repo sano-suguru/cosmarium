@@ -144,7 +144,7 @@ export const TYPES: UnitType[] = [
     attackDesc: 'レールガン＋トレーサーライン',
   },
   {
-    name: 'Ram',
+    name: 'Lancer',
     size: 12,
     hp: 65,
     speed: 260,
@@ -160,7 +160,7 @@ export const TYPES: UnitType[] = [
     attackDesc: '高速体当たり（ノックバック大）',
   },
   {
-    name: 'Missile',
+    name: 'Launcher',
     size: 11,
     hp: 18,
     speed: 100,
@@ -176,7 +176,7 @@ export const TYPES: UnitType[] = [
     attackDesc: '追尾ミサイル（煙トレイル）',
   },
   {
-    name: 'EMP',
+    name: 'Disruptor',
     size: 9,
     hp: 14,
     speed: 110,
@@ -224,7 +224,7 @@ export const TYPES: UnitType[] = [
     attackDesc: 'テレポート→全方位バースト',
   },
   {
-    name: 'Chain Bolt',
+    name: 'Arcer',
     size: 10,
     hp: 16,
     speed: 115,

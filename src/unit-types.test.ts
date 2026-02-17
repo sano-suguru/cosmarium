@@ -68,15 +68,15 @@ describe('TYPES 配列', () => {
     expect(getUnitType(7).spawns).toBe(true);
   });
 
-  it('特殊フラグ: idx 9 (Ram) は rams を持つ', () => {
+  it('特殊フラグ: idx 9 (Lancer) は rams を持つ', () => {
     expect(getUnitType(9).rams).toBe(true);
   });
 
-  it('特殊フラグ: idx 10 (Missile) は homing を持つ', () => {
+  it('特殊フラグ: idx 10 (Launcher) は homing を持つ', () => {
     expect(getUnitType(10).homing).toBe(true);
   });
 
-  it('特殊フラグ: idx 11 (EMP) は emp を持つ', () => {
+  it('特殊フラグ: idx 11 (Disruptor) は emp を持つ', () => {
     expect(getUnitType(11).emp).toBe(true);
   });
 
@@ -88,7 +88,7 @@ describe('TYPES 配列', () => {
     expect(getUnitType(13).teleports).toBe(true);
   });
 
-  it('特殊フラグ: idx 14 (Chain Bolt) は chain を持つ', () => {
+  it('特殊フラグ: idx 14 (Arcer) は chain を持つ', () => {
     expect(getUnitType(14).chain).toBe(true);
   });
 
@@ -122,7 +122,7 @@ describe('unitTypeIndex', () => {
   it('既知の名前でインデックスを返す', () => {
     expect(unitTypeIndex('Drone')).toBe(0);
     expect(unitTypeIndex('Fighter')).toBe(1);
-    expect(unitTypeIndex('Chain Bolt')).toBe(14);
+    expect(unitTypeIndex('Arcer')).toBe(14);
   });
 
   it('存在しない名前でRangeError', () => {
