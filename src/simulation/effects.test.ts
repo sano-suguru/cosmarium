@@ -12,7 +12,7 @@ vi.mock('../input/camera.ts', () => ({
 }));
 
 import { addShake } from '../input/camera.ts';
-import { chainLightning, explosion, trail } from './effects.ts';
+import { chainLightning, explosion, trail, updatePendingChains } from './effects.ts';
 
 afterEach(() => {
   resetPools();
@@ -131,6 +131,7 @@ describe('chainLightning', () => {
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
     // ch=0: 10 * (1 - 0*0.12) = 10
     expect(getUnit(e1).hp).toBeCloseTo(hp1Before - 10);
+    updatePendingChains(0.06);
     // ch=1: 10 * (1 - 1*0.12) = 8.8
     expect(getUnit(e2).hp).toBeCloseTo(hp2Before - 8.8);
     expect(beams).toHaveLength(2);
@@ -164,5 +165,119 @@ describe('chainLightning', () => {
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
     expect(getUnit(ally).hp).toBe(hpBefore);
     expect(beams).toHaveLength(0);
+  });
+
+  it('遅延ダメージタイミング', () => {
+    const e1 = spawnAt(1, 1, 50, 0);
+    const e2 = spawnAt(1, 1, 100, 0);
+    const e3 = spawnAt(1, 1, 150, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hp1Before = getUnit(e1).hp;
+    const hp2Before = getUnit(e2).hp;
+    const hp3Before = getUnit(e3).hp;
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    expect(getUnit(e1).hp).toBeCloseTo(hp1Before - 10);
+    expect(getUnit(e2).hp).toBe(hp2Before);
+    expect(getUnit(e3).hp).toBe(hp3Before);
+    updatePendingChains(0.06);
+    expect(getUnit(e2).hp).toBeCloseTo(hp2Before - 8.8);
+    expect(getUnit(e3).hp).toBe(hp3Before);
+    updatePendingChains(0.06);
+    expect(getUnit(e3).hp).toBeCloseTo(hp3Before - 7.6);
+  });
+
+  it('ビーム数の段階的増加', () => {
+    spawnAt(1, 1, 50, 0);
+    spawnAt(1, 1, 100, 0);
+    spawnAt(1, 1, 150, 0);
+    spawnAt(1, 1, 200, 0);
+    spawnAt(1, 1, 250, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    expect(beams).toHaveLength(1);
+    updatePendingChains(0.06);
+    expect(beams).toHaveLength(2);
+    updatePendingChains(0.06);
+    expect(beams).toHaveLength(3);
+    updatePendingChains(0.06);
+    expect(beams).toHaveLength(4);
+    updatePendingChains(0.06);
+    expect(beams).toHaveLength(5);
+  });
+
+  it('死亡ターゲット処理', () => {
+    spawnAt(1, 1, 50, 0);
+    const e2 = spawnAt(1, 1, 100, 0);
+    spawnAt(1, 1, 150, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const hp2Before = getUnit(e2).hp;
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    getUnit(e2).alive = false;
+    updatePendingChains(0.06);
+    expect(getUnit(e2).hp).toBe(hp2Before);
+    expect(beams).toHaveLength(2);
+  });
+
+  it('チェインクリーンアップ', () => {
+    spawnAt(1, 1, 50, 0);
+    spawnAt(1, 1, 100, 0);
+    spawnAt(1, 1, 150, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    updatePendingChains(0.2);
+    updatePendingChains(0.2);
+    updatePendingChains(0.2);
+    updatePendingChains(0.2);
+    updatePendingChains(0.2);
+    expect(beams).toHaveLength(3);
+    resetState();
+  });
+
+  it('ターゲット0体で pendingChains にエントリなし', () => {
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    updatePendingChains(0.1);
+    expect(beams).toHaveLength(0);
+  });
+
+  it('ビームの lightning フラグ', () => {
+    spawnAt(1, 1, 50, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    expect(beams[0]?.lightning).toBe(true);
+  });
+
+  it('遅延ホップのビーム起点が前ターゲットのライブ座標を使う', () => {
+    const e1 = spawnAt(1, 1, 50, 0);
+    spawnAt(1, 1, 100, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    getUnit(e1).x = 999;
+    getUnit(e1).y = 888;
+    updatePendingChains(0.06);
+    expect(beams[1]?.x1).toBe(999);
+    expect(beams[1]?.y1).toBe(888);
+  });
+
+  it('前ターゲット死亡時はフォールバック座標を使う', () => {
+    const e1 = spawnAt(1, 1, 50, 0);
+    spawnAt(1, 1, 100, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    const snapshotX = getUnit(e1).x;
+    const snapshotY = getUnit(e1).y;
+    getUnit(e1).alive = false;
+    getUnit(e1).x = 999;
+    updatePendingChains(0.06);
+    expect(beams[1]?.x1).toBe(snapshotX);
+    expect(beams[1]?.y1).toBe(snapshotY);
   });
 });

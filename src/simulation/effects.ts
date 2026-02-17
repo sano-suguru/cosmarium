@@ -111,6 +111,94 @@ export function trail(u: Unit) {
   );
 }
 
+interface ChainHop {
+  fromIndex: UnitIndex; // 前ホップのターゲット（ビーム起点のライブ座標に使う）
+  fromX: number; // フォールバック座標（fromIndex が死亡/再利用時）
+  fromY: number;
+  toX: number;
+  toY: number;
+  targetIndex: UnitIndex;
+  damage: number;
+  col: Color3;
+}
+
+interface PendingChain {
+  hops: ChainHop[];
+  team: Team;
+  elapsed: number;
+  nextHop: number;
+}
+
+const pendingChains: PendingChain[] = [];
+const CHAIN_HOP_DELAY = 0.06;
+
+export function resetPendingChains() {
+  pendingChains.length = 0;
+}
+
+export function updatePendingChains(dt: number) {
+  for (let i = pendingChains.length - 1; i >= 0; i--) {
+    const pc = pendingChains[i];
+    if (pc === undefined) continue;
+    pc.elapsed += dt;
+    while (pc.nextHop < pc.hops.length && pc.elapsed >= (pc.nextHop + 1) * CHAIN_HOP_DELAY) {
+      const hop = pc.hops[pc.nextHop];
+      if (hop === undefined) {
+        pc.nextHop = pc.hops.length;
+        break;
+      }
+      fireChainHop(hop);
+      pc.nextHop += 1;
+    }
+    if (pc.nextHop >= pc.hops.length) {
+      const last = pendingChains[pendingChains.length - 1];
+      if (last !== undefined) pendingChains[i] = last;
+      pendingChains.pop();
+    }
+  }
+}
+
+function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Color3) {
+  addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.3, 2.5, undefined, undefined, true);
+  const pCount = 6 + ((rng() * 3) | 0);
+  for (let i = 0; i < pCount; i++) {
+    spawnParticle(
+      tx + (rng() - 0.5) * 8,
+      ty + (rng() - 0.5) * 8,
+      (rng() - 0.5) * 80,
+      (rng() - 0.5) * 80,
+      0.15,
+      2.5,
+      col[0],
+      col[1],
+      col[2],
+      0,
+    );
+  }
+}
+
+function fireChainHop(hop: ChainHop) {
+  const from = hop.fromIndex !== NO_UNIT ? getUnit(hop.fromIndex) : undefined;
+  const fx = from?.alive ? from.x : hop.fromX;
+  const fy = from?.alive ? from.y : hop.fromY;
+  const o = getUnit(hop.targetIndex);
+  const tx = o.alive ? o.x : hop.toX;
+  const ty = o.alive ? o.y : hop.toY;
+  emitChainVisual(fx, fy, tx, ty, hop.col);
+  if (o.alive) {
+    o.hp -= hop.damage;
+    knockback(hop.targetIndex, fx, fy, hop.damage * 8);
+    if (o.hp <= 0) {
+      const hx = o.x,
+        hy = o.y,
+        hTeam = o.team,
+        hType = o.type;
+      killUnit(hop.targetIndex);
+      explosion(hx, hy, hTeam, hType, NO_UNIT);
+    }
+  }
+}
+
 function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex>): UnitIndex {
   const nn = getNeighbors(cx, cy, 200);
   let bd = 200,
@@ -143,21 +231,7 @@ function applyChainHit(
     hy = o.y,
     hTeam = o.team,
     hType = o.type;
-  addBeam(cx, cy, hx, hy, col[0], col[1], col[2], 0.2, 1.5);
-  for (let i = 0; i < 3; i++) {
-    spawnParticle(
-      hx + (rng() - 0.5) * 8,
-      hy + (rng() - 0.5) * 8,
-      (rng() - 0.5) * 50,
-      (rng() - 0.5) * 50,
-      0.1,
-      2,
-      col[0],
-      col[1],
-      col[2],
-      0,
-    );
-  }
+  emitChainVisual(cx, cy, hx, hy, col);
   const dd = damage * (1 - ch * 0.12);
   o.hp -= dd;
   knockback(bi, cx, cy, dd * 8);
@@ -171,13 +245,38 @@ function applyChainHit(
 export function chainLightning(sx: number, sy: number, team: Team, damage: number, max: number, col: Color3) {
   let cx = sx,
     cy = sy;
+  let prevTarget: UnitIndex = NO_UNIT;
   const hit = new Set<UnitIndex>();
+  const hops: ChainHop[] = [];
   for (let ch = 0; ch < max; ch++) {
     const bi = findNearestEnemy(cx, cy, team, hit);
     if (bi === NO_UNIT) break;
     hit.add(bi);
-    const pos = applyChainHit(cx, cy, bi, damage, ch, col);
-    cx = pos.hx;
-    cy = pos.hy;
+    if (ch === 0) {
+      const pos = applyChainHit(cx, cy, bi, damage, ch, col);
+      cx = pos.hx;
+      cy = pos.hy;
+      // killUnit後にスロットが再利用されると後続ホップで無関係なユニットにスナップするため、
+      // 死亡時はNO_UNITにしてフォールバック座標を使わせる
+      prevTarget = getUnit(bi).alive ? bi : NO_UNIT;
+      continue;
+    }
+    const o = getUnit(bi);
+    hops.push({
+      fromIndex: prevTarget,
+      fromX: cx,
+      fromY: cy,
+      toX: o.x,
+      toY: o.y,
+      targetIndex: bi,
+      damage: damage * (1 - ch * 0.12),
+      col: [col[0], col[1], col[2]],
+    });
+    cx = o.x;
+    cy = o.y;
+    prevTarget = bi;
+  }
+  if (hops.length > 0) {
+    pendingChains.push({ hops, team, elapsed: 0, nextHop: 0 });
   }
 }

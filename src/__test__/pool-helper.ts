@@ -8,6 +8,7 @@ import {
   setProjectileCountForTest,
   setUnitCountForTest,
 } from '../pools.ts';
+import { resetPendingChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import { beams, seedRng, state, trackingBeams } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
@@ -113,6 +114,7 @@ export function resetState() {
   seedRng(12345);
   beams.length = 0;
   trackingBeams.length = 0;
+  resetPendingChains();
 }
 
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値でモックして確定的にユニットを生成する共通ヘルパー */

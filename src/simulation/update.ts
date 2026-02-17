@@ -18,7 +18,7 @@ import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat, resetReflectedSet } from './combat.ts';
-import { explosion, trail } from './effects.ts';
+import { explosion, trail, updatePendingChains } from './effects.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
@@ -282,6 +282,7 @@ function stepOnce(dt: number, now: number) {
   updateProjectiles(dt);
   updateParticles(dt);
   updateBeams(dt);
+  updatePendingChains(dt);
   updateTrackingBeams(dt);
 
   if (!state.codexOpen) {
