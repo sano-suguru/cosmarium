@@ -23,12 +23,12 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Healer'), count: 3, spread: 400 },
   { type: T('Reflector'), count: 2, spread: 300 },
   { type: T('Sniper'), count: 4, spread: 600 },
-  { type: T('Ram'), count: 3, spread: 400 },
-  { type: T('Missile'), count: 3, spread: 500 },
-  { type: T('EMP'), count: 2, spread: 400 },
+  { type: T('Lancer'), count: 3, spread: 400 },
+  { type: T('Launcher'), count: 3, spread: 500 },
+  { type: T('Disruptor'), count: 2, spread: 400 },
   { type: T('Beam Frig.'), count: 3, spread: 400 },
   { type: T('Teleporter'), count: 2, spread: 400 },
-  { type: T('Chain Bolt'), count: 2, spread: 400 },
+  { type: T('Arcer'), count: 2, spread: 400 },
 ];
 
 export function initUnits() {

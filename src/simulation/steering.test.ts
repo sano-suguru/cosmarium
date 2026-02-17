@@ -109,15 +109,15 @@ describe('steer — ターゲット探索', () => {
   });
 });
 
-describe('steer — RAM型', () => {
-  it('RAM型はターゲットに向かって強い力で突進', () => {
-    const ram = spawnAt(0, 9, 0, 0); // type 9 = Ram
+describe('steer — LANCER型', () => {
+  it('LANCER型はターゲットに向かって強い力で突進', () => {
+    const lancer = spawnAt(0, 9, 0, 0); // type 9 = Lancer
     const enemy = spawnAt(1, 1, 200, 0);
-    getUnit(ram).target = enemy;
+    getUnit(lancer).target = enemy;
     buildHash();
-    steer(getUnit(ram), 0.033);
+    steer(getUnit(lancer), 0.033);
     // ターゲットはx正方向なので、vxが正方向に増加
-    expect(getUnit(ram).vx).toBeGreaterThan(0);
+    expect(getUnit(lancer).vx).toBeGreaterThan(0);
   });
 });
 

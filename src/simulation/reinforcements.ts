@@ -27,12 +27,12 @@ const HEALER = unitTypeIndex('Healer');
 const REFLECTOR = unitTypeIndex('Reflector');
 const CARRIER = unitTypeIndex('Carrier');
 const SNIPER = unitTypeIndex('Sniper');
-const RAM = unitTypeIndex('Ram');
-const MISSILE = unitTypeIndex('Missile');
-const EMP = unitTypeIndex('EMP');
+const LANCER = unitTypeIndex('Lancer');
+const LAUNCHER = unitTypeIndex('Launcher');
+const DISRUPTOR = unitTypeIndex('Disruptor');
 const BEAM_FRIG = unitTypeIndex('Beam Frig.');
 const TELEPORTER = unitTypeIndex('Teleporter');
-const CHAIN_BOLT = unitTypeIndex('Chain Bolt');
+const ARCER = unitTypeIndex('Arcer');
 
 const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
@@ -42,12 +42,12 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: REFLECTOR, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // 15%
   { type: CARRIER, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // 18% (losing)
   { type: SNIPER, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // 15%
-  { type: RAM, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
-  { type: MISSILE, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
-  { type: EMP, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
+  { type: LANCER, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
+  { type: LAUNCHER, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
+  { type: DISRUPTOR, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
   { type: BEAM_FRIG, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
   { type: TELEPORTER, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
-  { type: CHAIN_BOLT, spread: 60, condition: (r) => r > 0.95 }, // 5%
+  { type: ARCER, spread: 60, condition: (r) => r > 0.95 }, // 5%
 ];
 
 function countAlive(team: Team): number {

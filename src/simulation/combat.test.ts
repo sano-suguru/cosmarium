@@ -53,50 +53,50 @@ describe('combat — 共通', () => {
   });
 });
 
-describe('combat — RAM', () => {
+describe('combat — LANCER', () => {
   it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass)', () => {
-    const ram = spawnAt(0, 9, 0, 0); // Ram (mass=12)
+    const lancer = spawnAt(0, 9, 0, 0); // Lancer (mass=12)
     const enemy = spawnAt(1, 1, 5, 0); // Fighter (mass=2, size=7)
     buildHash();
-    const ramHpBefore = getUnit(ram).hp;
+    const lancerHpBefore = getUnit(lancer).hp;
     const enemyHpBefore = getUnit(enemy).hp;
-    combat(getUnit(ram), ram, 0.016, 0);
-    // Ram (size=12) + Fighter (size=7) = 19, distance = 5 < 19 → 衝突
+    combat(getUnit(lancer), lancer, 0.016, 0);
+    // Lancer (size=12) + Fighter (size=7) = 19, distance = 5 < 19 → 衝突
     // vet=0: vd = 1 + 0*0.2 = 1
     // enemy damage: ceil(12 * 3 * 1) = 36
     expect(getUnit(enemy).hp).toBe(enemyHpBefore - 36);
     // self damage: ceil(Fighter.mass) = ceil(2) = 2
-    expect(getUnit(ram).hp).toBe(ramHpBefore - 2);
+    expect(getUnit(lancer).hp).toBe(lancerHpBefore - 2);
   });
 
   it('衝突でノックバック発生', () => {
-    const ram = spawnAt(0, 9, 0, 0);
+    const lancer = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 1, 5, 0);
     getUnit(enemy).vx = 0;
     getUnit(enemy).vy = 0;
     buildHash();
-    combat(getUnit(ram), ram, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0);
     // ノックバックで敵のvxが変化
     expect(getUnit(enemy).vx).not.toBe(0);
   });
 
   it('敵HP<=0 → killUnit + explosion', () => {
-    const ram = spawnAt(0, 9, 0, 0);
+    const lancer = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, size=4)
     buildHash();
-    combat(getUnit(ram), ram, 0.016, 0);
-    // Ram damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
+    combat(getUnit(lancer), lancer, 0.016, 0);
+    // Lancer damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
     expect(getUnit(enemy).alive).toBe(false);
   });
 
   it('自身HP<=0 → 自身も死亡', () => {
-    const ram = spawnAt(0, 9, 0, 0);
-    getUnit(ram).hp = 1; // HP1にする
+    const lancer = spawnAt(0, 9, 0, 0);
+    getUnit(lancer).hp = 1; // HP1にする
     spawnAt(1, 4, 5, 0); // Flagship (mass=30)
     buildHash();
-    combat(getUnit(ram), ram, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
-    expect(getUnit(ram).alive).toBe(false);
+    expect(getUnit(lancer).alive).toBe(false);
   });
 });
 
@@ -294,36 +294,36 @@ describe('combat — CARRIER', () => {
   });
 });
 
-describe('combat — EMP', () => {
+describe('combat — DISRUPTOR', () => {
   it('範囲内の敵にstun=1.5 + ダメージ', () => {
-    const emp = spawnAt(0, 11, 0, 0); // EMP (rng=200, damage=2)
+    const disruptor = spawnAt(0, 11, 0, 0); // Disruptor (rng=200, damage=2)
     const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(emp).abilityCooldown = 0;
-    getUnit(emp).target = enemy;
+    getUnit(disruptor).abilityCooldown = 0;
+    getUnit(disruptor).target = enemy;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(emp), emp, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0);
     expect(getUnit(enemy).stun).toBe(1.5);
     expect(getUnit(enemy).hp).toBe(hpBefore - 2); // damage=2
   });
 
   it('tgt<0 → 即return', () => {
-    const emp = spawnAt(0, 11, 0, 0);
-    getUnit(emp).abilityCooldown = 0;
-    getUnit(emp).target = NO_UNIT;
+    const disruptor = spawnAt(0, 11, 0, 0);
+    getUnit(disruptor).abilityCooldown = 0;
+    getUnit(disruptor).target = NO_UNIT;
     buildHash();
-    combat(getUnit(emp), emp, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0);
     expect(poolCounts.particleCount).toBe(0); // パーティクルなし = 何も実行されず
   });
 
   it('味方にスタンはかからない', () => {
-    const emp = spawnAt(0, 11, 0, 0);
+    const disruptor = spawnAt(0, 11, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(emp).abilityCooldown = 0;
-    getUnit(emp).target = enemy;
+    getUnit(disruptor).abilityCooldown = 0;
+    getUnit(disruptor).target = enemy;
     buildHash();
-    combat(getUnit(emp), emp, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0);
     expect(getUnit(ally).stun).toBe(0);
     expect(getUnit(enemy).stun).toBe(1.5);
   });
@@ -374,24 +374,24 @@ describe('combat — TELEPORTER', () => {
 
 describe('combat — CHAIN LIGHTNING', () => {
   it('chainLightning() 呼出 + cooldownリセット', () => {
-    const chain = spawnAt(0, 14, 0, 0); // Chain Bolt (rng=250, fireRate=2)
+    const arcer = spawnAt(0, 14, 0, 0); // Arcer (rng=250, fireRate=2)
     const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(chain).cooldown = 0;
-    getUnit(chain).target = enemy;
+    getUnit(arcer).cooldown = 0;
+    getUnit(arcer).target = enemy;
     buildHash();
-    combat(getUnit(chain), chain, 0.016, 0);
+    combat(getUnit(arcer), arcer, 0.016, 0);
     // cooldown = fireRate = 2
-    expect(getUnit(chain).cooldown).toBeCloseTo(getUnitType(14).fireRate);
+    expect(getUnit(arcer).cooldown).toBeCloseTo(getUnitType(14).fireRate);
     // ビーム + ダメージ
     expect(beams.length).toBeGreaterThan(0);
   });
 
   it('tgt<0 → 即return', () => {
-    const chain = spawnAt(0, 14, 0, 0);
-    getUnit(chain).cooldown = 0;
-    getUnit(chain).target = NO_UNIT;
+    const arcer = spawnAt(0, 14, 0, 0);
+    getUnit(arcer).cooldown = 0;
+    getUnit(arcer).target = NO_UNIT;
     buildHash();
-    combat(getUnit(chain), chain, 0.016, 0);
+    combat(getUnit(arcer), arcer, 0.016, 0);
     expect(beams.length).toBe(0);
   });
 });
@@ -444,12 +444,12 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('homing: ホーミングプロジェクタイル生成', () => {
-    const missile = spawnAt(0, 10, 0, 0); // Missile (homing=true)
+    const launcher = spawnAt(0, 10, 0, 0); // Launcher (homing=true)
     const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(missile).cooldown = 0;
-    getUnit(missile).target = enemy;
+    getUnit(launcher).cooldown = 0;
+    getUnit(launcher).target = enemy;
     buildHash();
-    combat(getUnit(missile), missile, 0.016, 0);
+    combat(getUnit(launcher), launcher, 0.016, 0);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).homing).toBe(true);
     expect(getProjectile(0).targetIndex).toBe(enemy);
