@@ -15,6 +15,7 @@ const SH_EXPLOSION_RING = 10;
 const SH_BEAM = 12;
 const SH_BAR = 21;
 const SH_OCT_SHIELD = 22;
+const SH_LIGHTNING = 23;
 
 const _writer = { idx: 0, overflowWarned: false };
 
@@ -55,8 +56,9 @@ function writeBeamSegment(
   b: number,
   a: number,
   angle: number,
+  shape: number = SH_BEAM,
 ) {
-  writeInstance(x, y, size, r, g, b, a, angle, SH_BEAM);
+  writeInstance(x, y, size, r, g, b, a, angle, shape);
 }
 
 function renderStunStars(u: Unit, ut: UnitType, now: number) {
@@ -168,6 +170,7 @@ function computeTaperScale(tail: number): number {
   return 1;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: lightning beam logic adds complexity
 function renderBeams(now: number) {
   for (let i = 0; i < beams.length; i++) {
     const bm = getBeam(i);
@@ -178,20 +181,62 @@ function renderBeams(now: number) {
     const divisor = bm.stepDiv ?? 1;
     const steps = Math.max(3, (d / (5 * divisor)) | 0);
     const ang = Math.atan2(dy, dx);
-    for (let j = 0; j <= steps; j++) {
-      const t = j / steps;
-      const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
-      const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
-      writeBeamSegment(
-        bm.x1 + dx * t,
-        bm.y1 + dy * t,
-        bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
-        bm.r * al * fl,
-        bm.g * al * fl,
-        bm.b * al * fl,
-        al * 0.85 * tipScale,
-        ang,
-      );
+    if (bm.lightning) {
+      const lSteps = Math.max(3, (d / 8) | 0);
+      const perpX = -Math.sin(ang),
+        perpY = Math.cos(ang);
+      const pts: number[] = [];
+      for (let j = 0; j <= lSteps; j++) {
+        const t = j / lSteps;
+        let off = 0;
+        if (j > 0 && j < lSteps) {
+          const h = Math.sin(j * 127.1 + now * 40) * 43758.5;
+          const rnd = h - Math.floor(h);
+          off = (rnd * 2 - 1) * bm.width * 4;
+        }
+        pts.push(bm.x1 + dx * t + perpX * off, bm.y1 + dy * t + perpY * off);
+      }
+      for (let j = 0; j < lSteps; j++) {
+        const x0 = pts[j * 2] as number,
+          y0 = pts[j * 2 + 1] as number;
+        const x1 = pts[j * 2 + 2] as number,
+          y1 = pts[j * 2 + 3] as number;
+        const mx = (x0 + x1) * 0.5,
+          my = (y0 + y1) * 0.5;
+        const segDx = x1 - x0,
+          segDy = y1 - y0;
+        const segLen = Math.sqrt(segDx * segDx + segDy * segDy);
+        const segAng = Math.atan2(segDy, segDx);
+        const fl = 0.8 + Math.sin(j * 5.0 + now * 55) * 0.2;
+        const white = 0.5 + al * 0.5;
+        writeBeamSegment(
+          mx,
+          my,
+          segLen * 0.6,
+          (bm.r * 0.4 + white * 0.6) * al * fl,
+          (bm.g * 0.4 + white * 0.6) * al * fl,
+          (bm.b * 0.4 + white * 0.6) * al * fl,
+          al * 0.9,
+          segAng,
+          SH_LIGHTNING,
+        );
+      }
+    } else {
+      for (let j = 0; j <= steps; j++) {
+        const t = j / steps;
+        const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
+        const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
+        writeBeamSegment(
+          bm.x1 + dx * t,
+          bm.y1 + dy * t,
+          bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
+          bm.r * al * fl,
+          bm.g * al * fl,
+          bm.b * al * fl,
+          al * 0.85,
+          ang,
+        );
+      }
     }
   }
   for (let i = 0; i < trackingBeams.length; i++) {

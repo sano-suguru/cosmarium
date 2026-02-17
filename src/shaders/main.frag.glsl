@@ -62,6 +62,10 @@ void main(){
     float n6=exp(-length(vU-v6)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+4.712)));
     float n7=exp(-length(vU-v7)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+5.498)));
     a+=n0+n1+n2+n3+n4+n5+n6+n7; }
+  else if(sh==23){ float by=abs(vU.y);
+    float core=exp(-by*8.0)*1.3;
+    float glow=exp(-by*2.5)*0.4;
+    a=core+glow; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
 }
