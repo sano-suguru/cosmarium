@@ -35,6 +35,8 @@ export function resetPools() {
     u.abilityCooldown = 0;
     u.shieldLingerTimer = 0;
     u.stun = 0;
+    u.boostTimer = 0;
+    u.boostCooldown = 0;
     u.spawnCooldown = 0;
     u.teleportTimer = 0;
     u.beamOn = 0;
