@@ -26,6 +26,8 @@ export interface Unit {
   vet: number;
   burstCount: number;
   swarmN: number;
+  boostTimer: number;
+  boostCooldown: number;
 }
 
 export interface Particle {
@@ -73,6 +75,8 @@ export interface UnitType {
   shape: number;
   trailInterval: number;
   mass: number;
+  accel: number;
+  drag: number;
   description: string;
   attackDesc: string;
   aoe?: number;
@@ -88,6 +92,7 @@ export interface UnitType {
   sweep?: boolean;
   swarm?: boolean;
   burst?: number;
+  boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
 }
 
 export interface Beam {

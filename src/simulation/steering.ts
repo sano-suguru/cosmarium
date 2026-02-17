@@ -177,6 +177,30 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   return _force;
 }
 
+function handleBoost(u: Unit, boost: NonNullable<UnitType['boost']>, tgt: number, dt: number) {
+  if (u.boostCooldown > 0) u.boostCooldown -= dt;
+
+  if (u.boostTimer > 0) {
+    u.boostTimer -= dt;
+    if (u.boostTimer <= 0) {
+      u.boostTimer = 0;
+      u.boostCooldown = boost.cooldown;
+    }
+  }
+
+  if (u.boostTimer <= 0 && u.boostCooldown <= 0 && tgt !== NO_UNIT) {
+    const o = getUnit(tgt);
+    const dx = o.x - u.x;
+    const dy = o.y - u.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d <= boost.triggerRange) {
+      u.boostTimer = boost.duration;
+      u.vx *= boost.multiplier;
+      u.vy *= boost.multiplier;
+    }
+  }
+}
+
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;
@@ -219,12 +243,13 @@ export function steer(u: Unit, dt: number) {
   if (ad < -PI) ad += TAU;
   u.angle += ad * t.turnRate * dt;
 
+  if (t.boost) handleBoost(u, t.boost, tgt, dt);
+
   const spd = t.speed * (1 + u.vet * 0.12);
-  const inertia = 1 / u.mass ** 0.25;
-  const response = dt * 3 * inertia;
+  const response = dt * t.accel;
   u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
   u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
-  const moveDrag = (1 - 0.5 / REF_FPS) ** (dt * REF_FPS);
+  const moveDrag = (1 - Math.min(1, t.drag / REF_FPS)) ** (dt * REF_FPS);
   u.vx *= moveDrag;
   u.vy *= moveDrag;
   u.x += u.vx * dt;
