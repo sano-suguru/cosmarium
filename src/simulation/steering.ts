@@ -177,15 +177,29 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   return _force;
 }
 
-function handleBoost(u: Unit, boost: NonNullable<UnitType['boost']>, tgt: number, dt: number) {
-  if (u.boostCooldown > 0) u.boostCooldown -= dt;
+// 再利用ブースト速度バッファ — handleBoost が上書きして返却する
+const _boostVel = { vx: 0, vy: 0 };
 
+function handleBoost(
+  u: Unit,
+  boost: NonNullable<UnitType['boost']>,
+  tgt: number,
+  spd: number,
+  dt: number,
+): typeof _boostVel | null {
   if (u.boostTimer > 0) {
     u.boostTimer -= dt;
     if (u.boostTimer <= 0) {
       u.boostTimer = 0;
       u.boostCooldown = boost.cooldown;
+    } else {
+      const bv = spd * boost.multiplier;
+      _boostVel.vx = Math.cos(u.angle) * bv;
+      _boostVel.vy = Math.sin(u.angle) * bv;
+      return _boostVel;
     }
+  } else if (u.boostCooldown > 0) {
+    u.boostCooldown = Math.max(0, u.boostCooldown - dt);
   }
 
   if (u.boostTimer <= 0 && u.boostCooldown <= 0 && tgt !== NO_UNIT) {
@@ -195,15 +209,33 @@ function handleBoost(u: Unit, boost: NonNullable<UnitType['boost']>, tgt: number
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d <= boost.triggerRange) {
       u.boostTimer = boost.duration;
-      u.vx *= boost.multiplier;
-      u.vy *= boost.multiplier;
+      const bv = spd * boost.multiplier;
+      const nd = d || 1;
+      _boostVel.vx = (dx / nd) * bv;
+      _boostVel.vy = (dy / nd) * bv;
+      return _boostVel;
     }
+  }
+  return null;
+}
+
+function tickBoostDuringStun(u: Unit, dt: number) {
+  if (u.boostTimer <= 0 && u.boostCooldown <= 0) return;
+  const bt = getUnitType(u.type).boost;
+  if (!bt) return;
+  if (u.boostTimer > 0) {
+    u.boostTimer = 0;
+    u.boostCooldown = bt.cooldown;
+  }
+  if (u.boostCooldown > 0) {
+    u.boostCooldown = Math.max(0, u.boostCooldown - dt);
   }
 }
 
 export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;
+    tickBoostDuringStun(u, dt);
     const stunDrag = 0.93 ** (dt * REF_FPS);
     u.vx *= stunDrag;
     u.vy *= stunDrag;
@@ -243,12 +275,16 @@ export function steer(u: Unit, dt: number) {
   if (ad < -PI) ad += TAU;
   u.angle += ad * t.turnRate * dt;
 
-  if (t.boost) handleBoost(u, t.boost, tgt, dt);
-
   const spd = t.speed * (1 + u.vet * 0.12);
+
+  const boostVel = t.boost ? handleBoost(u, t.boost, tgt, spd, dt) : null;
   const response = dt * t.accel;
   u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
   u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
+  if (boostVel) {
+    u.vx = boostVel.vx;
+    u.vy = boostVel.vy;
+  }
   const moveDrag = (1 - Math.min(1, t.drag / REF_FPS)) ** (dt * REF_FPS);
   u.vx *= moveDrag;
   u.vy *= moveDrag;
