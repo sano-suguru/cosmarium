@@ -103,6 +103,7 @@ export interface Beam {
   width: number;
   tapered?: boolean;
   stepDiv?: number;
+  lightning?: boolean;
 }
 
 export interface TrackingBeam {

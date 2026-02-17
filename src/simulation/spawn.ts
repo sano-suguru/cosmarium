@@ -173,10 +173,12 @@ export function addBeam(
   width: number,
   tapered?: boolean,
   stepDiv?: number,
+  lightning?: boolean,
 ) {
   const bm: Beam = { x1, y1, x2, y2, r, g, b, life, maxLife: life, width };
   if (tapered) bm.tapered = true;
   if (stepDiv !== undefined && stepDiv > 1) bm.stepDiv = stepDiv;
+  if (lightning) bm.lightning = true;
   beams.push(bm);
 }
 
