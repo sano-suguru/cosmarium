@@ -23,10 +23,10 @@ const codexDemoTable: [DemoFlag, (mi: UnitIndex) => void][] = [
   ['heals', () => demoHealer()],
   ['reflects', (mi) => demoReflector(mi)],
   ['spawns', () => demoCarrier()],
-  ['emp', () => demoEmp()],
-  ['chain', () => demoChain()],
+  ['emp', () => demoDisruptor()],
+  ['chain', () => demoArcer()],
   ['teleports', () => demoTeleporter()],
-  ['rams', (mi) => demoRam(mi)],
+  ['rams', (mi) => demoLancer(mi)],
   ['sweep', (mi) => demoSweepBeam(mi)],
   ['beam', () => demoFocusBeam()],
 ];
@@ -118,7 +118,7 @@ function demoCarrier() {
   }
 }
 
-function demoEmp() {
+function demoDisruptor() {
   for (let i = 0; i < 8; i++) {
     const a = Math.random() * 6.283,
       r = 80 + Math.random() * 60;
@@ -126,7 +126,7 @@ function demoEmp() {
   }
 }
 
-function demoChain() {
+function demoArcer() {
   for (let i = 0; i < 6; i++) {
     spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
   }
@@ -138,7 +138,7 @@ function demoTeleporter() {
   }
 }
 
-function demoRam(mi: UnitIndex) {
+function demoLancer(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
     spawnUnit(1, 3, 250, (i - 1) * 80);
   }
