@@ -63,7 +63,7 @@ function spawnWave(team: Team, cnt: number, rng: () => number) {
   const cy = (rng() - 0.5) * WORLD_SIZE;
   const r = rng();
   const s = (tp: number, spread: number) => {
-    spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread);
+    spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
   };
   for (let i = 0; i < 8; i++) s(DRONE, 100);
   for (let i = 0; i < 2; i++) s(FIGHTER, 80);

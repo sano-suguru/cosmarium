@@ -18,6 +18,9 @@ import {
 type DemoFlag = keyof UnitType &
   ('swarm' | 'burst' | 'heals' | 'reflects' | 'spawns' | 'emp' | 'chain' | 'teleports' | 'rams' | 'sweep' | 'beam');
 
+/** Codexデモは決定性に影響しないためMath.randomを使用 */
+const demoRng: () => number = Math.random;
+
 const codexDemoTable: [DemoFlag, (mi: UnitIndex) => void][] = [
   ['swarm', (mi) => demoDroneSwarm(mi)],
   ['burst', (mi) => demoBurstFighter(mi)],
@@ -66,11 +69,11 @@ function closeCodex() {
 function demoDroneSwarm(mi: UnitIndex) {
   for (let i = 0; i < 5; i++) {
     const a = ((i + 1) / 6) * Math.PI * 2;
-    spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40);
+    spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40, demoRng);
   }
   // 決定性に影響しないため Math.random() を許容
   for (let i = 0; i < 6; i++) {
-    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
+    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -79,7 +82,7 @@ function demoDroneSwarm(mi: UnitIndex) {
 
 function demoBurstFighter(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 1, 200 + (Math.random() - 0.5) * 60, (i - 1) * 60);
+    const ei = spawnUnit(1, 1, 200 + (Math.random() - 0.5) * 60, (i - 1) * 60, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -87,26 +90,26 @@ function demoBurstFighter(mi: UnitIndex) {
 }
 
 function demoHealer() {
-  const ai = spawnUnit(0, 1, -60, 0);
+  const ai = spawnUnit(0, 1, -60, 0, demoRng);
   if (ai !== NO_UNIT) {
     getUnit(ai).hp = 3;
   }
-  const ai2 = spawnUnit(0, 0, 60, -40);
+  const ai2 = spawnUnit(0, 0, 60, -40, demoRng);
   if (ai2 !== NO_UNIT) {
     getUnit(ai2).hp = 1;
   }
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120);
+    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120, demoRng);
   }
 }
 
 function demoReflector(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
     const a = ((i + 1) / 4) * Math.PI * 2;
-    spawnUnit(0, 0, Math.cos(a) * 50, Math.sin(a) * 50);
+    spawnUnit(0, 0, Math.cos(a) * 50, Math.sin(a) * 50, demoRng);
   }
   for (let i = 0; i < 5; i++) {
-    const ei = spawnUnit(1, 1, 80 + Math.random() * 40, (i - 2) * 40);
+    const ei = spawnUnit(1, 1, 80 + Math.random() * 40, (i - 2) * 40, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -115,7 +118,7 @@ function demoReflector(mi: UnitIndex) {
 
 function demoCarrier() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150);
+    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150, demoRng);
   }
 }
 
@@ -123,25 +126,25 @@ function demoDisruptor() {
   for (let i = 0; i < 8; i++) {
     const a = Math.random() * 6.283,
       r = 80 + Math.random() * 60;
-    spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r);
+    spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r, demoRng);
   }
 }
 
 function demoArcer() {
   for (let i = 0; i < 6; i++) {
-    spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10));
+    spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10), demoRng);
   }
 }
 
 function demoTeleporter() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150);
+    spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150, demoRng);
   }
 }
 
 function demoLancer(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 3, 250, (i - 1) * 80);
+    spawnUnit(1, 3, 250, (i - 1) * 80, demoRng);
   }
   if (mi !== NO_UNIT) getUnit(mi).x = -200;
 }
@@ -150,15 +153,15 @@ function demoSweepBeam(mi: UnitIndex) {
   if (mi !== NO_UNIT) getUnit(mi).cooldown = 0;
   for (let i = 0; i < 6; i++) {
     const angle = ((i - 2.5) / 5) * 1.2;
-    spawnUnit(1, 0, 200 + Math.cos(angle) * 40, Math.sin(angle) * 120);
+    spawnUnit(1, 0, 200 + Math.cos(angle) * 40, Math.sin(angle) * 120, demoRng);
   }
 }
 
 function demoFocusBeam() {
-  const ti = spawnUnit(1, 1, 200, 0);
+  const ti = spawnUnit(1, 1, 200, 0, demoRng);
   if (ti !== NO_UNIT) getUnit(ti).hp = getUnit(ti).maxHp;
   for (let i = 0; i < 2; i++) {
-    spawnUnit(1, 0, 250, (i === 0 ? -1 : 1) * 100);
+    spawnUnit(1, 0, 250, (i === 0 ? -1 : 1) * 100, demoRng);
   }
 }
 
@@ -168,7 +171,7 @@ function demoDefault(t: UnitType) {
   else if (t.shape === 8) cnt = 2;
   else cnt = 4;
   for (let i = 0; i < cnt; i++) {
-    spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200);
+    spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200, demoRng);
   }
 }
 
@@ -209,7 +212,7 @@ function setupCodexDemo(typeIdx: number) {
   clearDemoEffects();
 
   const t = getUnitType(typeIdx);
-  const mi = spawnUnit(0, typeIdx, 0, 0);
+  const mi = spawnUnit(0, typeIdx, 0, 0, demoRng);
   if (mi !== NO_UNIT) {
     getUnit(mi).angle = 0;
   }

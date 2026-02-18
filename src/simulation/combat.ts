@@ -240,7 +240,7 @@ function handleCarrier(ctx: CombatContext) {
     u.spawnCooldown = 4 + ctx.rng() * 2;
     for (let i = 0; i < 4; i++) {
       const a = ctx.rng() * 6.283;
-      spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2);
+      spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2, ctx.rng);
     }
     for (let i = 0; i < 10; i++) {
       const a = ctx.rng() * 6.283;
