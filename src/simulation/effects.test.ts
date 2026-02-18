@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { getParticle, getUnit, poolCounts } from '../pools.ts';
-import { beams, rng, state } from '../state.ts';
+import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
 

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';

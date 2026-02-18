@@ -1,4 +1,4 @@
-import type { Beam, GameState, TrackingBeam } from './types.ts';
+import type { GameState } from './types.ts';
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0;
@@ -44,19 +44,3 @@ export const state: State = {
   reinforcementTimer: 0,
   rng: currentRng,
 };
-
-export const beams: Beam[] = [];
-
-export function getBeam(i: number): Beam {
-  const b = beams[i];
-  if (b === undefined) throw new RangeError(`Invalid beam index: ${i}`);
-  return b;
-}
-
-export const trackingBeams: TrackingBeam[] = [];
-
-export function getTrackingBeam(i: number): TrackingBeam {
-  const b = trackingBeams[i];
-  if (b === undefined) throw new RangeError(`Invalid tracking beam index: ${i}`);
-  return b;
-}

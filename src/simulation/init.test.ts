@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams } from '../state.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),

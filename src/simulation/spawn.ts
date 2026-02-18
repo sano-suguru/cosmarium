@@ -1,3 +1,4 @@
+import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
   decParticleCount,
@@ -10,7 +11,7 @@ import {
   incProjectileCount,
   incUnitCount,
 } from '../pools.ts';
-import { beams, rng, trackingBeams } from '../state.ts';
+import { rng } from '../state.ts';
 import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';

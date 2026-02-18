@@ -1,7 +1,7 @@
+import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { getColor } from '../colors.ts';
 import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
-import { beams, getBeam, getTrackingBeam, trackingBeams } from '../state.ts';
 import type { Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';

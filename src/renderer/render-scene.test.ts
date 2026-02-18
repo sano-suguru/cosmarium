@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { MAX_INSTANCES } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
-import { beams } from '../state.ts';
 
 const mockWriteSlots = vi.fn();
 

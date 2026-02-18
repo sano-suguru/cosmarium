@@ -1,6 +1,7 @@
+import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { beams, rng, trackingBeams } from '../state.ts';
+import { rng } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';

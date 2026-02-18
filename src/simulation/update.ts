@@ -1,3 +1,4 @@
+import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import {
   MAX_STEPS_PER_FRAME,
   PI,
@@ -12,7 +13,7 @@ import {
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams, getBeam, getTrackingBeam, rng, state, trackingBeams } from '../state.ts';
+import { rng, state } from '../state.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';

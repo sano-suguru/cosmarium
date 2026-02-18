@@ -25,12 +25,16 @@ bun run knip         # Unused export detection
 bun run cpd          # Copy-paste detection
 bun run test         # Vitest watch mode
 bun run test:run     # Vitest single run
-bun run check        # All checks combined (typecheck + biome ci + knip + cpd + vitest run)
+bun run check        # All checks combined (typecheck + biome ci + knip + cpd + similarity + vitest run + check:deps)
 ```
 
 **Biome** (config in `biome.json`): Pre-commit hook runs `biome check --staged --write`. Key non-obvious rules:
 - `noConsole: error` — only `console.error`/`console.warn` allowed (test files exempt)
 - `noExplicitAny: error`, `noEvolvingTypes: error`, `noDelete: error`, `noBarrelFile: error`
+- `noNonNullAssertion: error` — `!`非null断言禁止
+- `noForEach: error` — `forEach`禁止（for-ofを使用）
+- `noExcessiveCognitiveComplexity: error` — 最大複雑度15
+- `noNestedTernary: error`, `noParameterAssign: error`
 - `src/shaders/**` excluded from Biome
 
 **Testing** ([Vitest](https://vitest.dev/)): `src/**/*.test.ts`, `environment: 'node'`, `restoreMocks: true`. Single test: `bunx vitest run src/path/to.test.ts`.
@@ -41,6 +45,10 @@ Helper utilities in `src/__test__/pool-helper.ts`:
 - `spawnAt(team, type, x, y)` — mocks `Math.random` for deterministic unit spawning
 
 GLSL shaders are imported via `vite-plugin-glsl` (`#include` directives). Shared SDF functions: `src/shaders/includes/sdf.glsl`.
+
+**PRNG**: `rng()` (`state.ts`) — mulberry32ベースの決定論的乱数。`seedRng(seed)` でシード固定可能（テスト用）。シミュレーション内では`rng()`を使用。`main.ts`のカメラシェイクは`Math.random()`（シード制御対象外）。
+
+**similarity-ts**: `bun run similarity` — コード類似度検出（閾値0.92、最小7行）。`check`に含まれる。
 
 ## Architecture
 
@@ -65,11 +73,13 @@ src/
 **Main loop**:
 ```
 frame() → dt clamp(0.05) → camera lerp + shake decay
-  → update(dt * timeScale)  — dt re-clamped to 0.033
-      buildHash() → per unit: steer()+combat() → reflector pass
-      → projectile pass → particle/beam pass
-      [!codexOpen: reinforce() → win check]
-      [codexOpen: updateCodexDemo(dt), non-demo units skip steer/combat]
+  → update(dt * timeScale)  — dt > 1/REF_FPS なら最大8サブステップに分割
+      stepOnce: buildHash → updateSwarmN → resetReflectedSet
+        → per unit: steer+combat+trail+boostEffect
+        → applyReflectorShields → projectiles → particles
+        → beams(swap-and-pop) → pendingChains → trackingBeams
+        [!codexOpen: reinforce → win check]
+        [codexOpen: updateCodexDemo, non-demo units skip steer/combat]
   → renderFrame()
       renderScene() → GPU upload → drawArraysInstanced
       → bloom H/V → composite + drawMinimap()
@@ -87,7 +97,7 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
 
 - **State mutation**: `state.ts` exports `const state: State` — mutate via property assignment
 - **poolCounts**: `Readonly<>` export. Mutation only through spawn/kill functions (internal `_counts` type assertion). Direct assignment is a type error
-- **beams**: Dynamic array (not pooled) — use `.splice()` in reverse loop for deletion
+- **beams**: Dynamic array (not pooled) — swap-and-pop for deletion (swap with last element + `.pop()`)
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import conventions**: Relative paths + explicit `.ts` extension. No path aliases, no barrel exports
@@ -96,6 +106,8 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
   - `exactOptionalPropertyTypes` — cannot assign `undefined` to optional props (use `prop?: T | undefined`)
   - `noUncheckedIndexedAccess` — array/record index returns `T | undefined`
   - `noImplicitReturns` — all branches must explicitly return
+  - `noFallthroughCasesInSwitch` — switch文のフォールスルー禁止
+  - `noUnusedLocals` / `noUnusedParameters` — 未使用変数・引数はエラー
 
 **Anti-patterns to avoid**:
 - `1 - team` returns `number`, not `Team` → use `enemyTeam()` helper from `types.ts`
@@ -120,7 +132,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | 0 | Circle | particle, projectile(aoe/default), HP bar, stun spark |
 | 1 | Diamond | projectile(通常弾), minimap背景/unit |
 | 2 | Triangle | — |
-| 3 | Hexagon | asteroid |
+| 3 | Hexagon | asteroid, Flagship |
 | 4 | Cross | — |
 | 5 | Ring | reflector shield表示 |
 | 6 | Arrow | homing projectile, minimap unit |
@@ -135,10 +147,13 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | 15 | Lightning | — |
 | 16 | Pentagon | — |
 | 20 | Large hexagon | base (mode=2) |
+| 21 | Bar | HPバー (背景+前景) |
+| 22 | Octagon shield | reflectorシールド/shield linger |
+| 23 | Lightning beam | チェーンライトニングのビームセグメント |
 
 ## Combat Branching (combat.ts)
 
-排他パターン（`return`あり）: `rams` → `reflects` → `emp` → `chain` → `beam`（spawns除く）
+排他パターン（`return`あり）: `rams` → `reflects` → `emp` → `chain` → `sweep` → `beam`（spawns除く）
 非排他（他と共存可）: `heals`, `spawns`, `teleports`
 最後: NORMAL FIRE — `homing` / `aoe` / `sh===3`(5-burst) / `sh===8`(railgun) / default
 
@@ -150,6 +165,6 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | GLSLのGPUコンパイルはランタイムのみ | CIでは検出不可。シェーダ変更後はブラウザで確認必須 |
 | Codexがプールを消費 | `spawnUnit()`で実ユニット生成。`POOL_UNITS`上限に影響。`killUnit()`での破棄漏れ注意 |
 | `neighborBuffer`は共有バッファ | `getNeighbors()`後に即使用。`buildHash()`後のみ有効（途中のユニット追加は反映されない） |
-| `dt`は`update()`冒頭で0.033にクランプ | 大きすぎるdtで物理が壊れるのを防止。意図的な安全策 |
+| `dt`は`update()`でサブステップ分割 | `dt > 1/REF_FPS`なら最大`MAX_STEPS_PER_FRAME=8`回の`stepOnce`に分割。クランプではなく分割 |
 | プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |
 | `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略 |

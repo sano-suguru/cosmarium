@@ -1,8 +1,9 @@
+import { beams, trackingBeams } from '../beams.ts';
 import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
-import { beams, state, trackingBeams } from '../state.ts';
+import { state } from '../state.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { beams, trackingBeams } from '../beams.ts';
 import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams, state, trackingBeams } from '../state.ts';
+import { state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 

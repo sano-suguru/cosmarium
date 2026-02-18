@@ -1,3 +1,4 @@
+import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
   getParticle,
@@ -10,7 +11,7 @@ import {
 } from '../pools.ts';
 import { resetPendingChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
-import { beams, seedRng, state, trackingBeams } from '../state.ts';
+import { seedRng, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 

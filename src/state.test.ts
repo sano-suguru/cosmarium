@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
-import { beams, getBeam, getSeed, rng, seedRng, state } from './state.ts';
+import { beams, getBeam } from './beams.ts';
+import { getSeed, rng, seedRng, state } from './state.ts';
 
 afterEach(() => {
   resetState();
