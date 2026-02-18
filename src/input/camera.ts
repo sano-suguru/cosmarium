@@ -17,8 +17,8 @@ export function initCamera() {
     'wheel',
     (e) => {
       e.preventDefault();
-      setAutoFollow(false);
       if (state.codexOpen) return;
+      setAutoFollow(false);
       const W = viewport.W,
         H = viewport.H;
       const wx = cam.targetX + (e.clientX - W / 2) / cam.targetZ;
@@ -67,7 +67,7 @@ export function initCamera() {
 let autoFollow = false;
 let onAutoFollowChange: ((on: boolean) => void) | null = null;
 
-export function onAutoFollowChanged(cb: (on: boolean) => void): void {
+export function setOnAutoFollowChanged(cb: (on: boolean) => void): void {
   onAutoFollowChange = cb;
 }
 
@@ -83,7 +83,7 @@ export function setAutoFollow(v: boolean): void {
   onAutoFollowChange?.(autoFollow);
 }
 
-export function updateAutoFollowCamera(hotspot: { x: number; y: number; radius: number } | null, _dt: number): void {
+export function updateAutoFollowCamera(hotspot: { x: number; y: number; radius: number } | null): void {
   if (!autoFollow || !hotspot) return;
   cam.targetX = hotspot.x;
   cam.targetY = hotspot.y;

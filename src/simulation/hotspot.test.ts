@@ -80,4 +80,20 @@ describe('hotspot', () => {
     triggerUpdate();
     expect(getHotspot()).toBeNull();
   });
+
+  it('resetHotspot がフレームカウンタをリセットする', () => {
+    spawnAt(0, 1, 100, 100);
+    spawnAt(1, 1, 120, 120);
+
+    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 2; i++) updateHotspot();
+    expect(getHotspot()).toBeNull();
+
+    resetHotspot();
+
+    updateHotspot();
+    expect(getHotspot()).toBeNull();
+
+    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
+    expect(getHotspot()).not.toBeNull();
+  });
 });

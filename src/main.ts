@@ -89,7 +89,7 @@ function frame(now: number) {
     const scaledDt = dt * state.timeScale * BASE_SPEED;
     update(scaledDt, t, rng, gameLoopState);
     updateHotspot();
-    updateAutoFollowCamera(getHotspot(), dt);
+    updateAutoFollowCamera(getHotspot());
     renderFrame(t);
     updateHUD(displayFps);
     if (frameCount % 2 === 0) drawMinimap();

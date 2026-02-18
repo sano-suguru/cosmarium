@@ -1,4 +1,4 @@
-import { cam, onAutoFollowChanged, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
+import { cam, setAutoFollow, setOnAutoFollowChanged, toggleAutoFollow } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { rng, state } from '../state.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
@@ -167,7 +167,7 @@ export function initUI() {
     }
   });
 
-  onAutoFollowChanged((on) => {
+  setOnAutoFollowChanged((on) => {
     elAutoFollowBtn?.classList.toggle('active', on);
   });
 
