@@ -1,7 +1,6 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
-import { rng } from '../state.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
@@ -32,7 +31,7 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Arcer'), count: 2, spread: 400 },
 ];
 
-export function initUnits() {
+export function initUnits(rng: () => number) {
   for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
   for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = false;
   for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
@@ -45,7 +44,7 @@ export function initUnits() {
     const cy = team === 0 ? -300 : 300;
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
-        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread);
+        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
       }
     }
   }
