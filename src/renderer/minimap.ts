@@ -1,6 +1,6 @@
 import { getColor } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { cam } from '../input/camera.ts';
+import { cam, setAutoFollow } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
 import { getUnitType } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
@@ -34,6 +34,7 @@ export function initMinimap() {
   const div = mmDiv;
   div.addEventListener('mousedown', (e) => {
     e.stopPropagation();
+    setAutoFollow(false);
     const rect = div.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
