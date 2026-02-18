@@ -101,6 +101,7 @@ frame() → dt clamp(0.05) → camera lerp + shake decay
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import conventions**: Relative paths + explicit `.ts` extension. No path aliases, no barrel exports
+- **Dependency rules** (dependency-cruiser): `simulation/` → `state.ts` 禁止（rng/stateは引数注入）。`simulation/` → `ui/` 禁止（コールバック注入で逆転）。検証: `bun run check:deps`
 - **TypeScript strict settings**:
   - `verbatimModuleSyntax` — type-only imports must use `import type { X }`
   - `exactOptionalPropertyTypes` — cannot assign `undefined` to optional props (use `prop?: T | undefined`)
@@ -168,3 +169,4 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | `dt`は`update()`でサブステップ分割 | `dt > 1/REF_FPS`なら最大`MAX_STEPS_PER_FRAME=8`回の`stepOnce`に分割。クランプではなく分割 |
 | プール上限変更時は`constants.ts`のみ | `pools.ts`は定数を参照済み。新オブジェクト種追加時のみ`pools.ts`にも配列初期化が必要 |
 | `writeInstance()`のidx上限 | `MAX_INSTANCES`を超えるとサイレントに描画省略 |
+| `killUnit()`前にデータ退避必須 | killでスロット即時再利用 — 参照中の値が破壊される可能性あり |
