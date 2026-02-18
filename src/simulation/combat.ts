@@ -1,7 +1,6 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { rng } from '../state.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -34,6 +33,7 @@ interface CombatContext {
   c: Color3;
   vd: number;
   t: UnitType;
+  rng: () => number;
 }
 
 const _ctx: CombatContext = {
@@ -43,6 +43,7 @@ const _ctx: CombatContext = {
   c: [0, 0, 0],
   vd: 0,
   t: getUnitType(0),
+  rng: () => 0,
 };
 
 function tgtDistOrClear(u: Unit): number {
@@ -70,14 +71,14 @@ function handleRam(ctx: CombatContext) {
       knockback(oi, u.x, u.y, u.mass * 55);
       u.hp -= Math.ceil(getUnitType(o.type).mass);
       for (let k = 0; k < 10; k++) {
-        const a = rng() * 6.283;
+        const a = ctx.rng() * 6.283;
         spawnParticle(
           (u.x + o.x) / 2,
           (u.y + o.y) / 2,
-          Math.cos(a) * (80 + rng() * 160),
-          Math.sin(a) * (80 + rng() * 160),
+          Math.cos(a) * (80 + ctx.rng() * 160),
+          Math.sin(a) * (80 + ctx.rng() * 160),
           0.15,
-          2 + rng() * 2,
+          2 + ctx.rng() * 2,
           1,
           0.9,
           0.4,
@@ -86,11 +87,11 @@ function handleRam(ctx: CombatContext) {
       }
       if (o.hp <= 0) {
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, ui, rng);
+        explosion(o.x, o.y, o.team, o.type, ui, ctx.rng);
       }
       if (u.hp <= 0) {
         killUnit(ui);
-        explosion(u.x, u.y, u.team, u.type, NO_UNIT, rng);
+        explosion(u.x, u.y, u.team, u.type, NO_UNIT, ctx.rng);
         return;
       }
     }
@@ -119,6 +120,7 @@ const REFLECT_SPEED_MULT = 1.0;
 const REFLECT_LIFE = 0.5;
 
 function reflectProjectile(
+  ctx: CombatContext,
   ux: number,
   uy: number,
   p: { x: number; y: number; vx: number; vy: number; life: number; team: number; r: number; g: number; b: number },
@@ -140,7 +142,7 @@ function reflectProjectile(
   const dot = p.vx * nx + p.vy * ny;
   const rvx = p.vx - 2 * dot * nx;
   const rvy = p.vy - 2 * dot * ny;
-  const scatter = (rng() - 0.5) * REFLECT_SCATTER;
+  const scatter = (ctx.rng() - 0.5) * REFLECT_SCATTER;
   const cs = Math.cos(scatter);
   const sn = Math.sin(scatter);
   p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
@@ -152,12 +154,23 @@ function reflectProjectile(
   p.b = c[2];
   addBeam(ux, uy, p.x, p.y, c[0], c[1], c[2], 0.15, 1.5);
   for (let j = 0; j < 4; j++) {
-    spawnParticle(p.x, p.y, (rng() - 0.5) * 80, (rng() - 0.5) * 80, 0.15, 3 + rng() * 2, c[0], c[1], c[2], 0);
+    spawnParticle(
+      p.x,
+      p.y,
+      (ctx.rng() - 0.5) * 80,
+      (ctx.rng() - 0.5) * 80,
+      0.15,
+      3 + ctx.rng() * 2,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
   }
   spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, 10);
 }
 
-function reflectNearbyProjectiles(u: Unit, reflectR: number, team: number, c: Color3) {
+function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number, team: number, c: Color3) {
   for (let i = 0, rem = poolCounts.projectileCount; i < POOL_PROJECTILES && rem > 0; i++) {
     const p = getProjectile(i);
     if (!p.alive) continue;
@@ -166,7 +179,7 @@ function reflectNearbyProjectiles(u: Unit, reflectR: number, team: number, c: Co
     const dx = p.x - u.x;
     const dy = p.y - u.y;
     if (dx * dx + dy * dy < reflectR * reflectR) {
-      reflectProjectile(u.x, u.y, p, team, c);
+      reflectProjectile(ctx, u.x, u.y, p, team, c);
       reflectedThisFrame.add(i);
     }
   }
@@ -176,7 +189,7 @@ function handleReflector(ctx: CombatContext) {
   const { u, c, t, vd } = ctx;
   const fireRange = t.range;
   const reflectR = t.size * REFLECT_RADIUS_MULT;
-  reflectNearbyProjectiles(u, reflectR, u.team, c);
+  reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
     const o = getUnit(u.target);
     if (!o.alive) {
@@ -204,10 +217,10 @@ function handleReflector(ctx: CombatContext) {
       }
     }
   }
-  if (rng() < 1 - 0.9 ** (ctx.dt * REF_FPS)) {
+  if (ctx.rng() < 1 - 0.9 ** (ctx.dt * REF_FPS)) {
     spawnParticle(
-      u.x + (rng() - 0.5) * fireRange * 1.5,
-      u.y + (rng() - 0.5) * fireRange * 1.5,
+      u.x + (ctx.rng() - 0.5) * fireRange * 1.5,
+      u.y + (ctx.rng() - 0.5) * fireRange * 1.5,
       0,
       0,
       0.15,
@@ -224,18 +237,18 @@ function handleCarrier(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
   u.spawnCooldown -= dt;
   if (u.spawnCooldown <= 0) {
-    u.spawnCooldown = 4 + rng() * 2;
+    u.spawnCooldown = 4 + ctx.rng() * 2;
     for (let i = 0; i < 4; i++) {
-      const a = rng() * 6.283;
+      const a = ctx.rng() * 6.283;
       spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2);
     }
     for (let i = 0; i < 10; i++) {
-      const a = rng() * 6.283;
+      const a = ctx.rng() * 6.283;
       spawnParticle(
         u.x + Math.cos(a) * t.size,
         u.y + Math.sin(a) * t.size,
-        (rng() - 0.5) * 50,
-        (rng() - 0.5) * 50,
+        (ctx.rng() - 0.5) * 50,
+        (ctx.rng() - 0.5) * 50,
         0.3,
         3,
         c[0],
@@ -248,7 +261,7 @@ function handleCarrier(ctx: CombatContext) {
 }
 
 function handleEmp(ctx: CombatContext) {
-  const { u, ui, t } = ctx;
+  const { u, t } = ctx;
   const d = tgtDistOrClear(u);
   if (d < 0 || d >= t.range) return;
   u.abilityCooldown = t.fireRate;
@@ -262,7 +275,7 @@ function handleEmp(ctx: CombatContext) {
       oo.hp -= t.damage;
       if (oo.hp <= 0) {
         killUnit(oi);
-        explosion(oo.x, oo.y, oo.team, oo.type, ui, rng);
+        explosion(oo.x, oo.y, oo.team, oo.type, ctx.ui, ctx.rng);
       }
     }
   }
@@ -272,8 +285,8 @@ function handleEmp(ctx: CombatContext) {
     spawnParticle(
       u.x + Math.cos(a) * r,
       u.y + Math.sin(a) * r,
-      (rng() - 0.5) * 25,
-      (rng() - 0.5) * 25,
+      (ctx.rng() - 0.5) * 25,
+      (ctx.rng() - 0.5) * 25,
       0.35,
       3,
       0.5,
@@ -296,23 +309,23 @@ function handleTeleporter(ctx: CombatContext) {
   }
   const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
   if (d < 500 && d > 80) {
-    u.teleportTimer = 3 + rng() * 2;
+    u.teleportTimer = 3 + ctx.rng() * 2;
     for (let i = 0; i < 8; i++) {
-      const a = rng() * 6.283;
+      const a = ctx.rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
-    const ta = rng() * 6.283,
-      td = 55 + rng() * 35;
+    const ta = ctx.rng() * 6.283,
+      td = 55 + ctx.rng() * 35;
     u.x = o.x + Math.cos(ta) * td;
     u.y = o.y + Math.sin(ta) * td;
     for (let i = 0; i < 8; i++) {
-      const a = rng() * 6.283;
+      const a = ctx.rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
     for (let i = 0; i < 5; i++) {
-      const ba = rng() * 6.283;
+      const ba = ctx.rng() * 6.283;
       spawnProjectile(
         u.x,
         u.y,
@@ -336,7 +349,7 @@ function handleChain(ctx: CombatContext): void {
   if (d < 0) return;
   if (d < t.range) {
     u.cooldown = t.fireRate;
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, rng);
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], 10);
   }
 }
@@ -377,10 +390,10 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     n.hp -= dmg;
     knockback(ni, u.x, u.y, dmg * 3);
     spawnParticle(
-      n.x + (rng() - 0.5) * 8,
-      n.y + (rng() - 0.5) * 8,
-      (rng() - 0.5) * 50,
-      (rng() - 0.5) * 50,
+      n.x + (ctx.rng() - 0.5) * 8,
+      n.y + (ctx.rng() - 0.5) * 8,
+      (ctx.rng() - 0.5) * 50,
+      (ctx.rng() - 0.5) * 50,
       0.08,
       2,
       c[0],
@@ -390,7 +403,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     );
     if (n.hp <= 0) {
       killUnit(ni);
-      explosion(n.x, n.y, n.team, n.type, ctx.ui, rng);
+      explosion(n.x, n.y, n.team, n.type, ctx.ui, ctx.rng);
     }
   }
 }
@@ -420,36 +433,17 @@ function sweepAfterimage(u: Unit, ox: number, oy: number, easeAt: (p: number) =>
   }
 }
 
-function sweepTipSpark(x: number, y: number, c: Color3, dt: number) {
-  if (rng() < 1 - 0.45 ** (dt * REF_FPS)) {
-    const a = rng() * Math.PI * 2;
-    const s = 40 + rng() * 100;
-    spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s, 0.12 + rng() * 0.1, 3 + rng() * 2, c[0], c[1], c[2], 0);
-  }
-}
-
-function sweepPathParticles(
-  ox: number,
-  oy: number,
-  endX: number,
-  endY: number,
-  beamAngle: number,
-  c: Color3,
-  dt: number,
-) {
-  if (rng() < 1 - 0.7 ** (dt * REF_FPS)) {
-    const along = 0.3 + rng() * 0.6;
-    const px = ox + (endX - ox) * along;
-    const py = oy + (endY - oy) * along;
-    const drift = (rng() - 0.5) * 30;
-    const perp = beamAngle + Math.PI * 0.5;
+function sweepTipSpark(ctx: CombatContext, x: number, y: number, c: Color3, dt: number) {
+  if (ctx.rng() < 1 - 0.45 ** (dt * REF_FPS)) {
+    const a = ctx.rng() * Math.PI * 2;
+    const s = 40 + ctx.rng() * 100;
     spawnParticle(
-      px + Math.cos(perp) * drift,
-      py + Math.sin(perp) * drift,
-      (rng() - 0.5) * 20,
-      (rng() - 0.5) * 20,
-      0.06 + rng() * 0.04,
-      1.5 + rng() * 1.5,
+      x,
+      y,
+      Math.cos(a) * s,
+      Math.sin(a) * s,
+      0.12 + ctx.rng() * 0.1,
+      3 + ctx.rng() * 2,
       c[0],
       c[1],
       c[2],
@@ -458,9 +452,40 @@ function sweepPathParticles(
   }
 }
 
-function sweepGlowRing(x: number, y: number, c: Color3, dt: number) {
-  if (rng() < 1 - 0.75 ** (dt * REF_FPS)) {
-    spawnParticle(x, y, 0, 0, 0.1, 12 + rng() * 6, c[0], c[1], c[2], 10);
+function sweepPathParticles(
+  ctx: CombatContext,
+  ox: number,
+  oy: number,
+  endX: number,
+  endY: number,
+  beamAngle: number,
+  c: Color3,
+  dt: number,
+) {
+  if (ctx.rng() < 1 - 0.7 ** (dt * REF_FPS)) {
+    const along = 0.3 + ctx.rng() * 0.6;
+    const px = ox + (endX - ox) * along;
+    const py = oy + (endY - oy) * along;
+    const drift = (ctx.rng() - 0.5) * 30;
+    const perp = beamAngle + Math.PI * 0.5;
+    spawnParticle(
+      px + Math.cos(perp) * drift,
+      py + Math.sin(perp) * drift,
+      (ctx.rng() - 0.5) * 20,
+      (ctx.rng() - 0.5) * 20,
+      0.06 + ctx.rng() * 0.04,
+      1.5 + ctx.rng() * 1.5,
+      c[0],
+      c[1],
+      c[2],
+      0,
+    );
+  }
+}
+
+function sweepGlowRing(ctx: CombatContext, x: number, y: number, c: Color3, dt: number) {
+  if (ctx.rng() < 1 - 0.75 ** (dt * REF_FPS)) {
+    spawnParticle(x, y, 0, 0, 0.1, 12 + ctx.rng() * 6, c[0], c[1], c[2], 10);
   }
 }
 
@@ -523,9 +548,9 @@ function handleSweepBeam(ctx: CombatContext) {
   addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);
 
   sweepAfterimage(u, ox, oy, easeAt, c, t.range);
-  sweepTipSpark(beamEndX, beamEndY, c, dt);
-  sweepPathParticles(ox, oy, beamEndX, beamEndY, currAngle, c, dt);
-  sweepGlowRing(beamEndX, beamEndY, c, dt);
+  sweepTipSpark(ctx, beamEndX, beamEndY, c, dt);
+  sweepPathParticles(ctx, ox, oy, beamEndX, beamEndY, currAngle, c, dt);
+  sweepGlowRing(ctx, beamEndX, beamEndY, c, dt);
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
 
@@ -569,10 +594,10 @@ function handleFocusBeam(ctx: CombatContext) {
     const pSpeed = 50 + u.beamOn * 25;
     for (let i = 0; i < pCount; i++) {
       spawnParticle(
-        o.x + (rng() - 0.5) * 8,
-        o.y + (rng() - 0.5) * 8,
-        (rng() - 0.5) * pSpeed,
-        (rng() - 0.5) * pSpeed,
+        o.x + (ctx.rng() - 0.5) * 8,
+        o.y + (ctx.rng() - 0.5) * 8,
+        (ctx.rng() - 0.5) * pSpeed,
+        (ctx.rng() - 0.5) * pSpeed,
         0.08,
         pSize,
         c[0],
@@ -583,7 +608,7 @@ function handleFocusBeam(ctx: CombatContext) {
     }
     if (o.hp <= 0) {
       killUnit(u.target);
-      explosion(o.x, o.y, o.team, o.type, ui, rng);
+      explosion(o.x, o.y, o.team, o.type, ui, ctx.rng);
       u.beamOn = 0;
     }
   }
@@ -710,7 +735,7 @@ function fireRailgun(ctx: CombatContext, ang: number) {
   );
   addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
   for (let i = 0; i < 4; i++) {
-    const a2 = ang + (rng() - 0.5) * 0.4;
+    const a2 = ang + (ctx.rng() - 0.5) * 0.4;
     spawnParticle(
       u.x + Math.cos(ang) * t.size * 1.5,
       u.y + Math.sin(ang) * t.size * 1.5,
@@ -734,10 +759,10 @@ function spawnMuzzleFlash(ctx: CombatContext, ang: number) {
     spawnParticle(
       mx,
       my,
-      Math.cos(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
-      Math.sin(ang) * (60 + rng() * 60) + (rng() - 0.5) * 35,
-      0.06 + rng() * 0.03,
-      2.5 + rng() * 2,
+      Math.cos(ang) * (60 + ctx.rng() * 60) + (ctx.rng() - 0.5) * 35,
+      Math.sin(ang) * (60 + ctx.rng() * 60) + (ctx.rng() - 0.5) * 35,
+      0.06 + ctx.rng() * 0.03,
+      2.5 + ctx.rng() * 2,
       c[0],
       c[1],
       c[2],
@@ -793,7 +818,7 @@ function fireNormal(ctx: CombatContext) {
   }
 }
 
-export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
+export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = getUnitType(u.type);
   if (u.stun > 0) return;
   u.cooldown -= dt;
@@ -806,6 +831,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number) {
   _ctx.c = c;
   _ctx.vd = vd;
   _ctx.t = t;
+  _ctx.rng = rng;
 
   if (t.rams) {
     handleRam(_ctx);

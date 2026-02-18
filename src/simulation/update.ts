@@ -230,7 +230,7 @@ function updateUnits(dt: number, now: number) {
     if (state.codexOpen && !isCodexDemoUnit(i as UnitIndex)) continue;
     const wasNotBoosting = u.boostTimer <= 0;
     steer(u, dt, rng);
-    combat(u, i as UnitIndex, dt, now);
+    combat(u, i as UnitIndex, dt, now, rng);
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + rng() * 0.02;
