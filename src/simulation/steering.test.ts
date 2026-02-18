@@ -14,8 +14,8 @@ afterEach(() => {
 });
 
 describe('steer — スタン', () => {
-  it('stun>0 → 速度0.93倍減衰、stun-=dt、位置更新', () => {
-    const idx = spawnAt(0, 1, 100, 100);
+  it('stun>0 → 速度減衰（mass依存）、stun-=dt、位置更新', () => {
+    const idx = spawnAt(0, 1, 100, 100); // Fighter: mass=2
     const u = getUnit(idx);
     u.stun = 1.0;
     u.vx = 100;
@@ -25,9 +25,10 @@ describe('steer — スタン', () => {
     buildHash();
     steer(u, 0.016);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
-    expect(u.vx).toBeCloseTo(100 * 0.93 ** (0.016 * 30));
-    expect(u.vy).toBeCloseTo(50 * 0.93 ** (0.016 * 30));
-    // 位置は更新される（vx * dt 分移動）
+    const mass = getUnitType(1).mass;
+    const expectedDrag = (0.93 ** (1 / Math.sqrt(mass))) ** (0.016 * 30);
+    expect(u.vx).toBeCloseTo(100 * expectedDrag);
+    expect(u.vy).toBeCloseTo(50 * expectedDrag);
     expect(u.x).toBeGreaterThan(xBefore);
     expect(u.y).toBeGreaterThan(yBefore);
   });
@@ -42,6 +43,25 @@ describe('steer — スタン', () => {
     steer(u, 0.016);
     // angle はスタン中変化しない
     expect(u.angle).toBe(angBefore);
+  });
+
+  it('stun drag: 重いユニットほどスタン中の減速が緩やか', () => {
+    const droneIdx = spawnAt(0, 0, 0, 0);
+    const flagshipIdx = spawnAt(0, 4, 500, 0);
+    const uDrone = getUnit(droneIdx);
+    const uFlagship = getUnit(flagshipIdx);
+    uDrone.stun = 1.0;
+    uDrone.vx = 100;
+    uDrone.vy = 0;
+    uFlagship.stun = 1.0;
+    uFlagship.vx = 100;
+    uFlagship.vy = 0;
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      steer(uDrone, 1 / 30);
+      steer(uFlagship, 1 / 30);
+    }
+    expect(uFlagship.vx).toBeGreaterThan(uDrone.vx);
   });
 });
 
@@ -172,6 +192,28 @@ describe('steer — Boids Separation', () => {
       steer(getUnit(u2), 0.033);
     }
     expect(getUnit(u1).x).toBeLessThan(getUnit(u2).x);
+  });
+
+  it('重いユニットは軽いユニットをより強く押しのける', () => {
+    const drone = spawnAt(0, 0, 0, 0); // Drone: mass=1
+    const flagship = spawnAt(0, 4, 20, 0); // Flagship: mass=30
+    getUnit(drone).target = NO_UNIT;
+    getUnit(flagship).target = NO_UNIT;
+    getUnit(drone).vx = 0;
+    getUnit(drone).vy = 0;
+    getUnit(flagship).vx = 0;
+    getUnit(flagship).vy = 0;
+    const droneStartX = getUnit(drone).x;
+    const flagshipStartX = getUnit(flagship).x;
+    buildHash();
+    for (let i = 0; i < 10; i++) {
+      buildHash();
+      steer(getUnit(drone), 0.033);
+      steer(getUnit(flagship), 0.033);
+    }
+    const droneDrift = Math.abs(getUnit(drone).x - droneStartX);
+    const flagshipDrift = Math.abs(getUnit(flagship).x - flagshipStartX);
+    expect(droneDrift).toBeGreaterThan(flagshipDrift);
   });
 });
 

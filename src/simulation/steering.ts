@@ -65,7 +65,7 @@ function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
 const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
 
 // computeBoidsForce 内部ヘルパー: 近傍単体の Boids 力を _boids に集約
-function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number) {
+function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   const dx = u.x - o.x,
     dy = u.y - o.y;
   const d2 = dx * dx + dy * dy;
@@ -73,8 +73,9 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number) {
   const d = Math.sqrt(d2);
 
   if (d < sd) {
-    _boids.sx += (dx / d / d2) * 200;
-    _boids.sy += (dy / d / d2) * 200;
+    const massScale = Math.sqrt(getUnitType(o.type).mass / uMass);
+    _boids.sx += (dx / d / d2) * 200 * massScale;
+    _boids.sy += (dy / d / d2) * 200 * massScale;
   }
   if (o.team === u.team) {
     if (d < 150) {
@@ -105,7 +106,7 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
     const oi = getNeighborAt(i),
       o = getUnit(oi);
     if (!o.alive || o === u) continue;
-    accumulateBoidsNeighbor(u, o, sd);
+    accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
 
   let fx = _boids.sx * 3,
@@ -236,7 +237,7 @@ export function steer(u: Unit, dt: number) {
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);
-    const stunDrag = 0.93 ** (dt * REF_FPS);
+    const stunDrag = (0.93 ** (1 / Math.sqrt(getUnitType(u.type).mass))) ** (dt * REF_FPS);
     u.vx *= stunDrag;
     u.vy *= stunDrag;
     u.x += u.vx * dt;
