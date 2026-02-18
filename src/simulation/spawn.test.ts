@@ -8,6 +8,8 @@ import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
+const testRng = () => 0.5;
+
 afterEach(() => {
   resetPools();
   resetState();
@@ -82,7 +84,7 @@ describe('spawnProjectile', () => {
 
 describe('spawnUnit', () => {
   it('Fighterユニットを生成する (type=1)', () => {
-    const idx = spawnUnit(0, 1, 100, 200);
+    const idx = spawnUnit(0, 1, 100, 200, testRng);
     expect(idx).toBe(0);
     expect(poolCounts.unitCount).toBe(1);
     const u = getUnit(0);
@@ -103,16 +105,16 @@ describe('spawnUnit', () => {
 
   it('プール満杯時に -1 を返す', () => {
     fillUnitPool();
-    const overflow = spawnUnit(0, 0, 0, 0);
+    const overflow = spawnUnit(0, 0, 0, 0, testRng);
     expect(overflow).toBe(-1);
     expect(poolCounts.unitCount).toBe(POOL_UNITS);
   });
 
   it('dead スロットを再利用する', () => {
-    spawnUnit(0, 0, 0, 0);
-    spawnUnit(0, 0, 0, 0);
+    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(0, 0, 0, 0, testRng);
     killUnit(0 as UnitIndex);
-    const reused = spawnUnit(1, 1, 50, 50);
+    const reused = spawnUnit(1, 1, 50, 50, testRng);
     expect(reused).toBe(0);
     expect(getUnit(0).team).toBe(1);
     expect(getUnit(0).x).toBe(50);
@@ -121,7 +123,7 @@ describe('spawnUnit', () => {
 
 describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
-    spawnUnit(0, 0, 0, 0);
+    spawnUnit(0, 0, 0, 0, testRng);
     expect(poolCounts.unitCount).toBe(1);
     killUnit(0 as UnitIndex);
     expect(getUnit(0).alive).toBe(false);
@@ -129,7 +131,7 @@ describe('killUnit', () => {
   });
 
   it('二重killしても poolCounts が負にならない', () => {
-    spawnUnit(0, 0, 0, 0);
+    spawnUnit(0, 0, 0, 0, testRng);
     killUnit(0 as UnitIndex);
     killUnit(0 as UnitIndex);
     expect(poolCounts.unitCount).toBe(0);
