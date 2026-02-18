@@ -871,7 +871,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN(false);
+    updateSwarmN(false, () => false);
     combat(getUnit(drone), drone, 0.016, 0, rng);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
     expect(getProjectile(0).damage).toBeCloseTo(1.45);
@@ -886,7 +886,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN(false);
+    updateSwarmN(false, () => false);
     combat(getUnit(drone), drone, 0.016, 0, rng);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
     expect(getProjectile(0).damage).toBeCloseTo(1.9);
@@ -941,7 +941,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN(false);
+    updateSwarmN(false, () => false);
     combat(getUnit(drone), drone, 0.016, 0, rng);
     const p = getProjectile(0);
     // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725

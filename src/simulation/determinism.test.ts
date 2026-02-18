@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { makeGameLoopState, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { rng, seedRng, state } from '../state.ts';
-import type { UnitIndex } from '../types.ts';
+import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
@@ -26,9 +25,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
-
-const noopIsCodexDemoUnit = (_idx: UnitIndex) => false;
-const noopUpdateCodexDemo = (_dt: number) => undefined;
 
 interface UnitSnapshot {
   x: number;
@@ -70,19 +66,7 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
 
   initUnits(rng);
 
-  const gs = {
-    get codexOpen() {
-      return state.codexOpen;
-    },
-    get reinforcementTimer() {
-      return state.reinforcementTimer;
-    },
-    set reinforcementTimer(v: number) {
-      state.reinforcementTimer = v;
-    },
-    isCodexDemoUnit: noopIsCodexDemoUnit,
-    updateCodexDemo: noopUpdateCodexDemo,
-  };
+  const gs = makeGameLoopState();
 
   for (let i = 0; i < ticks; i++) {
     buildHash();

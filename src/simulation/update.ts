@@ -205,12 +205,12 @@ function countSwarmAllies(u: Unit): number {
   return Math.min(allies, 6);
 }
 
-export function updateSwarmN(codexOpen: boolean, isCodexDemoUnit?: (idx: UnitIndex) => boolean) {
+export function updateSwarmN(codexOpen: boolean, isCodexDemoUnit: (idx: UnitIndex) => boolean) {
   for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem3--;
-    if (codexOpen && !(isCodexDemoUnit?.(i as UnitIndex) ?? false)) {
+    if (codexOpen && !isCodexDemoUnit(i as UnitIndex)) {
       u.swarmN = 0;
       continue;
     }
@@ -281,7 +281,7 @@ function applyReflectorShields(dt: number, codexOpen: boolean, isCodexDemoUnit: 
   }
 }
 
-interface GameLoopState extends ReinforcementState {
+export interface GameLoopState extends ReinforcementState {
   codexOpen: boolean;
   isCodexDemoUnit: (idx: UnitIndex) => boolean;
   updateCodexDemo: (dt: number) => void;

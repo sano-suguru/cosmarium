@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
@@ -36,19 +36,7 @@ const mockIsCodexDemoUnit = vi.fn((_idx: UnitIndex) => false);
 const mockUpdateCodexDemo = vi.fn((_dt: number) => undefined);
 
 function gameLoopState() {
-  return {
-    get codexOpen() {
-      return state.codexOpen;
-    },
-    get reinforcementTimer() {
-      return state.reinforcementTimer;
-    },
-    set reinforcementTimer(v: number) {
-      state.reinforcementTimer = v;
-    },
-    isCodexDemoUnit: mockIsCodexDemoUnit,
-    updateCodexDemo: mockUpdateCodexDemo,
-  };
+  return makeGameLoopState(mockIsCodexDemoUnit, mockUpdateCodexDemo);
 }
 
 afterEach(() => {
