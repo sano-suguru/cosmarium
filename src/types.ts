@@ -91,6 +91,7 @@ export interface UnitType {
   chain?: boolean;
   sweep?: boolean;
   swarm?: boolean;
+  broadside?: boolean;
   burst?: number;
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
 }
