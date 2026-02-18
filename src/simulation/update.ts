@@ -58,7 +58,7 @@ function detonateAoe(p: Projectile) {
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT);
+        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
       }
     }
   }
@@ -96,7 +96,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex): boolean {
       spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
       if (o.hp <= 0) {
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT);
+        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
       }
       killProjectile(pi);
       return true;
@@ -234,11 +234,11 @@ function updateUnits(dt: number, now: number) {
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + rng() * 0.02;
-      trail(u);
+      trail(u, rng);
     }
     if (u.boostTimer > 0 && u.stun <= 0) {
-      boostTrail(u, dt);
-      if (wasNotBoosting) boostBurst(u);
+      boostTrail(u, dt, rng);
+      if (wasNotBoosting) boostBurst(u, rng);
     }
   }
 }
@@ -287,7 +287,7 @@ function stepOnce(dt: number, now: number) {
   updateProjectiles(dt);
   updateParticles(dt);
   updateBeams(dt);
-  updatePendingChains(dt);
+  updatePendingChains(dt, rng);
   updateTrackingBeams(dt);
 
   if (!state.codexOpen) {

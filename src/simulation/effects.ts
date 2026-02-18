@@ -2,14 +2,13 @@ import { getColor, getTrailColor } from '../colors.ts';
 import { POOL_UNITS, REF_FPS, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
-import { rng } from '../state.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
-function spawnExplosionDebris(x: number, y: number, size: number, c: Color3) {
+function spawnExplosionDebris(x: number, y: number, size: number, c: Color3, rng: () => number) {
   const cnt = Math.min((18 + size * 3) | 0, 50);
   for (let i = 0; i < cnt; i++) {
     const a = rng() * 6.283;
@@ -30,7 +29,7 @@ function spawnExplosionDebris(x: number, y: number, size: number, c: Color3) {
   }
 }
 
-function spawnExplosionFlash(x: number, y: number, size: number) {
+function spawnExplosionFlash(x: number, y: number, size: number, rng: () => number) {
   for (let i = 0; i < 5; i++) {
     const a = rng() * 6.283;
     spawnParticle(
@@ -71,12 +70,12 @@ function updateKillerVet(killer: UnitIndex) {
   }
 }
 
-export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex) {
+export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex, rng: () => number) {
   const size = getUnitType(type).size;
   const c = getColor(type, team);
 
-  spawnExplosionDebris(x, y, size, c);
-  spawnExplosionFlash(x, y, size);
+  spawnExplosionDebris(x, y, size, c, rng);
+  spawnExplosionFlash(x, y, size, rng);
 
   const dc = Math.min((size * 2) | 0, 14);
   for (let i = 0; i < dc; i++) {
@@ -92,7 +91,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   updateKillerVet(killer);
 }
 
-export function trail(u: Unit) {
+export function trail(u: Unit, rng: () => number) {
   const t = getUnitType(u.type),
     c = getTrailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
@@ -136,7 +135,7 @@ export function resetPendingChains() {
   pendingChains.length = 0;
 }
 
-export function updatePendingChains(dt: number) {
+export function updatePendingChains(dt: number, rng: () => number) {
   for (let i = pendingChains.length - 1; i >= 0; i--) {
     const pc = pendingChains[i];
     if (pc === undefined) continue;
@@ -147,7 +146,7 @@ export function updatePendingChains(dt: number) {
         pc.nextHop = pc.hops.length;
         break;
       }
-      fireChainHop(hop);
+      fireChainHop(hop, rng);
       pc.nextHop += 1;
     }
     if (pc.nextHop >= pc.hops.length) {
@@ -158,7 +157,7 @@ export function updatePendingChains(dt: number) {
   }
 }
 
-function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Color3) {
+function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Color3, rng: () => number) {
   addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.3, 2.5, undefined, undefined, true);
   const pCount = 6 + ((rng() * 3) | 0);
   for (let i = 0; i < pCount; i++) {
@@ -177,14 +176,14 @@ function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Co
   }
 }
 
-function fireChainHop(hop: ChainHop) {
+function fireChainHop(hop: ChainHop, rng: () => number) {
   const from = hop.fromIndex !== NO_UNIT ? getUnit(hop.fromIndex) : undefined;
   const fx = from?.alive ? from.x : hop.fromX;
   const fy = from?.alive ? from.y : hop.fromY;
   const o = getUnit(hop.targetIndex);
   const tx = o.alive ? o.x : hop.toX;
   const ty = o.alive ? o.y : hop.toY;
-  emitChainVisual(fx, fy, tx, ty, hop.col);
+  emitChainVisual(fx, fy, tx, ty, hop.col, rng);
   if (o.alive) {
     o.hp -= hop.damage;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
@@ -194,7 +193,7 @@ function fireChainHop(hop: ChainHop) {
         hTeam = o.team,
         hType = o.type;
       killUnit(hop.targetIndex);
-      explosion(hx, hy, hTeam, hType, NO_UNIT);
+      explosion(hx, hy, hTeam, hType, NO_UNIT, rng);
     }
   }
 }
@@ -224,6 +223,7 @@ function applyChainHit(
   damage: number,
   ch: number,
   col: Color3,
+  rng: () => number,
 ): { hx: number; hy: number } {
   const o = getUnit(bi);
   // kill 前に退避 — killUnit でスロットが再利用されると値が壊れる
@@ -231,18 +231,26 @@ function applyChainHit(
     hy = o.y,
     hTeam = o.team,
     hType = o.type;
-  emitChainVisual(cx, cy, hx, hy, col);
+  emitChainVisual(cx, cy, hx, hy, col, rng);
   const dd = damage * (1 - ch * 0.12);
   o.hp -= dd;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
     killUnit(bi);
-    explosion(hx, hy, hTeam, hType, NO_UNIT);
+    explosion(hx, hy, hTeam, hType, NO_UNIT, rng);
   }
   return { hx, hy };
 }
 
-export function chainLightning(sx: number, sy: number, team: Team, damage: number, max: number, col: Color3) {
+export function chainLightning(
+  sx: number,
+  sy: number,
+  team: Team,
+  damage: number,
+  max: number,
+  col: Color3,
+  rng: () => number,
+) {
   let cx = sx,
     cy = sy;
   let prevTarget: UnitIndex = NO_UNIT;
@@ -253,7 +261,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
     if (bi === NO_UNIT) break;
     hit.add(bi);
     if (ch === 0) {
-      const pos = applyChainHit(cx, cy, bi, damage, ch, col);
+      const pos = applyChainHit(cx, cy, bi, damage, ch, col, rng);
       cx = pos.hx;
       cy = pos.hy;
       // killUnit後にスロットが再利用されると後続ホップで無関係なユニットにスナップするため、
@@ -281,7 +289,7 @@ export function chainLightning(sx: number, sy: number, team: Team, damage: numbe
   }
 }
 
-export function boostBurst(u: Unit) {
+export function boostBurst(u: Unit, rng: () => number) {
   const t = getUnitType(u.type);
   const c = getTrailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
@@ -298,7 +306,7 @@ export function boostBurst(u: Unit) {
   }
 }
 
-export function boostTrail(u: Unit, dt: number) {
+export function boostTrail(u: Unit, dt: number, rng: () => number) {
   if (rng() < 1 - 0.6 ** (dt * REF_FPS)) {
     const t = getUnitType(u.type);
     const c = getTrailColor(u.type, u.team);

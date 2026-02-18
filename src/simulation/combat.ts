@@ -86,11 +86,11 @@ function handleRam(ctx: CombatContext) {
       }
       if (o.hp <= 0) {
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, ui);
+        explosion(o.x, o.y, o.team, o.type, ui, rng);
       }
       if (u.hp <= 0) {
         killUnit(ui);
-        explosion(u.x, u.y, u.team, u.type, NO_UNIT);
+        explosion(u.x, u.y, u.team, u.type, NO_UNIT, rng);
         return;
       }
     }
@@ -262,7 +262,7 @@ function handleEmp(ctx: CombatContext) {
       oo.hp -= t.damage;
       if (oo.hp <= 0) {
         killUnit(oi);
-        explosion(oo.x, oo.y, oo.team, oo.type, ui);
+        explosion(oo.x, oo.y, oo.team, oo.type, ui, rng);
       }
     }
   }
@@ -336,7 +336,7 @@ function handleChain(ctx: CombatContext): void {
   if (d < 0) return;
   if (d < t.range) {
     u.cooldown = t.fireRate;
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c);
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], 10);
   }
 }
@@ -390,7 +390,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     );
     if (n.hp <= 0) {
       killUnit(ni);
-      explosion(n.x, n.y, n.team, n.type, ctx.ui);
+      explosion(n.x, n.y, n.team, n.type, ctx.ui, rng);
     }
   }
 }
@@ -583,7 +583,7 @@ function handleFocusBeam(ctx: CombatContext) {
     }
     if (o.hp <= 0) {
       killUnit(u.target);
-      explosion(o.x, o.y, o.team, o.type, ui);
+      explosion(o.x, o.y, o.team, o.type, ui, rng);
       u.beamOn = 0;
     }
   }
