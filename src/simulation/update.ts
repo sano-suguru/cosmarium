@@ -291,7 +291,7 @@ function stepOnce(dt: number, now: number) {
   updateTrackingBeams(dt);
 
   if (!state.codexOpen) {
-    reinforce(dt);
+    reinforce(dt, rng, state);
   } else {
     updateCodexDemo(dt);
   }
