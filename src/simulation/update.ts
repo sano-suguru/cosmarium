@@ -19,6 +19,7 @@ import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat, resetReflectedSet } from './combat.ts';
 import { boostBurst, boostTrail, explosion, trail, updatePendingChains } from './effects.ts';
+import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
@@ -275,12 +276,11 @@ function applyReflectorShields(dt: number, codexOpen: boolean) {
   }
 }
 
-function stepOnce(
-  dt: number,
-  now: number,
-  rng: () => number,
-  gameState: { codexOpen: boolean; reinforcementTimer: number },
-) {
+interface GameLoopState extends ReinforcementState {
+  codexOpen: boolean;
+}
+
+function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
   buildHash();
   updateSwarmN(gameState.codexOpen);
   resetReflectedSet();
@@ -302,12 +302,7 @@ function stepOnce(
   }
 }
 
-export function update(
-  rawDt: number,
-  now: number,
-  rng: () => number,
-  gameState: { codexOpen: boolean; reinforcementTimer: number },
-) {
+export function update(rawDt: number, now: number, rng: () => number, gameState: GameLoopState) {
   const maxStep = 1 / REF_FPS;
   if (rawDt <= maxStep) {
     stepOnce(rawDt, now, rng, gameState);

@@ -75,7 +75,11 @@ function spawnWave(team: Team, cnt: number, rng: () => number) {
   }
 }
 
-export function reinforce(dt: number, rng: () => number, rs: { reinforcementTimer: number }) {
+export interface ReinforcementState {
+  reinforcementTimer: number;
+}
+
+export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
   rs.reinforcementTimer += dt;
   if (rs.reinforcementTimer < 2.5) return;
   rs.reinforcementTimer = 0;
