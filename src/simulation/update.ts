@@ -15,7 +15,6 @@ import { addShake } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { isCodexDemoUnit, updateCodexDemo } from '../ui/codex.ts';
 import { getUnitType } from '../unit-types.ts';
 import { combat, resetReflectedSet } from './combat.ts';
 import { boostBurst, boostTrail, explosion, trail, updatePendingChains } from './effects.ts';
@@ -206,12 +205,12 @@ function countSwarmAllies(u: Unit): number {
   return Math.min(allies, 6);
 }
 
-export function updateSwarmN(codexOpen: boolean) {
+export function updateSwarmN(codexOpen: boolean, isCodexDemoUnit?: (idx: UnitIndex) => boolean) {
   for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     urem3--;
-    if (codexOpen && !isCodexDemoUnit(i as UnitIndex)) {
+    if (codexOpen && !(isCodexDemoUnit?.(i as UnitIndex) ?? false)) {
       u.swarmN = 0;
       continue;
     }
@@ -223,7 +222,13 @@ export function updateSwarmN(codexOpen: boolean) {
   }
 }
 
-function updateUnits(dt: number, now: number, rng: () => number, codexOpen: boolean) {
+function updateUnits(
+  dt: number,
+  now: number,
+  rng: () => number,
+  codexOpen: boolean,
+  isCodexDemoUnit: (idx: UnitIndex) => boolean,
+) {
   for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
@@ -264,7 +269,7 @@ function shieldNearbyAllies(u: Unit, i: number) {
   }
 }
 
-function applyReflectorShields(dt: number, codexOpen: boolean) {
+function applyReflectorShields(dt: number, codexOpen: boolean, isCodexDemoUnit: (idx: UnitIndex) => boolean) {
   decayShieldTimers(dt);
   for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
     const u = getUnit(i);
@@ -278,16 +283,18 @@ function applyReflectorShields(dt: number, codexOpen: boolean) {
 
 interface GameLoopState extends ReinforcementState {
   codexOpen: boolean;
+  isCodexDemoUnit: (idx: UnitIndex) => boolean;
+  updateCodexDemo: (dt: number) => void;
 }
 
 function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
   buildHash();
-  updateSwarmN(gameState.codexOpen);
+  updateSwarmN(gameState.codexOpen, gameState.isCodexDemoUnit);
   resetReflectedSet();
 
-  updateUnits(dt, now, rng, gameState.codexOpen);
+  updateUnits(dt, now, rng, gameState.codexOpen, gameState.isCodexDemoUnit);
 
-  applyReflectorShields(dt, gameState.codexOpen);
+  applyReflectorShields(dt, gameState.codexOpen, gameState.isCodexDemoUnit);
 
   updateProjectiles(dt, rng);
   updateParticles(dt);
@@ -298,7 +305,7 @@ function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoo
   if (!gameState.codexOpen) {
     reinforce(dt, rng, gameState);
   } else {
-    updateCodexDemo(dt);
+    gameState.updateCodexDemo(dt);
   }
 }
 

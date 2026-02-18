@@ -45,7 +45,9 @@ const _ctx: CombatContext = {
   c: [0, 0, 0],
   vd: 0,
   t: getUnitType(0),
-  rng: () => 0,
+  rng: () => {
+    throw new Error('CombatContext.rng called before combat() initialization');
+  },
 };
 
 function tgtDistOrClear(u: Unit): number {

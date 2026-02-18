@@ -3,6 +3,7 @@ import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getUnit } from '../pools.ts';
 import { rng, seedRng, state } from '../state.ts';
+import type { UnitIndex } from '../types.ts';
 import { initUnits } from './init.ts';
 import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
@@ -11,14 +12,6 @@ vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
   cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
   initCamera: vi.fn(),
-}));
-
-vi.mock('../ui/codex.ts', () => ({
-  updateCodexDemo: vi.fn(),
-  setupCodexDemo: vi.fn(),
-  buildCodexUI: vi.fn(),
-  toggleCodex: vi.fn(),
-  isCodexDemoUnit: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('../ui/game-control.ts', () => ({
@@ -33,6 +26,9 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
+
+const noopIsCodexDemoUnit = (_idx: UnitIndex) => false;
+const noopUpdateCodexDemo = (_dt: number) => undefined;
 
 interface UnitSnapshot {
   x: number;
@@ -74,9 +70,23 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
 
   initUnits(rng);
 
+  const gs = {
+    get codexOpen() {
+      return state.codexOpen;
+    },
+    get reinforcementTimer() {
+      return state.reinforcementTimer;
+    },
+    set reinforcementTimer(v: number) {
+      state.reinforcementTimer = v;
+    },
+    isCodexDemoUnit: noopIsCodexDemoUnit,
+    updateCodexDemo: noopUpdateCodexDemo,
+  };
+
   for (let i = 0; i < ticks; i++) {
     buildHash();
-    update(0.033, i * 0.033, rng, state);
+    update(0.033, i * 0.033, rng, gs);
   }
 
   return captureSnapshot();

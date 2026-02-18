@@ -16,6 +16,10 @@ type State = {
   codexSelected: number;
   timeScale: number;
   reinforcementTimer: number;
+  /**
+   * @internal simulation/ からは直接参照禁止。外部には `rng` closure ラッパーを使う。
+   * 変更は必ず `seedRng()` 経由で行うこと。直接代入すると closure との整合が壊れる。
+   */
   rng: () => number;
 };
 

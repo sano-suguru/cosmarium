@@ -10,6 +10,7 @@ import { initShaders } from './renderer/shaders.ts';
 import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
+import { isCodexDemoUnit, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 
@@ -33,6 +34,21 @@ let lastTime = 0,
   frameCount = 0,
   fpsTime = 0,
   displayFps = 0;
+
+/** state のミュータブルフィールドを GameLoopState として公開する薄いラッパー */
+const gameLoopState = {
+  get codexOpen() {
+    return state.codexOpen;
+  },
+  get reinforcementTimer() {
+    return state.reinforcementTimer;
+  },
+  set reinforcementTimer(v: number) {
+    state.reinforcementTimer = v;
+  },
+  isCodexDemoUnit,
+  updateCodexDemo,
+};
 
 function frame(now: number) {
   const t = now * 0.001;
@@ -65,11 +81,11 @@ function frame(now: number) {
 
   if (state.codexOpen) {
     // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
-    update(dt * BASE_SPEED, t, rng, state);
+    update(dt * BASE_SPEED, t, rng, gameLoopState);
     renderFrame(t);
   } else if (state.gameState === 'play') {
     const scaledDt = dt * state.timeScale * BASE_SPEED;
-    update(scaledDt, t, rng, state);
+    update(scaledDt, t, rng, gameLoopState);
     renderFrame(t);
     updateHUD(displayFps);
     if (frameCount % 2 === 0) drawMinimap();
