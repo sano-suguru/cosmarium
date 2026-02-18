@@ -27,6 +27,7 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 - main loop: `gameState==='play'`時のみ実行
 - dt二重クランプ: main.ts(0.05s) → update.ts(0.033s)
 - update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ `reinforce(dt)`
+- `update(rawDt, now, rng, gameState)`: `rng`は`state.ts`のclosureラッパー、`gameState`は`{ codexOpen, reinforcementTimer }`（`GameLoopState`）
 - `codexOpen`時: 非デモユニットのsteer/combatスキップ + reinforce スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
 
 ## ファイル変更ガイド
