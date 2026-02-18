@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { seedRng } from '../state.ts';
+import { rng, seedRng, state } from '../state.ts';
 import { initUnits } from './init.ts';
 import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
@@ -72,11 +72,11 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
   resetState();
   seedRng(seed);
 
-  initUnits();
+  initUnits(rng);
 
   for (let i = 0; i < ticks; i++) {
     buildHash();
-    update(0.033, i * 0.033);
+    update(0.033, i * 0.033, rng, state);
   }
 
   return captureSnapshot();

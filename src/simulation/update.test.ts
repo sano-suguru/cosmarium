@@ -3,7 +3,7 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { state } from '../state.ts';
+import { rng, state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -57,14 +57,14 @@ describe('buildHash call count — sub-stepping検証', () => {
   it('rawDt <= 1/REF_FPS (0.0333...): buildHash は1回だけ呼ばれる', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.02, 0);
+    update(0.02, 0, rng, state);
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(1);
   });
 
   it('rawDt > 1/REF_FPS: 適切な回数サブステップが実行される (rawDt=0.066 → 2ステップ)', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.066, 0);
+    update(0.066, 0, rng, state);
     // maxStep = 1/30 ≈ 0.0333, steps = ceil(0.066/0.0333) = 2
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(2);
   });
@@ -72,7 +72,7 @@ describe('buildHash call count — sub-stepping検証', () => {
   it('rawDt > 1/REF_FPS: 3ステップ以上の分割 (rawDt=0.12 → 4ステップ)', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.12, 0);
+    update(0.12, 0, rng, state);
     // maxStep ≈ 0.0333, steps = ceil(0.12/0.0333) = 4
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(4);
   });
@@ -82,7 +82,7 @@ describe('buildHash call count — sub-stepping検証', () => {
     vi.mocked(buildHash).mockClear();
     const maxStep = 1 / REF_FPS;
     const excessiveDt = maxStep * 15; // 15ステップ分の dt
-    update(excessiveDt, 0);
+    update(excessiveDt, 0, rng, state);
     // min(ceil(15), 8) = 8
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(8);
   });
@@ -95,7 +95,7 @@ describe('dt sub-stepping', () => {
   it('rawDt > 0.033 はサブステップに分割される', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
-    update(0.05, 0);
+    update(0.05, 0, rng, state);
     // rawDt=0.05, maxStep=0.033, steps=ceil(0.05/0.033)=2, dt=0.05/2=0.025
     // life = 1.0 - 0.025*2 = 0.95
     expect(getParticle(0).life).toBeCloseTo(1.0 - 0.05);
@@ -103,7 +103,7 @@ describe('dt sub-stepping', () => {
 
   it('rawDt <= 0.033 はそのまま使われる', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
-    update(0.02, 0);
+    update(0.02, 0, rng, state);
     expect(getParticle(0).life).toBeCloseTo(1.0 - 0.02);
   });
 });
@@ -114,7 +114,7 @@ describe('dt sub-stepping', () => {
 describe('パーティクル pass', () => {
   it('移動 + drag 0.97', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getParticle(0).x).toBeCloseTo(100 * 0.016, 1);
     expect(getParticle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
     expect(getParticle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * 30));
@@ -123,7 +123,7 @@ describe('パーティクル pass', () => {
   it('life<=0 で消滅', () => {
     spawnParticle(0, 0, 0, 0, 0.01, 1, 1, 1, 1, 0);
     expect(poolCounts.particleCount).toBe(1);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getParticle(0).alive).toBe(false);
     expect(poolCounts.particleCount).toBe(0);
   });
@@ -133,7 +133,7 @@ describe('ビーム pass', () => {
   it('life<=0 で beams から除去', () => {
     addBeam(0, 0, 100, 0, 1, 1, 1, 0.01, 2);
     expect(beams).toHaveLength(1);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(beams).toHaveLength(0);
   });
 });
@@ -146,7 +146,7 @@ describe('steer + combat + trail', () => {
     const idx = spawnAt(0, 0, 0, 0); // Drone
     getUnit(idx).shieldLingerTimer = 1.0;
     getUnit(idx).trailTimer = 99; // trail 抑制
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(idx).shieldLingerTimer).toBeCloseTo(1.0 - 0.016);
   });
 
@@ -155,7 +155,7 @@ describe('steer + combat + trail', () => {
     const b = spawnAt(1, 1, 100, 0);
     getUnit(a).trailTimer = 99;
     getUnit(b).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).target).toBeGreaterThanOrEqual(0);
     expect(poolCounts.projectileCount).toBeGreaterThanOrEqual(1);
   });
@@ -163,7 +163,7 @@ describe('steer + combat + trail', () => {
   it('trail timer: trailTimer<=0 でパーティクル生成', () => {
     const idx = spawnAt(0, 0, 500, 500);
     getUnit(idx).trailTimer = 0.001;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 });
@@ -177,7 +177,7 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(ally).shieldLingerTimer).toBe(REFLECTOR_SHIELD_LINGER);
   });
 
@@ -186,7 +186,7 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 250, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(ally).shieldLingerTimer).toBe(0);
   });
 
@@ -195,7 +195,7 @@ describe('Reflector shield', () => {
     const enemy = spawnAt(1, 0, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(enemy).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(enemy).shieldLingerTimer).toBe(0);
   });
 
@@ -205,7 +205,7 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(ally).shieldLingerTimer).toBe(0);
   });
 
@@ -216,7 +216,7 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(ally).shieldLingerTimer).toBe(REFLECTOR_SHIELD_LINGER);
   });
 
@@ -226,7 +226,7 @@ describe('Reflector shield', () => {
     getUnit(ref).trailTimer = 99;
     getUnit(0).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(trackingBeams.length).toBeGreaterThan(0);
   });
 
@@ -236,7 +236,7 @@ describe('Reflector shield', () => {
     getUnit(ref).trailTimer = 99;
     getUnit(0).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(trackingBeams.length).toBe(0);
   });
 
@@ -247,7 +247,7 @@ describe('Reflector shield', () => {
     getUnit(ally).trailTimer = 99;
     getUnit(ally).shieldLingerTimer = 1.0;
     trackingBeams.length = 0;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(trackingBeams.length).toBe(0);
   });
 
@@ -256,9 +256,9 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(trackingBeams.length).toBeGreaterThan(0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     const tb = trackingBeams[0];
     expect(tb).toBeDefined();
     if (tb === undefined) return;
@@ -273,9 +273,9 @@ describe('Reflector shield', () => {
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
     getUnit(ally).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     getUnit(ally).x = 500;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(ally).shieldLingerTimer).toBeGreaterThan(0);
   });
 });
@@ -286,14 +286,14 @@ describe('Reflector shield', () => {
 describe('projectile pass', () => {
   it('移動: x += vx*dt', () => {
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getProjectile(0).x).toBeCloseTo(4.8);
   });
 
   it('life<=0 で消滅 (aoe=0)', () => {
     spawnProjectile(0, 0, 0, 0, 0.01, 5, 0, 2, 1, 0, 0);
     expect(poolCounts.projectileCount).toBe(1);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getProjectile(0).alive).toBe(false);
     expect(poolCounts.projectileCount).toBe(0);
   });
@@ -302,7 +302,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 30, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(enemy).hp).toBeLessThan(10);
     expect(addShake).toHaveBeenCalledWith(3);
   });
@@ -311,19 +311,19 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 5, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(enemy).hp).toBe(5);
     expect(getProjectile(0).alive).toBe(false);
   });
 
   it('shielded ヒット: 0.3 倍ダメージ', () => {
-    const rng = getUnitType(6).range;
-    const reflector = spawnAt(1, 6, 0, rng + 10);
+    const reflectorRange = getUnitType(6).range;
+    const reflector = spawnAt(1, 6, 0, reflectorRange + 10);
     const target = spawnAt(1, 1, 0, 0);
     getUnit(reflector).trailTimer = 99;
     getUnit(target).trailTimer = 99;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(target).hp).toBe(7);
   });
 
@@ -331,7 +331,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 0, 3, 0);
     getUnit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(enemy).alive).toBe(false);
     expect(poolCounts.unitCount).toBe(0);
   });
@@ -340,7 +340,7 @@ describe('projectile pass', () => {
     const target = spawnAt(1, 1, 0, 200);
     getUnit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getProjectile(0).vy).toBeGreaterThan(0);
   });
 
@@ -350,7 +350,7 @@ describe('projectile pass', () => {
     decUnitCount();
     getUnit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getProjectile(0).vy).toBe(0);
   });
 });
@@ -361,7 +361,7 @@ describe('projectile pass', () => {
 describe('reinforce', () => {
   it('reinforce が呼び出され両チームにユニットが増える', () => {
     state.reinforcementTimer = 2.49;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     let t0 = 0;
     let t1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
@@ -383,7 +383,7 @@ describe('codexOpen 分岐', () => {
     state.codexOpen = true;
     const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(updateCodexDemo).toHaveBeenCalled();
   });
 
@@ -396,7 +396,7 @@ describe('codexOpen 分岐', () => {
     const origX = u.x;
     const enemy = spawnAt(1, 1, 100, 0);
     getUnit(enemy).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(u.x).toBe(origX);
     expect(poolCounts.projectileCount).toBe(0);
   });
@@ -409,7 +409,7 @@ describe('codexOpen 分岐', () => {
     getUnit(idx).cooldown = 0;
     const enemy = spawnAt(1, 1, 100, 0);
     getUnit(enemy).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(idx).target).toBeGreaterThanOrEqual(0);
   });
 });
@@ -427,7 +427,7 @@ describe('swarmN 更新', () => {
     getUnit(b).trailTimer = 99;
     getUnit(c).trailTimer = 99;
     getUnit(d).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     // a の近傍に b,c,d → swarmN=3
     expect(getUnit(a).swarmN).toBe(3);
   });
@@ -437,7 +437,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 1, 20, 0); // Fighter (type !== 0)
     getUnit(a).trailTimer = 99;
     getUnit(b).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(0);
   });
 
@@ -446,7 +446,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 1, 20, 0);
     getUnit(a).trailTimer = 99;
     getUnit(b).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(0);
   });
 
@@ -455,7 +455,7 @@ describe('swarmN 更新', () => {
     spawnAt(1, 0, 20, 0);
     spawnAt(1, 0, 0, 20);
     getUnit(a).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(0);
   });
 
@@ -466,7 +466,7 @@ describe('swarmN 更新', () => {
       getUnit(idx).trailTimer = 99;
     }
     getUnit(a).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(6);
   });
 
@@ -476,7 +476,7 @@ describe('swarmN 更新', () => {
     const far = spawnAt(0, 0, 201, 0);
     getUnit(a).trailTimer = 99;
     getUnit(far).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(0);
   });
 
@@ -486,7 +486,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 0, 20, 0);
     getUnit(a).trailTimer = 99;
     getUnit(b).trailTimer = 99;
-    update(0.016, 0);
+    update(0.016, 0, rng, state);
     expect(getUnit(a).swarmN).toBe(0);
   });
 });
