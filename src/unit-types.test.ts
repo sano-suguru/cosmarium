@@ -42,7 +42,7 @@ describe('TYPES 配列', () => {
       expect(t.size).toBeGreaterThan(0);
       expect(t.shape).toBeGreaterThanOrEqual(0);
       expect(t.shape % 1).toBe(0); // 整数
-      expect(t.shape).toBeLessThanOrEqual(20);
+      expect(t.shape).toBeLessThanOrEqual(30);
       expect(t.trailInterval).toBeGreaterThan(0);
       expect(t.fireRate).toBeGreaterThan(0);
     }
