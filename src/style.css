@@ -184,6 +184,31 @@ canvas#c {
   border-color: #0ff;
 }
 
+#autoFollowBtn {
+  position: fixed;
+  top: 12px;
+  right: 130px;
+  z-index: 20;
+  background: none;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  color: #0ff;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+#autoFollowBtn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  border-color: #0ff;
+}
+#autoFollowBtn.active {
+  border-color: #0ff;
+  color: #0ff;
+  background: rgba(0, 255, 255, 0.15);
+  text-shadow: 0 0 8px #0ff;
+}
+
 #codex {
   position: fixed;
   inset: 0;

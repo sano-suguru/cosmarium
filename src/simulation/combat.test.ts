@@ -467,14 +467,33 @@ describe('combat — NORMAL FIRE', () => {
     expect(getProjectile(0).aoe).toBe(70);
   });
 
-  it('5-burst: Flagship (shape=3) → 5発同時発射', () => {
-    const flagship = spawnAt(0, 4, 0, 0); // Flagship (shape=3)
+  it('broadside: Flagship → チャージ→メイン3発→側面2発', () => {
+    const flagship = spawnAt(0, 4, 0, 0);
     const enemy = spawnAt(1, 1, 200, 0);
     getUnit(flagship).cooldown = 0;
     getUnit(flagship).target = enemy;
     buildHash();
+
+    // given: チャージ開始
     combat(getUnit(flagship), flagship, 0.016, 0, rng);
+    expect(poolCounts.projectileCount).toBe(0);
+    expect(getUnit(flagship).beamOn).toBeGreaterThan(0);
+
+    // when: チャージ完了まで進める (chargeTime=0.3s)
+    const chargeFrames = Math.ceil(0.3 / 0.016) + 1;
+    for (let i = 0; i < chargeFrames; i++) {
+      combat(getUnit(flagship), flagship, 0.016, 0, rng);
+    }
+    // then: メイン砲3発発射、broadside待ち
+    expect(poolCounts.projectileCount).toBe(3);
+    expect(getUnit(flagship).burstCount).toBe(-1);
+
+    // when: broadside delay消化
+    getUnit(flagship).cooldown = 0;
+    combat(getUnit(flagship), flagship, 0.016, 0, rng);
+    // then: メイン3 + 側面2 = 5発
     expect(poolCounts.projectileCount).toBe(5);
+    expect(getUnit(flagship).burstCount).toBe(0);
   });
 
   it('sniper: Sniper (shape=8) → レールガン + tracerビーム', () => {

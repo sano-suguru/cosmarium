@@ -1,5 +1,6 @@
 import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
+import { addShake } from '../input/camera.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -12,6 +13,15 @@ const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
+const FLAGSHIP_CHARGE_TIME = 0.3;
+const FLAGSHIP_BROADSIDE_DELAY = 0.15;
+/**
+ * Broadside state-machine phases stored in `burstCount`.
+ * Values are negative or zero to avoid collision with normal burst logic (positive integers).
+ * Safe because `t.broadside` branch returns before `fireNormal` is reached.
+ */
+const BROADSIDE_PHASE_CHARGE = 0;
+const BROADSIDE_PHASE_FIRE = -1;
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
 /** 同一フレーム内で反射済みのプロジェクタイルインデックス。対向リフレクター間の無限バウンスを防止 */
 const reflectedThisFrame = new Set<number>();
@@ -700,24 +710,258 @@ function fireAoe(ctx: CombatContext, ang: number, d: number) {
   );
 }
 
-function fireFlagshipSpread(ctx: CombatContext, ang: number) {
+// localX = forward axis, localY = starboard (perpendicular right)
+const _fwBuf: [number, number] = [0, 0];
+function flagshipWorld(u: Unit, localX: number, localY: number): [number, number] {
+  const cos = Math.cos(u.angle);
+  const sin = Math.sin(u.angle);
+  _fwBuf[0] = u.x + cos * localX - sin * localY;
+  _fwBuf[1] = u.y + sin * localX + cos * localY;
+  return _fwBuf;
+}
+
+// 3 per hull, 6 total (Y offsets in hull-local coords)
+const ENGINE_OFFSETS = [0.14, 0.24, 0.34] as const;
+const MUZZLE_FWD = 0.6;
+
+function flagshipChargeVfx(ctx: CombatContext, progress: number) {
+  const { u, c, t } = ctx;
+  const glowSize = 8 + progress * 22;
+  const br = 0.3 + progress * 0.7;
+  if (ctx.rng() < 0.4) {
+    spawnParticle(u.x, u.y, 0, 0, 0.08, glowSize, c[0] * br, c[1] * br, c[2] * br, 10);
+  }
+
+  for (const sign of [-1, 1] as const) {
+    for (const ey of ENGINE_OFFSETS) {
+      if (ctx.rng() < progress * 0.6) {
+        const [ex, eyy] = flagshipWorld(u, -t.size * 0.8, sign * ey * t.size);
+        const speed = 90 + ctx.rng() * 70;
+        spawnParticle(
+          ex,
+          eyy,
+          ((u.x - ex) / t.size) * speed,
+          ((u.y - eyy) / t.size) * speed,
+          0.1 + ctx.rng() * 0.05,
+          1.5 + ctx.rng() * 2,
+          c[0] * 0.7 + 0.3,
+          c[1] * 0.7 + 0.3,
+          c[2] * 0.7 + 0.3,
+          0,
+        );
+      }
+    }
+  }
+
+  addShake(0.4 * progress * ctx.dt * REF_FPS);
+}
+
+function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: number) {
+  const { u, c, t } = ctx;
+  const dx = Math.cos(lockAngle);
+  const dy = Math.sin(lockAngle);
+  const beamLen = t.range * 0.5;
+  const w = 1.0 + 2.5 * progress;
+  for (const sign of [-1, 1] as const) {
+    const [mx, my] = flagshipWorld(u, t.size * MUZZLE_FWD, sign * 0.24 * t.size);
+    addBeam(mx, my, mx + dx * beamLen, my + dy * beamLen, c[0] * 0.35, c[1] * 0.35, c[2] * 0.35, 0.05, w, true, 8);
+  }
+  if (progress > 0.3) {
+    const [lx, ly] = flagshipWorld(u, t.size * 0.2, 0.24 * t.size);
+    const [rx, ry] = flagshipWorld(u, t.size * 0.2, -0.24 * t.size);
+    addBeam(lx, ly, rx, ry, c[0] * 0.5, c[1] * 0.5, c[2] * 0.5, 0.04, 0.5 + 1.5 * progress, undefined, 6, true);
+  }
+}
+
+function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const { u, c, t, vd } = ctx;
-  u.cooldown = t.fireRate;
-  for (let i = -2; i <= 2; i++) {
-    const ba = ang + i * 0.25;
+  const sp = 380;
+  const dx = Math.cos(lockAngle);
+  const dy = Math.sin(lockAngle);
+
+  // non-homing lock ±0.15 → weak vs swarms (intentional)
+  for (let i = -1; i <= 1; i++) {
+    const ba = lockAngle + i * 0.15;
+    const hullSign = i >= 0 ? 1 : -1; // starboard=右偏向+中央, port=左偏向
+    const [ox, oy] = flagshipWorld(u, t.size * MUZZLE_FWD, hullSign * 0.24 * t.size);
     spawnProjectile(
-      u.x + Math.cos(ba) * t.size,
-      u.y + Math.sin(ba) * t.size,
-      Math.cos(ba) * 420,
-      Math.sin(ba) * 420,
-      t.range / 420 + 0.1,
+      ox,
+      oy,
+      Math.cos(ba) * sp,
+      Math.sin(ba) * sp,
+      t.range / sp + 0.1,
       t.damage * vd,
       u.team,
-      2,
+      4,
       c[0],
       c[1],
       c[2],
     );
+    for (let j = 0; j < 5; j++) {
+      const a = ba + (ctx.rng() - 0.5) * 0.5;
+      spawnParticle(
+        ox,
+        oy,
+        Math.cos(a) * (90 + ctx.rng() * 100),
+        Math.sin(a) * (90 + ctx.rng() * 100),
+        0.07 + ctx.rng() * 0.04,
+        3 + ctx.rng() * 3,
+        c[0] * 0.5 + 0.5,
+        c[1] * 0.5 + 0.5,
+        c[2] * 0.5 + 0.5,
+        0,
+      );
+    }
+  }
+
+  for (const sign of [-1, 1] as const) {
+    const [mx, my] = flagshipWorld(u, t.size * MUZZLE_FWD, sign * 0.24 * t.size);
+    addBeam(mx, my, mx + dx * 100, my + dy * 100, 0.95, 0.95, 1.0, 0.04, 5.5, true, 4, true);
+  }
+
+  const backX = -Math.cos(u.angle);
+  const backY = -Math.sin(u.angle);
+  for (const sign of [-1, 1] as const) {
+    for (const ey of ENGINE_OFFSETS) {
+      const [ex, eyy] = flagshipWorld(u, -t.size * 0.8, sign * ey * t.size);
+      for (let j = 0; j < 2; j++) {
+        spawnParticle(
+          ex,
+          eyy,
+          backX * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
+          backY * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
+          0.06 + ctx.rng() * 0.04,
+          2 + ctx.rng() * 2,
+          c[0] * 0.6 + 0.4,
+          c[1] * 0.6 + 0.4,
+          c[2] * 0.6 + 0.4,
+          0,
+        );
+      }
+    }
+  }
+
+  spawnParticle(u.x, u.y, 0, 0, 0.1, t.size * 0.8, 1, 1, 1, 10);
+  for (const sign of [-1, 1] as const) {
+    const [mx, my] = flagshipWorld(u, t.size * MUZZLE_FWD, sign * 0.24 * t.size);
+    addBeam(mx, my, mx + dx * 240, my + dy * 240, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.06, 2.5, true, 8);
+  }
+
+  addShake(6);
+}
+
+function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
+  const { u, c, t, vd } = ctx;
+  const sp = 350;
+  const perpDmg = Math.ceil(t.damage * 0.6 * vd);
+
+  for (const side of [-1, 1] as const) {
+    const ba = lockAngle + side * (Math.PI / 2);
+    const baDx = Math.cos(ba);
+    const baDy = Math.sin(ba);
+    const [ox, oy] = flagshipWorld(u, 0, side * 0.24 * t.size);
+    spawnProjectile(
+      ox,
+      oy,
+      baDx * sp,
+      baDy * sp,
+      (t.range * 0.7) / sp + 0.1,
+      perpDmg,
+      u.team,
+      3,
+      c[0] * 0.8,
+      c[1] * 0.8,
+      c[2] * 0.8,
+    );
+
+    for (const ey of ENGINE_OFFSETS) {
+      const [bx, by] = flagshipWorld(u, -t.size * 0.3, side * ey * t.size);
+      addBeam(bx, by, bx + baDx * 70, by + baDy * 70, c[0] * 0.8, c[1] * 0.8, c[2] * 0.8, 0.04, 2.0, true, 6);
+    }
+
+    for (let j = 0; j < 4; j++) {
+      const a = ba + (ctx.rng() - 0.5) * 0.4;
+      spawnParticle(
+        ox,
+        oy,
+        Math.cos(a) * (70 + ctx.rng() * 70),
+        Math.sin(a) * (70 + ctx.rng() * 70),
+        0.06 + ctx.rng() * 0.03,
+        2 + ctx.rng() * 2,
+        c[0],
+        c[1],
+        c[2],
+        0,
+      );
+    }
+
+    addBeam(ox, oy, ox + baDx * t.range * 0.5, oy + baDy * t.range * 0.5, c[0], c[1], c[2], 0.06, 4.0, true, 6);
+  }
+
+  addShake(4);
+}
+
+/**
+ * State machine reusing existing Unit fields:
+ *   beamOn: charge progress (0=idle, 0→1=charging, 1=charged)
+ *   sweepBaseAngle: locked target angle at charge start
+ *   burstCount: phase (BROADSIDE_PHASE_CHARGE=0, BROADSIDE_PHASE_FIRE=-1)
+ */
+function handleFlagshipBarrage(ctx: CombatContext) {
+  const { u, t, dt } = ctx;
+
+  if (u.target === NO_UNIT) {
+    u.beamOn = 0;
+    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    return;
+  }
+  const o = getUnit(u.target);
+  if (!o.alive) {
+    u.target = NO_UNIT;
+    u.beamOn = 0;
+    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    return;
+  }
+  const dx = o.x - u.x,
+    dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d >= t.range) {
+    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    return;
+  }
+
+  // cooldown wait
+  if (u.beamOn === 0 && u.cooldown > 0) return;
+
+  // Charge phase: lock angle, build up
+  if (u.beamOn === 0) {
+    u.sweepBaseAngle = Math.atan2(dy, dx);
+    u.beamOn = 0.001;
+    u.burstCount = BROADSIDE_PHASE_CHARGE;
+  }
+
+  if (u.burstCount === BROADSIDE_PHASE_CHARGE) {
+    u.beamOn = Math.min(u.beamOn + dt / FLAGSHIP_CHARGE_TIME, 1);
+    flagshipChargeVfx(ctx, u.beamOn);
+    flagshipPreviewBeam(ctx, u.sweepBaseAngle, u.beamOn);
+
+    if (u.beamOn >= 1) {
+      flagshipFireMain(ctx, u.sweepBaseAngle);
+      u.burstCount = BROADSIDE_PHASE_FIRE;
+      u.beamOn = 1;
+      u.cooldown = FLAGSHIP_BROADSIDE_DELAY;
+      return;
+    }
+    return;
+  }
+
+  // Broadside phase: fire perpendicular shots after short delay
+  if (u.burstCount === BROADSIDE_PHASE_FIRE && u.cooldown <= 0) {
+    flagshipFireBroadside(ctx, u.sweepBaseAngle);
+    u.cooldown = t.fireRate;
+    u.beamOn = 0;
+    u.burstCount = BROADSIDE_PHASE_CHARGE;
   }
 }
 
@@ -808,8 +1052,6 @@ function fireNormal(ctx: CombatContext) {
     fireHoming(ctx, ang, d);
   } else if (t.aoe) {
     fireAoe(ctx, ang, d);
-  } else if (t.shape === 3) {
-    fireFlagshipSpread(ctx, ang);
   } else if (t.shape === 8) {
     fireRailgun(ctx, ang);
   } else {
@@ -858,6 +1100,10 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   }
   if (t.sweep) {
     handleSweepBeam(_ctx);
+    return;
+  }
+  if (t.broadside) {
+    handleFlagshipBarrage(_ctx);
     return;
   }
   if (t.beam) {

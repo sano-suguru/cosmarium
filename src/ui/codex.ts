@@ -16,7 +16,20 @@ import {
 } from './dom-ids.ts';
 
 type DemoFlag = keyof UnitType &
-  ('swarm' | 'burst' | 'heals' | 'reflects' | 'spawns' | 'emp' | 'chain' | 'teleports' | 'rams' | 'sweep' | 'beam');
+  (
+    | 'swarm'
+    | 'burst'
+    | 'heals'
+    | 'reflects'
+    | 'spawns'
+    | 'emp'
+    | 'chain'
+    | 'teleports'
+    | 'rams'
+    | 'sweep'
+    | 'beam'
+    | 'broadside'
+  );
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 const demoRng: () => number = Math.random;
@@ -33,6 +46,7 @@ const codexDemoTable: [DemoFlag, (mi: UnitIndex) => void][] = [
   ['rams', (mi) => demoLancer(mi)],
   ['sweep', (mi) => demoSweepBeam(mi)],
   ['beam', () => demoFocusBeam()],
+  ['broadside', (mi) => demoFlagship(mi)],
 ];
 
 let elCodex: HTMLElement | null = null;
@@ -165,10 +179,16 @@ function demoFocusBeam() {
   }
 }
 
+function demoFlagship(mi: UnitIndex) {
+  if (mi !== NO_UNIT) getUnit(mi).cooldown = 0;
+  for (let i = 0; i < 6; i++) {
+    spawnUnit(1, 0, 250 + Math.random() * 80, (Math.random() - 0.5) * 200, demoRng);
+  }
+}
+
 function demoDefault(t: UnitType) {
   let cnt: number;
-  if (t.shape === 3) cnt = 6;
-  else if (t.shape === 8) cnt = 2;
+  if (t.shape === 8) cnt = 2;
   else cnt = 4;
   for (let i = 0; i < cnt; i++) {
     spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200, demoRng);
