@@ -71,10 +71,6 @@ export function toggleAutoFollow(): boolean {
   return autoFollow;
 }
 
-export function isAutoFollow(): boolean {
-  return autoFollow;
-}
-
 export function setAutoFollow(v: boolean): void {
   autoFollow = v;
 }
