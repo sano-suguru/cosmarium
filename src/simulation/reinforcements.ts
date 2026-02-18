@@ -1,6 +1,5 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { rng, state } from '../state.ts';
 import type { Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
@@ -59,12 +58,12 @@ function countAlive(team: Team): number {
   return cnt;
 }
 
-function spawnWave(team: Team, cnt: number) {
+function spawnWave(team: Team, cnt: number, rng: () => number) {
   const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
   const cy = (rng() - 0.5) * WORLD_SIZE;
   const r = rng();
   const s = (tp: number, spread: number) => {
-    spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread);
+    spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
   };
   for (let i = 0; i < 8; i++) s(DRONE, 100);
   for (let i = 0; i < 2; i++) s(FIGHTER, 80);
@@ -76,13 +75,17 @@ function spawnWave(team: Team, cnt: number) {
   }
 }
 
-export function reinforce(dt: number) {
-  state.reinforcementTimer += dt;
-  if (state.reinforcementTimer < 2.5) return;
-  state.reinforcementTimer = 0;
+export interface ReinforcementState {
+  reinforcementTimer: number;
+}
+
+export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
+  rs.reinforcementTimer += dt;
+  if (rs.reinforcementTimer < 2.5) return;
+  rs.reinforcementTimer = 0;
   const lim = 130;
   for (const team of TEAMS) {
     const cnt = countAlive(team);
-    if (cnt < lim) spawnWave(team, cnt);
+    if (cnt < lim) spawnWave(team, cnt, rng);
   }
 }

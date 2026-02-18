@@ -1,6 +1,5 @@
 import { PI, POOL_UNITS, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { rng } from '../state.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -48,7 +47,7 @@ function findNearestGlobalEnemy(u: Unit): UnitIndex {
   return bi;
 }
 
-function findTarget(u: Unit, nn: number, range: number, dt: number): UnitIndex {
+function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => number): UnitIndex {
   if (u.target !== NO_UNIT && getUnit(u.target).alive) return u.target;
 
   const localTarget = findNearestLocalEnemy(u, nn, range);
@@ -124,7 +123,7 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
   return _force;
 }
 
-function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number): SteerForce {
+function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number, rng: () => number): SteerForce {
   if (tgt !== NO_UNIT) {
     const o = getUnit(tgt);
     const dx = o.x - u.x,
@@ -233,7 +232,7 @@ function tickBoostDuringStun(u: Unit, dt: number) {
   }
 }
 
-export function steer(u: Unit, dt: number) {
+export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);
@@ -251,10 +250,10 @@ export function steer(u: Unit, dt: number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const tgt = findTarget(u, nn, t.range, dt);
+  const tgt = findTarget(u, nn, t.range, dt, rng);
   u.target = tgt;
 
-  const engage = computeEngagementForce(u, tgt, t, dt);
+  const engage = computeEngagementForce(u, tgt, t, dt, rng);
   fx += engage.x;
   fy += engage.y;
 

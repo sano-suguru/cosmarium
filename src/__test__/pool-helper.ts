@@ -1,3 +1,4 @@
+import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
   getParticle,
@@ -10,7 +11,8 @@ import {
 } from '../pools.ts';
 import { resetPendingChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
-import { beams, seedRng, state, trackingBeams } from '../state.ts';
+import type { GameLoopState } from '../simulation/update.ts';
+import { seedRng, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 
@@ -119,11 +121,27 @@ export function resetState() {
   resetPendingChains();
 }
 
-/** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値でモックして確定的にユニットを生成する共通ヘルパー */
+/** テスト用 GameLoopState ファクトリ。state のプロパティをリアルタイムに参照する getter/setter でラップする */
+export function makeGameLoopState(
+  isCodexDemoUnit: (idx: UnitIndex) => boolean = () => false,
+  updateCodexDemo: (dt: number) => void = () => undefined,
+): GameLoopState {
+  return {
+    get codexOpen() {
+      return state.codexOpen;
+    },
+    get reinforcementTimer() {
+      return state.reinforcementTimer;
+    },
+    set reinforcementTimer(v: number) {
+      state.reinforcementTimer = v;
+    },
+    isCodexDemoUnit,
+    updateCodexDemo,
+  };
+}
+
+/** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
 export function spawnAt(team: 0 | 1, type: number, x: number, y: number): UnitIndex {
-  const originalRng = state.rng;
-  state.rng = () => 0; // 固定値: angle, cooldown, wanderAngle に 0 を返す
-  const result = spawnUnit(team, type, x, y);
-  state.rng = originalRng;
-  return result;
+  return spawnUnit(team, type, x, y, () => 0);
 }

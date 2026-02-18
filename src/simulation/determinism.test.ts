@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { makeGameLoopState, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getUnit } from '../pools.ts';
-import { seedRng } from '../state.ts';
+import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
@@ -11,14 +11,6 @@ vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
   cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
   initCamera: vi.fn(),
-}));
-
-vi.mock('../ui/codex.ts', () => ({
-  updateCodexDemo: vi.fn(),
-  setupCodexDemo: vi.fn(),
-  buildCodexUI: vi.fn(),
-  toggleCodex: vi.fn(),
-  isCodexDemoUnit: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('../ui/game-control.ts', () => ({
@@ -72,11 +64,13 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
   resetState();
   seedRng(seed);
 
-  initUnits();
+  initUnits(rng);
+
+  const gs = makeGameLoopState();
 
   for (let i = 0; i < ticks; i++) {
     buildHash();
-    update(0.033, i * 0.033);
+    update(0.033, i * 0.033, rng, gs);
   }
 
   return captureSnapshot();

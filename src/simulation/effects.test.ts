@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { getParticle, getUnit, poolCounts } from '../pools.ts';
-import { beams, state } from '../state.ts';
+import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
 
@@ -25,21 +26,21 @@ afterEach(() => {
 describe('explosion', () => {
   it('パーティクルが生成される', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, NO_UNIT);
+    explosion(0, 0, 0, 0, NO_UNIT, rng);
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 
   it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 3 (Cruiser) は size=15
-    explosion(0, 0, 0, 3, NO_UNIT);
+    explosion(0, 0, 0, 3, NO_UNIT, rng);
     expect(addShake).toHaveBeenCalledWith(15 * 0.8);
   });
 
   it('小型ユニット (size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 0 (Drone) は size=4
-    explosion(0, 0, 0, 0, NO_UNIT);
+    explosion(0, 0, 0, 0, NO_UNIT, rng);
     expect(addShake).not.toHaveBeenCalled();
   });
 
@@ -49,7 +50,7 @@ describe('explosion', () => {
     getUnit(idx).vy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, NO_UNIT);
+    explosion(0, 0, 0, 0, NO_UNIT, rng);
     // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
     expect(getUnit(idx).vx).toBeGreaterThan(0);
   });
@@ -59,7 +60,7 @@ describe('explosion', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(getUnit(killer).kills).toBe(0);
-    explosion(0, 0, 1, 0, killer);
+    explosion(0, 0, 1, 0, killer, rng);
     expect(getUnit(killer).kills).toBe(1);
   });
 
@@ -68,7 +69,7 @@ describe('explosion', () => {
     getUnit(killer).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 1, 0, killer);
+    explosion(0, 0, 1, 0, killer, rng);
     expect(getUnit(killer).kills).toBe(3);
     expect(getUnit(killer).vet).toBe(1);
   });
@@ -78,7 +79,7 @@ describe('explosion', () => {
     getUnit(killer).kills = 7;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 1, 0, killer);
+    explosion(0, 0, 1, 0, killer, rng);
     expect(getUnit(killer).kills).toBe(8);
     expect(getUnit(killer).vet).toBe(2);
   });
@@ -87,7 +88,7 @@ describe('explosion', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // killer=-1 でエラーが起きないことを確認
-    explosion(0, 0, 0, 0, NO_UNIT);
+    explosion(0, 0, 0, 0, NO_UNIT, rng);
     expect(poolCounts.particleCount).toBeGreaterThan(0);
   });
 });
@@ -97,7 +98,7 @@ describe('trail', () => {
     const idx = spawnAt(0, 1, 50, 50);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const before = poolCounts.particleCount;
-    trail(getUnit(idx));
+    trail(getUnit(idx), rng);
     expect(poolCounts.particleCount).toBe(before + 1);
   });
 });
@@ -105,7 +106,7 @@ describe('trail', () => {
 describe('chainLightning', () => {
   it('ターゲットなし → 何もしない', () => {
     buildHash();
-    chainLightning(0, 0, 0, 10, 5, [1, 1, 1]);
+    chainLightning(0, 0, 0, 10, 5, [1, 1, 1], rng);
     expect(beams).toHaveLength(0);
     expect(poolCounts.particleCount).toBe(0);
   });
@@ -115,7 +116,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
     expect(beams).toHaveLength(1);
     // ch=0: damage * (1 - 0*0.12) = 4
     expect(getUnit(enemy).hp).toBe(hpBefore - 4);
@@ -128,10 +129,10 @@ describe('chainLightning', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp1Before = getUnit(e1).hp;
     const hp2Before = getUnit(e2).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     // ch=0: 10 * (1 - 0*0.12) = 10
     expect(getUnit(e1).hp).toBeCloseTo(hp1Before - 10);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     // ch=1: 10 * (1 - 1*0.12) = 8.8
     expect(getUnit(e2).hp).toBeCloseTo(hp2Before - 8.8);
     expect(beams).toHaveLength(2);
@@ -143,7 +144,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(enemy).hp;
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
     // 1体しかいないので1回だけダメージ
     expect(getUnit(enemy).hp).toBe(hpBefore - 4);
     expect(beams).toHaveLength(1);
@@ -153,7 +154,7 @@ describe('chainLightning', () => {
     const enemy = spawnAt(1, 0, 50, 0); // type 0 (Drone), hp=3
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0]); // damage=100 > hp=3
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], rng); // damage=100 > hp=3
     expect(getUnit(enemy).alive).toBe(false);
   });
 
@@ -162,7 +163,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = getUnit(ally).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     expect(getUnit(ally).hp).toBe(hpBefore);
     expect(beams).toHaveLength(0);
   });
@@ -176,14 +177,14 @@ describe('chainLightning', () => {
     const hp1Before = getUnit(e1).hp;
     const hp2Before = getUnit(e2).hp;
     const hp3Before = getUnit(e3).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     expect(getUnit(e1).hp).toBeCloseTo(hp1Before - 10);
     expect(getUnit(e2).hp).toBe(hp2Before);
     expect(getUnit(e3).hp).toBe(hp3Before);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(getUnit(e2).hp).toBeCloseTo(hp2Before - 8.8);
     expect(getUnit(e3).hp).toBe(hp3Before);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(getUnit(e3).hp).toBeCloseTo(hp3Before - 7.6);
   });
 
@@ -195,15 +196,15 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 250, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     expect(beams).toHaveLength(1);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams).toHaveLength(2);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams).toHaveLength(3);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams).toHaveLength(4);
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams).toHaveLength(5);
   });
 
@@ -214,9 +215,9 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp2Before = getUnit(e2).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     getUnit(e2).alive = false;
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(getUnit(e2).hp).toBe(hp2Before);
     expect(beams).toHaveLength(2);
   });
@@ -227,12 +228,12 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
-    updatePendingChains(0.2);
-    updatePendingChains(0.2);
-    updatePendingChains(0.2);
-    updatePendingChains(0.2);
-    updatePendingChains(0.2);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    updatePendingChains(0.2, rng);
+    updatePendingChains(0.2, rng);
+    updatePendingChains(0.2, rng);
+    updatePendingChains(0.2, rng);
+    updatePendingChains(0.2, rng);
     expect(beams).toHaveLength(3);
     resetState();
   });
@@ -240,8 +241,8 @@ describe('chainLightning', () => {
   it('ターゲット0体で pendingChains にエントリなし', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
-    updatePendingChains(0.1);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    updatePendingChains(0.1, rng);
     expect(beams).toHaveLength(0);
   });
 
@@ -249,7 +250,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 50, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
     expect(beams[0]?.lightning).toBe(true);
   });
 
@@ -258,10 +259,10 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
     getUnit(e1).x = 999;
     getUnit(e1).y = 888;
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams[1]?.x1).toBe(999);
     expect(beams[1]?.y1).toBe(888);
   });
@@ -271,12 +272,12 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0]);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
     const snapshotX = getUnit(e1).x;
     const snapshotY = getUnit(e1).y;
     getUnit(e1).alive = false;
     getUnit(e1).x = 999;
-    updatePendingChains(0.06);
+    updatePendingChains(0.06, rng);
     expect(beams[1]?.x1).toBe(snapshotX);
     expect(beams[1]?.y1).toBe(snapshotY);
   });
@@ -287,14 +288,14 @@ describe('boostBurst', () => {
     state.rng = () => 0.5;
     const idx = spawnAt(0, 0, 100, 100);
     const before = poolCounts.particleCount;
-    boostBurst(getUnit(idx));
+    boostBurst(getUnit(idx), rng);
     expect(poolCounts.particleCount).toBe(before + 10);
   });
 
   it('パーティクルのライフが0.3s以下（rng最大値）', () => {
     state.rng = () => 0.999;
     const idx = spawnAt(0, 0, 100, 100);
-    boostBurst(getUnit(idx));
+    boostBurst(getUnit(idx), rng);
     // life = 0.15 + 0.999 * 0.1 = 0.2499
     for (let i = 0; i < 10; i++) {
       const p = getParticle(i);
@@ -307,7 +308,7 @@ describe('boostBurst', () => {
   it('明るいトレイルカラー使用', () => {
     state.rng = () => 0.5;
     const idx = spawnAt(0, 0, 100, 100);
-    boostBurst(getUnit(idx));
+    boostBurst(getUnit(idx), rng);
     // getTrailColor(0, 0) = [0.1, 0.6, 0.35]
     // bright variant: [0.55, 0.8, 0.675]
     const p = getParticle(0);
@@ -322,7 +323,7 @@ describe('boostTrail', () => {
     state.rng = () => 0.0;
     const idx = spawnAt(0, 0, 100, 100);
     const before = poolCounts.particleCount;
-    boostTrail(getUnit(idx), 1 / 30);
+    boostTrail(getUnit(idx), 1 / 30, rng);
     // rng()=0.0 < 1 - 0.6^1 ≈ 0.4 → spawn
     expect(poolCounts.particleCount).toBe(before + 1);
   });
@@ -331,7 +332,7 @@ describe('boostTrail', () => {
     state.rng = () => 0.99;
     const idx = spawnAt(0, 0, 100, 100);
     const before = poolCounts.particleCount;
-    boostTrail(getUnit(idx), 1 / 30);
+    boostTrail(getUnit(idx), 1 / 30, rng);
     // rng()=0.99 >= 0.4 → スキップ
     expect(poolCounts.particleCount).toBe(before);
   });
@@ -341,7 +342,7 @@ describe('boostTrail', () => {
     const idx = spawnAt(0, 0, 200, 200);
     const u = getUnit(idx);
     u.angle = 0; // cos(0)=1, sin(0)=0
-    boostTrail(u, 1 / 30);
+    boostTrail(u, 1 / 30, rng);
     const p = getParticle(0);
     // ox = 200 - 1 * 4 * 0.8 + (0 - 0.5) * 4 * 0.5 = 200 - 3.2 - 1.0 = 195.8
     expect(p.x).toBeLessThan(u.x);
@@ -350,7 +351,7 @@ describe('boostTrail', () => {
   it('パーティクルのライフが0.3s以下', () => {
     state.rng = () => 0.0;
     const idx = spawnAt(0, 0, 100, 100);
-    boostTrail(getUnit(idx), 1 / 30);
+    boostTrail(getUnit(idx), 1 / 30, rng);
     const p = getParticle(0);
     // life = 0.08 + rng() * 0.12 = 0.08 (rng=0)
     expect(p.life).toBeLessThanOrEqual(0.3);

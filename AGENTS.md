@@ -27,6 +27,7 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 - main loop: `gameState==='play'`時のみ実行
 - dt二重クランプ: main.ts(0.05s) → update.ts(0.033s)
 - update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ `reinforce(dt)`
+- `update(rawDt, now, rng, gameState)`: `rng`は`state.ts`のclosureラッパー、`gameState`は`{ codexOpen, reinforcementTimer }`（`GameLoopState`）
 - `codexOpen`時: 非デモユニットのsteer/combatスキップ + reinforce スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
 
 ## ファイル変更ガイド
@@ -44,7 +45,8 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 
 - **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
 - **poolCounts**: Readonly export。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
-- **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり。inline で poolCounts を直接操作しない
+- **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり
+  - Don't inline で poolCounts を直接操作する — 必ず集約関数経由
 - **新オブジェクト種追加時**: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加
 
 ## テストパターン
@@ -76,7 +78,7 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 
 各単位で`bun run typecheck`が通る状態を維持する。
 
-### アンチパターン
+### Don't
 
 - 調査を委譲した後、結果を待たずに同じ調査を自分で行う
 - 全ファイルを読んでから実装を始める（必要な箇所だけ読む）

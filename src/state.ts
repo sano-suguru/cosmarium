@@ -1,4 +1,4 @@
-import type { Beam, GameState, TrackingBeam } from './types.ts';
+import type { GameState } from './types.ts';
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0;
@@ -16,12 +16,21 @@ type State = {
   codexSelected: number;
   timeScale: number;
   reinforcementTimer: number;
+  /**
+   * @internal simulation/ からは直接参照禁止。外部には `rng` closure ラッパーを使う。
+   * 変更は必ず `seedRng()` 経由で行うこと。直接代入すると closure との整合が壊れる。
+   */
   rng: () => number;
 };
 
 let currentSeed = Date.now();
 let currentRng = mulberry32(currentSeed);
 
+/**
+ * state.rng() への closure ラッパー。simulation/ が state.ts を直接 import せず
+ * 引数注入で受け取れるようにする目的。closure 経由のため seedRng() や
+ * テスト時の state.rng 差し替えが自動的に反映される（意図的な設計）。
+ */
 export function rng(): number {
   return state.rng();
 }
@@ -44,19 +53,3 @@ export const state: State = {
   reinforcementTimer: 0,
   rng: currentRng,
 };
-
-export const beams: Beam[] = [];
-
-export function getBeam(i: number): Beam {
-  const b = beams[i];
-  if (b === undefined) throw new RangeError(`Invalid beam index: ${i}`);
-  return b;
-}
-
-export const trackingBeams: TrackingBeam[] = [];
-
-export function getTrackingBeam(i: number): TrackingBeam {
-  const b = trackingBeams[i];
-  if (b === undefined) throw new RangeError(`Invalid tracking beam index: ${i}`);
-  return b;
-}

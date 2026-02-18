@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { beams } from '../beams.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
-import { beams } from '../state.ts';
+import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -35,7 +36,7 @@ describe('combat — 共通', () => {
     u.cooldown = 0;
     u.target = NO_UNIT;
     buildHash();
-    combat(u, idx, 0.016, 0);
+    combat(u, idx, 0.016, 0, rng);
     // cooldown はスタン中変化しない
     expect(u.cooldown).toBe(0);
   });
@@ -47,7 +48,7 @@ describe('combat — 共通', () => {
     u.abilityCooldown = 0.5;
     u.target = NO_UNIT;
     buildHash();
-    combat(u, idx, 0.016, 0);
+    combat(u, idx, 0.016, 0, rng);
     expect(u.cooldown).toBeCloseTo(1.0 - 0.016);
     expect(u.abilityCooldown).toBeCloseTo(0.5 - 0.016);
   });
@@ -60,7 +61,7 @@ describe('combat — LANCER', () => {
     buildHash();
     const lancerHpBefore = getUnit(lancer).hp;
     const enemyHpBefore = getUnit(enemy).hp;
-    combat(getUnit(lancer), lancer, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0, rng);
     // Lancer (size=12) + Fighter (size=7) = 19, distance = 5 < 19 → 衝突
     // vet=0: vd = 1 + 0*0.2 = 1
     // enemy damage: ceil(12 * 3 * 1) = 36
@@ -75,7 +76,7 @@ describe('combat — LANCER', () => {
     getUnit(enemy).vx = 0;
     getUnit(enemy).vy = 0;
     buildHash();
-    combat(getUnit(lancer), lancer, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0, rng);
     // ノックバックで敵のvxが変化
     expect(getUnit(enemy).vx).not.toBe(0);
   });
@@ -84,7 +85,7 @@ describe('combat — LANCER', () => {
     const lancer = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, size=4)
     buildHash();
-    combat(getUnit(lancer), lancer, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0, rng);
     // Lancer damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
     expect(getUnit(enemy).alive).toBe(false);
   });
@@ -94,7 +95,7 @@ describe('combat — LANCER', () => {
     getUnit(lancer).hp = 1; // HP1にする
     spawnAt(1, 4, 5, 0); // Flagship (mass=30)
     buildHash();
-    combat(getUnit(lancer), lancer, 0.016, 0);
+    combat(getUnit(lancer), lancer, 0.016, 0, rng);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
     expect(getUnit(lancer).alive).toBe(false);
   });
@@ -107,7 +108,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0; // クールダウン切れ
     getUnit(ally).hp = 5; // ダメージ受けた状態
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(getUnit(ally).hp).toBe(8); // 5 + 3
   });
 
@@ -117,7 +118,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 9; // maxHp=10, hp=9 → +3 → clamp to 10
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(getUnit(ally).hp).toBe(10);
   });
 
@@ -127,7 +128,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 5;
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(getUnit(healer).abilityCooldown).toBeCloseTo(0.35);
   });
 
@@ -136,7 +137,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(healer).hp = 5;
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(getUnit(healer).hp).toBe(5); // 変化なし
   });
 
@@ -146,7 +147,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 0;
     getUnit(ally).hp = 5;
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(beams.length).toBeGreaterThan(0);
   });
 
@@ -156,7 +157,7 @@ describe('combat — HEALER', () => {
     getUnit(healer).abilityCooldown = 1.0;
     getUnit(ally).hp = 5;
     buildHash();
-    combat(getUnit(healer), healer, 0.016, 0);
+    combat(getUnit(healer), healer, 0.016, 0, rng);
     expect(getUnit(ally).hp).toBe(5);
   });
 });
@@ -168,7 +169,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
     expect(p.team).toBe(1);
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(p.vx).toBeGreaterThan(0);
     expect(p.team).toBe(0);
   });
@@ -179,7 +180,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
     const vxBefore = p.vx;
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(p.vx).toBe(vxBefore);
     expect(p.team).toBe(1);
   });
@@ -190,7 +191,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
     const p = getProjectile(0);
     const vxBefore = p.vx;
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(p.vx).toBe(vxBefore);
   });
 
@@ -200,7 +201,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 0.1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
     expect(p.life).toBeCloseTo(0.1);
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(p.life).toBeCloseTo(0.5);
   });
 
@@ -210,7 +211,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
     const speedBefore = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     const speedAfter = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     expect(speedAfter).toBeCloseTo(speedBefore, 1);
   });
@@ -221,7 +222,7 @@ describe('combat — REFLECTOR', () => {
     getUnit(reflector).cooldown = 0;
     getUnit(reflector).target = enemy;
     buildHash();
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).team).toBe(0);
     expect(getUnit(reflector).cooldown).toBeCloseTo(getUnitType(6).fireRate);
@@ -237,7 +238,7 @@ describe('combat — REFLECTOR', () => {
     expect(getProjectile(0).alive).toBe(false);
     expect(getProjectile(1).alive).toBe(true);
     expect(getProjectile(1).team).toBe(1);
-    combat(getUnit(reflector), reflector, 0.016, 0);
+    combat(getUnit(reflector), reflector, 0.016, 0, rng);
     expect(getProjectile(1).team).toBe(0);
     expect(getProjectile(1).vx).toBeGreaterThan(0);
   });
@@ -248,10 +249,10 @@ describe('combat — REFLECTOR', () => {
     buildHash();
     spawnProjectile(12, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = getProjectile(0);
-    combat(getUnit(r1), r1, 0.016, 0);
+    combat(getUnit(r1), r1, 0.016, 0, rng);
     expect(p.team).toBe(0);
     const vxAfterFirst = p.vx;
-    combat(getUnit(r2), r2, 0.016, 0);
+    combat(getUnit(r2), r2, 0.016, 0, rng);
     expect(p.vx).toBe(vxAfterFirst);
     expect(p.team).toBe(0);
   });
@@ -263,7 +264,7 @@ describe('combat — CARRIER', () => {
     getUnit(carrier).spawnCooldown = 0; // クールダウン切れ
     const ucBefore = poolCounts.unitCount;
     buildHash();
-    combat(getUnit(carrier), carrier, 0.016, 0);
+    combat(getUnit(carrier), carrier, 0.016, 0, rng);
     // Drone×4 生成
     expect(poolCounts.unitCount).toBe(ucBefore + 4);
     // Drone (type=0) が生成されている
@@ -279,7 +280,7 @@ describe('combat — CARRIER', () => {
     getUnit(carrier).spawnCooldown = 5.0;
     const ucBefore = poolCounts.unitCount;
     buildHash();
-    combat(getUnit(carrier), carrier, 0.016, 0);
+    combat(getUnit(carrier), carrier, 0.016, 0, rng);
     expect(poolCounts.unitCount).toBe(ucBefore);
   });
 
@@ -287,7 +288,7 @@ describe('combat — CARRIER', () => {
     const carrier = spawnAt(0, 7, 0, 0);
     getUnit(carrier).spawnCooldown = 0;
     buildHash();
-    combat(getUnit(carrier), carrier, 0.016, 0);
+    combat(getUnit(carrier), carrier, 0.016, 0, rng);
     // spawnCooldown = 4 + random * 2 (PRNG sequence value)
     expect(getUnit(carrier).spawnCooldown).toBeGreaterThan(4);
     expect(getUnit(carrier).spawnCooldown).toBeLessThan(6);
@@ -302,7 +303,7 @@ describe('combat — DISRUPTOR', () => {
     getUnit(disruptor).target = enemy;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(disruptor), disruptor, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0, rng);
     expect(getUnit(enemy).stun).toBe(1.5);
     expect(getUnit(enemy).hp).toBe(hpBefore - 2); // damage=2
   });
@@ -312,7 +313,7 @@ describe('combat — DISRUPTOR', () => {
     getUnit(disruptor).abilityCooldown = 0;
     getUnit(disruptor).target = NO_UNIT;
     buildHash();
-    combat(getUnit(disruptor), disruptor, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0, rng);
     expect(poolCounts.particleCount).toBe(0); // パーティクルなし = 何も実行されず
   });
 
@@ -323,7 +324,7 @@ describe('combat — DISRUPTOR', () => {
     getUnit(disruptor).abilityCooldown = 0;
     getUnit(disruptor).target = enemy;
     buildHash();
-    combat(getUnit(disruptor), disruptor, 0.016, 0);
+    combat(getUnit(disruptor), disruptor, 0.016, 0, rng);
     expect(getUnit(ally).stun).toBe(0);
     expect(getUnit(enemy).stun).toBe(1.5);
   });
@@ -336,7 +337,7 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).teleportTimer = 0; // クールダウン切れ
     getUnit(tp).target = enemy;
     buildHash();
-    combat(getUnit(tp), tp, 0.016, 0);
+    combat(getUnit(tp), tp, 0.016, 0, rng);
     // テレポート後: tp > 0 にリセット
     expect(getUnit(tp).teleportTimer).toBeGreaterThan(0);
     // テレポート射撃5発（combat内ループ）+ NORMAL FIRE フォールスルー1発 = 計6
@@ -352,7 +353,7 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).target = enemy;
     getUnit(tp).cooldown = 999; // NORMAL FIREも防ぐ
     buildHash();
-    combat(getUnit(tp), tp, 0.016, 0);
+    combat(getUnit(tp), tp, 0.016, 0, rng);
     // tp はdt分減少するだけ
     expect(getUnit(tp).teleportTimer).toBeCloseTo(3.0 - 0.016);
     expect(poolCounts.projectileCount).toBe(0);
@@ -365,7 +366,7 @@ describe('combat — TELEPORTER', () => {
     getUnit(tp).target = enemy;
     getUnit(tp).cooldown = 999;
     buildHash();
-    combat(getUnit(tp), tp, 0.016, 0);
+    combat(getUnit(tp), tp, 0.016, 0, rng);
     // tp -= dt は常に実行されるのでtp = 0 - 0.016
     expect(getUnit(tp).teleportTimer).toBeCloseTo(-0.016);
     expect(poolCounts.projectileCount).toBe(0);
@@ -379,7 +380,7 @@ describe('combat — CHAIN LIGHTNING', () => {
     getUnit(arcer).cooldown = 0;
     getUnit(arcer).target = enemy;
     buildHash();
-    combat(getUnit(arcer), arcer, 0.016, 0);
+    combat(getUnit(arcer), arcer, 0.016, 0, rng);
     // cooldown = fireRate = 2
     expect(getUnit(arcer).cooldown).toBeCloseTo(getUnitType(14).fireRate);
     // ビーム + ダメージ
@@ -391,7 +392,7 @@ describe('combat — CHAIN LIGHTNING', () => {
     getUnit(arcer).cooldown = 0;
     getUnit(arcer).target = NO_UNIT;
     buildHash();
-    combat(getUnit(arcer), arcer, 0.016, 0);
+    combat(getUnit(arcer), arcer, 0.016, 0, rng);
     expect(beams.length).toBe(0);
   });
 });
@@ -403,7 +404,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).cooldown = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     // Fighter はバースト中なので中間クールダウン (0.07)
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.07);
@@ -415,7 +416,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).cooldown = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(0);
   });
 
@@ -426,7 +427,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(fighter).vet = 1;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     // Fighter damage=2, vet=1 → 2 * 1.2 = 2.4
     expect(getProjectile(0).damage).toBeCloseTo(2.4);
   });
@@ -438,7 +439,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(fighter).vet = 2;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     // Fighter damage=2, vet=2 → 2 * 1.4 = 2.8
     expect(getProjectile(0).damage).toBeCloseTo(2.8);
   });
@@ -449,7 +450,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(launcher).cooldown = 0;
     getUnit(launcher).target = enemy;
     buildHash();
-    combat(getUnit(launcher), launcher, 0.016, 0);
+    combat(getUnit(launcher), launcher, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).homing).toBe(true);
     expect(getProjectile(0).targetIndex).toBe(enemy);
@@ -461,7 +462,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(bomber).cooldown = 0;
     getUnit(bomber).target = enemy;
     buildHash();
-    combat(getUnit(bomber), bomber, 0.016, 0);
+    combat(getUnit(bomber), bomber, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).aoe).toBe(70);
   });
@@ -472,7 +473,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(flagship).cooldown = 0;
     getUnit(flagship).target = enemy;
     buildHash();
-    combat(getUnit(flagship), flagship, 0.016, 0);
+    combat(getUnit(flagship), flagship, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(5);
   });
 
@@ -482,7 +483,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(sniper).cooldown = 0;
     getUnit(sniper).target = enemy;
     buildHash();
-    combat(getUnit(sniper), sniper, 0.016, 0);
+    combat(getUnit(sniper), sniper, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     // tracerビームが追加される
     expect(beams.length).toBeGreaterThan(0);
@@ -497,7 +498,7 @@ describe('combat — NORMAL FIRE', () => {
     getUnit(fighter).target = enemy;
     getUnit(enemy).alive = false; // 死亡状態
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(getUnit(fighter).target).toBe(NO_UNIT);
     expect(poolCounts.projectileCount).toBe(0);
   });
@@ -534,7 +535,7 @@ describe('combat — COOLDOWN REGRESSION', () => {
     const fighter = spawnAt(0, 1, 0, 0);
     getUnit(fighter).cooldown = 1.0;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.1, 0);
+    combat(getUnit(fighter), fighter, 0.1, 0, rng);
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.9);
   });
 
@@ -544,7 +545,7 @@ describe('combat — COOLDOWN REGRESSION', () => {
     getUnit(cruiser).cooldown = 1.0;
     getUnit(cruiser).target = enemy;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(cruiser).cooldown).toBeCloseTo(0.9);
   });
 });
@@ -558,7 +559,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0.5;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
     expect(beams.length).toBe(0);
@@ -572,7 +573,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    combat(getUnit(cruiser), cruiser, 0.016, 0, rng);
     expect(getUnit(cruiser).sweepPhase).toBeGreaterThan(0);
     expect(getUnit(cruiser).beamOn).toBe(1);
   });
@@ -586,7 +587,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.2;
     getUnit(cruiser).sweepBaseAngle = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     // 0.2 + 0.1/0.8 = 0.325
     expect(getUnit(cruiser).sweepPhase).toBeCloseTo(0.325);
   });
@@ -601,7 +602,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     buildHash();
     // dt=0.1 → 0.9 + 0.1/0.8 = 1.025 → clamped to 1 → complete
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
     expect(getUnit(cruiser).cooldown).toBeCloseTo(1.5);
   });
@@ -617,7 +618,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).angle = 0;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(enemy).hp).toBe(hpBefore - 8);
   });
 
@@ -633,7 +634,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     buildHash();
     const hpBefore = getUnit(farEnemy).hp;
     for (let i = 0; i < 30; i++) {
-      combat(getUnit(cruiser), cruiser, 0.016, 0);
+      combat(getUnit(cruiser), cruiser, 0.016, 0, rng);
     }
     expect(getUnit(farEnemy).hp).toBe(hpBefore);
   });
@@ -650,7 +651,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(enemy).shieldLingerTimer = 1.0;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - 3.2);
   });
 
@@ -664,7 +665,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(enemy).alive).toBe(false);
   });
 
@@ -674,7 +675,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepPhase = 0.3;
     getUnit(cruiser).target = NO_UNIT;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
     expect(beams.length).toBe(0);
@@ -690,7 +691,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).sweepBaseAngle = 0;
     getUnit(cruiser).angle = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    combat(getUnit(cruiser), cruiser, 0.016, 0, rng);
     expect(beams.length).toBeGreaterThan(0);
   });
 
@@ -702,7 +703,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0;
     getUnit(cruiser).sweepPhase = 0;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.016, 0);
+    combat(getUnit(cruiser), cruiser, 0.016, 0, rng);
     expect(beams.length).toBe(0);
   });
 
@@ -716,7 +717,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     buildHash();
     const hpBefore = getUnit(enemy).hp;
     for (let i = 0; i < 300; i++) {
-      combat(getUnit(cruiser), cruiser, 0.033, 0);
+      combat(getUnit(cruiser), cruiser, 0.033, 0, rng);
     }
     const totalDmg = hpBefore - getUnit(enemy).hp;
     const dps = totalDmg / (300 * 0.033);
@@ -731,7 +732,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     getUnit(cruiser).beamOn = 0.5;
     getUnit(cruiser).sweepPhase = 0.3;
     buildHash();
-    combat(getUnit(cruiser), cruiser, 0.1, 0);
+    combat(getUnit(cruiser), cruiser, 0.1, 0, rng);
     expect(getUnit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
     expect(getUnit(cruiser).sweepPhase).toBe(0);
   });
@@ -745,7 +746,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 0;
     getUnit(frig).cooldown = 999;
     buildHash();
-    combat(getUnit(frig), frig, 0.1, 0);
+    combat(getUnit(frig), frig, 0.1, 0, rng);
     expect(getUnit(frig).beamOn).toBeCloseTo(0.08);
   });
 
@@ -756,7 +757,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 1.95;
     getUnit(frig).cooldown = 999;
     buildHash();
-    combat(getUnit(frig), frig, 0.1, 0);
+    combat(getUnit(frig), frig, 0.1, 0, rng);
     expect(getUnit(frig).beamOn).toBeCloseTo(2.0);
   });
 
@@ -768,7 +769,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 0.1;
     buildHash();
-    combat(getUnit(frig), frig, 0.016, 0);
+    combat(getUnit(frig), frig, 0.016, 0, rng);
     expect(getUnit(frig).beamOn).toBe(0);
   });
 
@@ -781,7 +782,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).vet = 0;
     buildHash();
     const hpBefore = getUnit(enemy).hp;
-    combat(getUnit(frig), frig, 0.016, 0);
+    combat(getUnit(frig), frig, 0.016, 0, rng);
     const expectedDmg = 0.8 * (1.5 + 0.016 * 0.8) * 1.0;
     expect(getUnit(enemy).hp).toBeCloseTo(hpBefore - expectedDmg);
   });
@@ -793,7 +794,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).beamOn = 1.0;
     getUnit(frig).cooldown = 999;
     buildHash();
-    combat(getUnit(frig), frig, 0.016, 0);
+    combat(getUnit(frig), frig, 0.016, 0, rng);
     expect(beams.length).toBeGreaterThan(0);
     const expectedBeamOn = 1.0 + 0.016 * 0.8;
     const b = beams[0];
@@ -809,7 +810,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    combat(getUnit(frig), frig, 0.016, 0);
+    combat(getUnit(frig), frig, 0.016, 0, rng);
     // beamOn=0+dt*0.8≈0.0128 → floor(0.0128*2)=0 → 1+0=1個
     expect(poolCounts.particleCount).toBe(1);
   });
@@ -822,7 +823,7 @@ describe('combat — FOCUS BEAM', () => {
     getUnit(frig).cooldown = 0;
     getUnit(enemy).hp = 9999;
     buildHash();
-    combat(getUnit(frig), frig, 0.016, 0);
+    combat(getUnit(frig), frig, 0.016, 0, rng);
     // beamOn=2(clamped) → floor(2*2)=4 → 1+4=5個
     expect(poolCounts.particleCount).toBe(5);
   });
@@ -838,7 +839,7 @@ describe('combat — FOCUS BEAM', () => {
     buildHash();
     const hpBefore = getUnit(enemy).hp;
     for (let i = 0; i < 300; i++) {
-      combat(getUnit(frig), frig, 0.033, 0);
+      combat(getUnit(frig), frig, 0.033, 0, rng);
     }
     const totalDmg = hpBefore - getUnit(enemy).hp;
     const dps = totalDmg / (300 * 0.033);
@@ -854,7 +855,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    combat(getUnit(drone), drone, 0.016, 0);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     // dmg = 1 * 1.0 (vd) * 1.0 (no allies) = 1.0
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
@@ -870,8 +871,8 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
-    combat(getUnit(drone), drone, 0.016, 0);
+    updateSwarmN(false, () => false);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
     expect(getProjectile(0).damage).toBeCloseTo(1.45);
   });
@@ -885,8 +886,8 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
-    combat(getUnit(drone), drone, 0.016, 0);
+    updateSwarmN(false, () => false);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
     expect(getProjectile(0).damage).toBeCloseTo(1.9);
   });
@@ -900,7 +901,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    combat(getUnit(drone), drone, 0.016, 0);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
   });
 
@@ -913,7 +914,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    combat(getUnit(drone), drone, 0.016, 0);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     expect(getProjectile(0).damage).toBeCloseTo(1.0);
   });
 
@@ -923,7 +924,7 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    combat(getUnit(drone), drone, 0.016, 0);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     const p = getProjectile(0);
     expect(p.size).toBeCloseTo(2.05);
     expect(p.r).toBeCloseTo(0.2);
@@ -940,8 +941,8 @@ describe('combat — DRONE SWARM', () => {
     getUnit(drone).cooldown = 0;
     getUnit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
-    combat(getUnit(drone), drone, 0.016, 0);
+    updateSwarmN(false, () => false);
+    combat(getUnit(drone), drone, 0.016, 0, rng);
     const p = getProjectile(0);
     // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725
     expect(p.size).toBeCloseTo(2.9725);
@@ -960,7 +961,7 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getUnit(fighter).burstCount).toBe(2);
   });
@@ -972,7 +973,7 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 0;
     getUnit(fighter).target = enemy;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     // burstCount=2 (>0) → cooldown = 0.07
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.07);
   });
@@ -984,7 +985,7 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 1; // 残り1発
     getUnit(fighter).target = enemy;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     // burstCount=0 → cooldown = fireRate = 0.9
     expect(getUnit(fighter).burstCount).toBe(0);
     expect(getUnit(fighter).cooldown).toBeCloseTo(0.9);
@@ -995,7 +996,7 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).burstCount = 2;
     getUnit(fighter).target = NO_UNIT;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(getUnit(fighter).burstCount).toBe(0);
   });
 
@@ -1007,7 +1008,7 @@ describe('combat — FIGHTER BURST', () => {
     getUnit(fighter).target = enemy;
     getUnit(enemy).alive = false;
     buildHash();
-    combat(getUnit(fighter), fighter, 0.016, 0);
+    combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(getUnit(fighter).burstCount).toBe(0);
     expect(getUnit(fighter).target).toBe(NO_UNIT);
   });

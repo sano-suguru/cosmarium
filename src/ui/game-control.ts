@@ -1,6 +1,6 @@
 import { cam } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
-import { state } from '../state.ts';
+import { rng, state } from '../state.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
@@ -43,7 +43,7 @@ function startGame() {
   if (elMinimap) elMinimap.style.display = 'block';
   if (elControls) elControls.style.display = 'block';
   if (elSpeed) elSpeed.style.display = 'flex';
-  initUnits();
+  initUnits(rng);
 }
 
 function handleCodexToggle() {
