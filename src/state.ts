@@ -22,6 +22,11 @@ type State = {
 let currentSeed = Date.now();
 let currentRng = mulberry32(currentSeed);
 
+/**
+ * state.rng() への closure ラッパー。simulation/ が state.ts を直接 import せず
+ * 引数注入で受け取れるようにする目的。closure 経由のため seedRng() や
+ * テスト時の state.rng 差し替えが自動的に反映される（意図的な設計）。
+ */
 export function rng(): number {
   return state.rng();
 }

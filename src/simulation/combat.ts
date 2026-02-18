@@ -36,6 +36,8 @@ interface CombatContext {
   rng: () => number;
 }
 
+// GC回避用の再利用シングルトン。combat() 呼び出し時に全フィールドを上書きする。
+// シングルスレッド前提: ワーカー分離時は per-call 割り当てに変更が必要
 const _ctx: CombatContext = {
   u: getUnit(0 as UnitIndex),
   ui: 0 as UnitIndex,
