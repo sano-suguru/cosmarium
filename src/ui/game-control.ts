@@ -1,4 +1,4 @@
-import { cam, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
+import { cam, onAutoFollowChanged, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { rng, state } from '../state.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
@@ -59,7 +59,6 @@ function handleCodexToggle() {
   }
   if (state.codexOpen) {
     setAutoFollow(false);
-    if (elAutoFollowBtn) elAutoFollowBtn.classList.remove('active');
   }
 }
 
@@ -76,8 +75,7 @@ function handlePlayKeydown(e: KeyboardEvent) {
     e.preventDefault();
   } else if (e.code === 'KeyF') {
     if (!state.codexOpen) {
-      const on = toggleAutoFollow();
-      if (elAutoFollowBtn) elAutoFollowBtn.classList.toggle('active', on);
+      toggleAutoFollow();
       e.preventDefault();
     }
   }
@@ -139,8 +137,7 @@ export function initUI() {
 
   elAutoFollowBtn?.addEventListener('click', () => {
     if (state.gameState === 'play' && !state.codexOpen) {
-      const on = toggleAutoFollow();
-      elAutoFollowBtn?.classList.toggle('active', on);
+      toggleAutoFollow();
     }
   });
 
@@ -168,6 +165,10 @@ export function initUI() {
     if (state.gameState === 'play') {
       handlePlayKeydown(e);
     }
+  });
+
+  onAutoFollowChanged((on) => {
+    elAutoFollowBtn?.classList.toggle('active', on);
   });
 
   initCodexDOM();

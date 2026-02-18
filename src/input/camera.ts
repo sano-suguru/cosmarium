@@ -17,7 +17,7 @@ export function initCamera() {
     'wheel',
     (e) => {
       e.preventDefault();
-      autoFollow = false;
+      setAutoFollow(false);
       if (state.codexOpen) return;
       const W = viewport.W,
         H = viewport.H;
@@ -34,7 +34,7 @@ export function initCamera() {
 
   canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0 && !state.codexOpen) {
-      autoFollow = false;
+      setAutoFollow(false);
       dragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
       cameraStart = { x: cam.targetX, y: cam.targetY };
@@ -55,7 +55,7 @@ export function initCamera() {
 
   addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space' && state.gameState === 'play' && !state.codexOpen) {
-      autoFollow = false;
+      setAutoFollow(false);
       cam.targetX = 0;
       cam.targetY = 0;
       cam.targetZ = 1;
@@ -65,14 +65,22 @@ export function initCamera() {
 }
 
 let autoFollow = false;
+let onAutoFollowChange: ((on: boolean) => void) | null = null;
+
+export function onAutoFollowChanged(cb: (on: boolean) => void): void {
+  onAutoFollowChange = cb;
+}
 
 export function toggleAutoFollow(): boolean {
   autoFollow = !autoFollow;
+  onAutoFollowChange?.(autoFollow);
   return autoFollow;
 }
 
 export function setAutoFollow(v: boolean): void {
+  if (autoFollow === v) return;
   autoFollow = v;
+  onAutoFollowChange?.(autoFollow);
 }
 
 export function updateAutoFollowCamera(hotspot: { x: number; y: number; radius: number } | null, _dt: number): void {
