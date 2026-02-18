@@ -1,9 +1,10 @@
-import { cam } from '../input/camera.ts';
+import { cam, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import { initUnits } from '../simulation/init.ts';
 import { rng, state } from '../state.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
+  DOM_ID_AUTO_FOLLOW_BTN,
   DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
@@ -23,6 +24,7 @@ let elMinimap: HTMLElement | null = null;
 let elControls: HTMLElement | null = null;
 let elSpeed: HTMLElement | null = null;
 let elSpdValue: HTMLElement | null = null;
+let elAutoFollowBtn: HTMLElement | null = null;
 
 function setSpd(v: number) {
   state.timeScale = v;
@@ -40,6 +42,7 @@ function startGame() {
   if (elMenu) elMenu.style.display = 'none';
   if (elHud) elHud.style.display = 'block';
   if (elCodexBtn) elCodexBtn.style.display = 'block';
+  if (elAutoFollowBtn) elAutoFollowBtn.style.display = 'block';
   if (elMinimap) elMinimap.style.display = 'block';
   if (elControls) elControls.style.display = 'block';
   if (elSpeed) elSpeed.style.display = 'flex';
@@ -54,6 +57,10 @@ function handleCodexToggle() {
   if (elCodexBtn && state.gameState === 'play') {
     elCodexBtn.style.display = state.codexOpen ? 'none' : 'block';
   }
+  if (state.codexOpen) {
+    setAutoFollow(false);
+    if (elAutoFollowBtn) elAutoFollowBtn.classList.remove('active');
+  }
 }
 
 function handlePlayKeydown(e: KeyboardEvent) {
@@ -63,15 +70,16 @@ function handlePlayKeydown(e: KeyboardEvent) {
   } else if (e.code === 'Equal' || e.code === 'NumpadAdd') {
     stepSpd(1);
     e.preventDefault();
-  } else if (e.code === 'Digit1') {
-    setSpd(speeds[0] ?? unreachable(0));
+  } else if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') {
+    const idx = Number(e.code.slice(-1)) - 1;
+    setSpd(speeds[idx] ?? unreachable(idx));
     e.preventDefault();
-  } else if (e.code === 'Digit2') {
-    setSpd(speeds[1] ?? unreachable(1));
-    e.preventDefault();
-  } else if (e.code === 'Digit3') {
-    setSpd(speeds[2] ?? unreachable(2));
-    e.preventDefault();
+  } else if (e.code === 'KeyF') {
+    if (!state.codexOpen) {
+      const on = toggleAutoFollow();
+      if (elAutoFollowBtn) elAutoFollowBtn.classList.toggle('active', on);
+      e.preventDefault();
+    }
   }
 }
 
@@ -99,6 +107,7 @@ export function initUI() {
   elControls = document.getElementById(DOM_ID_CONTROLS);
   elSpeed = document.getElementById(DOM_ID_SPEED);
   elSpdValue = document.getElementById(DOM_ID_SPD_VALUE);
+  elAutoFollowBtn = document.getElementById(DOM_ID_AUTO_FOLLOW_BTN);
 
   const elBtnStart = document.getElementById(DOM_ID_BTN_START);
   const elCodexClose = document.getElementById(DOM_ID_CODEX_CLOSE);
@@ -116,6 +125,7 @@ export function initUI() {
       [DOM_ID_CONTROLS, elControls],
       [DOM_ID_SPEED, elSpeed],
       [DOM_ID_SPD_VALUE, elSpdValue],
+      [DOM_ID_AUTO_FOLLOW_BTN, elAutoFollowBtn],
     ];
     const missing = entries.filter(([, el]) => !el).map(([id]) => id);
     if (missing.length > 0) {
@@ -125,6 +135,13 @@ export function initUI() {
 
   elBtnStart?.addEventListener('click', () => {
     startGame();
+  });
+
+  elAutoFollowBtn?.addEventListener('click', () => {
+    if (state.gameState === 'play' && !state.codexOpen) {
+      const on = toggleAutoFollow();
+      elAutoFollowBtn?.classList.toggle('active', on);
+    }
   });
 
   elCodexBtn?.addEventListener('click', () => {

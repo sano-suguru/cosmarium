@@ -60,3 +60,18 @@ export function initCamera() {
     }
   });
 }
+
+let autoFollow = false;
+
+export function toggleAutoFollow(): boolean {
+  autoFollow = !autoFollow;
+  return autoFollow;
+}
+
+export function isAutoFollow(): boolean {
+  return autoFollow;
+}
+
+export function setAutoFollow(_v: boolean): void {
+  // Stub — replaced in Task 3 with real implementation
+}
