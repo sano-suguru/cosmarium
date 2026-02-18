@@ -10,7 +10,7 @@ DOM + CSS でHUD/メニュー/Codexパネルを構成。WebGL Canvasとは分離
 
 | ファイル | 行数 | 役割 |
 |---------|------|------|
-| game-control.ts | 158 | initUI: メニュー/ボタン/キーボード(Tab/Esc/速度)。codex toggle |
+| game-control.ts | 174 | initUI: メニュー/ボタン/キーボード(Tab/Esc/速度)。codex toggle |
 | codex.ts | 373 | Codex DOM構築 + デモ生成/更新/破棄。最大ファイル |
 | hud.ts | 55 | initHUD + updateHUD(毎フレーム)。プール走査でカウント表示 |
 | dom-ids.ts | 22 | DOM ID定数。新UI要素追加時はここにID追加 |

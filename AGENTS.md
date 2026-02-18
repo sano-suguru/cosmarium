@@ -8,7 +8,7 @@
 - **型チェック**: `bun run typecheck` — strict mode、`noUnusedLocals`/`noUnusedParameters` on
 - **ビルド**: `bun run build`
 - **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd + similarity + test
-- **テスト**: `bun run test:run` — `src/simulation/*.test.ts`(8) + `src/*.test.ts`(5) + `src/renderer/*.test.ts`(1)。計15。ヘルパー: `src/__test__/pool-helper.ts`
+- **テスト**: `bun run test:run` — `src/simulation/*.test.ts`(10) + `src/*.test.ts`(5) + `src/renderer/*.test.ts`(1)。計16。ヘルパー: `src/__test__/pool-helper.ts`
 - **Lint/Format**: Biome。`src/shaders/**`は除外。singleQuote, lineWidth=120
 - **Biome重要ルール**: `noConsole: error`(error/warnのみ許可)、`noNonNullAssertion: error`、`noForEach: error`(for-of使用)、`noExplicitAny: error`、`noEvolvingTypes: error`、`noBarrelFile: error`、`noExcessiveCognitiveComplexity: error`(上限15)
 - **Pre-commit**: `biome check --staged --write`。エラーのみブロック
@@ -33,9 +33,9 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 ## Data Flow概要
 
 - main loop: `gameState==='play'`時のみ実行
-- dtサブステップ: main.ts(0.05sクランプ) → update.ts(`dt > 1/REF_FPS`なら最大`MAX_STEPS_PER_FRAME=8`回の`stepOnce`に分割)
+- dtサブステップ: main.ts(`Math.min(dt, 0.05)`でフレーム間隔を上限クランプ) → update.ts(`rawDt > 1/REF_FPS`なら最大`MAX_STEPS_PER_FRAME=8`回の`stepOnce`に分割。クランプではなく分割)
 - update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ `reinforce(dt)`
-- `update(rawDt, now, rng, gameState)`: `rng`は`state.ts`のclosureラッパー、`gameState`は`{ codexOpen, reinforcementTimer }`（`GameLoopState`）
+- `update(rawDt, now, rng, gameState)`: `rng`は`state.ts`のclosureラッパー、`gameState`は`GameLoopState`（`codexOpen`, `isCodexDemoUnit`, `updateCodexDemo` + `ReinforcementState`の`reinforcementTimer`）
 - `codexOpen`時: 非デモユニットのsteer/combatスキップ + reinforce スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
 
 ## ファイル変更ガイド
@@ -54,7 +54,7 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 - **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
 - **poolCounts**: Readonly export。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
 - **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり
-  - Don't inline で poolCounts を直接操作する — 必ず集約関数経由
+  - poolCountsを直接インラインで変更しない — 必ず集約関数（`killUnit`/`killParticle`/`killProjectile`等）経由
 - **rng**: `state.ts`がmulberry32ベースの`rng()`をclosureラッパーでexport。simulationは引数として受取り（dependency-cruiserルール準拠）
 - **新オブジェクト種追加時**: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加
 
@@ -97,6 +97,6 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 
 - `neighborBuffer`は共有バッファ: `getNeighbors()`が書込み、戻り値=有効数。コピーせず即使用
 - `codexOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
-- GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可
+- GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可（詳細: `src/shaders/AGENTS.md`）
 - シェーダは`vite-plugin-glsl`経由でimport。`#include`展開もplugin側で処理
-- `killUnit()`前に参照する値はローカル変数に退避 — killでスロット即時再利用、データ破壊の可能性あり
+- `killUnit()`前に参照する値はローカル変数に退避 — killでスロット即時再利用、データ破壊の可能性あり（詳細: `src/simulation/AGENTS.md`）

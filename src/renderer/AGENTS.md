@@ -38,7 +38,7 @@
 - minimap描画後はscissor/viewport/blendをリストア必須
 - instance layout: 9 floats/stride=36bytes。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
 - `resize()`後に`createFBOs()`を再呼出し必須（FBOサイズはviewportに依存）
-- シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可
+- シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可（詳細: `src/shaders/AGENTS.md`）
 
 ## 初期化順序（main.tsから）
 `initWebGL()` → `initShaders()` → `createFBOs()` → `initBuffers()` — 順序変更不可
