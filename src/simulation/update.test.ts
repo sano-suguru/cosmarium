@@ -4,7 +4,6 @@ import { beams, trackingBeams } from '../beams.ts';
 import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import type { UnitIndex } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -32,17 +31,15 @@ import { addShake } from '../input/camera.ts';
 import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
 
-const mockIsCodexDemoUnit = vi.fn((_idx: UnitIndex) => false);
 const mockUpdateCodexDemo = vi.fn((_dt: number) => undefined);
 
 function gameLoopState() {
-  return makeGameLoopState(mockIsCodexDemoUnit, mockUpdateCodexDemo);
+  return makeGameLoopState(mockUpdateCodexDemo);
 }
 
 afterEach(() => {
   resetPools();
   resetState();
-  mockIsCodexDemoUnit.mockReset().mockReturnValue(false);
   mockUpdateCodexDemo.mockReset();
   vi.restoreAllMocks();
   vi.clearAllMocks();
@@ -197,19 +194,8 @@ describe('Reflector shield', () => {
     expect(getUnit(enemy).shieldLingerTimer).toBe(0);
   });
 
-  it('codexOpen=true → 非デモ Reflector は shieldLingerTimer を付与しない', () => {
+  it('codexOpen=true → Reflector は通常通り shieldLingerTimer を付与する（snapshot/restore方式）', () => {
     state.codexOpen = true;
-    const ref = spawnAt(0, 6, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
-    getUnit(ref).trailTimer = 99;
-    getUnit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
-    expect(getUnit(ally).shieldLingerTimer).toBe(0);
-  });
-
-  it('codexOpen=true → デモ Reflector は shieldLingerTimer を付与する', () => {
-    state.codexOpen = true;
-    mockIsCodexDemoUnit.mockReturnValue(true);
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     getUnit(ref).trailTimer = 99;
@@ -401,27 +387,12 @@ describe('codexOpen 分岐', () => {
     expect(mockUpdateCodexDemo).toHaveBeenCalled();
   });
 
-  it('codexOpen=true → 非デモユニットの steer/combat スキップ', () => {
+  it('codexOpen=true → 全ユニットの steer/combat が走る（snapshot/restore方式）', () => {
     state.codexOpen = true;
     const idx = spawnAt(0, 1, 0, 0);
-    const u = getUnit(idx);
-    u.trailTimer = 99;
-    u.cooldown = 0;
-    const origX = u.x;
     const enemy = spawnAt(1, 1, 100, 0);
-    getUnit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
-    expect(u.x).toBe(origX);
-    expect(poolCounts.projectileCount).toBe(0);
-  });
-
-  it('codexOpen=true → デモユニットは steer/combat が走る', () => {
-    state.codexOpen = true;
-    mockIsCodexDemoUnit.mockReturnValue(true);
-    const idx = spawnAt(0, 1, 0, 0);
     getUnit(idx).trailTimer = 99;
     getUnit(idx).cooldown = 0;
-    const enemy = spawnAt(1, 1, 100, 0);
     getUnit(enemy).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
     expect(getUnit(idx).target).toBeGreaterThanOrEqual(0);
@@ -494,13 +465,13 @@ describe('swarmN 更新', () => {
     expect(getUnit(a).swarmN).toBe(0);
   });
 
-  it('codexOpen=true → 非デモユニットの swarmN は更新されない', () => {
+  it('codexOpen=true → swarmN は通常通り更新される（snapshot/restore方式）', () => {
     state.codexOpen = true;
     const a = spawnAt(0, 0, 0, 0);
     const b = spawnAt(0, 0, 20, 0);
     getUnit(a).trailTimer = 99;
     getUnit(b).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(getUnit(a).swarmN).toBe(0);
+    expect(getUnit(a).swarmN).toBe(1);
   });
 });

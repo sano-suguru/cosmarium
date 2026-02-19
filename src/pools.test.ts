@@ -12,6 +12,7 @@ import {
   incUnitCount,
   poolCounts,
   resetPoolCounts,
+  setPoolCounts,
   setUnitCountForTest,
 } from './pools.ts';
 
@@ -134,5 +135,43 @@ describe('setUnitCountForTest', () => {
   it('負値に設定後 decUnitCount は RangeError', () => {
     setUnitCountForTest(-1);
     expect(() => decUnitCount()).toThrow(RangeError);
+  });
+});
+
+describe('setPoolCounts', () => {
+  it('有効な値でカウントを一括設定', () => {
+    setPoolCounts(10, 20, 30);
+    expect(poolCounts.unitCount).toBe(10);
+    expect(poolCounts.particleCount).toBe(20);
+    expect(poolCounts.projectileCount).toBe(30);
+  });
+
+  it('上限値で設定可能', () => {
+    setPoolCounts(POOL_UNITS, POOL_PARTICLES, POOL_PROJECTILES);
+    expect(poolCounts.unitCount).toBe(POOL_UNITS);
+    expect(poolCounts.particleCount).toBe(POOL_PARTICLES);
+    expect(poolCounts.projectileCount).toBe(POOL_PROJECTILES);
+  });
+
+  it('0で設定可能', () => {
+    setPoolCounts(0, 0, 0);
+    expect(poolCounts.unitCount).toBe(0);
+    expect(poolCounts.particleCount).toBe(0);
+    expect(poolCounts.projectileCount).toBe(0);
+  });
+
+  it('unitCount が範囲外で RangeError', () => {
+    expect(() => setPoolCounts(-1, 0, 0)).toThrow(RangeError);
+    expect(() => setPoolCounts(POOL_UNITS + 1, 0, 0)).toThrow(RangeError);
+  });
+
+  it('particleCount が範囲外で RangeError', () => {
+    expect(() => setPoolCounts(0, -1, 0)).toThrow(RangeError);
+    expect(() => setPoolCounts(0, POOL_PARTICLES + 1, 0)).toThrow(RangeError);
+  });
+
+  it('projectileCount が範囲外で RangeError', () => {
+    expect(() => setPoolCounts(0, 0, -1)).toThrow(RangeError);
+    expect(() => setPoolCounts(0, 0, POOL_PROJECTILES + 1)).toThrow(RangeError);
   });
 });

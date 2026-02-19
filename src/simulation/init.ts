@@ -1,8 +1,7 @@
-import { beams, trackingBeams } from '../beams.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getParticle, getProjectile, getUnit, resetPoolCounts } from '../pools.ts';
+import { clearAllPools } from '../pools.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
+import { resetPendingChains } from './effects.ts';
 import { spawnUnit } from './spawn.ts';
 
 interface InitSpawn {
@@ -32,12 +31,8 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
 ];
 
 export function initUnits(rng: () => number) {
-  for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
-  for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = false;
-  for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
-  resetPoolCounts();
-  beams.length = 0;
-  trackingBeams.length = 0;
+  clearAllPools();
+  resetPendingChains();
 
   for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;

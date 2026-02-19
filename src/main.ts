@@ -11,7 +11,7 @@ import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { getHotspot, updateHotspot } from './simulation/hotspot.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import { isCodexDemoUnit, syncCodexDemoCamera, updateCodexDemo } from './ui/codex.ts';
+import { demoRng, syncCodexDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 
@@ -47,7 +47,6 @@ const gameLoopState = {
   set reinforcementTimer(v: number) {
     state.reinforcementTimer = v;
   },
-  isCodexDemoUnit,
   updateCodexDemo,
 };
 
@@ -83,7 +82,8 @@ function frame(now: number) {
   if (state.codexOpen) {
     setAutoFollow(false);
     // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
-    update(dt * BASE_SPEED, t, rng, gameLoopState);
+    // ゲームPRNG汚染を防ぐため demoRng を使用
+    update(dt * BASE_SPEED, t, demoRng, gameLoopState);
     syncCodexDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {

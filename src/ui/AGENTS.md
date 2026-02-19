@@ -11,19 +11,25 @@ DOM + CSS でHUD/メニュー/Codexパネルを構成。WebGL Canvasとは分離
 | ファイル | 行数 | 役割 |
 |---------|------|------|
 | game-control.ts | 174 | initUI: メニュー/ボタン/キーボード(Tab/Esc/速度)。codex toggle |
-| codex.ts | 373 | Codex DOM構築 + デモ生成/更新/破棄。最大ファイル |
+| codex.ts | 520 | Codex DOM構築 + デモ生成/更新/破棄 + snapshot/restore。最大ファイル |
 | hud.ts | 55 | initHUD + updateHUD(毎フレーム)。プール走査でカウント表示 |
 | dom-ids.ts | 22 | DOM ID定数。新UI要素追加時はここにID追加 |
 | dev-overlay.ts | 75 | 開発用警告オーバーレイ(devWarn/devError) |
 
 ## Codexのプール副作用（最重要）
 
-Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUnit()`で実際のプールに生ユニットを生成する。`POOL_UNITS`上限を消費。`codexOpen`時、非デモユニットのsteer/combatはスキップされる（`isCodexDemoUnit()`で判定）。閉じ時は`teardownCodexDemo()`で自動片付け。切替時に全particle/projectile/beam消去は仕様。
+Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUnit()`で実際のプールに生ユニットを生成する。
+
+**snapshot/restore方式**: `toggleCodex()` → `snapshotPools()`で全プール状態を保存 → `clearAllPools()`でプールを空にし → デモ専用ユニットを生成。閉じ時は`restorePools(snapshot)`で元の状態に完全復元。
+
+- `snapshotPools()`: 全aliveエンティティのshallow copy + beams/trackingBeams + poolCountsを保存
+- `clearAllPools()`: 全スロット`.alive=false` + カウントリセット + beams/trackingBeams/pendingChains消去
+- `restorePools(snapshot)`: clearAllPools → snapshot内容をObject.assignで書き戻し + setPoolCountsでカウント復元
 
 ## 変更ガイド
 
 ### 新ユニットのCodexデモ追加
-`codex.ts`の`setupCodexDemo()`に新フラグの`else if`分岐追加。敵配置はユニット特性が映える構成にする。分岐キーは`TYPES[typeIdx]`のフラグ。
+`codex.ts`の`demoByFlag`レコードに新デモ関数を追加。`getDominantDemoFlag()`がユニットのフラグから代表フラグを選定し、対応するデモを起動する。敵配置はユニット特性が映える構成にする。
 
 ### HUD項目追加
 `ui/dom-ids.ts`(ID定数) → `ui/hud.ts`(`initHUD`でキャッシュ+`updateHUD`で更新) → `index.html`(DOM要素)。

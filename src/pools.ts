@@ -1,3 +1,4 @@
+import { beams, trackingBeams } from './beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
 import type { Particle, Projectile, Unit } from './types.ts';
 import { NO_UNIT } from './types.ts';
@@ -49,6 +50,24 @@ export function setParticleCountForTest(n: number) {
 }
 export function setProjectileCountForTest(n: number) {
   _counts.projectileCount = n;
+}
+export function clearAllPools() {
+  for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = false;
+  for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = false;
+  for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = false;
+  resetPoolCounts();
+  beams.length = 0;
+  trackingBeams.length = 0;
+}
+
+export function setPoolCounts(units: number, particles: number, projectiles: number) {
+  if (units < 0 || units > POOL_UNITS) throw new RangeError(`unitCount out of range: ${units}`);
+  if (particles < 0 || particles > POOL_PARTICLES) throw new RangeError(`particleCount out of range: ${particles}`);
+  if (projectiles < 0 || projectiles > POOL_PROJECTILES)
+    throw new RangeError(`projectileCount out of range: ${projectiles}`);
+  _counts.unitCount = units;
+  _counts.particleCount = particles;
+  _counts.projectileCount = projectiles;
 }
 
 /* プール配列アクセサ — noUncheckedIndexedAccess の undefined チェックを集約 */

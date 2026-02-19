@@ -135,21 +135,47 @@ export function resetPendingChains() {
   pendingChains.length = 0;
 }
 
+export function snapshotPendingChains() {
+  return pendingChains.map((pc) => ({
+    hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
+    team: pc.team,
+    elapsed: pc.elapsed,
+    nextHop: pc.nextHop,
+  }));
+}
+
+export function restorePendingChains(snapshot: ReturnType<typeof snapshotPendingChains>) {
+  pendingChains.length = 0;
+  for (const pc of snapshot) {
+    pendingChains.push({
+      hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
+      team: pc.team,
+      elapsed: pc.elapsed,
+      nextHop: pc.nextHop,
+    });
+  }
+}
+
+/** @returns true if all hops are done and the chain should be removed */
+function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): boolean {
+  pc.elapsed += dt;
+  while (pc.nextHop < pc.hops.length && pc.elapsed >= (pc.nextHop + 1) * CHAIN_HOP_DELAY) {
+    const hop = pc.hops[pc.nextHop];
+    if (hop === undefined) {
+      pc.nextHop = pc.hops.length;
+      break;
+    }
+    fireChainHop(hop, rng);
+    pc.nextHop += 1;
+  }
+  return pc.nextHop >= pc.hops.length;
+}
+
 export function updatePendingChains(dt: number, rng: () => number) {
   for (let i = pendingChains.length - 1; i >= 0; i--) {
     const pc = pendingChains[i];
     if (pc === undefined) continue;
-    pc.elapsed += dt;
-    while (pc.nextHop < pc.hops.length && pc.elapsed >= (pc.nextHop + 1) * CHAIN_HOP_DELAY) {
-      const hop = pc.hops[pc.nextHop];
-      if (hop === undefined) {
-        pc.nextHop = pc.hops.length;
-        break;
-      }
-      fireChainHop(hop, rng);
-      pc.nextHop += 1;
-    }
-    if (pc.nextHop >= pc.hops.length) {
+    if (advanceChainHops(pc, dt, rng)) {
       const last = pendingChains[pendingChains.length - 1];
       if (last !== undefined) pendingChains[i] = last;
       pendingChains.pop();

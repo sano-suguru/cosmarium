@@ -3,11 +3,12 @@ import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateCodexDemoCamera } from '../input/camera.ts';
-import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { clearAllPools, getParticle, getProjectile, getUnit, poolCounts, setPoolCounts } from '../pools.ts';
 import { getDominantDemoFlag } from '../simulation/combat.ts';
-import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
+import { resetPendingChains, restorePendingChains, snapshotPendingChains } from '../simulation/effects.ts';
+import { spawnUnit } from '../simulation/spawn.ts';
 import { state } from '../state.ts';
-import type { DemoFlag, ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
+import type { Beam, DemoFlag, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';
 import {
@@ -19,7 +20,7 @@ import {
 } from './dom-ids.ts';
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
-const demoRng: () => number = Math.random;
+export const demoRng: () => number = Math.random;
 
 const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
   swarm: (mi) => demoDroneSwarm(mi),
@@ -45,27 +46,78 @@ let elCodexStats: HTMLElement | null = null;
 let elCodexList: HTMLElement | null = null;
 
 let codexDemoTimer = 0;
-let gameUnitSnapshot: Set<UnitIndex> = new Set();
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
 
-export function isCodexDemoUnit(idx: UnitIndex): boolean {
-  if (!state.codexOpen) return false;
-  return !gameUnitSnapshot.has(idx);
+// --- Snapshot型 ---
+interface PoolSnapshot {
+  units: Array<{ index: number; data: Unit }>;
+  particles: Array<{ index: number; data: Particle }>;
+  projectiles: Array<{ index: number; data: Projectile }>;
+  beams: Beam[];
+  trackingBeams: TrackingBeam[];
+  pendingChains: ReturnType<typeof snapshotPendingChains>;
+  counts: { units: number; particles: number; projectiles: number };
 }
 
-function teardownCodexDemo() {
+let poolSnapshot: PoolSnapshot | null = null;
+
+/** 全プール状態のスナップショット。全フィールドはプリミティブ型（検証済み）のため shallow copy で安全。新フィールド追加時は参照型でないことを確認すること */
+export function snapshotPools(): PoolSnapshot {
+  const units: PoolSnapshot['units'] = [];
   for (let i = 0; i < POOL_UNITS; i++) {
-    if (getUnit(i).alive && !gameUnitSnapshot.has(i as UnitIndex)) {
-      killUnit(i as UnitIndex);
-    }
+    const u = getUnit(i);
+    if (u.alive) units.push({ index: i, data: { ...u } });
   }
+  const particles: PoolSnapshot['particles'] = [];
+  for (let i = 0; i < POOL_PARTICLES; i++) {
+    const p = getParticle(i);
+    if (p.alive) particles.push({ index: i, data: { ...p } });
+  }
+  const projectiles: PoolSnapshot['projectiles'] = [];
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
+    const p = getProjectile(i);
+    if (p.alive) projectiles.push({ index: i, data: { ...p } });
+  }
+  return {
+    units,
+    particles,
+    projectiles,
+    beams: beams.map((b) => ({ ...b })),
+    trackingBeams: trackingBeams.map((tb) => ({ ...tb })),
+    pendingChains: snapshotPendingChains(),
+    counts: {
+      units: poolCounts.unitCount,
+      particles: poolCounts.particleCount,
+      projectiles: poolCounts.projectileCount,
+    },
+  };
+}
+
+export function restorePools(snapshot: PoolSnapshot) {
+  clearAllPools();
+  restorePendingChains(snapshot.pendingChains);
+  for (const entry of snapshot.units) Object.assign(getUnit(entry.index), entry.data);
+  for (const entry of snapshot.particles) Object.assign(getParticle(entry.index), entry.data);
+  for (const entry of snapshot.projectiles) Object.assign(getProjectile(entry.index), entry.data);
+  for (const b of snapshot.beams) beams.push(b);
+  for (const tb of snapshot.trackingBeams) trackingBeams.push(tb);
+  setPoolCounts(snapshot.counts.units, snapshot.counts.particles, snapshot.counts.projectiles);
+}
+
+/** デモの全エンティティを除去。setupCodexDemo冒頭で使用 */
+function clearCurrentDemo() {
+  clearAllPools();
+  resetPendingChains();
   codexDemoTimer = 0;
-  gameUnitSnapshot = new Set();
 }
 
 function closeCodex() {
   if (!state.codexOpen) return;
-  teardownCodexDemo();
+  if (poolSnapshot) {
+    restorePools(poolSnapshot);
+    poolSnapshot = null;
+  }
+  codexDemoTimer = 0;
   state.codexOpen = false;
   if (cameraSnapshotBeforeCodex) {
     restoreCamera(cameraSnapshotBeforeCodex);
@@ -208,41 +260,19 @@ function demoDefault(t: UnitType) {
   }
 }
 
-function clearDemoEffects() {
-  for (let i = 0; i < POOL_PARTICLES; i++) {
-    if (getParticle(i).alive) {
-      killParticle(i as ParticleIndex);
-    }
-  }
-  for (let i = 0; i < POOL_PROJECTILES; i++) {
-    if (getProjectile(i).alive) {
-      killProjectile(i as ProjectileIndex);
-    }
-  }
-  beams.length = 0;
-  trackingBeams.length = 0;
-}
-
 function countDemoEnemies(): number {
   let ec = 0;
   for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
     const u = getUnit(i);
     if (!u.alive) continue;
     rem--;
-    if (!gameUnitSnapshot.has(i as UnitIndex) && u.team === 1) ec++;
+    if (u.team === 1) ec++;
   }
   return ec;
 }
 
 function setupCodexDemo(typeIdx: number) {
-  teardownCodexDemo();
-
-  gameUnitSnapshot = new Set();
-  for (let i = 0; i < POOL_UNITS; i++) {
-    if (getUnit(i).alive) gameUnitSnapshot.add(i as UnitIndex);
-  }
-
-  clearDemoEffects();
+  clearCurrentDemo();
 
   const t = getUnitType(typeIdx);
   const mi = spawnUnit(0, typeIdx, 0, 0, demoRng);
@@ -258,11 +288,11 @@ function setupCodexDemo(typeIdx: number) {
   }
   if (!matched) demoDefault(t);
 
-  const bounds = computeDemoBounds(gameUnitSnapshot);
+  const bounds = computeDemoBounds();
   updateCodexDemoCamera(bounds);
 }
 
-export function computeDemoBounds(snapshot: ReadonlySet<UnitIndex>): { cx: number; cy: number; radius: number } {
+export function computeDemoBounds(): { cx: number; cy: number; radius: number } {
   let count = 0;
   let sx = 0;
   let sy = 0;
@@ -271,7 +301,6 @@ export function computeDemoBounds(snapshot: ReadonlySet<UnitIndex>): { cx: numbe
     const u = getUnit(i);
     if (!u.alive) continue;
     rem--;
-    if (snapshot.has(i as UnitIndex)) continue;
     sx += u.x;
     sy += u.y;
     count += 1;
@@ -289,7 +318,6 @@ export function computeDemoBounds(snapshot: ReadonlySet<UnitIndex>): { cx: numbe
     const u = getUnit(i);
     if (!u.alive) continue;
     rem--;
-    if (snapshot.has(i as UnitIndex)) continue;
     const dx = u.x - cx;
     const dy = u.y - cy;
     const dist = Math.hypot(dx, dy);
@@ -311,19 +339,20 @@ export function updateCodexDemo(dt: number) {
     const u = getUnit(i);
     if (!u.alive) continue;
     rem--;
-    if (gameUnitSnapshot.has(i as UnitIndex)) continue;
     if (u.team === 0 && !getUnitType(u.type).rams) {
       u.x += (0 - u.x) * dt * 0.5;
       u.y += (0 - u.y) * dt * 0.5;
     }
-    // 両チームをヒール: 展示ユニット(team 0)が倒されるのを防ぎ、敵(team 1)はサンドバッグとして維持する
-    u.hp = Math.min(u.maxHp, u.hp + dt * 2);
+    // swarmユニット(Drone)はHP回復スキップ: 自然に倒され数が制限される
+    if (!getUnitType(u.type).swarm) {
+      u.hp = Math.min(u.maxHp, u.hp + dt * 2);
+    }
   }
 }
 
 /** サブステップ外で1フレームに1回だけ呼ぶ。デモ中のカメラtargetを更新する */
 export function syncCodexDemoCamera(): void {
-  const bounds = computeDemoBounds(gameUnitSnapshot);
+  const bounds = computeDemoBounds();
   updateCodexDemoCamera(bounds);
 }
 
@@ -420,6 +449,8 @@ export function toggleCodex() {
     closeCodex();
   } else {
     cameraSnapshotBeforeCodex = snapshotCamera();
+    poolSnapshot = snapshotPools();
+    // setupCodexDemo() → clearCurrentDemo() が初回クリアを担当
     state.codexOpen = true;
     if (elCodex) elCodex.classList.add('open');
     buildCodexUI();
