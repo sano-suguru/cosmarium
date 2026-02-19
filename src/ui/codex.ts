@@ -4,9 +4,10 @@ import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateCodexDemoCamera } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { getDominantDemoFlag } from '../simulation/combat.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { state } from '../state.ts';
-import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
+import type { DemoFlag, ParticleIndex, ProjectileIndex, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType, TYPES } from '../unit-types.ts';
 import {
@@ -17,39 +18,25 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
-type DemoFlag = keyof UnitType &
-  (
-    | 'swarm'
-    | 'burst'
-    | 'heals'
-    | 'reflects'
-    | 'spawns'
-    | 'emp'
-    | 'chain'
-    | 'teleports'
-    | 'rams'
-    | 'sweep'
-    | 'beam'
-    | 'broadside'
-  );
-
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 const demoRng: () => number = Math.random;
 
-const codexDemoTable: [DemoFlag, (mi: UnitIndex) => void][] = [
-  ['swarm', (mi) => demoDroneSwarm(mi)],
-  ['burst', (mi) => demoBurstFighter(mi)],
-  ['heals', () => demoHealer()],
-  ['reflects', (mi) => demoReflector(mi)],
-  ['spawns', () => demoCarrier()],
-  ['emp', () => demoDisruptor()],
-  ['chain', () => demoArcer()],
-  ['teleports', () => demoTeleporter()],
-  ['rams', (mi) => demoLancer(mi)],
-  ['sweep', (mi) => demoSweepBeam(mi)],
-  ['beam', () => demoFocusBeam()],
-  ['broadside', (mi) => demoFlagship(mi)],
-];
+const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
+  swarm: (mi) => demoDroneSwarm(mi),
+  carpet: (mi) => demoCarpetBomber(mi),
+  homing: (mi) => demoHomingLauncher(mi),
+  burst: (mi) => demoBurstFighter(mi),
+  heals: () => demoHealer(),
+  reflects: (mi) => demoReflector(mi),
+  spawns: () => demoCarrier(),
+  emp: () => demoDisruptor(),
+  chain: () => demoArcer(),
+  teleports: () => demoTeleporter(),
+  rams: (mi) => demoLancer(mi),
+  sweep: (mi) => demoSweepBeam(mi),
+  beam: () => demoFocusBeam(),
+  broadside: (mi) => demoFlagship(mi),
+};
 
 let elCodex: HTMLElement | null = null;
 let elCodexName: HTMLElement | null = null;
@@ -92,9 +79,8 @@ function demoDroneSwarm(mi: UnitIndex) {
     const a = ((i + 1) / 6) * Math.PI * 2;
     spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40, demoRng);
   }
-  // 決定性に影響しないため Math.random() を許容
   for (let i = 0; i < 6; i++) {
-    const ei = spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120, demoRng);
+    const ei = spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -103,7 +89,7 @@ function demoDroneSwarm(mi: UnitIndex) {
 
 function demoBurstFighter(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 1, 200 + (Math.random() - 0.5) * 60, (i - 1) * 60, demoRng);
+    const ei = spawnUnit(1, 1, 200 + (demoRng() - 0.5) * 60, (i - 1) * 60, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -120,7 +106,7 @@ function demoHealer() {
     getUnit(ai2).hp = 1;
   }
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 120, demoRng);
+    spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
   }
 }
 
@@ -130,7 +116,7 @@ function demoReflector(mi: UnitIndex) {
     spawnUnit(0, 0, Math.cos(a) * 50, Math.sin(a) * 50, demoRng);
   }
   for (let i = 0; i < 5; i++) {
-    const ei = spawnUnit(1, 1, 80 + Math.random() * 40, (i - 2) * 40, demoRng);
+    const ei = spawnUnit(1, 1, 80 + demoRng() * 40, (i - 2) * 40, demoRng);
     if (ei !== NO_UNIT) {
       getUnit(ei).target = mi;
     }
@@ -139,14 +125,14 @@ function demoReflector(mi: UnitIndex) {
 
 function demoCarrier() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 0, 200 + (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 150, demoRng);
+    spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
 function demoDisruptor() {
   for (let i = 0; i < 8; i++) {
-    const a = Math.random() * 6.283,
-      r = 80 + Math.random() * 60;
+    const a = demoRng() * 6.283,
+      r = 80 + demoRng() * 60;
     spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r, demoRng);
   }
 }
@@ -159,7 +145,7 @@ function demoArcer() {
 
 function demoTeleporter() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 1, 250 + (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 150, demoRng);
+    spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
@@ -189,7 +175,27 @@ function demoFocusBeam() {
 function demoFlagship(mi: UnitIndex) {
   if (mi !== NO_UNIT) getUnit(mi).cooldown = 0;
   for (let i = 0; i < 6; i++) {
-    spawnUnit(1, 0, 250 + Math.random() * 80, (Math.random() - 0.5) * 200, demoRng);
+    spawnUnit(1, 0, 250 + demoRng() * 80, (demoRng() - 0.5) * 200, demoRng);
+  }
+}
+
+function demoCarpetBomber(mi: UnitIndex) {
+  for (let i = 0; i < 8; i++) {
+    const a = demoRng() * 6.283;
+    const r = 120 + demoRng() * 40;
+    const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r, demoRng);
+    if (ei !== NO_UNIT) {
+      getUnit(ei).target = mi;
+    }
+  }
+}
+
+function demoHomingLauncher(mi: UnitIndex) {
+  for (let i = 0; i < 5; i++) {
+    const ei = spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (i - 2) * 60, demoRng);
+    if (ei !== NO_UNIT) {
+      getUnit(ei).target = mi;
+    }
   }
 }
 
@@ -198,7 +204,7 @@ function demoDefault(t: UnitType) {
   if (t.shape === 8) cnt = 2;
   else cnt = 4;
   for (let i = 0; i < cnt; i++) {
-    spawnUnit(1, 0, 200 + Math.random() * 100, (Math.random() - 0.5) * 200, demoRng);
+    spawnUnit(1, 0, 200 + demoRng() * 100, (demoRng() - 0.5) * 200, demoRng);
   }
 }
 
@@ -245,12 +251,10 @@ function setupCodexDemo(typeIdx: number) {
   }
 
   let matched = false;
-  for (const [flag, fn] of codexDemoTable) {
-    if (t[flag]) {
-      fn(mi);
-      matched = true;
-      break;
-    }
+  const dominant = getDominantDemoFlag(t);
+  if (dominant !== null) {
+    demoByFlag[dominant](mi);
+    matched = true;
   }
   if (!matched) demoDefault(t);
 

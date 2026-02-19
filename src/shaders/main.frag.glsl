@@ -8,17 +8,125 @@ void main(){
   int sh=int(vSh+0.5);
   if(sh==0){ a=smoothstep(1.0,0.55,d)+exp(-d*2.5)*0.7; }
   else if(sh==1){ float dd=manDist(vU); a=smoothstep(1.0,0.7,dd)+exp(-dd*3.0)*0.4; }
-  else if(sh==2){ float t=vU.x*0.5+0.5,w=mix(0.7,0.0,t);
-    a=smoothstep(0.15,0.0,abs(vU.y)-w)*smoothstep(-0.1,0.1,1.0-t)+exp(-d*2.0)*0.3; }
+  else if(sh==2){
+    vec2 p=vU*1.15; float t=vA;
+    // Heavy Bomber: Wide fuselage, thick wings, cargo bay
+    
+    // 1. Wings (Back): Wide sweep
+    float dWingL=sdCapsule(p,vec2(0.2,0.35),vec2(-0.4,0.65),0.12);
+    float dWingR=sdCapsule(p,vec2(0.2,-0.35),vec2(-0.4,-0.65),0.12);
+    float dWings=min(dWingL,dWingR);
+
+    // 2. Main Body: Central wide block
+    float dBody=sdRoundedBox(p-vec2(0.1,0.0),vec2(0.55,0.22),0.15);
+    
+    // Smooth Union
+    float dShape=smin(dBody,dWings,0.15);
+    
+    // 3. Cargo Bay Cutout (Belly)
+    float dCargo=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.25,0.10),0.05);
+    // Subtle indentation instead of full cutout
+    float dShapeCarved=max(dShape,-dCargo); 
+
+    // AA and Height Field
+    float aa=fwidth(dShapeCarved)*1.5;
+    float hf=1.0-smoothstep(0.0,aa,dShapeCarved);
+    
+    // 4. Details
+    // Rim lighting
+    float rim=(1.0-smoothstep(0.02,0.02+aa,abs(dShapeCarved)))*hf;
+    // Cargo Bay Glow/Outline
+    float cargoGlow=(1.0-smoothstep(0.0,aa,abs(dCargo)))*0.6; 
+    
+    // 5. Engine Glow (Rear)
+    // Twin engines at back of wings
+    float dEng1=length(p-vec2(-0.45,0.45));
+    float dEng2=length(p-vec2(-0.45,-0.45));
+    float engDist=min(dEng1,dEng2);
+    
+    float pulse=0.6+0.4*sin(t*4.0);
+    float glow=exp(-engDist*6.0)*pulse;
+    
+    // Exhaust trails (going left, negative X)
+    // p.x < -0.45 is behind engine.
+    // Use exponential decay based on distance from engine center
+    float trail=0.0;
+    if(p.x < -0.45) {
+       float dy1=abs(p.y-0.45);
+       float dy2=abs(p.y+0.45);
+       float dy=min(dy1,dy2);
+       trail=exp(-dy*10.0) * exp((p.x+0.45)*2.0) * pulse * 0.5;
+    }
+
+    a=hf*0.5 + rim*0.4 + cargoGlow*0.3 + glow + trail;
+    a=1.2*tanh(a/1.2); // Tone map
+  }
   else if(sh==3){ float dd=hexDist(vU);
     a=smoothstep(1.0,0.8,dd)+exp(-dd*2.5)*0.5; }
   else if(sh==4){ float cx=step(abs(vU.x),0.2)+step(abs(vU.y),0.2);
     a=min(cx,1.0)*smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
   else if(sh==5){ float ring=abs(d-0.7);
     a=smoothstep(0.2,0.03,ring)+exp(-d*1.5)*0.2; }
-  else if(sh==6){ float t=vU.x*0.5+0.5,w=mix(0.45,0.0,t*t);
-    float body=step(abs(vU.y),0.12)*step(0.0,vU.x+0.6);
-    a=max(smoothstep(0.1,0.0,abs(vU.y)-w)*step(0.35,t),body)*0.9+exp(-d*2.5)*0.4; }
+  else if(sh==6){
+    vec2 p=vU*1.15; float t=vA;
+    // Launcher: Sleek Missile Frigate
+    // Long thin hull, sharp nose, side missile pods
+    
+    // 1. Main Hull (Elongated, thin)
+    // Sharp nose: cut the front at an angle
+    // p.x > 0.1: taper y
+    float noseTaper = max(0.0, (p.x - 0.1) * 0.4);
+    // noseTaper > 0.08 で y-extent が負になり、先端を鋭く絞る（意図的）
+    float dHull = sdRoundedBox(p-vec2(-0.05,0.0), vec2(0.55, 0.08 - noseTaper), 0.03);
+    
+    // 2. Missile Pods (Side protrusions)
+    // Located mid-ship, symmetric
+    float dPodL=sdRoundedBox(p-vec2(0.0,0.18),vec2(0.15,0.06),0.02);
+    float dPodR=sdRoundedBox(p-vec2(0.0,-0.18),vec2(0.15,0.06),0.02);
+    float dPods=min(dPodL,dPodR);
+    
+    // 3. Bridge / Superstructure (Small bump on top/rear)
+    float dBridge=sdRoundedBox(p-vec2(-0.25,0.0),vec2(0.08,0.12),0.02);
+    
+    // Smooth Union for organic but mechanical feel
+    float dShape=smin(dHull,dPods,0.05);
+    dShape=smin(dShape,dBridge,0.04);
+    
+    // 4. Details: Missile Tubes (Indentation on pods)
+    // Repeating pattern or just a slit
+    float dTubeL=sdRoundedBox(p-vec2(0.05,0.18),vec2(0.08,0.02),0.01);
+    float dTubeR=sdRoundedBox(p-vec2(0.05,-0.18),vec2(0.08,0.02),0.01);
+    float dTubes=min(dTubeL,dTubeR);
+    
+    // Engrave tubes
+    dShape=max(dShape,-dTubes);
+    
+    // AA and Height Field
+    float aa=fwidth(dShape)*1.5;
+    float hf=1.0-smoothstep(0.0,aa,dShape);
+    
+    // 5. Visuals
+    // Rim lighting (Sharp edge)
+    float rim=(1.0-smoothstep(0.02,0.02+aa,abs(dShape)))*hf;
+    
+    // Engine Glow (Single, central, rear)
+    float dEng=length(p-vec2(-0.6,0.0));
+    float pulse=0.7+0.3*sin(t*10.0);
+    float glow=exp(-dEng*8.0)*pulse;
+    
+    // Engine Trail (Single narrow stream)
+    float trail=0.0;
+    if(p.x < -0.6) {
+       float dy=abs(p.y);
+       trail=exp(-dy*15.0) * exp((p.x+0.6)*2.5) * pulse * 0.6;
+    }
+    
+    // Missile Pod Glow (Subtle status lights)
+    float podGlow=(1.0-smoothstep(0.0,0.02,abs(dTubes)))*0.5*(0.5+0.5*sin(t*3.0));
+
+    a=hf*0.6 + rim*0.5 + glow + trail + podGlow;
+    a=1.1*tanh(a/1.1);
+  }
   else if(sh==7){ float r=polarR(vU,5.0,0.6,0.35);
     a=smoothstep(r+0.15,r-0.05,d)+exp(-d*2.0)*0.3; }
   else if(sh==8){ float d2=length(vU-vec2(0.3,0.0));
