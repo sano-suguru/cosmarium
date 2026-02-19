@@ -80,6 +80,7 @@ export interface UnitType {
   description: string;
   attackDesc: string;
   aoe?: number;
+  carpet?: number;
   beam?: boolean;
   heals?: boolean;
   reflects?: boolean;
