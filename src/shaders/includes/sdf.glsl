@@ -41,7 +41,7 @@ float smin(float a, float b, float k) {
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-// sdTriangle — signed distance to triangle (sh==25 Fighter, sh==26 Carrier)
+// sdTriangle — signed distance to triangle (used by Fighter sh==1, Carrier sh==7)
 float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   vec2 e0 = p1 - p0, e1 = p2 - p1, e2 = p0 - p2;
   vec2 v0 = p - p0, v1 = p - p1, v2 = p - p2;
@@ -55,7 +55,7 @@ float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   return -sqrt(d.x) * sign(d.y);
 }
 
-// sdArc — signed distance to arc (sh==27 Bomber wing arc)
+// sdArc — signed distance to arc (used by Bomber sh==2)
 float sdArc(in vec2 p, in vec2 sc, in float ra, in float rb) {
   // sc is the sin/cos of the arc's aperture (half-angle)
   p.x = abs(p.x);
