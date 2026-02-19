@@ -9,7 +9,7 @@ void main(){
   if(sh==0){ a=smoothstep(1.0,0.55,d)+exp(-d*2.5)*0.7; }
   else if(sh==1){ float dd=manDist(vU); a=smoothstep(1.0,0.7,dd)+exp(-dd*3.0)*0.4; }
   else if(sh==2){
-    vec2 p=vU*1.15; float t=vA;
+    vec2 p=vU*1.03; float t=vA;
     // Heavy Bomber: Wide fuselage, thick wings, cargo bay
     
     // 1. Wings (Back): Wide sweep
@@ -68,7 +68,7 @@ void main(){
   else if(sh==5){ float ring=abs(d-0.7);
     a=smoothstep(0.2,0.03,ring)+exp(-d*1.5)*0.2; }
   else if(sh==6){
-    vec2 p=vU*1.15; float t=vA;
+    vec2 p=vU*0.84; float t=vA;
     // Launcher: Sleek Missile Frigate
     // Long thin hull, sharp nose, side missile pods
     
@@ -209,6 +209,149 @@ void main(){
       exp(-pF*(p.y+0.24)*(p.y+0.24))+exp(-pF*(p.y+0.34)*(p.y+0.34)));
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(0.35,0.85,p.x);
     a=hf*0.52+rim*0.40+rib+win*0.22+reactor*0.55+eng*0.70;
+    a=1.2*tanh(a/1.2); }
+  else if(sh==25){ vec2 p=vU*0.69; float t=vA;
+    // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
+
+    // 1. Wide oval hull (distinctly rounder/wider than combat ships)
+    float dHull=sdRoundedBox(p,vec2(0.38,0.26),0.16);
+
+    // 2. Nacelle booms + pods (wide wingspan — medical sensor arrays)
+    float dBoomL=sdCapsule(p,vec2(-0.08,0.22),vec2(-0.08,0.52),0.06);
+    float dBoomR=sdCapsule(p,vec2(-0.08,-0.22),vec2(-0.08,-0.52),0.06);
+    float dPodL=sdRoundedBox(p-vec2(-0.08,0.52),vec2(0.13,0.07),0.04);
+    float dPodR=sdRoundedBox(p-vec2(-0.08,-0.52),vec2(0.13,0.07),0.04);
+    float dNac=min(min(dBoomL,dBoomR),min(dPodL,dPodR));
+
+    // 3. Forward emitter dish (converging arms + concavity)
+    float dArmL=sdCapsule(p,vec2(0.22,0.18),vec2(0.48,0.04),0.05);
+    float dArmR=sdCapsule(p,vec2(0.22,-0.18),vec2(0.48,-0.04),0.05);
+    float dDish=smin(dArmL,dArmR,0.06);
+
+    // Union all structure
+    float dBody=smin(dHull,dNac,0.08);
+    dBody=smin(dBody,dDish,0.06);
+
+    // 4. Cross channel cutout (actual negative space — medical cross)
+    float dCH=sdRoundedBox(p,vec2(0.30,0.04),0.02);
+    float dCV=sdRoundedBox(p,vec2(0.04,0.20),0.02);
+    dBody=max(dBody,-min(dCH,dCV));
+
+    // 5. Dish concavity cutout
+    dBody=max(dBody,-(length(p-vec2(0.52,0.0))-0.12));
+
+    // 6. Nacelle bay cutouts (sensor indentations)
+    float dBayL=sdRoundedBox(p-vec2(-0.08,0.52),vec2(0.06,0.03),0.01);
+    float dBayR=sdRoundedBox(p-vec2(-0.08,-0.52),vec2(0.06,0.03),0.01);
+    dBody=max(dBody,-min(dBayL,dBayR));
+
+    float aa=fwidth(dBody)*1.4;
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(0.018,0.018+aa,abs(dBody)))*hf;
+
+    // 7. Cross channel energy (pulsating glow along cross channels)
+    float crossD=min(dCH,dCV);
+    float cPulse=0.6+0.4*sin(t*2.5);
+    float crossGlow=(1.0-smoothstep(0.0,aa*2.0,abs(crossD)))*cPulse*0.6;
+
+    // 8. Reactor core at cross intersection
+    float reactor=exp(-length(p)*16.0)*(0.7+0.3*sin(t*2.5))*hf;
+
+    // 9. Healing pulse rings (expanding concentric — unique to Healer)
+    float rT1=fract(t*0.35)*0.9;
+    float rT2=fract(t*0.35+0.5)*0.9;
+    float rA1=smoothstep(0.0,0.15,rT1)*smoothstep(0.9,0.45,rT1);
+    float rA2=smoothstep(0.0,0.15,rT2)*smoothstep(0.9,0.45,rT2);
+    float rings=(exp(-abs(d-rT1)*20.0)*rA1+exp(-abs(d-rT2)*20.0)*rA2)*0.25;
+
+    // 10. Nacelle tip glows (pulsing sensor lights)
+    float nP=0.5+0.5*sin(t*3.0);
+    float nacGlow=(exp(-length(p-vec2(-0.08,0.52))*14.0)+
+                   exp(-length(p-vec2(-0.08,-0.52))*14.0))*nP;
+
+    // 11. Dish focus glow (phase offset from cross for alternating pulse)
+    float dFocus=exp(-length(p-vec2(0.46,0.0))*10.0)*(0.5+0.5*sin(t*2.5+1.57));
+
+    // 12. Twin engines + trails
+    float eP=0.65+0.35*sin(t*4.0);
+    float dE1=length(p-vec2(-0.40,0.15)); float dE2=length(p-vec2(-0.40,-0.15));
+    float eng=exp(-min(dE1,dE2)*9.0)*eP;
+    float trail=0.0;
+    if(p.x<-0.40){
+      float dy=min(abs(p.y-0.15),abs(p.y+0.15));
+      trail=exp(-dy*12.0)*exp((p.x+0.40)*2.0)*eP*0.4;
+    }
+
+    a=hf*0.48+rim*0.38+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.60+trail;
+    a=1.2*tanh(a/1.2); }
+  else if(sh==26){ vec2 p=vU*0.67; float t=vA;
+    // Prism Shield: compact hull behind massive front shield, swept fins
+
+    // 1. Compact angular hull (rear body)
+    float dHull=sdRoundedBox(p-vec2(-0.18,0.0),vec2(0.30,0.18),0.05);
+
+    // 2. Front shield array (dominant — convex V-shape, wide)
+    float dShL=sdCapsule(p,vec2(0.20,0.0),vec2(0.10,0.44),0.07);
+    float dShR=sdCapsule(p,vec2(0.20,0.0),vec2(0.10,-0.44),0.07);
+    float dShield=smin(dShL,dShR,0.10);
+
+    // 3. Swept stabilizer fins (rear, angled back)
+    float dFinL=sdCapsule(p,vec2(-0.14,0.18),vec2(-0.50,0.36),0.035);
+    float dFinR=sdCapsule(p,vec2(-0.14,-0.18),vec2(-0.50,-0.36),0.035);
+    float dFins=min(dFinL,dFinR);
+
+    // Union all
+    float dBody=smin(dHull,dShield,0.07);
+    dBody=smin(dBody,dFins,0.04);
+
+    // 4. Energy conduit channels (hull→shield, cutout grooves)
+    float dCondL=sdRoundedBox(p-vec2(0.02,0.10),vec2(0.18,0.02),0.008);
+    float dCondR=sdRoundedBox(p-vec2(0.02,-0.10),vec2(0.18,0.02),0.008);
+    dBody=max(dBody,-min(dCondL,dCondR));
+
+    // 5. Diagonal panel cuts at ±30deg (faceted armor look)
+    float cs30=0.866; float sn30=0.5;
+    vec2 pr1=vec2(p.x*cs30-p.y*sn30,p.x*sn30+p.y*cs30);
+    dBody=max(dBody,-sdRoundedBox(pr1-vec2(-0.12,0.0),vec2(0.28,0.012),0.005));
+    vec2 pr2=vec2(p.x*cs30+p.y*sn30,-p.x*sn30+p.y*cs30);
+    dBody=max(dBody,-sdRoundedBox(pr2-vec2(-0.12,0.0),vec2(0.28,0.012),0.005));
+
+    float aa=fwidth(dBody)*1.4;
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(0.018,0.018+aa,abs(dBody)))*hf;
+
+    // 6. Shield surface hex energy grid (interference pattern)
+    float sMask=smoothstep(0.08,0.0,dShield)*hf;
+    float h1=sin(p.y*20.0+p.x*12.0+t*3.0);
+    float h2=sin(p.y*20.0-p.x*12.0-t*2.0);
+    float shieldFx=(h1*h2*0.5+0.5)*sMask*0.30;
+
+    // 7. Energy conduit flow (animated glow traveling hull→shield)
+    float condFlow=(exp(-abs(dCondL)*20.0)+exp(-abs(dCondR)*20.0))
+                   *(0.5+0.5*sin(p.x*10.0-t*5.0))*0.45;
+
+    // 8. Shield edge highlight (bright outline on shield face)
+    float shieldEdge=(1.0-smoothstep(0.0,aa*2.5,abs(dShield)))*0.55;
+
+    // 9. Prismatic refraction nodes (shield vertices, phase-staggered)
+    float n1=exp(-length(p-vec2(0.11,0.40))*18.0)*(0.5+0.5*sin(t*4.0));
+    float n2=exp(-length(p-vec2(0.20,0.0))*18.0)*(0.5+0.5*sin(t*4.0+2.09));
+    float n3=exp(-length(p-vec2(0.11,-0.40))*18.0)*(0.5+0.5*sin(t*4.0+4.19));
+    float nodes=(n1+n2+n3)*0.55;
+
+    // 10. Central energy core (fast pulse)
+    float core=exp(-length(p-vec2(-0.12,0.0))*14.0)*(0.6+0.4*sin(t*5.0));
+
+    // 11. Engine + trail
+    float eP=0.65+0.35*sin(t*7.0);
+    float eng=exp(-length(p-vec2(-0.52,0.0))*8.0)*eP;
+    float trail=0.0;
+    if(p.x<-0.52){
+      float dy=abs(p.y);
+      trail=exp(-dy*14.0)*exp((p.x+0.52)*2.5)*eP*0.5;
+    }
+
+    a=hf*0.44+rim*0.38+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
