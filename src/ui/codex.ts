@@ -1,6 +1,8 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { getColor } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import type { CameraSnapshot } from '../input/camera.ts';
+import { restoreCamera, snapCamera, snapshotCamera, updateCodexDemoCamera } from '../input/camera.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { killParticle, killProjectile, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { state } from '../state.ts';
@@ -57,6 +59,7 @@ let elCodexList: HTMLElement | null = null;
 
 let codexDemoTimer = 0;
 let gameUnitSnapshot: Set<UnitIndex> = new Set();
+let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
 
 export function isCodexDemoUnit(idx: UnitIndex): boolean {
   if (!state.codexOpen) return false;
@@ -77,6 +80,10 @@ function closeCodex() {
   if (!state.codexOpen) return;
   teardownCodexDemo();
   state.codexOpen = false;
+  if (cameraSnapshotBeforeCodex) {
+    restoreCamera(cameraSnapshotBeforeCodex);
+    cameraSnapshotBeforeCodex = null;
+  }
   if (elCodex) elCodex.classList.remove('open');
 }
 
@@ -246,6 +253,47 @@ function setupCodexDemo(typeIdx: number) {
     }
   }
   if (!matched) demoDefault(t);
+
+  const bounds = computeDemoBounds(gameUnitSnapshot);
+  updateCodexDemoCamera(bounds);
+}
+
+export function computeDemoBounds(snapshot: ReadonlySet<UnitIndex>): { cx: number; cy: number; radius: number } {
+  let count = 0;
+  let sx = 0;
+  let sy = 0;
+
+  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+    const u = getUnit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (snapshot.has(i as UnitIndex)) continue;
+    sx += u.x;
+    sy += u.y;
+    count += 1;
+  }
+
+  if (count === 0) {
+    return { cx: 0, cy: 0, radius: 100 };
+  }
+
+  const cx = sx / count;
+  const cy = sy / count;
+
+  let maxDist = 0;
+  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
+    const u = getUnit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (snapshot.has(i as UnitIndex)) continue;
+    const dx = u.x - cx;
+    const dy = u.y - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxDist) maxDist = dist;
+  }
+
+  const radius = Math.max(80, maxDist + 50);
+  return { cx, cy, radius };
 }
 
 export function updateCodexDemo(dt: number) {
@@ -267,6 +315,12 @@ export function updateCodexDemo(dt: number) {
     // 両チームをヒール: 展示ユニット(team 0)が倒されるのを防ぎ、敵(team 1)はサンドバッグとして維持する
     u.hp = Math.min(u.maxHp, u.hp + dt * 2);
   }
+}
+
+/** サブステップ外で1フレームに1回だけ呼ぶ。デモ中のカメラtargetを更新する */
+export function syncCodexDemoCamera(): void {
+  const bounds = computeDemoBounds(gameUnitSnapshot);
+  updateCodexDemoCamera(bounds);
 }
 
 function updateCodexPanel() {
@@ -361,11 +415,13 @@ export function toggleCodex() {
   if (state.codexOpen) {
     closeCodex();
   } else {
+    cameraSnapshotBeforeCodex = snapshotCamera();
     state.codexOpen = true;
     if (elCodex) elCodex.classList.add('open');
     buildCodexUI();
     updateCodexPanel();
     setupCodexDemo(state.codexSelected);
+    snapCamera();
   }
 }
 
