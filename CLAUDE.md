@@ -133,7 +133,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | 0 | Circle | particle, projectile(aoe/default), HP bar, stun spark |
 | 1 | Diamond | projectile(通常弾), minimap背景/unit |
 | 2 | Triangle | — |
-| 3 | Hexagon | asteroid, Flagship |
+| 3 | Hexagon | asteroid |
 | 4 | Cross | — |
 | 5 | Ring | reflector shield表示 |
 | 6 | Arrow | homing projectile, minimap unit |
@@ -151,6 +151,9 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | 21 | Bar | HPバー (背景+前景) |
 | 22 | Octagon shield | reflectorシールド/shield linger |
 | 23 | Lightning beam | チェーンライトニングのビームセグメント |
+| 24 | Flagship Dreadnought | Flagship |
+| 25 | Medical Frigate | Healer |
+| 26 | Prism Shield | Reflector |
 
 ## Combat Branching (combat.ts)
 
