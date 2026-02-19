@@ -49,7 +49,7 @@ describe('TYPES 配列', () => {
   });
 
   it('特殊フラグ: idx 2 (Bomber) は aoe を持つ', () => {
-    expect(getUnitType(2).aoe).toBe(70);
+    expect(getUnitType(2).aoe).toBe(42);
   });
 
   it('特殊フラグ: idx 3 (Cruiser) は sweep を持つ', () => {

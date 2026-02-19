@@ -2,7 +2,7 @@ import { getColor } from '../colors.ts';
 import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
-import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
+import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { getUnitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
@@ -15,13 +15,10 @@ const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
-/**
- * Broadside state-machine phases stored in `burstCount`.
- * Values are negative or zero to avoid collision with normal burst logic (positive integers).
- * Safe because `t.broadside` branch returns before `fireNormal` is reached.
- */
 const BROADSIDE_PHASE_CHARGE = 0;
 const BROADSIDE_PHASE_FIRE = -1;
+const AOE_PROJ_SPEED = 170;
+const AOE_PROJ_SIZE = 5;
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
 /** 同一フレーム内で反射済みのプロジェクタイルインデックス。対向リフレクター間の無限バウンスを防止 */
 const reflectedThisFrame = new Set<number>();
@@ -667,17 +664,24 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
   );
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
+  spawnMuzzleFlash(ctx, ang);
 }
 
-function fireHoming(ctx: CombatContext, ang: number, d: number) {
+const HOMING_SPREAD = 0.15;
+const HOMING_SPEED = 280;
+
+function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
   const { u, c, t, vd } = ctx;
-  u.cooldown = t.fireRate;
+  const burst = t.burst ?? 1;
+  if (u.burstCount <= 0) u.burstCount = burst;
+  const burstIdx = burst - u.burstCount;
+  const spreadAng = ang + (burstIdx - (burst - 1) / 2) * HOMING_SPREAD;
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(ang) * 280,
-    Math.sin(ang) * 280,
-    d / 280 + 1,
+    Math.cos(spreadAng) * HOMING_SPEED,
+    Math.sin(spreadAng) * HOMING_SPEED,
+    d / HOMING_SPEED + 1,
     t.damage * vd,
     u.team,
     2.5,
@@ -688,6 +692,9 @@ function fireHoming(ctx: CombatContext, ang: number, d: number) {
     0,
     u.target,
   );
+  u.burstCount--;
+  u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
+  spawnMuzzleFlash(ctx, ang);
 }
 
 function fireAoe(ctx: CombatContext, ang: number, d: number) {
@@ -696,18 +703,47 @@ function fireAoe(ctx: CombatContext, ang: number, d: number) {
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(ang) * 170,
-    Math.sin(ang) * 170,
-    d / 170 + 0.2,
+    Math.cos(ang) * AOE_PROJ_SPEED,
+    Math.sin(ang) * AOE_PROJ_SPEED,
+    d / AOE_PROJ_SPEED + 0.2,
     t.damage * vd,
     u.team,
-    5,
+    AOE_PROJ_SIZE,
     c[0] * 0.8,
     c[1] * 0.7 + 0.3,
     c[2],
     false,
     t.aoe,
   );
+  spawnMuzzleFlash(ctx, ang);
+}
+
+const CARPET_SPREAD = 0.2;
+
+function fireCarpetBomb(ctx: CombatContext, ang: number, d: number) {
+  const { u, c, t, vd } = ctx;
+  const carpet = t.carpet ?? 1;
+  if (u.burstCount <= 0) u.burstCount = carpet;
+  const burstIdx = carpet - u.burstCount;
+  const spreadAng = ang + (burstIdx - (carpet - 1) / 2) * CARPET_SPREAD;
+  spawnProjectile(
+    u.x,
+    u.y,
+    Math.cos(spreadAng) * AOE_PROJ_SPEED,
+    Math.sin(spreadAng) * AOE_PROJ_SPEED,
+    d / AOE_PROJ_SPEED + 0.2,
+    t.damage * vd,
+    u.team,
+    AOE_PROJ_SIZE,
+    c[0] * 0.8,
+    c[1] * 0.7 + 0.3,
+    c[2],
+    false,
+    t.aoe,
+  );
+  u.burstCount--;
+  u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
+  spawnMuzzleFlash(ctx, ang);
 }
 
 // localX = forward axis, localY = starboard (perpendicular right)
@@ -905,21 +941,21 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
  * State machine reusing existing Unit fields:
  *   beamOn: charge progress (0=idle, 0→1=charging, 1=charged)
  *   sweepBaseAngle: locked target angle at charge start
- *   burstCount: phase (BROADSIDE_PHASE_CHARGE=0, BROADSIDE_PHASE_FIRE=-1)
+ *   broadsidePhase: phase (BROADSIDE_PHASE_CHARGE=0, BROADSIDE_PHASE_FIRE=-1)
  */
 function handleFlagshipBarrage(ctx: CombatContext) {
   const { u, t, dt } = ctx;
 
   if (u.target === NO_UNIT) {
     u.beamOn = 0;
-    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
   }
   const o = getUnit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.beamOn = 0;
-    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
   }
   const dx = o.x - u.x,
@@ -927,7 +963,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= t.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * 3);
-    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
   }
 
@@ -938,17 +974,17 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   if (u.beamOn === 0) {
     u.sweepBaseAngle = Math.atan2(dy, dx);
     u.beamOn = 0.001;
-    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
   }
 
-  if (u.burstCount === BROADSIDE_PHASE_CHARGE) {
+  if (u.broadsidePhase === BROADSIDE_PHASE_CHARGE) {
     u.beamOn = Math.min(u.beamOn + dt / FLAGSHIP_CHARGE_TIME, 1);
     flagshipChargeVfx(ctx, u.beamOn);
     flagshipPreviewBeam(ctx, u.sweepBaseAngle, u.beamOn);
 
     if (u.beamOn >= 1) {
       flagshipFireMain(ctx, u.sweepBaseAngle);
-      u.burstCount = BROADSIDE_PHASE_FIRE;
+      u.broadsidePhase = BROADSIDE_PHASE_FIRE;
       u.beamOn = 1;
       u.cooldown = FLAGSHIP_BROADSIDE_DELAY;
       return;
@@ -957,11 +993,11 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   }
 
   // Broadside phase: fire perpendicular shots after short delay
-  if (u.burstCount === BROADSIDE_PHASE_FIRE && u.cooldown <= 0) {
+  if (u.broadsidePhase === BROADSIDE_PHASE_FIRE && u.cooldown <= 0) {
     flagshipFireBroadside(ctx, u.sweepBaseAngle);
     u.cooldown = t.fireRate;
     u.beamOn = 0;
-    u.burstCount = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
   }
 }
 
@@ -1042,25 +1078,36 @@ function fireNormal(ctx: CombatContext) {
   }
 
   const ang = Math.atan2(dy, dx);
+  dispatchFire(ctx, ang, d);
+}
+
+/** 射撃モード分岐。優先度順: carpet → homing → burst → aoe → railgun → default。
+ *  COMBAT_FLAG_PRIORITY の末尾 (carpet → homing → burst → swarm) と一致させること */
+function dispatchFire(ctx: CombatContext, ang: number, d: number) {
+  const { u, t } = ctx;
+
+  if (t.carpet) {
+    fireCarpetBomb(ctx, ang, d);
+    return;
+  }
+
+  if (t.homing) {
+    fireHomingBurst(ctx, ang, d);
+    return;
+  }
 
   if (t.burst) {
     fireBurst(ctx, ang, d);
     return;
   }
 
-  if (t.homing) {
-    fireHoming(ctx, ang, d);
-  } else if (t.aoe) {
+  if (t.aoe) {
     fireAoe(ctx, ang, d);
   } else if (t.shape === 8) {
     fireRailgun(ctx, ang);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
     fireBurst(ctx, ang, d, dmgMul);
-  }
-
-  if (!t.homing && !t.aoe && t.shape !== 8) {
-    spawnMuzzleFlash(ctx, ang);
   }
 }
 
@@ -1111,4 +1158,28 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     return;
   }
   fireNormal(_ctx);
+}
+
+const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
+  'rams',
+  'heals',
+  'reflects',
+  'spawns',
+  'emp',
+  'teleports',
+  'chain',
+  'sweep',
+  'broadside',
+  'beam',
+  'carpet',
+  'homing',
+  'burst',
+  'swarm',
+];
+
+export function getDominantDemoFlag(t: UnitType): DemoFlag | null {
+  for (const flag of COMBAT_FLAG_PRIORITY) {
+    if (t[flag]) return flag;
+  }
+  return null;
 }

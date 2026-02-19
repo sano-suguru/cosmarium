@@ -17,7 +17,7 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { _resetSweepHits, combat, resetReflectedSet } from './combat.ts';
+import { _resetSweepHits, combat, getDominantDemoFlag, resetReflectedSet } from './combat.ts';
 
 afterEach(() => {
   resetPools();
@@ -444,27 +444,65 @@ describe('combat — NORMAL FIRE', () => {
     expect(getProjectile(0).damage).toBeCloseTo(2.8);
   });
 
-  it('homing: ホーミングプロジェクタイル生成', () => {
-    const launcher = spawnAt(0, 10, 0, 0); // Launcher (homing=true)
+  it('homing: Launcher → 3発ホーミングミサイル (homing burst)', () => {
+    const launcher = spawnAt(0, 10, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     getUnit(launcher).cooldown = 0;
     getUnit(launcher).target = enemy;
     buildHash();
+
     combat(getUnit(launcher), launcher, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
     expect(getProjectile(0).homing).toBe(true);
     expect(getProjectile(0).targetIndex).toBe(enemy);
+    expect(getUnit(launcher).burstCount).toBe(2);
+
+    getUnit(launcher).cooldown = 0;
+    combat(getUnit(launcher), launcher, 0.016, 0, rng);
+    getUnit(launcher).cooldown = 0;
+    combat(getUnit(launcher), launcher, 0.016, 0, rng);
+    expect(poolCounts.projectileCount).toBe(3);
+    expect(getUnit(launcher).burstCount).toBe(0);
+    expect(getProjectile(1).homing).toBe(true);
+    expect(getProjectile(2).homing).toBe(true);
+    expect(getUnit(launcher).cooldown).toBeCloseTo(2.8, 1);
   });
 
   it('aoe: AOEプロジェクタイル生成', () => {
-    const bomber = spawnAt(0, 2, 0, 0); // Bomber (aoe=70)
+    const bomber = spawnAt(0, 2, 0, 0); // Bomber (aoe=42)
     const enemy = spawnAt(1, 1, 100, 0);
     getUnit(bomber).cooldown = 0;
     getUnit(bomber).target = enemy;
     buildHash();
     combat(getUnit(bomber), bomber, 0.016, 0, rng);
     expect(poolCounts.projectileCount).toBe(1);
-    expect(getProjectile(0).aoe).toBe(70);
+    expect(getProjectile(0).aoe).toBe(42);
+  });
+
+  it('carpet: Bomber → 4発AOEプロジェクタイル (carpet bomb)', () => {
+    const bomber = spawnAt(0, 2, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    getUnit(bomber).cooldown = 0;
+    getUnit(bomber).target = enemy;
+    buildHash();
+
+    combat(getUnit(bomber), bomber, 0.016, 0, rng);
+    expect(poolCounts.projectileCount).toBe(1);
+    expect(getProjectile(0).aoe).toBe(42);
+    expect(getUnit(bomber).burstCount).toBe(3);
+
+    getUnit(bomber).cooldown = 0;
+    combat(getUnit(bomber), bomber, 0.016, 0, rng);
+    expect(poolCounts.projectileCount).toBe(2);
+    expect(getUnit(bomber).burstCount).toBe(2);
+
+    getUnit(bomber).cooldown = 0;
+    combat(getUnit(bomber), bomber, 0.016, 0, rng);
+    getUnit(bomber).cooldown = 0;
+    combat(getUnit(bomber), bomber, 0.016, 0, rng);
+    expect(poolCounts.projectileCount).toBe(4);
+    expect(getUnit(bomber).burstCount).toBe(0);
+    expect(getUnit(bomber).cooldown).toBeCloseTo(2.8, 1);
   });
 
   it('broadside: Flagship → チャージ→メイン3発→側面2発', () => {
@@ -486,14 +524,14 @@ describe('combat — NORMAL FIRE', () => {
     }
     // then: メイン砲3発発射、broadside待ち
     expect(poolCounts.projectileCount).toBe(3);
-    expect(getUnit(flagship).burstCount).toBe(-1);
+    expect(getUnit(flagship).broadsidePhase).toBe(-1);
 
     // when: broadside delay消化
     getUnit(flagship).cooldown = 0;
     combat(getUnit(flagship), flagship, 0.016, 0, rng);
     // then: メイン3 + 側面2 = 5発
     expect(poolCounts.projectileCount).toBe(5);
-    expect(getUnit(flagship).burstCount).toBe(0);
+    expect(getUnit(flagship).broadsidePhase).toBe(0);
   });
 
   it('sniper: Sniper (shape=8) → レールガン + tracerビーム', () => {
@@ -1030,5 +1068,45 @@ describe('combat — FIGHTER BURST', () => {
     combat(getUnit(fighter), fighter, 0.016, 0, rng);
     expect(getUnit(fighter).burstCount).toBe(0);
     expect(getUnit(fighter).target).toBe(NO_UNIT);
+  });
+});
+
+describe('getDominantDemoFlag', () => {
+  it.each([
+    [0, 'swarm'],
+    [1, 'burst'],
+    [2, 'carpet'],
+    [3, 'sweep'],
+    [4, 'broadside'],
+    [5, 'heals'],
+    [6, 'reflects'],
+    [7, 'spawns'],
+    [8, null], // Sniper: railgun は shape===8 分岐で DemoFlag 対象外
+    [9, 'rams'],
+    [10, 'homing'],
+    [11, 'emp'],
+    [12, 'beam'],
+    [13, 'teleports'],
+    [14, 'chain'],
+  ] as const)('TYPES[%i] → %s', (idx, expected) => {
+    expect(getDominantDemoFlag(getUnitType(idx))).toBe(expected);
+  });
+
+  it('Bomber (carpet+aoe): carpet が aoe より優先', () => {
+    const t = getUnitType(2);
+    expect(t.carpet).toBeTruthy();
+    expect(t.aoe).toBeTruthy();
+    expect(getDominantDemoFlag(t)).toBe('carpet');
+  });
+
+  it('Launcher (homing+burst): homing が burst より優先', () => {
+    const t = getUnitType(10);
+    expect(t.homing).toBeTruthy();
+    expect(t.burst).toBeTruthy();
+    expect(getDominantDemoFlag(t)).toBe('homing');
+  });
+
+  it('フラグなしユニット → null', () => {
+    expect(getDominantDemoFlag(getUnitType(8))).toBeNull();
   });
 });
