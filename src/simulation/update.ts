@@ -71,13 +71,13 @@ function detonateAoe(p: Projectile, rng: () => number) {
       Math.sin(a) * (40 + rng() * 110),
       0.3 + rng() * 0.3,
       3 + rng() * 3,
-      1,
-      0.55,
-      0.15,
+      p.r,
+      p.g * 0.8 + 0.2,
+      p.b * 0.3,
       0,
     );
   }
-  spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, 1, 0.5, 0.15, 10);
+  spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, 10);
   addShake(3);
 }
 

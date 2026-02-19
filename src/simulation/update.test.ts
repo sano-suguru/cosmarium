@@ -351,6 +351,22 @@ describe('projectile pass', () => {
     update(0.016, 0, rng, gameLoopState());
     expect(getProjectile(0).vy).toBe(0);
   });
+
+  it('AOE 爆発: パーティクルがチームカラーを使う (hardcoded orange ではなく)', () => {
+    // Team 0: blue (r=0, g=0.3, b=1)
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, false, 70);
+    expect(poolCounts.projectileCount).toBe(1);
+    const origParticleCount = poolCounts.particleCount;
+    update(0.016, 0, rng, gameLoopState());
+    // パーティクルが生成される (16個)
+    expect(poolCounts.particleCount).toBeGreaterThan(origParticleCount);
+    // 第1パーティクル（loop の最初）をチェック
+    const p = getParticle(origParticleCount);
+    // 期待値: p.r=0, p.g=0.3*0.8+0.2=0.44, p.b=1*0.3=0.3
+    expect(p.r).toBeCloseTo(0, 5);
+    expect(p.g).toBeCloseTo(0.3 * 0.8 + 0.2, 5);
+    expect(p.b).toBeCloseTo(1 * 0.3, 5);
+  });
 });
 
 // ============================================================
