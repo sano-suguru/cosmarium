@@ -89,3 +89,47 @@ export function updateAutoFollowCamera(hotspot: { x: number; y: number; radius: 
   cam.targetY = hotspot.y;
   cam.targetZ = Math.max(0.3, Math.min(3.0, Math.min(viewport.W, viewport.H) / (hotspot.radius * 2.5)));
 }
+
+export interface CameraSnapshot {
+  x: number;
+  y: number;
+  z: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+}
+
+export function snapshotCamera(): CameraSnapshot {
+  return {
+    x: cam.x,
+    y: cam.y,
+    z: cam.z,
+    targetX: cam.targetX,
+    targetY: cam.targetY,
+    targetZ: cam.targetZ,
+  };
+}
+
+export function restoreCamera(s: CameraSnapshot): void {
+  cam.x = s.x;
+  cam.y = s.y;
+  cam.z = s.z;
+  cam.targetX = s.targetX;
+  cam.targetY = s.targetY;
+  cam.targetZ = s.targetZ;
+  cam.shake = 0;
+  cam.shakeX = 0;
+  cam.shakeY = 0;
+}
+
+export function snapCamera(): void {
+  cam.x = cam.targetX;
+  cam.y = cam.targetY;
+  cam.z = cam.targetZ;
+}
+
+export function updateCodexDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {
+  cam.targetX = centroid.cx;
+  cam.targetY = centroid.cy;
+  cam.targetZ = Math.max(1.0, Math.min(3.5, Math.min(viewport.W, viewport.H) / (centroid.radius * 2.5)));
+}
