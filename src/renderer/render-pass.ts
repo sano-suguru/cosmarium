@@ -33,6 +33,7 @@ function renderScenePass(sceneFBO: FBO, W: number, H: number, cx: number, cy: nu
     gl.uniform2f(mainLocations.uR, W, H);
     gl.uniform2f(mainLocations.uCam, cx, cy);
     gl.uniform1f(mainLocations.uZ, cz);
+    gl.uniform1f(mainLocations.uTime, now);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 

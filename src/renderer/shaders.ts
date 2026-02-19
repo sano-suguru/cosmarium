@@ -24,6 +24,7 @@ export let mainLocations: {
   uR: WebGLUniformLocation | null;
   uCam: WebGLUniformLocation | null;
   uZ: WebGLUniformLocation | null;
+  uTime: WebGLUniformLocation | null;
 };
 
 export let minimapLocations: {
@@ -87,6 +88,7 @@ export function initShaders() {
     uR: gl.getUniformLocation(mainProgram, 'uR'),
     uCam: gl.getUniformLocation(mainProgram, 'uCam'),
     uZ: gl.getUniformLocation(mainProgram, 'uZ'),
+    uTime: gl.getUniformLocation(mainProgram, 'uTime'),
   };
 
   minimapLocations = {
@@ -114,6 +116,7 @@ export function initShaders() {
       'mainLocations.uR': mainLocations.uR,
       'mainLocations.uCam': mainLocations.uCam,
       'mainLocations.uZ': mainLocations.uZ,
+      'mainLocations.uTime': mainLocations.uTime,
       'bloomLocations.uT': bloomLocations.uT,
       'bloomLocations.uD': bloomLocations.uD,
       'bloomLocations.uR': bloomLocations.uR,
