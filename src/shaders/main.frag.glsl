@@ -82,6 +82,9 @@ void main(){
     float dW3=sdCapsule(p,vec2(-0.10,0.08),vec2(-0.28,0.32),0.035);
     float dW4=sdCapsule(p,vec2(-0.10,-0.08),vec2(-0.28,-0.32),0.035);
     float dWings=min(min(dW1,dW2),min(dW3,dW4));
+    float dTipU=sdTriangle(p,vec2(0.24,0.34),vec2(0.32,0.42),vec2(0.20,0.42));
+    float dTipD=sdTriangle(p,vec2(0.24,-0.34),vec2(0.32,-0.42),vec2(0.20,-0.42));
+    dWings=min(dWings,min(dTipU,dTipD));
     // 3. Cockpit bump
     float dCock=sdRoundedBox(p-vec2(0.28,0.0),vec2(0.08,0.05),0.03);
     // Union
@@ -116,6 +119,11 @@ void main(){
     float dWingL=sdCapsule(p,vec2(0.2,0.35),vec2(-0.4,0.65),0.12);
     float dWingR=sdCapsule(p,vec2(0.2,-0.35),vec2(-0.4,-0.65),0.12);
     float dWings=min(dWingL,dWingR);
+
+    // Wingtip arcs (drooped, thickened outer edge)
+    float dArcL=sdArc(p-vec2(-0.2,0.55),vec2(sin(0.5),cos(0.5)),0.15,0.05);
+    float dArcR=sdArc(p-vec2(-0.2,-0.55),vec2(sin(0.5),cos(0.5)),0.15,0.05);
+    dWings=smin(dWings,min(dArcL,dArcR),0.06);
 
     // 2. Main Body: Central wide block
     float dBody=sdRoundedBox(p-vec2(0.1,0.0),vec2(0.55,0.22),0.15);
@@ -216,12 +224,12 @@ void main(){
     
     // 2. Missile Pods (Side protrusions)
     // Located mid-ship, symmetric
-    float dPodL=sdRoundedBox(p-vec2(0.0,0.18),vec2(0.15,0.06),0.02);
-    float dPodR=sdRoundedBox(p-vec2(0.0,-0.18),vec2(0.15,0.06),0.02);
+    float dPodL=sdRoundedBox(p-vec2(0.0,0.24),vec2(0.16,0.07),0.02);
+    float dPodR=sdRoundedBox(p-vec2(0.0,-0.24),vec2(0.16,0.07),0.02);
     float dPods=min(dPodL,dPodR);
     
     // 3. Bridge / Superstructure (Small bump on top/rear)
-    float dBridge=sdRoundedBox(p-vec2(-0.25,0.0),vec2(0.08,0.12),0.02);
+    float dBridge=sdRoundedBox(p-vec2(-0.25,0.0),vec2(0.08,0.14),0.02);
     
     // Smooth Union for organic but mechanical feel
     float dShape=smin(dHull,dPods,0.05);
@@ -229,8 +237,8 @@ void main(){
     
     // 4. Details: Missile Tubes (Indentation on pods)
     // Repeating pattern or just a slit
-    float dTubeL=sdRoundedBox(p-vec2(0.05,0.18),vec2(0.08,0.02),0.01);
-    float dTubeR=sdRoundedBox(p-vec2(0.05,-0.18),vec2(0.08,0.02),0.01);
+    float dTubeL=sdRoundedBox(p-vec2(0.05,0.24),vec2(0.08,0.02),0.01);
+    float dTubeR=sdRoundedBox(p-vec2(0.05,-0.24),vec2(0.08,0.02),0.01);
     float dTubes=min(dTubeL,dTubeR);
     
     // Engrave tubes
@@ -282,6 +290,9 @@ void main(){
     float dBayL=sdRoundedBox(p-vec2(0.10,0.30),vec2(0.10,0.025),0.008);
     float dBayR=sdRoundedBox(p-vec2(0.10,-0.30),vec2(0.10,0.025),0.008);
     dBody=max(dBody,-min(dBayL,dBayR));
+    // 6. Bow V-notch (forward deck cutout)
+    float dBowCut=sdTriangle(p,vec2(0.52,0.0),vec2(0.40,0.12),vec2(0.40,-0.12));
+    dBody=max(dBody,-dBowCut);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -305,14 +316,14 @@ void main(){
   else if(sh==8){ vec2 p=vU*0.72; float t=vA;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
     // 1. Compact rear body (engine + power plant)
-    float dRear=sdRoundedBox(p-vec2(-0.28,0.0),vec2(0.18,0.14),0.05);
+    float dRear=sdRoundedBox(p-vec2(-0.28,0.0),vec2(0.20,0.16),0.05);
     // 2. Long railgun barrel (extends far forward)
-    float dBarrel=sdCapsule(p,vec2(-0.12,0.0),vec2(0.58,0.0),0.035);
+    float dBarrel=sdCapsule(p,vec2(-0.12,0.0),vec2(0.58,0.0),0.025);
     // 3. Barrel shroud (wider mid-section for cooling)
     float dShroud=sdRoundedBox(p-vec2(0.08,0.0),vec2(0.12,0.06),0.02);
     // 4. Small stabilizer wings
-    float dFinL=sdCapsule(p,vec2(-0.30,0.12),vec2(-0.42,0.22),0.025);
-    float dFinR=sdCapsule(p,vec2(-0.30,-0.12),vec2(-0.42,-0.22),0.025);
+    float dFinL=sdCapsule(p,vec2(-0.30,0.12),vec2(-0.44,0.26),0.025);
+    float dFinR=sdCapsule(p,vec2(-0.30,-0.12),vec2(-0.44,-0.26),0.025);
     float dFins=min(dFinL,dFinR);
     // Union
     float dBody=smin(dRear,dBarrel,0.06);
@@ -347,8 +358,8 @@ void main(){
     float noseCut=max(0.0,(p.x-0.15)*0.35);
     dSpear=max(dSpear,abs(p.y)-max(0.12-noseCut,0.0));
     // 2. Swept-back delta wings
-    float dWingL=sdCapsule(p,vec2(-0.08,0.10),vec2(-0.38,0.36),0.05);
-    float dWingR=sdCapsule(p,vec2(-0.08,-0.10),vec2(-0.38,-0.36),0.05);
+    float dWingL=sdCapsule(p,vec2(-0.08,0.10),vec2(-0.38,0.36),0.065);
+    float dWingR=sdCapsule(p,vec2(-0.08,-0.10),vec2(-0.38,-0.36),0.065);
     float dWings=min(dWingL,dWingR);
     // 3. Rear thruster block (wide)
     float dThrust=sdRoundedBox(p-vec2(-0.32,0.0),vec2(0.10,0.20),0.04);
