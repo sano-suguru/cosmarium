@@ -11,7 +11,7 @@ import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { getHotspot, updateHotspot } from './simulation/hotspot.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import { isCodexDemoUnit, updateCodexDemo } from './ui/codex.ts';
+import { isCodexDemoUnit, syncCodexDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 
@@ -84,6 +84,7 @@ function frame(now: number) {
     setAutoFollow(false);
     // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
     update(dt * BASE_SPEED, t, rng, gameLoopState);
+    syncCodexDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
     const scaledDt = dt * state.timeScale * BASE_SPEED;
