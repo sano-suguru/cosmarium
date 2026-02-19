@@ -98,6 +98,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     kills: 0,
     vet: 0,
     burstCount: 0,
+    broadsidePhase: 0,
     swarmN: 0,
   };
 }

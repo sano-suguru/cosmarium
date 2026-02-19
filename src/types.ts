@@ -25,6 +25,7 @@ export interface Unit {
   kills: number;
   vet: number;
   burstCount: number;
+  broadsidePhase: number;
   swarmN: number;
   boostTimer: number;
   boostCooldown: number;
@@ -96,6 +97,23 @@ export interface UnitType {
   burst?: number;
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
 }
+
+/** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */
+export type DemoFlag =
+  | 'swarm'
+  | 'carpet'
+  | 'homing'
+  | 'burst'
+  | 'heals'
+  | 'reflects'
+  | 'spawns'
+  | 'emp'
+  | 'chain'
+  | 'teleports'
+  | 'rams'
+  | 'sweep'
+  | 'beam'
+  | 'broadside';
 
 export interface Beam {
   x1: number;
