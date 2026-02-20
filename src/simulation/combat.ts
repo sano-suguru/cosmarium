@@ -10,6 +10,82 @@ import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
+
+// GC回避: aimAt() の結果を再利用するシングルトン
+const _aim = { ang: 0, dist: 0 };
+
+/** 二次方程式 at²+bt+c=0 の最小正の実数解。解なしなら -1 */
+function smallestPositiveRoot(a: number, b: number, c: number): number {
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return -1;
+
+  if (Math.abs(a) < 1e-6) {
+    return Math.abs(b) < 1e-6 ? -1 : -c / b;
+  }
+  const sqrtDisc = Math.sqrt(disc);
+  const t1 = (-b - sqrtDisc) / (2 * a);
+  const t2 = (-b + sqrtDisc) / (2 * a);
+  if (t1 > 0 && t2 > 0) return Math.min(t1, t2);
+  if (t1 > 0) return t1;
+  if (t2 > 0) return t2;
+  return -1;
+}
+
+function setDirect(ang: number, dist: number): { ang: number; dist: number } {
+  _aim.ang = ang;
+  _aim.dist = dist;
+  return _aim;
+}
+
+/**
+ * 偏差射撃を考慮した照準角度と予測距離を返す。
+ * 二次方程式でインターセプト地点を求め、accuracy (0–1) で直射とブレンドする。
+ */
+export function aimAt(
+  ux: number,
+  uy: number,
+  ox: number,
+  oy: number,
+  ovx: number,
+  ovy: number,
+  speed: number,
+  accuracy: number,
+): { ang: number; dist: number } {
+  const dx = ox - ux;
+  const dy = oy - uy;
+  const directAng = Math.atan2(dy, dx);
+  const directDist = Math.sqrt(dx * dx + dy * dy);
+
+  if (accuracy <= 0 || speed <= 0) return setDirect(directAng, directDist);
+
+  // |P + V*t|² = (s*t)²  →  (V²-s²)t² + 2(P·V)t + P·P = 0
+  const t = smallestPositiveRoot(ovx * ovx + ovy * ovy - speed * speed, 2 * (dx * ovx + dy * ovy), dx * dx + dy * dy);
+  if (t <= 0) return setDirect(directAng, directDist);
+
+  const px = dx + ovx * t;
+  const py = dy + ovy * t;
+  const leadAng = Math.atan2(py, px);
+  const leadDist = Math.sqrt(px * px + py * py);
+
+  // accuracy でブレンド（角度は最短弧で補間）
+  let angleDiff = leadAng - directAng;
+  if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+  _aim.ang = directAng + angleDiff * accuracy;
+  _aim.dist = directDist + (leadDist - directDist) * accuracy;
+  return _aim;
+}
+
+/** dispatchFire の分岐順序と一致させた弾速決定 */
+function projSpeed(t: UnitType): number {
+  if (t.carpet) return AOE_PROJ_SPEED;
+  if (t.homing) return HOMING_SPEED;
+  if (t.burst) return 480 + t.damage * 12;
+  if (t.aoe) return AOE_PROJ_SPEED;
+  if (t.shape === 8) return 900;
+  return 480 + t.damage * 12;
+}
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
@@ -211,13 +287,13 @@ function handleReflector(ctx: CombatContext) {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d < fireRange) {
         u.cooldown = t.fireRate;
-        const ang = Math.atan2(dy, dx);
+        const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, 400, t.leadAccuracy);
         spawnProjectile(
           u.x,
           u.y,
-          Math.cos(ang) * 400,
-          Math.sin(ang) * 400,
-          d / 400 + 0.1,
+          Math.cos(aim.ang) * 400,
+          Math.sin(aim.ang) * 400,
+          aim.dist / 400 + 0.1,
           t.damage * vd,
           u.team,
           1.5,
@@ -972,7 +1048,8 @@ function handleFlagshipBarrage(ctx: CombatContext) {
 
   // Charge phase: lock angle, build up
   if (u.beamOn === 0) {
-    u.sweepBaseAngle = Math.atan2(dy, dx);
+    const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, 380, t.leadAccuracy);
+    u.sweepBaseAngle = aim.ang;
     u.beamOn = 0.001;
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
   }
@@ -1077,8 +1154,8 @@ function fireNormal(ctx: CombatContext) {
     return;
   }
 
-  const ang = Math.atan2(dy, dx);
-  dispatchFire(ctx, ang, d);
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, projSpeed(t), t.leadAccuracy);
+  dispatchFire(ctx, aim.ang, aim.dist);
 }
 
 /** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること */
