@@ -13,7 +13,6 @@ import {
   SH_HOMING,
   SH_LIGHTNING,
   SH_OCT_SHIELD,
-  SH_STAR,
   TAU,
   WRAP_PERIOD,
 } from '../constants.ts';
@@ -101,33 +100,6 @@ function renderHpBar(u: Unit, ut: UnitType, rs: number) {
   }
 }
 
-function renderVetBadges(u: Unit, ut: UnitType, now: number, rs: number) {
-  if (u.vet >= 1)
-    writeInstance(
-      u.x + ut.size * 1.1 * rs,
-      u.y - ut.size * 1.1 * rs,
-      /*size*/ 2 * rs,
-      /*r*/ 1,
-      /*g*/ 1,
-      /*b*/ 0.3,
-      /*a*/ 0.8,
-      (now * 3) % TAU,
-      /*shape*/ SH_STAR,
-    );
-  if (u.vet >= 2)
-    writeInstance(
-      u.x + ut.size * 1.1 * rs + 5 * rs,
-      u.y - ut.size * 1.1 * rs,
-      /*size*/ 2 * rs,
-      /*r*/ 1,
-      /*g*/ 0.5,
-      /*b*/ 0.3,
-      /*a*/ 0.8,
-      (now * 3) % TAU,
-      /*shape*/ SH_STAR,
-    );
-}
-
 function renderUnits(now: number) {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
@@ -144,22 +116,20 @@ function renderUnits(now: number) {
     else if (ut.reflects)
       writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
     renderStunStars(u, ut, now, rs);
-    if (u.vet > 0) writeOverlay(u.x, u.y, ut.size * 1.4 * rs, 1, 1, 0.5, 0.08 + u.vet * 0.06, SH_EXPLOSION_RING);
+    if (u.vet > 0) {
+      const pulse = 1 + Math.sin(now * 4) * 0.1;
+      const vetSize = ut.size * (1.4 + u.vet * 0.3) * rs * pulse;
+      const vetAlpha = 0.1 + u.vet * 0.08;
+      writeOverlay(u.x, u.y, vetSize, 1, 0.9, 0.3, vetAlpha, SH_EXPLOSION_RING);
+    }
     if (u.swarmN > 0)
       writeOverlay(u.x, u.y, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
-    writeInstance(
-      u.x,
-      u.y,
-      ut.size * rs,
-      /*r*/ c[0] * flash * sf,
-      /*g*/ c[1] * flash * sf,
-      /*b*/ c[2] * flash * sf,
-      /*a*/ 0.9,
-      u.angle,
-      ut.shape,
-    );
+    const vetTint = u.vet * 0.15; // vet上限=2 (effects.ts) → max 0.3、クランプ不要
+    const vr = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
+    const vg = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;
+    const vb = (c[2] + (0.3 - c[2]) * vetTint) * flash * sf;
+    writeInstance(u.x, u.y, ut.size * rs, vr, vg, vb, 0.9, u.angle, ut.shape);
     renderHpBar(u, ut, rs);
-    renderVetBadges(u, ut, now, rs);
   }
 }
 

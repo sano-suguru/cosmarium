@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { MAX_INSTANCES, TAU } from '../constants.ts';
+import { MAX_INSTANCES } from '../constants.ts';
 import { particle, projectile, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
@@ -306,18 +306,31 @@ describe('writeInstance（直接使用）', () => {
     expect(prCall).toBeDefined();
   });
 
-  it('vet バッジは angle=(now*3)%TAU で回転する', () => {
-    const now = 2.5;
-    const idx = spawnAt(0, 0, 100, 100);
-    const u = unit(idx);
+  it('vet=1 のユニット本体は金色方向にティント適用される', () => {
+    // vet=0 の基本色を取得
+    spawnAt(0, 0, 100, 100);
+    renderScene(0);
+    const baseCalls = getWriteCalls();
+    const baseCall = baseCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
+    expect(baseCall).toBeDefined();
+
+    // リセットして vet=1 のユニットを生成
+    resetPools();
+    mockWriteSlots.mockClear();
+    const idx1 = spawnAt(0, 0, 100, 100);
+    const u = unit(idx1);
     u.vet = 1;
     u.kills = 3;
 
-    renderScene(now);
+    renderScene(0);
 
-    const calls = getWriteCalls();
-    const badgeCall = calls.find((c) => c.shape === 17 && Math.abs(c.angle - ((now * 3) % TAU)) < 0.01);
-    expect(badgeCall).toBeDefined();
+    const vetCalls = getWriteCalls();
+    const vetCall = vetCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
+    expect(vetCall).toBeDefined();
+    // vet=1 → vetTint=0.15: r は基本色より増加（金色方向へシフト）
+    if (baseCall && vetCall) {
+      expect(vetCall.r).toBeGreaterThan(baseCall.r);
+    }
   });
 });
 

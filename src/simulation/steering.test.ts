@@ -116,6 +116,30 @@ describe('steer — ターゲット探索', () => {
     expect(unit(ally).target).toBe(nearEnemy);
   });
 
+  it('ベテラン敵を優先: 近い敵(vet=0)より少し遠い敵(vet=2)がターゲットされる', () => {
+    const ally = spawnAt(0, 1, 0, 0);
+    const nearEnemy = spawnAt(1, 1, 80, 0); // vet=0, 距離80
+    const vetEnemy = spawnAt(1, 1, 100, 0); // vet=2, 距離100
+    unit(nearEnemy).vet = 0;
+    unit(vetEnemy).vet = 2;
+    buildHash();
+    steer(unit(ally), 0.016, rng);
+    // score: 80/(1+0)=80 vs 100/(1+0.6)=62.5 → vet=2が選ばれる
+    expect(unit(ally).target).toBe(vetEnemy);
+  });
+
+  it('距離差が大きい場合は近い敵を優先', () => {
+    const ally = spawnAt(0, 1, 0, 0);
+    const nearEnemy = spawnAt(1, 1, 80, 0); // vet=0, 距離80
+    const farVetEnemy = spawnAt(1, 1, 300, 0); // vet=2, 距離300
+    unit(nearEnemy).vet = 0;
+    unit(farVetEnemy).vet = 2;
+    buildHash();
+    steer(unit(ally), 0.016, rng);
+    // score: 80/(1+0)=80 vs 300/(1+0.6)=187.5 → 近い敵が選ばれる
+    expect(unit(ally).target).toBe(nearEnemy);
+  });
+
   it('死亡ターゲットクリア: tgt先がalive=false → tgt=-1', () => {
     const ally = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 80, 0);

@@ -24,7 +24,6 @@ export const SH_DIAMOND = 4;
 export const SH_EXPLOSION_RING = 10;
 export const SH_BEAM = 12;
 export const SH_HOMING = 14;
-export const SH_STAR = 17;
 export const SH_BAR = 21;
 export const SH_OCT_SHIELD = 22;
 export const SH_LIGHTNING = 23;

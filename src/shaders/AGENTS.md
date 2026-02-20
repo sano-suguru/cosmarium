@@ -17,12 +17,12 @@
 | composite.frag.glsl | 12 | vignette + Reinhardトーンマップ。uS,uB |
 | minimap.vert.glsl | 11 | ミニマップ頂点。aSYはaAスロット転用 |
 | minimap.frag.glsl | 9 | SDF不使用。色をそのまま出力 |
-| includes/sdf.glsl | 24 | hexDist, octDist, manDist, polarR |
+| includes/sdf.glsl | 19 | hexDist, octDist, manDist |
 
 ## 新Shape追加手順
 
 1. `main.frag.glsl` — 最後の`else if`の前に`else if(sh==次のID)`を追加
-2. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `manDist`, `polarR`）
+2. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `manDist`）
 3. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
 4. 描画確認はブラウザのみ
 

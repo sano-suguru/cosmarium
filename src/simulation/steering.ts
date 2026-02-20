@@ -14,33 +14,38 @@ interface SteerForce {
 // 呼び出し側は返却後すぐに fx/fy に転写すること
 const _force: SteerForce = { x: 0, y: 0 };
 
-// findTarget ヘルパー: 近傍から最近接敵を検索
+const VET_TARGET_WEIGHT = 0.3;
+
+// findTarget ヘルパー: 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる）
 function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
-  let bd = range * 3,
+  let bs = range * 3,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
     if (o.team === u.team || !o.alive) continue;
     const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
-    if (d < bd) {
-      bd = d;
+    const score = d / (1 + VET_TARGET_WEIGHT * o.vet);
+    if (score < bs) {
+      bs = score;
       bi = oi;
     }
   }
   return bi;
 }
 
-// findTarget ヘルパー: 全ユニットから最近接敵を検索
+// findTarget ヘルパー: 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる）
 function findNearestGlobalEnemy(u: Unit): UnitIndex {
-  let bd = 1e18,
+  let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < POOL_UNITS; i++) {
     const o = unit(i);
     if (!o.alive || o.team === u.team) continue;
     const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
-    if (d2 < bd) {
-      bd = d2;
+    const vf = 1 + VET_TARGET_WEIGHT * o.vet;
+    const score = d2 / (vf * vf);
+    if (score < bs) {
+      bs = score;
       bi = i as UnitIndex;
     }
   }

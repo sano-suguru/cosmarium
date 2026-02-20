@@ -137,7 +137,7 @@ The fragment shader (`main.frag.glsl`) dispatches SDF patterns by integer shape 
 | 4 | Cross | — |
 | 5 | Ring | reflector shield表示 |
 | 6 | Arrow | homing projectile, minimap unit |
-| 7 | Star(5) | vet星バッジ (vet≥1: 1個, vet≥2: 2個) |
+| 7 | Star(5) | — |
 | 8 | Crescent | — |
 | 9 | Square | — |
 | 10 | Glow ring | explosion ring, vet glow, EMP ring, shield aura, base glow |

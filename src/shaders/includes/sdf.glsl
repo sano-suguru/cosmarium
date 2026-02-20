@@ -16,12 +16,6 @@ float manDist(vec2 uv) {
   return abs(uv.x) + abs(uv.y);
 }
 
-// polarR — polar radius for star/petal shapes (sh==17)
-float polarR(vec2 uv, float n, float r0, float amp) {
-  float an = atan(uv.y, uv.x);
-  return r0 + amp * cos(an * n);
-}
-
 // sdRoundedBox — signed distance to rounded rectangle (sh==24)
 float sdRoundedBox(vec2 p, vec2 b, float r) {
   vec2 dd = abs(p) - b;
