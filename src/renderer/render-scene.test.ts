@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { MAX_INSTANCES } from '../constants.ts';
+import { MAX_INSTANCES, TAU } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
@@ -306,7 +306,7 @@ describe('writeInstance（直接使用）', () => {
     expect(prCall).toBeDefined();
   });
 
-  it('vet バッジは angle=now*3 で回転する', () => {
+  it('vet バッジは angle=(now*3)%TAU で回転する', () => {
     const now = 2.5;
     const idx = spawnAt(0, 0, 100, 100);
     const u = getUnit(idx);
@@ -316,7 +316,7 @@ describe('writeInstance（直接使用）', () => {
     renderScene(now);
 
     const calls = getWriteCalls();
-    const badgeCall = calls.find((c) => c.shape === 17 && Math.abs(c.angle - now * 3) < 0.01);
+    const badgeCall = calls.find((c) => c.shape === 17 && Math.abs(c.angle - ((now * 3) % TAU)) < 0.01);
     expect(badgeCall).toBeDefined();
   });
 });

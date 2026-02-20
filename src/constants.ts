@@ -28,3 +28,6 @@ export const SH_STAR = 17;
 export const SH_BAR = 21;
 export const SH_OCT_SHIELD = 22;
 export const SH_LIGHTNING = 23;
+
+// TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
+export const WRAP_PERIOD = TAU * 10000;

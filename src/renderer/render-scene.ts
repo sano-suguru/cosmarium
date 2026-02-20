@@ -15,6 +15,7 @@ import {
   SH_OCT_SHIELD,
   SH_STAR,
   TAU,
+  WRAP_PERIOD,
 } from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import type { Unit, UnitType } from '../types.ts';
@@ -107,7 +108,7 @@ function renderVetBadges(u: Unit, ut: UnitType, now: number) {
       /*g*/ 1,
       /*b*/ 0.3,
       /*a*/ 0.8,
-      now * 3,
+      (now * 3) % TAU,
       /*shape*/ SH_STAR,
     );
   if (u.vet >= 2)
@@ -119,7 +120,7 @@ function renderVetBadges(u: Unit, ut: UnitType, now: number) {
       /*g*/ 0.5,
       /*b*/ 0.3,
       /*a*/ 0.8,
-      now * 3,
+      (now * 3) % TAU,
       /*shape*/ SH_STAR,
     );
 }
@@ -134,8 +135,9 @@ function renderUnits(now: number) {
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
-    if (u.shieldLingerTimer > 0) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.5, now * 0.5, SH_OCT_SHIELD);
-    else if (ut.reflects) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.15, now * 0.5, SH_OCT_SHIELD);
+    if (u.shieldLingerTimer > 0)
+      writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
+    else if (ut.reflects) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
     renderStunStars(u, ut, now);
     if (u.vet > 0) writeOverlay(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, SH_EXPLOSION_RING);
     if (u.swarmN > 0)
@@ -280,9 +282,6 @@ function renderProjectiles() {
     writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, /*a*/ 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 }
-
-// TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
-const WRAP_PERIOD = TAU * 10000;
 
 export function renderScene(now: number): number {
   _writer.idx = 0;
