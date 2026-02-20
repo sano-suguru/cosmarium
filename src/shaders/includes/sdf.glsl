@@ -35,13 +35,26 @@ float sdCapsule(vec2 p, vec2 a, vec2 b, float r) {
   return length(pa - ba * h) - r;
 }
 
+// sdTrapezoid — signed distance to trapezoid (used by Lancer sh==9)
+// r1=bottom half-width, r2=top half-width, he=half-height
+// Oriented along Y axis: bottom at -he, top at +he
+float sdTrapezoid(in vec2 p, in float r1, in float r2, in float he) {
+  vec2 k1 = vec2(r2, he);
+  vec2 k2 = vec2(r2 - r1, 2.0 * he);
+  p.x = abs(p.x);
+  vec2 ca = vec2(p.x - min(p.x, (p.y < 0.0) ? r1 : r2), abs(p.y) - he);
+  vec2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot(k2, k2), 0.0, 1.0);
+  float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+  return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+}
+
 // smin — smooth minimum / smooth union (sh==24). k must be > 0
 float smin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-// sdTriangle — signed distance to triangle (used by Fighter sh==1, Carrier sh==7)
+// sdTriangle — signed distance to triangle (used by Fighter sh==1)
 float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   vec2 e0 = p1 - p0, e1 = p2 - p1, e2 = p0 - p2;
   vec2 v0 = p - p0, v1 = p - p1, v2 = p - p2;

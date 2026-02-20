@@ -8,23 +8,23 @@ out vec4 fragColor;
 // Non-unit shapes (3,4,10,12,14,17-23) have default values
 const float RIM_THRESH[27]=float[27](
   0.015,0.015,0.028,0.020,0.020, // 0-4  sh0=Drone,sh1=Fighter,sh2=Bomber,sh3=N/A,sh4=N/A
-  0.025,0.028,0.028,0.012,0.032, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
+  0.025,0.028,0.030,0.012,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
   0.020,0.022,0.020,0.015,0.020, // 10-14 sh11=Disruptor
-  0.022,0.030,0.020,0.020,0.020, // 15-19
+  0.022,0.028,0.020,0.020,0.020, // 15-19
   0.020,0.020,0.020,0.020,0.035, // 20-24 sh24=Flagship
   0.025,0.038                    // 25-26 sh25=Healer,sh26=Reflector
 );
 const float RIM_WEIGHT[27]=float[27](
   0.33,0.45,0.42,0.38,0.38, // 0-4
-  0.43,0.52,0.45,0.40,0.48, // 5-9
+  0.43,0.52,0.48,0.40,0.55, // 5-9
   0.38,0.42,0.38,0.35,0.38, // 10-14 sh11=Disruptor
-  0.40,0.48,0.38,0.38,0.38, // 15-19
+  0.40,0.50,0.38,0.38,0.38, // 15-19
   0.38,0.38,0.38,0.38,0.50, // 20-24 sh24=Flagship
   0.35,0.52                  // 25-26 sh25=Healer,sh26=Reflector
 );
 const float HF_WEIGHT[27]=float[27](
   0.52,0.55,0.52,0.48,0.48, // 0-4
-  0.50,0.58,0.50,0.55,0.50, // 5-9
+  0.50,0.58,0.50,0.55,0.55, // 5-9
   0.48,0.43,0.48,0.42,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.48,0.52,0.48,0.48,0.48, // 15-19 sh15=Arcer,sh16=Cruiser
   0.48,0.48,0.48,0.48,0.55, // 20-24 sh24=Flagship
@@ -32,9 +32,9 @@ const float HF_WEIGHT[27]=float[27](
 );
 const float FWIDTH_MULT[27]=float[27](
   1.8,1.8,1.3,1.5,1.5, // 0-4
-  1.4,1.3,1.25,2.0,1.2, // 5-9
+  1.4,1.3,1.20,2.0,1.15, // 5-9
   1.5,1.6,1.5,1.7,1.5, // 10-14 sh11=Disruptor
-  1.5,1.3,1.5,1.5,1.5, // 15-19
+  1.5,1.20,1.5,1.5,1.5, // 15-19
   1.5,1.5,1.5,1.5,1.2,// 20-24 sh24=Flagship
   1.8,1.2               // 25-26 sh25=Healer,sh26=Reflector
 );
@@ -272,48 +272,56 @@ void main(){
     a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + glow + trail + podGlow;
     a=1.1*tanh(a/1.1);
   }
-  else if(sh==7){ vec2 p=vU*0.62; float t=vA+uTime;
-    // Carrier: Flat flight deck, central catapult, side hangars, drone bay glow
-    // 1. Main deck (wide flat body)
-    float dDeck=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.52,0.22),0.06);
-    // 2. Bridge tower (offset superstructure)
-    float dBridge=sdRoundedBox(p-vec2(-0.18,0.20),vec2(0.10,0.10),0.03);
-    // 3. Side hangar bays (protruding)
-    float dHanL=sdRoundedBox(p-vec2(0.10,0.30),vec2(0.16,0.06),0.02);
-    float dHanR=sdRoundedBox(p-vec2(0.10,-0.30),vec2(0.16,0.06),0.02);
-    float dHangars=min(dHanL,dHanR);
+  else if(sh==7){ vec2 p=vU*0.56; float t=vA+uTime;
+    // Carrier: Lucrehulk-style crescent — drone bay arc with central core
+    // 1. Main crescent hull (arc wraps around back, gap faces +X forward)
+    vec2 aq=vec2(p.y,-p.x+0.04);
+    float dArc=sdArc(aq,vec2(sin(2.3),cos(2.3)),0.34,0.09);
+    // 2. Rear central core/reactor
+    float dCore=length(p-vec2(-0.04,0.0))-0.13;
+    // 3. Horn tips (hangar emitters at crescent endpoints)
+    vec2 hornL=vec2(0.27,0.25);
+    vec2 hornR=vec2(0.27,-0.25);
+    float dHornL=sdRoundedBox(p-hornL,vec2(0.07,0.05),0.025);
+    float dHornR=sdRoundedBox(p-hornR,vec2(0.07,0.05),0.025);
+    float dHorns=min(dHornL,dHornR);
+    // 4. Internal connection struts (core to arc)
+    float dStrutL=sdCapsule(p,vec2(-0.02,0.10),vec2(-0.10,0.24),0.03);
+    float dStrutR=sdCapsule(p,vec2(-0.02,-0.10),vec2(-0.10,-0.24),0.03);
+    float dStruts=min(dStrutL,dStrutR);
     // Union
-    float dBody=smin(dDeck,dBridge,0.05);
-    dBody=smin(dBody,dHangars,0.04);
-    // 4. Flight deck groove (catapult runway)
-    float dRunway=sdRoundedBox(p-vec2(0.10,0.0),vec2(0.38,0.03),0.01);
-    dBody=max(dBody,-dRunway);
-    // 5. Hangar bay cutouts
-    float dBayL=sdRoundedBox(p-vec2(0.10,0.30),vec2(0.10,0.025),0.008);
-    float dBayR=sdRoundedBox(p-vec2(0.10,-0.30),vec2(0.10,0.025),0.008);
-    dBody=max(dBody,-min(dBayL,dBayR));
-    // 6. Bow V-notch (forward deck cutout)
-    float dBowCut=sdTriangle(p,vec2(0.52,0.0),vec2(0.40,0.12),vec2(0.40,-0.12));
-    dBody=max(dBody,-dBowCut);
+    float dBody=smin(dArc,dCore,0.06);
+    dBody=smin(dBody,dHorns,0.04);
+    dBody=smin(dBody,dStruts,0.05);
+    // 5. Hangar groove cutouts at horn tips
+    float dSlotL=sdRoundedBox(p-hornL,vec2(0.045,0.018),0.006);
+    float dSlotR=sdRoundedBox(p-hornR,vec2(0.045,0.018),0.006);
+    dBody=max(dBody,-min(dSlotL,dSlotR));
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 7. Catapult runway lights (animated forward)
-    float rwGlow=(1.0-smoothstep(0.0,aa*2.0,abs(dRunway)))
-                 *(0.4+0.6*(0.5+0.5*sin(p.x*12.0-t*8.0)))*0.45;
-    // 8. Hangar bay glow (pulsing drone readiness)
+    // 6. Hangar glow at horn tips
     float bayPulse=0.5+0.5*sin(t*2.5);
-    float bayGlow=(exp(-abs(dBayL)*18.0)+exp(-abs(dBayR)*18.0))*bayPulse*0.5;
-    // 9. Bridge window lights
-    float bridgeGlow=exp(-length(p-vec2(-0.18,0.24))*16.0)*(0.6+0.4*sin(t*1.5));
-    // 10. Twin engines + trail
+    float hangarGlow=(exp(-length(p-hornL)*14.0)+exp(-length(p-hornR)*14.0))*bayPulse*0.50;
+    // 7. Core reactor glow
+    float coreGlow=exp(-length(p-vec2(-0.04,0.0))*10.0)*(0.6+0.4*sin(t*3.0));
+    // 8. Inner bay illumination (along inner edge of arc)
+    float innerRd=length(p-vec2(0.04,0.0));
+    float innerGlow=exp(-abs(innerRd-0.22)*14.0)*(1.0-smoothstep(0.18,0.34,innerRd))*0.30
+                    *(0.5+0.5*sin(t*1.5+p.y*6.0));
+    // 9. Drone launch flash (sporadic at horn tips)
+    float flash=step(0.93,fract(t*0.7+0.3));
+    float launchFlash=(exp(-length(p-hornL)*18.0)+exp(-length(p-hornR)*18.0))*flash*0.55;
+    // 10. Triple engines (rear of core) + trail
     float eP=0.6+0.4*sin(t*5.0);
-    float dE1=length(p-vec2(-0.54,0.10)); float dE2=length(p-vec2(-0.54,-0.10));
-    float eng=exp(-min(dE1,dE2)*8.0)*eP;
+    float dE1=length(p-vec2(-0.40,0.0));
+    float dE2=length(p-vec2(-0.38,0.10));
+    float dE3=length(p-vec2(-0.38,-0.10));
+    float eng=(exp(-dE1*9.0)+exp(-dE2*10.0)+exp(-dE3*10.0))*eP;
     float trail=0.0;
-    if(p.x<-0.54){float dy=min(abs(p.y-0.10),abs(p.y+0.10));
-      trail=exp(-dy*10.0)*exp((p.x+0.54)*2.0)*eP*0.4;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rwGlow+bayGlow+bridgeGlow*0.35+eng*0.55+trail;
+    if(p.x<-0.40){float dy=abs(p.y);
+      trail=exp(-dy*8.0)*exp((p.x+0.40)*2.0)*eP*0.4;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+hangarGlow+coreGlow*0.50+innerGlow+launchFlash+eng*0.45+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==8){ vec2 p=vU*0.72; float t=vA+uTime;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
@@ -353,40 +361,52 @@ void main(){
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==9){ vec2 p=vU*0.74; float t=vA+uTime;
-    // Lancer: Arrowhead/spear shape, extreme forward point, heavy boost trail
-    // 1. Central spear body (very pointed nose)
-    float dSpear=sdRoundedBox(p-vec2(0.12,0.0),vec2(0.42,0.10),0.03);
-    // Sharp nose taper (aggressive forward cut)
-    float noseCut=max(0.0,(p.x-0.15)*0.35);
-    dSpear=max(dSpear,abs(p.y)-max(0.12-noseCut,0.0));
-    // 2. Swept-back delta wings
-    float dWingL=sdCapsule(p,vec2(-0.08,0.10),vec2(-0.38,0.36),0.065);
-    float dWingR=sdCapsule(p,vec2(-0.08,-0.10),vec2(-0.38,-0.36),0.065);
-    float dWings=min(dWingL,dWingR);
-    // 3. Rear thruster block (wide)
-    float dThrust=sdRoundedBox(p-vec2(-0.32,0.0),vec2(0.10,0.20),0.04);
-    // Union
-    float dBody=smin(dSpear,dWings,0.07);
-    dBody=smin(dBody,dThrust,0.05);
-    // 4. Central spine groove
-    float dGroove=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.30,0.015),0.003);
-    dBody=max(dBody,-dGroove);
+    // Lancer: Star Destroyer wedge — heavy dagger silhouette
+    // 1. Main wedge hull (trapezoid: wide stern → sharp bow)
+    //    sdTrapezoid is Y-axis oriented, so pass p.yx to align +X = forward
+    //    r1=stern half-width, r2=bow half-width, he=half-length
+    //    0.06 Y-offset shifts hull centre-of-mass forward for a sleeker silhouette
+    float dHull=sdTrapezoid(p.yx-vec2(0.0,0.06),0.28,0.02,0.50);
+    // 2. Stern deck (blocky rear to avoid pure triangle)
+    float dAft=sdRoundedBox(p-vec2(-0.30,0.0),vec2(0.12,0.22),0.02);
+    // 3. Bridge tower (raised superstructure on dorsal stern)
+    float dBridge=sdRoundedBox(p-vec2(-0.22,0.0),vec2(0.08,0.06),0.015);
+    // 4. Side armor plates (subtle shoulders)
+    float dPlateL=sdRoundedBox(p-vec2(-0.04,0.20),vec2(0.10,0.05),0.012);
+    float dPlateR=sdRoundedBox(p-vec2(-0.04,-0.20),vec2(0.10,0.05),0.012);
+    // 5. Union hull + plates + bridge + aft
+    float dBody=smin(dHull,dAft,0.04);
+    dBody=smin(dBody,dBridge,0.03);
+    float dPlates=min(dPlateL,dPlateR);
+    dBody=smin(dBody,dPlates,0.02);
+    // 6. Side cutouts (notches to break triangle silhouette)
+    float dCutL=sdRoundedBox(p-vec2(0.10,0.26),vec2(0.08,0.05),0.01);
+    float dCutR=sdRoundedBox(p-vec2(0.10,-0.26),vec2(0.08,0.05),0.01);
+    float dCuts=min(dCutL,dCutR);
+    dBody=max(dBody,-dCuts+0.02);
+    // 7. Panel lines (armor plating detail)
+    float groove1=sdRoundedBox(p-vec2(-0.02,0.0),vec2(0.34,0.008),0.002);
+    float groove2=sdRoundedBox(p-vec2(-0.08,0.0),vec2(0.008,0.18),0.002);
+    dBody=max(dBody,-groove1+0.01);
+    dBody=max(dBody,-groove2+0.01);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 5. Spear tip glow (ram energy)
-    float tipGlow=exp(-length(p-vec2(0.56,0.0))*14.0)*(0.5+0.5*sin(t*6.0));
-    // 6. Heavy boost engines (triple, wide spread)
-    float pulse=0.7+0.3*sin(t*8.0+p.y*3.0);
-    float eC=exp(-length(p-vec2(-0.44,0.0))*8.0);
-    float eL=exp(-length(p-vec2(-0.42,0.16))*9.0);
-    float eR=exp(-length(p-vec2(-0.42,-0.16))*9.0);
+    // 8. Ram tip glow (pulsing forward energy)
+    float tipGlow=exp(-length(p-vec2(0.56,0.0))*12.0)*(0.5+0.5*sin(t*6.0));
+    // 9. Triple heavy engines (wide spread across stern)
+    float pulse=0.7+0.3*sin(t*7.0+p.y*4.0);
+    float eC=exp(-length(p-vec2(-0.48,0.0))*8.0);
+    float eL=exp(-length(p-vec2(-0.46,0.17))*9.0);
+    float eR=exp(-length(p-vec2(-0.46,-0.17))*9.0);
     float eng=(eC+eL+eR)*pulse;
-    // 7. Heavy trail (wide, bright — signature of Lancer)
+    // 10. Heavy exhaust trail (wide, bright — Lancer signature)
     float trail=0.0;
-    if(p.x<-0.42){float dy=abs(p.y);
-      trail=exp(-dy*6.0)*exp((p.x+0.42)*1.8)*pulse*0.7;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.55+eng*0.60+trail;
+    if(p.x<-0.46){float dy=abs(p.y);
+      trail=exp(-dy*4.8)*exp((p.x+0.46)*1.6)*pulse*0.7;}
+    // 11. Bridge window glow
+    float bridgeGlow=exp(-length(p-vec2(-0.22,0.0))*18.0)*0.25;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.55+trail+bridgeGlow;
     a=1.2*tanh(a/1.2); }
   else if(sh==10){ float ring=abs(d-0.75);
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
@@ -514,45 +534,66 @@ void main(){
     if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.34)*2.5)*pulse*0.4;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==16){ vec2 p=vU*0.66; float t=vA+uTime;
-    // Cruiser: Pentagon-based heavy armored hull, beam turret slit, armored panels
-    // 1. Pentagon-ish main hull (wide, angular, heavy)
-    float dHull=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.40,0.24),0.08);
-    // 2. Forward prow (armored wedge)
-    float dProw=sdCapsule(p,vec2(0.38,0.16),vec2(0.52,0.0),0.06);
-    float dProw2=sdCapsule(p,vec2(0.38,-0.16),vec2(0.52,0.0),0.06);
-    float dProwU=smin(dProw,dProw2,0.04);
-    // 3. Side armor plates
-    float dPlateL=sdRoundedBox(p-vec2(-0.06,0.28),vec2(0.22,0.04),0.02);
-    float dPlateR=sdRoundedBox(p-vec2(-0.06,-0.28),vec2(0.22,0.04),0.02);
-    float dPlates=min(dPlateL,dPlateR);
+  else if(sh==16){ vec2 p=vU*0.62; float t=vA+uTime;
+    // Cruiser: Nebulon-B style dumbbell — hammerhead command + spine + engine block
+    // 1. Forward command section (hammerhead)
+    float dCmd=sdRoundedBox(p-vec2(0.30,0.0),vec2(0.18,0.22),0.03);
+    // 2. Forward antenna prongs (aggressive forward sweep from command edges)
+    float dProngL=sdCapsule(p,vec2(0.42,0.18),vec2(0.54,0.10),0.020);
+    float dProngR=sdCapsule(p,vec2(0.42,-0.18),vec2(0.54,-0.10),0.020);
+    float dProngs=min(dProngL,dProngR);
+    // 3. Thin spine/keel connecting sections
+    float dSpine=sdCapsule(p,vec2(0.14,0.0),vec2(-0.16,0.0),0.030);
+    // 4. Rear engine block (compact, taller)
+    float dEngine=sdRoundedBox(p-vec2(-0.30,0.0),vec2(0.14,0.20),0.04);
+    // 5. Dorsal + ventral fins (symmetric pair at spine midpoint)
+    float dFinU=sdCapsule(p,vec2(0.02,0.05),vec2(0.02,0.26),0.020);
+    float dFinD=sdCapsule(p,vec2(0.02,-0.05),vec2(0.02,-0.26),0.020);
+    float dFin=min(dFinU,dFinD);
+    // 6. Rear stabilizer wings (swept far back past engines)
+    float dStabL=sdCapsule(p,vec2(-0.28,0.18),vec2(-0.58,0.34),0.020);
+    float dStabR=sdCapsule(p,vec2(-0.28,-0.18),vec2(-0.58,-0.34),0.020);
+    float dStabs=min(dStabL,dStabR);
     // Union
-    float dBody=smin(dHull,dProwU,0.06);
-    dBody=smin(dBody,dPlates,0.04);
-    // 4. Beam turret slit (top, long groove)
-    float dTurret=sdRoundedBox(p-vec2(0.10,0.0),vec2(0.22,0.025),0.008);
+    float dBody=smin(dCmd,dProngs,0.03);
+    dBody=smin(dBody,dSpine,0.04);
+    dBody=smin(dBody,dEngine,0.04);
+    dBody=smin(dBody,dFin,0.03);
+    dBody=smin(dBody,dStabs,0.03);
+    // 7. Beam turret slit (command section)
+    float dTurret=sdRoundedBox(p-vec2(0.30,0.0),vec2(0.12,0.018),0.005);
     dBody=max(dBody,-dTurret);
-    // 5. Armor panel lines (diagonal cuts for faceted look)
-    float cs25=0.906; float sn25=0.423;
-    vec2 pr1=vec2(p.x*cs25-p.y*sn25,p.x*sn25+p.y*cs25);
-    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.05,0.0),vec2(0.30,0.010),0.003));
-    vec2 pr2=vec2(p.x*cs25+p.y*sn25,-p.x*sn25+p.y*cs25);
-    dBody=max(dBody,-sdRoundedBox(pr2-vec2(0.05,0.0),vec2(0.30,0.010),0.003));
+    // 8. Spine conduit groove
+    float dConduit=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.16,0.012),0.004);
+    dBody=max(dBody,-dConduit);
+    // 9. Engine exhaust port cutouts (visible nozzles)
+    float dNozL=sdRoundedBox(p-vec2(-0.44,0.08),vec2(0.02,0.03),0.008);
+    float dNozR=sdRoundedBox(p-vec2(-0.44,-0.08),vec2(0.02,0.03),0.008);
+    dBody=max(dBody,-min(dNozL,dNozR));
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 6. Turret glow (beam readiness, slow pulse)
+    // 10. Turret glow
     float turretGlow=(1.0-smoothstep(0.0,aa*2.0,abs(dTurret)))*(0.4+0.6*sin(t*2.0))*0.45;
-    // 7. Prow tip armor glow
-    float prowGlow=exp(-length(p-vec2(0.54,0.0))*12.0)*(0.4+0.3*sin(t*3.0));
-    // 8. Heavy twin engines + trail
-    float eP=0.6+0.4*sin(t*5.0);
-    float dE1=length(p-vec2(-0.44,0.12)); float dE2=length(p-vec2(-0.44,-0.12));
-    float eng=exp(-min(dE1,dE2)*8.0)*eP;
+    // 11. Spine energy flow (rear→forward animation)
+    float spineFlow=(1.0-smoothstep(0.0,aa*2.0,abs(dConduit)))
+                    *(0.3+0.7*(0.5+0.5*sin(p.x*8.0-t*5.0)))*0.40;
+    // 12. Bridge window lights (forward command section)
+    float bridgeGlow=exp(-length(p-vec2(0.42,0.0))*16.0)*(0.5+0.5*sin(t*1.5));
+    // 13. Antenna tip sensors (alternating blink)
+    float sensorL=exp(-length(p-vec2(0.56,0.10))*18.0)*(0.5+0.5*sin(t*4.0));
+    float sensorR=exp(-length(p-vec2(0.56,-0.10))*18.0)*(0.5+0.5*sin(t*4.0+3.14));
+    float sensors=(sensorL+sensorR)*0.45;
+    // 14. Engine block reactor core glow
+    float reactor=exp(-length(p-vec2(-0.30,0.0))*12.0)*(0.5+0.5*sin(t*3.5));
+    // 15. Twin engines + trail
+    float eP=0.65+0.35*sin(t*6.0);
+    float dE1=length(p-vec2(-0.46,0.08)); float dE2=length(p-vec2(-0.46,-0.08));
+    float eng=exp(-min(dE1,dE2)*9.0)*eP;
     float trail=0.0;
-    if(p.x<-0.44){float dy=min(abs(p.y-0.12),abs(p.y+0.12));
-      trail=exp(-dy*10.0)*exp((p.x+0.44)*2.0)*eP*0.45;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+prowGlow*0.40+eng*0.55+trail;
+    if(p.x<-0.46){float dy=min(abs(p.y-0.08),abs(p.y+0.08));
+      trail=exp(-dy*12.0)*exp((p.x+0.46)*2.5)*eP*0.45;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==17){ // Star (vet badge)
     float r=polarR(vU,5.0,0.55,0.3);
