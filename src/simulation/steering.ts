@@ -1,8 +1,8 @@
 import { PI, POOL_UNITS, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 interface SteerForce {
@@ -18,14 +18,16 @@ const VET_TARGET_WEIGHT = 0.3;
 
 // 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる）
 function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
-  let bs = range * 3,
+  const limit = range * 3;
+  let bs = limit * limit,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
     if (o.team === u.team || !o.alive) continue;
-    const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
-    const score = d / (1 + VET_TARGET_WEIGHT * o.vet);
+    const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
+    const vf = 1 + VET_TARGET_WEIGHT * o.vet;
+    const score = d2 / (vf * vf);
     if (score < bs) {
       bs = score;
       bi = oi;
@@ -38,9 +40,11 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
 function findNearestGlobalEnemy(u: Unit): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
-  for (let i = 0; i < POOL_UNITS; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const o = unit(i);
-    if (!o.alive || o.team === u.team) continue;
+    if (!o.alive) continue;
+    rem--;
+    if (o.team === u.team) continue;
     const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
     const vf = 1 + VET_TARGET_WEIGHT * o.vet;
     const score = d2 / (vf * vf);
@@ -240,7 +244,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);
-    const stunDrag = (0.93 ** (1 / Math.sqrt(unitType(u.type).mass))) ** (dt * REF_FPS);
+    const stunDrag = (0.93 ** invSqrtMass(u.type)) ** (dt * REF_FPS);
     u.vx *= stunDrag;
     u.vy *= stunDrag;
     u.x += u.vx * dt;

@@ -1,5 +1,5 @@
 import { POOL_UNITS } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { poolCounts, unit } from '../pools.ts';
 
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;
@@ -9,6 +9,27 @@ type CellData = { t0: number; t1: number; sx: number; sy: number; count: number 
 let _hotspot: { x: number; y: number; radius: number } | null = null;
 let frameCounter = 0;
 
+const _cellPool: CellData[] = [];
+let _cellPoolIdx = 0;
+
+function acquireCell(): CellData {
+  if (_cellPoolIdx < _cellPool.length) {
+    const c = _cellPool[_cellPoolIdx++] as CellData;
+    c.t0 = 0;
+    c.t1 = 0;
+    c.sx = 0;
+    c.sy = 0;
+    c.count = 0;
+    return c;
+  }
+  const c: CellData = { t0: 0, t1: 0, sx: 0, sy: 0, count: 0 };
+  _cellPool.push(c);
+  _cellPoolIdx++;
+  return c;
+}
+
+const _cells = new Map<number, CellData>();
+
 function cellKey(x: number, y: number): number {
   const gx = Math.floor(x / HOTSPOT_CELL_SIZE);
   const gy = Math.floor(y / HOTSPOT_CELL_SIZE);
@@ -16,15 +37,17 @@ function cellKey(x: number, y: number): number {
 }
 
 function buildCellMap(): Map<number, CellData> {
-  const cells = new Map<number, CellData>();
-  for (let i = 0; i < POOL_UNITS; i++) {
+  _cells.clear();
+  _cellPoolIdx = 0;
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
+    rem--;
     const key = cellKey(u.x, u.y);
-    let cell = cells.get(key);
+    let cell = _cells.get(key);
     if (!cell) {
-      cell = { t0: 0, t1: 0, sx: 0, sy: 0, count: 0 };
-      cells.set(key, cell);
+      cell = acquireCell();
+      _cells.set(key, cell);
     }
     if (u.team === 0) cell.t0 += 1;
     else cell.t1 += 1;
@@ -32,7 +55,7 @@ function buildCellMap(): Map<number, CellData> {
     cell.sy += u.y;
     cell.count += 1;
   }
-  return cells;
+  return _cells;
 }
 
 function pickBestCell(cells: Map<number, CellData>): { key: number; cell: CellData } | null {
@@ -54,9 +77,10 @@ function pickBestCell(cells: Map<number, CellData>): { key: number; cell: CellDa
 
 function maxDistanceInCell(cellKeyValue: number, centerX: number, centerY: number): number {
   let maxDist = 0;
-  for (let i = 0; i < POOL_UNITS; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
+    rem--;
     if (cellKey(u.x, u.y) !== cellKeyValue) continue;
     const dx = u.x - centerX;
     const dy = u.y - centerY;

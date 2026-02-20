@@ -96,4 +96,55 @@ describe('hotspot', () => {
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
     expect(hotspot()).not.toBeNull();
   });
+
+  it('連続呼出しでプール再利用時に前回のセルデータが残らない', () => {
+    // 1回目: (100,100)付近に2チーム配置 → ホットスポット検出
+    spawnAt(0, 1, 100, 100);
+    spawnAt(1, 1, 120, 120);
+    triggerUpdate();
+    const hs1 = hotspot();
+    expect(hs1).not.toBeNull();
+    expect(hs1?.x).toBeCloseTo(110, 0);
+    expect(hs1?.y).toBeCloseTo(110, 0);
+
+    // ユニット全滅 → 別の場所に再配置
+    for (let i = 0; i < 2; i++) unit(i).alive = false;
+    spawnAt(0, 1, 800, 800);
+    spawnAt(1, 1, 820, 820);
+
+    // 2回目: セルプールが再利用されるが、前回の (100,100) 付近のデータが混入しないこと
+    triggerUpdate();
+    const hs2 = hotspot();
+    expect(hs2).not.toBeNull();
+    expect(hs2?.x).toBeGreaterThan(700);
+    expect(hs2?.y).toBeGreaterThan(700);
+  });
+
+  it('3回連続更新でプール再利用が安定する', () => {
+    // 1回目
+    spawnAt(0, 1, 50, 50);
+    spawnAt(1, 1, 70, 70);
+    triggerUpdate();
+    expect(hotspot()).not.toBeNull();
+
+    // 全滅→再配置（2回目）
+    unit(0).alive = false;
+    unit(1).alive = false;
+    spawnAt(0, 1, 500, 500);
+    spawnAt(1, 1, 520, 520);
+    triggerUpdate();
+    const hs2 = hotspot();
+    expect(hs2).not.toBeNull();
+    expect(hs2?.x).toBeGreaterThan(400);
+
+    // 全滅→再配置（3回目）
+    for (let i = 0; i < 4; i++) unit(i).alive = false;
+    spawnAt(0, 1, 1500, 1500);
+    spawnAt(1, 1, 1520, 1520);
+    triggerUpdate();
+    const hs3 = hotspot();
+    expect(hs3).not.toBeNull();
+    expect(hs3?.x).toBeGreaterThan(1400);
+    expect(hs3?.y).toBeGreaterThan(1400);
+  });
 });
