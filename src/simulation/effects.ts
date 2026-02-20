@@ -1,5 +1,5 @@
 import { getColor, getTrailColor } from '../colors.ts';
-import { POOL_UNITS, REF_FPS, SH_CIRCLE, TAU } from '../constants.ts';
+import { POOL_UNITS, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
@@ -83,7 +83,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
     const sp = 15 + rng() * 140;
     spawnParticle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.5 + rng() * 2, 1 + rng() * 2, 0.5, 0.35, 0.2, SH_CIRCLE);
   }
-  spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
+  spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, SH_EXPLOSION_RING);
 
   if (size >= 14) addShake(size * 0.8);
 

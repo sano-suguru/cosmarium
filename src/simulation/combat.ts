@@ -1,5 +1,5 @@
 import { getColor } from '../colors.ts';
-import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE } from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -122,7 +122,7 @@ function handleHealer(ctx: CombatContext) {
       addBeam(u.x, u.y, o.x, o.y, 0.2, 1, 0.5, 0.12, 2.5);
     }
   }
-  spawnParticle(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, 10);
+  spawnParticle(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, SH_EXPLOSION_RING);
 }
 
 const REFLECT_RADIUS_MULT = 3;
@@ -178,7 +178,7 @@ function reflectProjectile(
       SH_CIRCLE,
     );
   }
-  spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, 10);
+  spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, SH_EXPLOSION_RING);
 }
 
 function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number, team: number, c: Color3) {
@@ -306,7 +306,7 @@ function handleEmp(ctx: CombatContext) {
       SH_CIRCLE,
     );
   }
-  spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, 10);
+  spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, SH_EXPLOSION_RING);
 }
 
 function handleTeleporter(ctx: CombatContext) {
@@ -325,7 +325,7 @@ function handleTeleporter(ctx: CombatContext) {
       const a = ctx.rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], SH_CIRCLE);
     }
-    spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
+    spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], SH_EXPLOSION_RING);
     const ta = ctx.rng() * 6.283,
       td = 55 + ctx.rng() * 35;
     u.x = o.x + Math.cos(ta) * td;
@@ -334,7 +334,7 @@ function handleTeleporter(ctx: CombatContext) {
       const a = ctx.rng() * 6.283;
       spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], SH_CIRCLE);
     }
-    spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
+    spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, SH_EXPLOSION_RING);
     for (let i = 0; i < 5; i++) {
       const ba = ctx.rng() * 6.283;
       spawnProjectile(
@@ -361,7 +361,7 @@ function handleChain(ctx: CombatContext): void {
   if (d < t.range) {
     u.cooldown = t.fireRate;
     chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.rng);
-    spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], 10);
+    spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }
 
@@ -496,7 +496,7 @@ function sweepPathParticles(
 
 function sweepGlowRing(ctx: CombatContext, x: number, y: number, c: Color3, dt: number) {
   if (ctx.rng() < 1 - 0.75 ** (dt * REF_FPS)) {
-    spawnParticle(x, y, 0, 0, 0.1, 12 + ctx.rng() * 6, c[0], c[1], c[2], 10);
+    spawnParticle(x, y, 0, 0, 0.1, 12 + ctx.rng() * 6, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }
 
@@ -765,7 +765,7 @@ function flagshipChargeVfx(ctx: CombatContext, progress: number) {
   const glowSize = 8 + progress * 22;
   const br = 0.3 + progress * 0.7;
   if (ctx.rng() < 0.4) {
-    spawnParticle(u.x, u.y, 0, 0, 0.08, glowSize, c[0] * br, c[1] * br, c[2] * br, 10);
+    spawnParticle(u.x, u.y, 0, 0, 0.08, glowSize, c[0] * br, c[1] * br, c[2] * br, SH_EXPLOSION_RING);
   }
 
   for (const sign of [-1, 1] as const) {
@@ -877,7 +877,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
     }
   }
 
-  spawnParticle(u.x, u.y, 0, 0, 0.1, t.size * 0.8, 1, 1, 1, 10);
+  spawnParticle(u.x, u.y, 0, 0, 0.1, t.size * 0.8, 1, 1, 1, SH_EXPLOSION_RING);
   for (const sign of [-1, 1] as const) {
     const [mx, my] = flagshipWorld(u, t.size * MUZZLE_FWD, sign * 0.24 * t.size);
     addBeam(mx, my, mx + dx * 240, my + dy * 240, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.06, 2.5, true, 8);
