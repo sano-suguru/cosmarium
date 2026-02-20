@@ -53,9 +53,9 @@ export function initMinimap() {
   );
 }
 
-function drawViewport(S: number, W: number, H: number) {
-  const vw = W / cam.z / (2 * WORLD_SIZE);
-  const vh = H / cam.z / (2 * WORLD_SIZE);
+function drawViewport(S: number, W: number, H: number, dpr: number) {
+  const vw = W / dpr / cam.z / (2 * WORLD_SIZE);
+  const vh = H / dpr / cam.z / (2 * WORLD_SIZE);
   const cx = cam.x * S,
     cy = cam.y * S;
   const lw = 0.008;
@@ -69,6 +69,7 @@ export function drawMinimap() {
   if (!mmDiv || !mmDiv.clientWidth) return;
   minimapInstanceCount = 0;
   const S = 1.0 / WORLD_SIZE;
+  const dpr = viewport.dpr;
   const W = viewport.W,
     H = viewport.H;
 
@@ -82,14 +83,14 @@ export function drawMinimap() {
     writeMinimap(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
   }
 
-  drawViewport(S, W, H);
+  drawViewport(S, W, H, dpr);
 
   const mmR = mmDiv.getBoundingClientRect();
   const mmBW = (mmR.width - mmDiv.clientWidth) * 0.5;
-  const mmX = (mmR.left + mmBW) | 0;
-  const mmY = (H - mmR.bottom + mmBW) | 0;
-  const mmSW = mmDiv.clientWidth;
-  const mmSH = mmDiv.clientHeight;
+  const mmX = ((mmR.left + mmBW) * dpr) | 0;
+  const mmY = ((H / dpr - mmR.bottom + mmBW) * dpr) | 0;
+  const mmSW = (mmDiv.clientWidth * dpr) | 0;
+  const mmSH = (mmDiv.clientHeight * dpr) | 0;
   gl.enable(gl.SCISSOR_TEST);
   gl.scissor(mmX, mmY, mmSW, mmSH);
   gl.viewport(mmX, mmY, mmSW, mmSH);

@@ -19,14 +19,15 @@ export function initCamera() {
       e.preventDefault();
       if (state.codexOpen) return;
       setAutoFollow(false);
-      const W = viewport.W,
-        H = viewport.H;
-      const wx = cam.targetX + (e.clientX - W / 2) / cam.targetZ;
-      const wy = cam.targetY - (e.clientY - H / 2) / cam.targetZ;
+      const dpr = viewport.dpr;
+      const W = viewport.W / dpr,
+        H = viewport.H / dpr;
+      const wx = cam.targetX + ((e.clientX - W / 2) * dpr) / cam.targetZ;
+      const wy = cam.targetY - ((e.clientY - H / 2) * dpr) / cam.targetZ;
       let nz = cam.targetZ * (e.deltaY > 0 ? 0.9 : 1.1);
       nz = Math.max(0.05, Math.min(8, nz));
-      cam.targetX = wx - (e.clientX - W / 2) / nz;
-      cam.targetY = wy + (e.clientY - H / 2) / nz;
+      cam.targetX = wx - ((e.clientX - W / 2) * dpr) / nz;
+      cam.targetY = wy + ((e.clientY - H / 2) * dpr) / nz;
       cam.targetZ = nz;
     },
     { passive: false },
@@ -42,8 +43,9 @@ export function initCamera() {
   });
   canvas.addEventListener('mousemove', (e) => {
     if (dragging) {
-      cam.targetX = cameraStart.x - (e.clientX - dragStart.x) / cam.targetZ;
-      cam.targetY = cameraStart.y + (e.clientY - dragStart.y) / cam.targetZ;
+      const dpr = viewport.dpr;
+      cam.targetX = cameraStart.x - ((e.clientX - dragStart.x) * dpr) / cam.targetZ;
+      cam.targetY = cameraStart.y + ((e.clientY - dragStart.y) * dpr) / cam.targetZ;
     }
   });
   canvas.addEventListener('mouseup', () => {
@@ -87,6 +89,7 @@ export function updateAutoFollow(hotspot: { x: number; y: number; radius: number
   if (!autoFollow || !hotspot) return;
   cam.targetX = hotspot.x;
   cam.targetY = hotspot.y;
+  // viewport.W/H は物理ピクセル。シェーダが uZ/uR (両方物理px) で割るため単位が相殺され正しい
   cam.targetZ = Math.max(0.3, Math.min(3.0, Math.min(viewport.W, viewport.H) / (hotspot.radius * 2.5)));
 }
 
@@ -131,5 +134,6 @@ export function snapCamera(): void {
 export function updateDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {
   cam.targetX = centroid.cx;
   cam.targetY = centroid.cy;
+  // viewport.W/H は物理px — シェーダの uZ/uR が同単位で相殺されるためCSS変換不要
   cam.targetZ = Math.max(1.0, Math.min(3.5, Math.min(viewport.W, viewport.H) / (centroid.radius * 2.5)));
 }

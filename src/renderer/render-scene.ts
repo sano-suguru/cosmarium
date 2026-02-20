@@ -67,14 +67,17 @@ function writeBeam(
   writeInstance(x, y, size, r, g, b, a, angle, shape);
 }
 
-function renderStunStars(u: Unit, ut: UnitType, now: number) {
+/** Minimum world-size for rendering so small-unit SDF details stay visible. */
+const MIN_RENDER_SIZE = 10;
+
+function renderStunStars(u: Unit, ut: UnitType, now: number, rs: number) {
   if (u.stun > 0) {
     for (let j = 0; j < 2; j++) {
       const sa = now * 5 + j * 3.14;
       writeInstance(
-        u.x + Math.cos(sa) * ut.size * 0.7,
-        u.y + Math.sin(sa) * ut.size * 0.7,
-        2,
+        u.x + Math.cos(sa) * ut.size * 0.7 * rs,
+        u.y + Math.sin(sa) * ut.size * 0.7 * rs,
+        2 * rs,
         0.5,
         0.5,
         1,
@@ -86,11 +89,11 @@ function renderStunStars(u: Unit, ut: UnitType, now: number) {
   }
 }
 
-function renderHpBar(u: Unit, ut: UnitType) {
+function renderHpBar(u: Unit, ut: UnitType, rs: number) {
   const hr = u.hp / u.maxHp;
-  if (ut.size >= 10 && hr < 1) {
-    const bw = ut.size * 1.5;
-    const barY = u.y - ut.size * 1.3;
+  if (hr < 1) {
+    const bw = ut.size * 1.5 * rs;
+    const barY = u.y - ut.size * 1.3 * rs;
     writeInstance(u.x, barY, bw * 0.5, 0.04, 0.05, 0.08, 0.35, 0, SH_BAR);
     const hpW = bw * hr;
     const hpB = Math.max(0, (hr - 0.5) * 1.4);
@@ -98,12 +101,12 @@ function renderHpBar(u: Unit, ut: UnitType) {
   }
 }
 
-function renderVetBadges(u: Unit, ut: UnitType, now: number) {
+function renderVetBadges(u: Unit, ut: UnitType, now: number, rs: number) {
   if (u.vet >= 1)
     writeInstance(
-      u.x + ut.size * 1.1,
-      u.y - ut.size * 1.1,
-      /*size*/ 2,
+      u.x + ut.size * 1.1 * rs,
+      u.y - ut.size * 1.1 * rs,
+      /*size*/ 2 * rs,
       /*r*/ 1,
       /*g*/ 1,
       /*b*/ 0.3,
@@ -113,9 +116,9 @@ function renderVetBadges(u: Unit, ut: UnitType, now: number) {
     );
   if (u.vet >= 2)
     writeInstance(
-      u.x + ut.size * 1.1 + 5,
-      u.y - ut.size * 1.1,
-      /*size*/ 2,
+      u.x + ut.size * 1.1 * rs + 5 * rs,
+      u.y - ut.size * 1.1 * rs,
+      /*size*/ 2 * rs,
       /*r*/ 1,
       /*g*/ 0.5,
       /*b*/ 0.3,
@@ -130,22 +133,24 @@ function renderUnits(now: number) {
     const u = unit(i);
     if (!u.alive) continue;
     const ut = unitType(u.type);
+    const rs = Math.max(MIN_RENDER_SIZE, ut.size) / ut.size;
     const c = color(u.type, u.team);
     const hr = u.hp / u.maxHp;
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
     if (u.shieldLingerTimer > 0)
-      writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
-    else if (ut.reflects) writeInstance(u.x, u.y, ut.size * 1.8, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
-    renderStunStars(u, ut, now);
-    if (u.vet > 0) writeOverlay(u.x, u.y, ut.size * 1.4, 1, 1, 0.5, 0.08 + u.vet * 0.06, SH_EXPLOSION_RING);
+      writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
+    else if (ut.reflects)
+      writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
+    renderStunStars(u, ut, now, rs);
+    if (u.vet > 0) writeOverlay(u.x, u.y, ut.size * 1.4 * rs, 1, 1, 0.5, 0.08 + u.vet * 0.06, SH_EXPLOSION_RING);
     if (u.swarmN > 0)
-      writeOverlay(u.x, u.y, ut.size * 2.2, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
+      writeOverlay(u.x, u.y, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
     writeInstance(
       u.x,
       u.y,
-      ut.size,
+      ut.size * rs,
       /*r*/ c[0] * flash * sf,
       /*g*/ c[1] * flash * sf,
       /*b*/ c[2] * flash * sf,
@@ -153,8 +158,8 @@ function renderUnits(now: number) {
       u.angle,
       ut.shape,
     );
-    renderHpBar(u, ut);
-    renderVetBadges(u, ut, now);
+    renderHpBar(u, ut, rs);
+    renderVetBadges(u, ut, now, rs);
   }
 }
 
