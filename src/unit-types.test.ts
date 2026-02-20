@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TYPES, unitType, unitTypeIndex } from './unit-types.ts';
+import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
   it('要素数が15', () => {
@@ -115,6 +115,23 @@ describe('getUnitType — エラーパス', () => {
 
   it('TYPES.length以上のインデックスでRangeError', () => {
     expect(() => unitType(TYPES.length)).toThrow(RangeError);
+  });
+});
+
+describe('invSqrtMass', () => {
+  it('全タイプで 1/sqrt(mass) と一致する', () => {
+    for (let i = 0; i < TYPES.length; i++) {
+      const t = unitType(i);
+      expect(invSqrtMass(i)).toBeCloseTo(1 / Math.sqrt(t.mass), 10);
+    }
+  });
+
+  it('負のインデックスでRangeError', () => {
+    expect(() => invSqrtMass(-1)).toThrow(RangeError);
+  });
+
+  it('TYPES.length以上のインデックスでRangeError', () => {
+    expect(() => invSqrtMass(TYPES.length)).toThrow(RangeError);
   });
 });
 

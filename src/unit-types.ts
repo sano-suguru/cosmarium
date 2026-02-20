@@ -285,10 +285,18 @@ export const TYPES: UnitType[] = [
   },
 ];
 
+const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));
+
 export function unitType(id: number): UnitType {
   const t = TYPES[id];
   if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
   return t;
+}
+
+export function invSqrtMass(id: number): number {
+  const v = _invSqrtMass[id];
+  if (v === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
+  return v;
 }
 
 export function unitTypeIndex(name: string): number {
