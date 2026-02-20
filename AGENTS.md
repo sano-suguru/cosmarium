@@ -52,7 +52,7 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 ## 規約
 
 - **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
-- **poolCounts**: Readonly export。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
+- **poolCounts**: Readonly export（`.units`/`.particles`/`.projectiles`）。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
 - **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり
   - poolCountsを直接インラインで変更しない — 必ず集約関数（`killUnit`/`killParticle`/`killProjectile`等）経由
 - **rng**: `state.ts`がmulberry32ベースの`rng()`をclosureラッパーでexport。simulationは引数として受取り（dependency-cruiserルール準拠）

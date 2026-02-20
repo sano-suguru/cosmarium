@@ -4,10 +4,10 @@
 
 ## Tick順序（update.ts）
 
-1-6は常時実行: `buildHash()` → `updateSwarmN()` → `resetReflectedSet()` → per unit(`steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → `applyReflectorShields(dt)`（`decayShieldTimers` → `shieldNearbyAllies`） → projectile pass → particle pass → beam pass → trackingBeam pass
+1-6は常時実行: `buildHash()` → `updateSwarmN()` → `resetReflected()` → per unit(`steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → `applyReflectorShields(dt)`（`decayShieldTimers` → `shieldNearbyAllies`） → projectile pass → particle pass → beam pass → trackingBeam pass
 7は`!codexOpen`時のみ: `reinforce(dt)`。codexOpen時は`updateCodexDemo(dt)`実行。
 
-**重要**: Reflector付与(step 4)はcombat(step 3)の後→`shieldLingerTimer`は次フレームで有効。`shieldLingerTimer`はReflector範囲内にいる間は毎フレーム`REFLECTOR_SHIELD_LINGER`にリセットされ、範囲離脱後に減衰を開始する。
+**重要**: Reflector付与(step 4)はcombat(step 3)の後→`shieldLingerTimer`は次フレームで有効。`shieldLingerTimer`はReflector範囲内にいる間は毎フレーム`SHIELD_LINGER`にリセットされ、範囲離脱後に減衰を開始する。
 
 ## 変更ガイド
 
@@ -38,7 +38,7 @@ sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で�
 | spatial-hash.ts | 76 | buildHash + getNeighbors（共有バッファ） |
 | reinforcements.ts | 91 | 確率テーブルによる増援spawn |
 | init.ts | 51 | INIT_SPAWNS。ゲーム開始時のユニット配置 |
-| hotspot.ts | 93 | 戦闘ホットスポット検出（updateHotspot/getHotspot/resetHotspot） |
+| hotspot.ts | 94 | 戦闘ホットスポット検出（updateHotspot/hotspot/resetHotspot） |
 
 ## Critical Gotchas
 

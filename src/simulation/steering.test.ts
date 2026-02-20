@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
 
@@ -17,7 +17,7 @@ afterEach(() => {
 describe('steer — スタン', () => {
   it('stun>0 → 速度減衰（mass依存）、stun-=dt、位置更新', () => {
     const idx = spawnAt(0, 1, 100, 100); // Fighter: mass=2
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.stun = 1.0;
     u.vx = 100;
     u.vy = 50;
@@ -26,7 +26,7 @@ describe('steer — スタン', () => {
     buildHash();
     steer(u, 0.016, rng);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
-    const mass = getUnitType(1).mass;
+    const mass = unitType(1).mass;
     const expectedDrag = (0.93 ** (1 / Math.sqrt(mass))) ** (0.016 * 30);
     expect(u.vx).toBeCloseTo(100 * expectedDrag);
     expect(u.vy).toBeCloseTo(50 * expectedDrag);
@@ -36,7 +36,7 @@ describe('steer — スタン', () => {
 
   it('stun>0 → 通常操舵ロジックは実行されない（早期return）', () => {
     const idx = spawnAt(0, 1, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.stun = 0.5;
     u.target = NO_UNIT;
     buildHash();
@@ -49,8 +49,8 @@ describe('steer — スタン', () => {
   it('stun drag: 重いユニットほどスタン中の減速が緩やか', () => {
     const droneIdx = spawnAt(0, 0, 0, 0);
     const flagshipIdx = spawnAt(0, 4, 500, 0);
-    const uDrone = getUnit(droneIdx);
-    const uFlagship = getUnit(flagshipIdx);
+    const uDrone = unit(droneIdx);
+    const uFlagship = unit(flagshipIdx);
     uDrone.stun = 1.0;
     uDrone.vx = 100;
     uDrone.vy = 0;
@@ -69,14 +69,14 @@ describe('steer — スタン', () => {
 describe('steer — ベテラン速度', () => {
   it('vet=0 → spd×1.0', () => {
     const idx = spawnAt(0, 1, 0, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vet = 0;
     u.angle = 0;
     buildHash();
     // 長めのdtで速度を安定させる
     for (let i = 0; i < 100; i++) steer(u, 0.033, rng);
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
-    const t = getUnitType(1);
+    const t = unitType(1);
     // vet=0の目標速度はspd * 1.0
     expect(spd).toBeGreaterThan(0);
     expect(spd).toBeLessThanOrEqual(t.speed * 1.1); // マージン含む
@@ -85,13 +85,13 @@ describe('steer — ベテラン速度', () => {
   it('vet=2 → vet=0 より速い', () => {
     // vet=0
     const i0 = spawnAt(0, 1, 0, 0);
-    const u0 = getUnit(i0);
+    const u0 = unit(i0);
     u0.vet = 0;
     u0.angle = 0;
 
     // vet=2
     const i2 = spawnAt(0, 1, 500, 500); // 離れた位置
-    const u2 = getUnit(i2);
+    const u2 = unit(i2);
     u2.vet = 2;
     u2.angle = 0;
 
@@ -112,21 +112,21 @@ describe('steer — ターゲット探索', () => {
     const nearEnemy = spawnAt(1, 1, 80, 0);
     spawnAt(1, 1, 150, 0);
     buildHash();
-    steer(getUnit(ally), 0.016, rng);
-    expect(getUnit(ally).target).toBe(nearEnemy);
+    steer(unit(ally), 0.016, rng);
+    expect(unit(ally).target).toBe(nearEnemy);
   });
 
   it('死亡ターゲットクリア: tgt先がalive=false → tgt=-1', () => {
     const ally = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 80, 0);
-    getUnit(ally).target = enemy;
-    getUnit(enemy).alive = false;
+    unit(ally).target = enemy;
+    unit(enemy).alive = false;
     buildHash();
-    steer(getUnit(ally), 0.016, rng);
+    steer(unit(ally), 0.016, rng);
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
-    expect(getUnit(ally).target).toBe(NO_UNIT);
+    expect(unit(ally).target).toBe(NO_UNIT);
   });
 });
 
@@ -134,11 +134,11 @@ describe('steer — LANCER型', () => {
   it('LANCER型はターゲットに向かって強い力で突進', () => {
     const lancer = spawnAt(0, 9, 0, 0); // type 9 = Lancer
     const enemy = spawnAt(1, 1, 200, 0);
-    getUnit(lancer).target = enemy;
+    unit(lancer).target = enemy;
     buildHash();
-    steer(getUnit(lancer), 0.033, rng);
+    steer(unit(lancer), 0.033, rng);
     // ターゲットはx正方向なので、vxが正方向に増加
-    expect(getUnit(lancer).vx).toBeGreaterThan(0);
+    expect(unit(lancer).vx).toBeGreaterThan(0);
   });
 });
 
@@ -148,16 +148,16 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
     buildHash();
-    for (let i = 0; i < 30; i++) steer(getUnit(healer), 0.033, rng);
+    for (let i = 0; i < 30; i++) steer(unit(healer), 0.033, rng);
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
-    expect(getUnit(healer).x).toBeGreaterThan(0);
+    expect(unit(healer).x).toBeGreaterThan(0);
   });
 });
 
 describe('steer — ワールド境界', () => {
   it('|x| > WORLD_SIZE*0.8 → 内向き力', () => {
     const idx = spawnAt(0, 1, WORLD_SIZE * 0.85, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
     u.target = NO_UNIT;
@@ -169,7 +169,7 @@ describe('steer — ワールド境界', () => {
 
   it('|y| > WORLD_SIZE*0.8 → 内向き力', () => {
     const idx = spawnAt(0, 1, 0, -WORLD_SIZE * 0.85);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
     u.target = NO_UNIT;
@@ -184,36 +184,36 @@ describe('steer — Boids Separation', () => {
   it('近接ユニットから離れる方向に力が働く', () => {
     const u1 = spawnAt(0, 1, 0, 0);
     const u2 = spawnAt(0, 1, 8, 0);
-    getUnit(u1).target = NO_UNIT;
-    getUnit(u2).target = NO_UNIT;
+    unit(u1).target = NO_UNIT;
+    unit(u2).target = NO_UNIT;
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(getUnit(u1), 0.033, rng);
-      steer(getUnit(u2), 0.033, rng);
+      steer(unit(u1), 0.033, rng);
+      steer(unit(u2), 0.033, rng);
     }
-    expect(getUnit(u1).x).toBeLessThan(getUnit(u2).x);
+    expect(unit(u1).x).toBeLessThan(unit(u2).x);
   });
 
   it('重いユニットは軽いユニットをより強く押しのける', () => {
     const drone = spawnAt(0, 0, 0, 0); // Drone: mass=1
     const flagship = spawnAt(0, 4, 20, 0); // Flagship: mass=30
-    getUnit(drone).target = NO_UNIT;
-    getUnit(flagship).target = NO_UNIT;
-    getUnit(drone).vx = 0;
-    getUnit(drone).vy = 0;
-    getUnit(flagship).vx = 0;
-    getUnit(flagship).vy = 0;
-    const droneStartX = getUnit(drone).x;
-    const flagshipStartX = getUnit(flagship).x;
+    unit(drone).target = NO_UNIT;
+    unit(flagship).target = NO_UNIT;
+    unit(drone).vx = 0;
+    unit(drone).vy = 0;
+    unit(flagship).vx = 0;
+    unit(flagship).vy = 0;
+    const droneStartX = unit(drone).x;
+    const flagshipStartX = unit(flagship).x;
     buildHash();
     for (let i = 0; i < 10; i++) {
       buildHash();
-      steer(getUnit(drone), 0.033, rng);
-      steer(getUnit(flagship), 0.033, rng);
+      steer(unit(drone), 0.033, rng);
+      steer(unit(flagship), 0.033, rng);
     }
-    const droneDrift = Math.abs(getUnit(drone).x - droneStartX);
-    const flagshipDrift = Math.abs(getUnit(flagship).x - flagshipStartX);
+    const droneDrift = Math.abs(unit(drone).x - droneStartX);
+    const flagshipDrift = Math.abs(unit(flagship).x - flagshipStartX);
     expect(droneDrift).toBeGreaterThan(flagshipDrift);
   });
 });
@@ -221,43 +221,43 @@ describe('steer — Boids Separation', () => {
 describe('steer — Boids Alignment', () => {
   it('同タイプ味方の速度方向に揃う', () => {
     const subject = spawnAt(0, 1, 0, 0);
-    getUnit(subject).vx = 0;
-    getUnit(subject).vy = 0;
-    getUnit(subject).target = NO_UNIT;
+    unit(subject).vx = 0;
+    unit(subject).vy = 0;
+    unit(subject).target = NO_UNIT;
     for (let j = 1; j <= 3; j++) {
       const ally = spawnAt(0, 1, 50 * j, 0);
-      getUnit(ally).vx = 100;
-      getUnit(ally).vy = 0;
+      unit(ally).vx = 100;
+      unit(ally).vy = 0;
     }
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(getUnit(subject), 0.033, rng);
+      steer(unit(subject), 0.033, rng);
     }
-    expect(getUnit(subject).vx).toBeGreaterThan(0);
+    expect(unit(subject).vx).toBeGreaterThan(0);
   });
 });
 
 describe('steer — Boids Cohesion', () => {
   it('味方集団の重心に引き寄せられる', () => {
     const loner = spawnAt(0, 1, 0, 0);
-    getUnit(loner).target = NO_UNIT;
+    unit(loner).target = NO_UNIT;
     spawnAt(0, 1, 100, 0);
     spawnAt(0, 1, 120, 0);
     spawnAt(0, 1, 110, 10);
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(getUnit(loner), 0.033, rng);
+      steer(unit(loner), 0.033, rng);
     }
-    expect(getUnit(loner).x).toBeGreaterThan(0);
+    expect(unit(loner).x).toBeGreaterThan(0);
   });
 });
 
 describe('steer — accel/drag慣性', () => {
   it('accel/drag ベースの応答: Drone (accel=10) は高速で加速', () => {
     const idx = spawnAt(0, 0, 0, 0); // Drone (accel=10.0, drag=2.5, speed=220)
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
     u.vy = 0;
@@ -280,14 +280,14 @@ describe('steer — accel/drag慣性', () => {
 
   it('accel が低いほど速度応答が遅い', () => {
     const fast = spawnAt(0, 0, 0, 0); // Drone (accel=10.0)
-    const fastU = getUnit(fast);
+    const fastU = unit(fast);
     fastU.angle = 0;
     fastU.vx = 0;
     fastU.vy = 0;
     fastU.target = NO_UNIT;
 
     const slow = spawnAt(0, 3, 100, 0); // Cruiser (accel=3.5)
-    const slowU = getUnit(slow);
+    const slowU = unit(slow);
     slowU.angle = 0;
     slowU.vx = 0;
     slowU.vy = 0;
@@ -306,7 +306,7 @@ describe('steer — accel/drag慣性', () => {
 
   it('accel=2.0 (Flagship) でも境界力が機能する', () => {
     const idx = spawnAt(0, 4, 3500, 0); // Flagship (accel=2.0) outside boundary
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.target = NO_UNIT;
     const startX = u.x;
 
@@ -322,7 +322,7 @@ describe('steer — accel/drag慣性', () => {
 describe('steer — accel/drag physics', () => {
   it('accel convergence speed: Drone (accel=10) reaches 90% of target speed in ~10 steps', () => {
     const idx = spawnAt(0, 0, 0, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
     u.vy = 0;
@@ -340,7 +340,7 @@ describe('steer — accel/drag physics', () => {
 
   it('accel convergence speed: Flagship (accel=2) takes ~50 steps to reach 90%', () => {
     const idx = spawnAt(0, 4, 0, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
     u.vy = 0;
@@ -358,7 +358,7 @@ describe('steer — accel/drag physics', () => {
 
   it('drag decay rate: High drag (Drone: 2.5) → velocity decreases each step', () => {
     const idx = spawnAt(0, 0, 0, 0); // Drone: drag=2.5
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vx = 300; // High initial speed (above target speed of 220)
     u.vy = 0;
     u.target = NO_UNIT; // wander mode, NO stun
@@ -381,8 +381,8 @@ describe('steer — accel/drag physics', () => {
     const drone = spawnAt(0, 0, 0, 0); // Drone: drag=2.5
     const lancer = spawnAt(0, 9, 500, 0); // Lancer: drag=0.4
 
-    const uDrone = getUnit(drone);
-    const uLancer = getUnit(lancer);
+    const uDrone = unit(drone);
+    const uLancer = unit(lancer);
 
     // Same initial velocity
     uDrone.vx = 100;
@@ -412,7 +412,7 @@ describe('steer — accel/drag physics', () => {
 
   it('Lancer sliding: Lancer (drag=0.4) slides after target loss', () => {
     const idx = spawnAt(0, 9, 0, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vx = 200;
     u.vy = 0;
     u.target = NO_UNIT;
@@ -430,103 +430,103 @@ describe('steer — accel/drag physics', () => {
 describe('steer — boost mechanism', () => {
   it('boost trigger: Unit with boost config triggers when target within triggerRange', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u2 = spawnAt(1, 0, 150, 0);
-    const unit = getUnit(u1);
-    unit.target = u2;
+    const u = unit(u1);
+    u.target = u2;
     buildHash();
 
-    steer(unit, 1 / 30, rng);
-    expect(unit.boostTimer).toBeGreaterThan(0);
+    steer(u, 1 / 30, rng);
+    expect(u.boostTimer).toBeGreaterThan(0);
   });
 
   it('boost velocity: speed set to spd * multiplier toward target on trigger', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.5, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u2 = spawnAt(1, 0, 150, 0);
-    const unit = getUnit(u1);
-    unit.target = u2;
-    unit.vx = 10;
-    unit.vy = 0;
+    const u = unit(u1);
+    u.target = u2;
+    u.vx = 10;
+    u.vy = 0;
     buildHash();
 
-    steer(unit, 1 / 30, rng);
+    steer(u, 1 / 30, rng);
 
     // spd = 220 * 1.0 = 220, bv = 220 * 2.5 = 550, ターゲットは x=150 方向
-    const speed = Math.sqrt(unit.vx * unit.vx + unit.vy * unit.vy);
+    const speed = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
     expect(speed).toBeGreaterThan(200);
-    expect(unit.vx).toBeGreaterThan(0);
+    expect(u.vx).toBeGreaterThan(0);
   });
 
   it('boost cooldown: boostCooldown set when boostTimer expires', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
-    const unit = getUnit(u1);
-    unit.boostTimer = 0.02;
+    const u = unit(u1);
+    u.boostTimer = 0.02;
     buildHash();
 
-    steer(unit, 1 / 30, rng);
+    steer(u, 1 / 30, rng);
 
-    expect(unit.boostTimer).toBe(0);
-    expect(unit.boostCooldown).toBeCloseTo(3.0);
+    expect(u.boostTimer).toBe(0);
+    expect(u.boostCooldown).toBeCloseTo(3.0);
   });
 
   it('boost stun interrupts active boost and sets cooldown', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
-    const unit = getUnit(u1);
-    unit.boostTimer = 0.3;
-    unit.stun = 1.0;
+    const u = unit(u1);
+    u.boostTimer = 0.3;
+    u.stun = 1.0;
     buildHash();
 
-    steer(unit, 1 / 30, rng);
+    steer(u, 1 / 30, rng);
 
-    expect(unit.boostTimer).toBe(0);
-    expect(unit.boostCooldown).toBeCloseTo(3.0 - 1 / 30);
+    expect(u.boostTimer).toBe(0);
+    expect(u.boostCooldown).toBeCloseTo(3.0 - 1 / 30);
   });
 
   it('boost stun: cooldown ticks down during stun', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
-    const unit = getUnit(u1);
-    unit.boostCooldown = 2.0;
-    unit.stun = 1.0;
+    const u = unit(u1);
+    u.boostCooldown = 2.0;
+    u.stun = 1.0;
     buildHash();
 
-    steer(unit, 1 / 30, rng);
+    steer(u, 1 / 30, rng);
 
-    expect(unit.boostCooldown).toBeCloseTo(2.0 - 1 / 30);
+    expect(u.boostCooldown).toBeCloseTo(2.0 - 1 / 30);
   });
 
   it('no-boost units: Units without boost config keep boostTimer/boostCooldown at 0', () => {
-    expect(getUnitType(4).boost).toBeUndefined();
+    expect(unitType(4).boost).toBeUndefined();
     const idx = spawnAt(0, 4, 0, 0);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.target = spawnAt(1, 4, 150, 0);
     buildHash();
 
@@ -540,28 +540,28 @@ describe('steer — boost mechanism', () => {
 
   it('boost stun: cannot re-activate boost while stun cooldown remains', async () => {
     const mockType = {
-      ...getUnitType(0),
+      ...unitType(0),
       boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
     };
-    vi.spyOn(await import('../unit-types.ts'), 'getUnitType').mockReturnValue(mockType);
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
 
     const u1 = spawnAt(0, 0, 0, 0);
-    const unit = getUnit(u1);
+    const u = unit(u1);
     // Start with active boost + stun
-    unit.boostTimer = 0.3;
-    unit.stun = 0.05;
+    u.boostTimer = 0.3;
+    u.stun = 0.05;
     const enemy = spawnAt(1, 0, 150, 0);
-    unit.target = enemy;
+    u.target = enemy;
     buildHash();
 
     // Tick 1: stun active → boost interrupted, cooldown set
-    steer(unit, 1 / 30, rng);
-    expect(unit.boostTimer).toBe(0);
-    expect(unit.boostCooldown).toBeGreaterThan(0);
+    steer(u, 1 / 30, rng);
+    expect(u.boostTimer).toBe(0);
+    expect(u.boostCooldown).toBeGreaterThan(0);
 
     // Tick 2: stun expired but cooldown remains → no new boost
-    steer(unit, 1 / 30, rng);
-    expect(unit.boostTimer).toBe(0);
-    expect(unit.boostCooldown).toBeGreaterThan(0);
+    steer(u, 1 / 30, rng);
+    expect(u.boostTimer).toBe(0);
+    expect(u.boostCooldown).toBeGreaterThan(0);
   });
 });

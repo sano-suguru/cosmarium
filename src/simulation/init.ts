@@ -1,7 +1,7 @@
 import { clearAllPools } from '../pools.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
-import { resetPendingChains } from './effects.ts';
+import { resetChains } from './effects.ts';
 import { spawnUnit } from './spawn.ts';
 
 interface InitSpawn {
@@ -32,7 +32,7 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
 
 export function initUnits(rng: () => number) {
   clearAllPools();
-  resetPendingChains();
+  resetChains();
 
   for (const team of TEAMS) {
     const cx = team === 0 ? -1200 : 1200;

@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
-import { clearAllPools, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex.ts';
-import { chainLightning, resetPendingChains, snapshotPendingChains, updatePendingChains } from './effects.ts';
+import { chainLightning, resetChains, snapshotChains, updateChains } from './effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
@@ -27,21 +27,21 @@ describe('snapshot & restore ラウンドトリップ', () => {
   it('ユニットのHP/位置/チームが完全復元される', () => {
     const idx0 = spawnAt(0, 1, 100, 200);
     const idx1 = spawnAt(1, 3, -50, 300);
-    const u0Before = { ...getUnit(idx0) };
-    const u1Before = { ...getUnit(idx1) };
+    const u0Before = { ...unit(idx0) };
+    const u1Before = { ...unit(idx1) };
 
     const snapshot = snapshotPools();
     clearAllPools();
 
     // プールは空になっている
-    expect(poolCounts.unitCount).toBe(0);
-    expect(getUnit(idx0).alive).toBe(false);
+    expect(poolCounts.units).toBe(0);
+    expect(unit(idx0).alive).toBe(false);
 
     restorePools(snapshot);
 
     // 復元後、元の状態と一致
-    expect(poolCounts.unitCount).toBe(2);
-    const u0After = getUnit(idx0);
+    expect(poolCounts.units).toBe(2);
+    const u0After = unit(idx0);
     expect(u0After.alive).toBe(true);
     expect(u0After.x).toBe(u0Before.x);
     expect(u0After.y).toBe(u0Before.y);
@@ -49,7 +49,7 @@ describe('snapshot & restore ラウンドトリップ', () => {
     expect(u0After.team).toBe(u0Before.team);
     expect(u0After.type).toBe(u0Before.type);
 
-    const u1After = getUnit(idx1);
+    const u1After = unit(idx1);
     expect(u1After.alive).toBe(true);
     expect(u1After.x).toBe(u1Before.x);
     expect(u1After.y).toBe(u1Before.y);
@@ -58,17 +58,17 @@ describe('snapshot & restore ラウンドトリップ', () => {
 
   it('パーティクルが復元される', () => {
     const pi = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
-    const pBefore = { ...getParticle(pi) };
+    const pBefore = { ...particle(pi) };
 
     const snapshot = snapshotPools();
     clearAllPools();
 
-    expect(poolCounts.particleCount).toBe(0);
+    expect(poolCounts.particles).toBe(0);
 
     restorePools(snapshot);
 
-    expect(poolCounts.particleCount).toBe(1);
-    const pAfter = getParticle(pi);
+    expect(poolCounts.particles).toBe(1);
+    const pAfter = particle(pi);
     expect(pAfter.alive).toBe(true);
     expect(pAfter.x).toBe(pBefore.x);
     expect(pAfter.y).toBe(pBefore.y);
@@ -77,17 +77,17 @@ describe('snapshot & restore ラウンドトリップ', () => {
 
   it('プロジェクタイルが復元される', () => {
     const pi = spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
-    const pBefore = { ...getProjectile(pi) };
+    const pBefore = { ...projectile(pi) };
 
     const snapshot = snapshotPools();
     clearAllPools();
 
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
 
     restorePools(snapshot);
 
-    expect(poolCounts.projectileCount).toBe(1);
-    const pAfter = getProjectile(pi);
+    expect(poolCounts.projectiles).toBe(1);
+    const pAfter = projectile(pi);
     expect(pAfter.alive).toBe(true);
     expect(pAfter.x).toBe(pBefore.x);
     expect(pAfter.y).toBe(pBefore.y);
@@ -149,15 +149,15 @@ describe('snapshot & restore ラウンドトリップ', () => {
     const snapshot = snapshotPools();
     clearAllPools();
 
-    expect(poolCounts.unitCount).toBe(0);
-    expect(poolCounts.particleCount).toBe(0);
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(poolCounts.units).toBe(0);
+    expect(poolCounts.particles).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
 
     restorePools(snapshot);
 
-    expect(poolCounts.unitCount).toBe(2);
-    expect(poolCounts.particleCount).toBe(1);
-    expect(poolCounts.projectileCount).toBe(1);
+    expect(poolCounts.units).toBe(2);
+    expect(poolCounts.particles).toBe(1);
+    expect(poolCounts.projectiles).toBe(1);
   });
 });
 
@@ -187,28 +187,28 @@ describe('clearAllPools', () => {
 
     clearAllPools();
 
-    expect(poolCounts.unitCount).toBe(0);
-    expect(poolCounts.particleCount).toBe(0);
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(poolCounts.units).toBe(0);
+    expect(poolCounts.particles).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
     expect(beams).toHaveLength(0);
     expect(trackingBeams).toHaveLength(0);
 
     // 全スロットがdead
     let aliveUnits = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (getUnit(i).alive) aliveUnits++;
+      if (unit(i).alive) aliveUnits++;
     }
     expect(aliveUnits).toBe(0);
 
     let aliveParticles = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
-      if (getParticle(i).alive) aliveParticles++;
+      if (particle(i).alive) aliveParticles++;
     }
     expect(aliveParticles).toBe(0);
 
     let aliveProjectiles = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      if (getProjectile(i).alive) aliveProjectiles++;
+      if (projectile(i).alive) aliveProjectiles++;
     }
     expect(aliveProjectiles).toBe(0);
   });
@@ -223,14 +223,14 @@ describe('snapshot の独立性', () => {
     const snapshot = snapshotPools();
 
     // snapshot後にユニットを変更
-    getUnit(idx).x = 999;
-    getUnit(idx).hp = 0;
+    unit(idx).x = 999;
+    unit(idx).hp = 0;
 
     restorePools(snapshot);
 
     // 元の値に復元される
-    expect(getUnit(idx).x).toBe(100);
-    expect(getUnit(idx).hp).toBeGreaterThan(0);
+    expect(unit(idx).x).toBe(100);
+    expect(unit(idx).hp).toBeGreaterThan(0);
   });
 });
 
@@ -244,14 +244,14 @@ describe('空プールのsnapshot & restore', () => {
     // デモエンティティを生成
     spawnAt(0, 0, 50, 50);
     spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
-    expect(poolCounts.unitCount).toBe(1);
+    expect(poolCounts.units).toBe(1);
 
     restorePools(snapshot);
 
     // 空に戻る
-    expect(poolCounts.unitCount).toBe(0);
-    expect(poolCounts.particleCount).toBe(0);
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(poolCounts.units).toBe(0);
+    expect(poolCounts.particles).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
   });
 });
 
@@ -262,7 +262,7 @@ describe('pendingChains snapshot & restore', () => {
   const rng = () => 0.5;
 
   afterEach(() => {
-    resetPendingChains();
+    resetChains();
   });
 
   it('chainLightningで生成されたpendingChainsがsnapshot→clear→restoreで復元される', () => {
@@ -275,19 +275,19 @@ describe('pendingChains snapshot & restore', () => {
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
 
     // ch=0は即時発火、ch>=1がpendingChainsに入る
-    const beforeSnapshot = snapshotPendingChains();
+    const beforeSnapshot = snapshotChains();
     expect(beforeSnapshot.length).toBeGreaterThan(0);
 
     const snapshot = snapshotPools();
 
     // クリア
     clearAllPools();
-    resetPendingChains();
-    expect(snapshotPendingChains()).toHaveLength(0);
+    resetChains();
+    expect(snapshotChains()).toHaveLength(0);
 
     // 復元
     restorePools(snapshot);
-    const afterRestore = snapshotPendingChains();
+    const afterRestore = snapshotChains();
     expect(afterRestore).toEqual(beforeSnapshot);
   });
 
@@ -300,11 +300,11 @@ describe('pendingChains snapshot & restore', () => {
     const snapshot = snapshotPools();
 
     // pendingChainsを進行させて消費
-    updatePendingChains(1.0, rng);
-    expect(snapshotPendingChains()).toHaveLength(0);
+    updateChains(1.0, rng);
+    expect(snapshotChains()).toHaveLength(0);
 
     // 復元すると元のpendingChainsが復活
     restorePools(snapshot);
-    expect(snapshotPendingChains().length).toBeGreaterThan(0);
+    expect(snapshotChains().length).toBeGreaterThan(0);
   });
 });

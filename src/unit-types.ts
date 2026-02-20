@@ -286,7 +286,7 @@ export const TYPES: UnitType[] = [
 ];
 
 /** pools.ts と同パターンの安全アクセサ */
-export function getUnitType(id: number): UnitType {
+export function unitType(id: number): UnitType {
   const t = TYPES[id];
   if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
   return t;

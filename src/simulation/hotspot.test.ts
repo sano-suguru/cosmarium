@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { getUnit } from '../pools.ts';
-import { getHotspot, resetHotspot, updateHotspot } from './hotspot.ts';
+import { unit } from '../pools.ts';
+import { hotspot, resetHotspot, updateHotspot } from './hotspot.ts';
 
 const HOTSPOT_UPDATE_INTERVAL = 6;
 
@@ -18,13 +18,13 @@ afterEach(() => {
 describe('hotspot', () => {
   it('ユニット0体 → getHotspot() が null', () => {
     triggerUpdate();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
   });
 
   it('片方のチームのみ → null', () => {
     for (let i = 0; i < 5; i++) spawnAt(0, 1, 100, 100);
     triggerUpdate();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
   });
 
   it('2チーム混在（1セル内） → 正しい座標', () => {
@@ -33,7 +33,7 @@ describe('hotspot', () => {
     spawnAt(1, 1, 100, 100);
     spawnAt(1, 1, 120, 80);
     triggerUpdate();
-    const hs = getHotspot();
+    const hs = hotspot();
     expect(hs).not.toBeNull();
     expect(hs?.x).toBeCloseTo(105, 0);
     expect(hs?.y).toBeCloseTo(95, 0);
@@ -50,7 +50,7 @@ describe('hotspot', () => {
     spawnAt(1, 1, 930, 930);
 
     triggerUpdate();
-    const hs = getHotspot();
+    const hs = hotspot();
     expect(hs).not.toBeNull();
     expect(hs?.x).toBeGreaterThan(800);
     expect(hs?.y).toBeGreaterThan(800);
@@ -60,9 +60,9 @@ describe('hotspot', () => {
     spawnAt(0, 1, 100, 100);
     spawnAt(1, 1, 120, 120);
     updateHotspot();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
-    const hs = getHotspot();
+    const hs = hotspot();
     expect(hs).not.toBeNull();
   });
 
@@ -70,15 +70,15 @@ describe('hotspot', () => {
     spawnAt(0, 1, 100, 100);
     spawnAt(1, 1, 120, 120);
     triggerUpdate();
-    expect(getHotspot()).not.toBeNull();
+    expect(hotspot()).not.toBeNull();
 
     for (let i = 0; i < 2; i++) {
-      const u = getUnit(i);
+      const u = unit(i);
       u.alive = false;
     }
 
     triggerUpdate();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
   });
 
   it('resetHotspot がフレームカウンタをリセットする', () => {
@@ -86,14 +86,14 @@ describe('hotspot', () => {
     spawnAt(1, 1, 120, 120);
 
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 2; i++) updateHotspot();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
 
     resetHotspot();
 
     updateHotspot();
-    expect(getHotspot()).toBeNull();
+    expect(hotspot()).toBeNull();
 
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
-    expect(getHotspot()).not.toBeNull();
+    expect(hotspot()).not.toBeNull();
   });
 });

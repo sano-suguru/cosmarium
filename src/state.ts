@@ -41,7 +41,7 @@ export function seedRng(seed: number): void {
   state.rng = currentRng;
 }
 
-export function getSeed(): number {
+export function seed(): number {
   return currentSeed;
 }
 

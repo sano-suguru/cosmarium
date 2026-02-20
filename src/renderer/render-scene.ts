@@ -1,5 +1,5 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
-import { getColor } from '../colors.ts';
+import { color } from '../colors.ts';
 import {
   MAX_INSTANCES,
   POOL_PARTICLES,
@@ -17,10 +17,10 @@ import {
   TAU,
   WRAP_PERIOD,
 } from '../constants.ts';
-import { getParticle, getProjectile, getUnit } from '../pools.ts';
+import { particle, projectile, unit } from '../pools.ts';
 import type { Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { instanceData, writeSlots } from './buffers.ts';
 
 const _writer = { idx: 0, overflowWarned: false };
@@ -53,7 +53,7 @@ function writeParticle(x: number, y: number, size: number, r: number, g: number,
   writeInstance(x, y, size, r, g, b, a, 0, shape);
 }
 
-function writeBeamSegment(
+function writeBeam(
   x: number,
   y: number,
   size: number,
@@ -127,10 +127,10 @@ function renderVetBadges(u: Unit, ut: UnitType, now: number) {
 
 function renderUnits(now: number) {
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) continue;
-    const ut = getUnitType(u.type);
-    const c = getColor(u.type, u.team);
+    const ut = unitType(u.type);
+    const c = color(u.type, u.team);
     const hr = u.hp / u.maxHp;
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
@@ -160,7 +160,7 @@ function renderUnits(now: number) {
 
 function renderParticles() {
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = getParticle(i);
+    const p = particle(i);
     if (!p.alive) continue;
     const al = Math.min(1, p.life / p.maxLife);
     let size = p.size * (0.5 + al * 0.5);
@@ -216,7 +216,7 @@ function renderBeams(now: number) {
         const segAng = Math.atan2(segDy, segDx);
         const fl = 0.8 + Math.sin(j * 5.0 + now * 55) * 0.2;
         const white = 0.5 + al * 0.5;
-        writeBeamSegment(
+        writeBeam(
           mx,
           my,
           segLen * 0.6,
@@ -233,7 +233,7 @@ function renderBeams(now: number) {
         const t = j / steps;
         const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
         const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
-        writeBeamSegment(
+        writeBeam(
           bm.x1 + dx * t,
           bm.y1 + dy * t,
           bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
@@ -257,7 +257,7 @@ function renderBeams(now: number) {
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
       const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
-      writeBeamSegment(
+      writeBeam(
         tb.x1 + dx * t,
         tb.y1 + dy * t,
         tb.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25),
@@ -273,7 +273,7 @@ function renderBeams(now: number) {
 
 function renderProjectiles() {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const pr = getProjectile(i);
+    const pr = projectile(i);
     if (!pr.alive) continue;
     let shape: number;
     if (pr.homing) shape = SH_HOMING;

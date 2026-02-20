@@ -1,10 +1,10 @@
-import { getColor } from '../colors.ts';
+import { color } from '../colors.ts';
 import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
@@ -27,7 +27,7 @@ export function _resetSweepHits() {
   sweepHitMap.clear();
 }
 
-export function resetReflectedSet() {
+export function resetReflected() {
   reflectedThisFrame.clear();
 }
 
@@ -46,12 +46,12 @@ interface CombatContext {
 // GC回避用の再利用シングルトン。combat() 呼び出し時に全フィールドを上書きする。
 // シングルスレッド前提: ワーカー分離時は per-call 割り当てに変更が必要
 const _ctx: CombatContext = {
-  u: getUnit(0 as UnitIndex),
+  u: unit(0 as UnitIndex),
   ui: 0 as UnitIndex,
   dt: 0,
   c: [0, 0, 0],
   vd: 0,
-  t: getUnitType(0),
+  t: unitType(0),
   rng: () => {
     throw new Error('CombatContext.rng called before combat() initialization');
   },
@@ -59,7 +59,7 @@ const _ctx: CombatContext = {
 
 function tgtDistOrClear(u: Unit): number {
   if (u.target === NO_UNIT) return -1;
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     return -1;
@@ -72,15 +72,15 @@ function handleRam(ctx: CombatContext) {
   const nn = getNeighbors(u.x, u.y, t.size * 2);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o.team === u.team) continue;
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < t.size + getUnitType(o.type).size) {
+    if (d < t.size + unitType(o.type).size) {
       o.hp -= Math.ceil(u.mass * 3 * vd);
       knockback(oi, u.x, u.y, u.mass * 55);
-      u.hp -= Math.ceil(getUnitType(o.type).mass);
+      u.hp -= Math.ceil(unitType(o.type).mass);
       for (let k = 0; k < 10; k++) {
         const a = ctx.rng() * 6.283;
         spawnParticle(
@@ -115,7 +115,7 @@ function handleHealer(ctx: CombatContext) {
   const nn = getNeighbors(u.x, u.y, 160);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === ui) continue;
     if (o.hp < o.maxHp) {
       o.hp = Math.min(o.maxHp, o.hp + 3);
@@ -182,8 +182,8 @@ function reflectProjectile(
 }
 
 function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number, team: number, c: Color3) {
-  for (let i = 0, rem = poolCounts.projectileCount; i < POOL_PROJECTILES && rem > 0; i++) {
-    const p = getProjectile(i);
+  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
+    const p = projectile(i);
     if (!p.alive) continue;
     rem--;
     if (reflectedThisFrame.has(i) || p.team === team) continue;
@@ -202,7 +202,7 @@ function handleReflector(ctx: CombatContext) {
   const reflectR = t.size * REFLECT_RADIUS_MULT;
   reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
-    const o = getUnit(u.target);
+    const o = unit(u.target);
     if (!o.alive) {
       u.target = NO_UNIT;
     } else {
@@ -279,7 +279,7 @@ function handleEmp(ctx: CombatContext) {
   const nn = getNeighbors(u.x, u.y, t.range);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      oo = getUnit(oi);
+      oo = unit(oi);
     if (!oo.alive || oo.team === u.team) continue;
     if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
       oo.stun = 1.5;
@@ -313,7 +313,7 @@ function handleTeleporter(ctx: CombatContext) {
   const { u, c, t, dt, vd } = ctx;
   u.teleportTimer -= dt;
   if (u.teleportTimer > 0 || u.target === NO_UNIT) return;
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     return;
@@ -385,7 +385,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
 
   for (let i = 0; i < nn; i++) {
     const ni = getNeighborAt(i);
-    const n = getUnit(ni);
+    const n = unit(ni);
     if (!n.alive || n.team === u.team) continue;
     const ndx = n.x - u.x,
       ndy = n.y - u.y;
@@ -509,7 +509,7 @@ function handleSweepBeam(ctx: CombatContext) {
     sweepHitMap.delete(ctx.ui);
     return;
   }
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.beamOn = Math.max(0, u.beamOn - dt * 3);
@@ -578,7 +578,7 @@ function handleFocusBeam(ctx: CombatContext) {
     u.beamOn = Math.max(0, u.beamOn - dt * 3);
     return;
   }
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.beamOn = 0;
@@ -951,7 +951,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
   }
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.beamOn = 0;
@@ -1063,7 +1063,7 @@ function fireNormal(ctx: CombatContext) {
     return;
   }
   if (u.cooldown > 0) return;
-  const o = getUnit(u.target);
+  const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.burstCount = 0;
@@ -1112,11 +1112,11 @@ function dispatchFire(ctx: CombatContext, ang: number, d: number) {
 }
 
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
-  const t = getUnitType(u.type);
+  const t = unitType(u.type);
   if (u.stun > 0) return;
   u.cooldown -= dt;
   u.abilityCooldown -= dt;
-  const c = getColor(u.type, u.team);
+  const c = color(u.type, u.team);
   const vd = 1 + u.vet * 0.2;
   _ctx.u = u;
   _ctx.ui = ui;
@@ -1177,7 +1177,7 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'swarm',
 ];
 
-export function getDominantDemoFlag(t: UnitType): DemoFlag | null {
+export function demoFlag(t: UnitType): DemoFlag | null {
   for (const flag of COMBAT_FLAG_PRIORITY) {
     if (t[flag]) return flag;
   }

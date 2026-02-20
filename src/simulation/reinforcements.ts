@@ -1,5 +1,5 @@
 import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import type { Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
@@ -52,7 +52,7 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
 function countAlive(team: Team): number {
   let cnt = 0;
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (u.alive && u.team === team) cnt++;
   }
   return cnt;

@@ -29,7 +29,7 @@ Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUni
 ## 変更ガイド
 
 ### 新ユニットのCodexデモ追加
-`codex.ts`の`demoByFlag`レコードに新デモ関数を追加。`getDominantDemoFlag()`がユニットのフラグから代表フラグを選定し、対応するデモを起動する。敵配置はユニット特性が映える構成にする。
+`codex.ts`の`demoByFlag`レコードに新デモ関数を追加。`demoFlag()`がユニットのフラグから代表フラグを選定し、対応するデモを起動する。敵配置はユニット特性が映える構成にする。
 
 ### HUD項目追加
 `ui/dom-ids.ts`(ID定数) → `ui/hud.ts`(`initHUD`でキャッシュ+`updateHUD`で更新) → `index.html`(DOM要素)。

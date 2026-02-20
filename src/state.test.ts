@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetState } from './__test__/pool-helper.ts';
 import { beams, getBeam } from './beams.ts';
-import { getSeed, rng, seedRng, state } from './state.ts';
+import { rng, seed, seedRng, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -132,10 +132,10 @@ describe('PRNG (mulberry32)', () => {
 
   it('getSeed() は現在のシードを返す', () => {
     seedRng(7777);
-    expect(getSeed()).toBe(7777);
+    expect(seed()).toBe(7777);
 
     seedRng(8888);
-    expect(getSeed()).toBe(8888);
+    expect(seed()).toBe(8888);
   });
 
   it('state.rng は直接呼び出せる', () => {

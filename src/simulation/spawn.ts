@@ -1,19 +1,19 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
-  decParticleCount,
-  decProjectileCount,
-  decUnitCount,
-  getParticle,
-  getProjectile,
-  getUnit,
-  incParticleCount,
-  incProjectileCount,
-  incUnitCount,
+  decParticles,
+  decProjectiles,
+  decUnits,
+  incParticles,
+  incProjectiles,
+  incUnits,
+  particle,
+  projectile,
+  unit,
 } from '../pools.ts';
 import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 
 type KillUnitHook = (i: UnitIndex) => void;
 const killUnitHooks: KillUnitHook[] = [];
@@ -24,9 +24,9 @@ export function onKillUnit(hook: KillUnitHook) {
 
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) {
-      const t = getUnitType(type);
+      const t = unitType(type);
       u.alive = true;
       u.team = team;
       u.type = type;
@@ -57,7 +57,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.burstCount = 0;
       u.broadsidePhase = 0;
       u.swarmN = 0;
-      incUnitCount();
+      incUnits();
       return i as UnitIndex;
     }
   }
@@ -65,27 +65,27 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
 }
 
 export function killUnit(i: UnitIndex) {
-  const u = getUnit(i);
+  const u = unit(i);
   if (u.alive) {
     u.alive = false;
-    decUnitCount();
+    decUnits();
     for (const hook of killUnitHooks) hook(i);
   }
 }
 
 export function killParticle(i: ParticleIndex) {
-  const p = getParticle(i);
+  const p = particle(i);
   if (p.alive) {
     p.alive = false;
-    decParticleCount();
+    decParticles();
   }
 }
 
 export function killProjectile(i: ProjectileIndex) {
-  const p = getProjectile(i);
+  const p = projectile(i);
   if (p.alive) {
     p.alive = false;
-    decProjectileCount();
+    decProjectiles();
   }
 }
 
@@ -102,7 +102,7 @@ export function spawnParticle(
   shape: number,
 ): ParticleIndex {
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = getParticle(i);
+    const p = particle(i);
     if (!p.alive) {
       p.alive = true;
       p.x = x;
@@ -116,7 +116,7 @@ export function spawnParticle(
       p.g = g;
       p.b = b;
       p.shape = shape;
-      incParticleCount();
+      incParticles();
       return i as ParticleIndex;
     }
   }
@@ -137,10 +137,10 @@ export function spawnProjectile(
   b: number,
   homing?: boolean,
   aoe?: number,
-  targetIndex?: UnitIndex,
+  target?: UnitIndex,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const p = getProjectile(i);
+    const p = projectile(i);
     if (!p.alive) {
       p.alive = true;
       p.x = x;
@@ -156,8 +156,8 @@ export function spawnProjectile(
       p.b = b;
       p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
-      p.targetIndex = targetIndex ?? NO_UNIT;
-      incProjectileCount();
+      p.target = target ?? NO_UNIT;
+      incProjectiles();
       return i as ProjectileIndex;
     }
   }
@@ -194,8 +194,8 @@ export function addTrackingBeam(
   life: number,
   width: number,
 ) {
-  const src = getUnit(srcUnit);
-  const tgt = getUnit(tgtUnit);
+  const src = unit(srcUnit);
+  const tgt = unit(tgtUnit);
   const tb: TrackingBeam = {
     srcUnit,
     tgtUnit,

@@ -1,8 +1,8 @@
-import { getColor } from '../colors.ts';
+import { color } from '../colors.ts';
 import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam, setAutoFollow } from '../input/camera.ts';
-import { getUnit } from '../pools.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unit } from '../pools.ts';
+import { unitType } from '../unit-types.ts';
 import { minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
@@ -10,7 +10,7 @@ import { gl, viewport } from './webgl-setup.ts';
 let mmDiv: HTMLElement | null = null;
 let minimapInstanceCount = 0;
 
-function writeMinimapInstance(
+function writeMinimap(
   x: number,
   y: number,
   sizeX: number,
@@ -53,16 +53,16 @@ export function initMinimap() {
   );
 }
 
-function drawCameraViewportFrame(S: number, W: number, H: number) {
+function drawViewport(S: number, W: number, H: number) {
   const vw = W / cam.z / (2 * WORLD_SIZE);
   const vh = H / cam.z / (2 * WORLD_SIZE);
   const cx = cam.x * S,
     cy = cam.y * S;
   const lw = 0.008;
-  writeMinimapInstance(cx, cy + vh, vw, lw, 1, 1, 1, 0.2, 1);
-  writeMinimapInstance(cx, cy - vh, vw, lw, 1, 1, 1, 0.2, 1);
-  writeMinimapInstance(cx - vw, cy, lw, vh + lw, 1, 1, 1, 0.2, 1);
-  writeMinimapInstance(cx + vw, cy, lw, vh + lw, 1, 1, 1, 0.2, 1);
+  writeMinimap(cx, cy + vh, vw, lw, 1, 1, 1, 0.2, 1);
+  writeMinimap(cx, cy - vh, vw, lw, 1, 1, 1, 0.2, 1);
+  writeMinimap(cx - vw, cy, lw, vh + lw, 1, 1, 1, 0.2, 1);
+  writeMinimap(cx + vw, cy, lw, vh + lw, 1, 1, 1, 0.2, 1);
 }
 
 export function drawMinimap() {
@@ -72,17 +72,17 @@ export function drawMinimap() {
   const W = viewport.W,
     H = viewport.H;
 
-  writeMinimapInstance(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
+  writeMinimap(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
 
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) continue;
-    const c = getColor(u.type, u.team);
-    const size = Math.max(0.008, getUnitType(u.type).size * S * 1.5);
-    writeMinimapInstance(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
+    const c = color(u.type, u.team);
+    const size = Math.max(0.008, unitType(u.type).size * S * 1.5);
+    writeMinimap(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
   }
 
-  drawCameraViewportFrame(S, W, H);
+  drawViewport(S, W, H);
 
   const mmR = mmDiv.getBoundingClientRect();
   const mmBW = (mmR.width - mmDiv.clientWidth) * 0.5;

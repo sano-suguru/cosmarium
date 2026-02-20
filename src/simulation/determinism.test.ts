@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -41,7 +41,7 @@ interface UnitSnapshot {
 function captureSnapshot(): UnitSnapshot[] {
   const snapshot: UnitSnapshot[] = [];
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (u.alive) {
       snapshot.push({
         x: u.x,

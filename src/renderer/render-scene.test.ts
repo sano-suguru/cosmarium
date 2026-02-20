@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { MAX_INSTANCES, TAU } from '../constants.ts';
-import { getParticle, getProjectile, getUnit } from '../pools.ts';
+import { particle, projectile, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
 
@@ -42,7 +42,7 @@ function getWriteCalls() {
 describe('writeOverlay', () => {
   it('active shield overlay は SH_OCT_SHIELD(22) で now=0 時に angle=0, a=0.5 で描画される', () => {
     const idx = spawnAt(0, 0, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.shieldLingerTimer = 1.0;
     u.angle = 1.5;
 
@@ -57,7 +57,7 @@ describe('writeOverlay', () => {
 
   it('passive shield (Reflector class) は a=0.15 で描画される', () => {
     const idx = spawnAt(0, 6, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.shieldLingerTimer = 0;
 
     renderScene(0);
@@ -70,7 +70,7 @@ describe('writeOverlay', () => {
 
   it('active shield は passive shield より優先される (Reflector + shieldLingerTimer > 0)', () => {
     const idx = spawnAt(0, 6, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
     renderScene(0);
@@ -83,7 +83,7 @@ describe('writeOverlay', () => {
 
   it('active shield overlay の angle は now*0.5 で回転する', () => {
     const idx = spawnAt(0, 0, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
     renderScene(2);
@@ -96,7 +96,7 @@ describe('writeOverlay', () => {
 
   it('vet overlay は angle=0 で描画される', () => {
     const idx = spawnAt(0, 0, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vet = 1;
     u.kills = 3;
     u.angle = 2.0;
@@ -110,7 +110,7 @@ describe('writeOverlay', () => {
 
   it('swarm overlay は angle=0 で描画される', () => {
     const idx = spawnAt(0, 0, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.swarmN = 3;
     u.angle = 0.8;
 
@@ -125,7 +125,7 @@ describe('writeOverlay', () => {
 
 describe('writeParticle', () => {
   it('パーティクル描画は angle=0 で描画される', () => {
-    const p = getParticle(0);
+    const p = particle(0);
     p.alive = true;
     p.x = 50;
     p.y = 60;
@@ -148,7 +148,7 @@ describe('writeParticle', () => {
   });
 
   it('shape=10 のパーティクルも angle=0', () => {
-    const p = getParticle(0);
+    const p = particle(0);
     p.alive = true;
     p.x = 10;
     p.y = 20;
@@ -274,7 +274,7 @@ describe('writeBeamSegment', () => {
 describe('writeInstance（直接使用）', () => {
   it('ユニット本体はユニット固有の angle/shape で描画される', () => {
     spawnAt(0, 1, 200, 300);
-    const u = getUnit(0);
+    const u = unit(0);
     u.angle = 1.23;
 
     renderScene(0);
@@ -285,7 +285,7 @@ describe('writeInstance（直接使用）', () => {
   });
 
   it('projectile は速度ベクトルから算出された angle で描画される', () => {
-    const pr = getProjectile(0);
+    const pr = projectile(0);
     pr.alive = true;
     pr.x = 50;
     pr.y = 50;
@@ -309,7 +309,7 @@ describe('writeInstance（直接使用）', () => {
   it('vet バッジは angle=(now*3)%TAU で回転する', () => {
     const now = 2.5;
     const idx = spawnAt(0, 0, 100, 100);
-    const u = getUnit(idx);
+    const u = unit(idx);
     u.vet = 1;
     u.kills = 3;
 
@@ -329,7 +329,7 @@ describe('renderScene 描画数', () => {
 
   it('ユニット1体で複数インスタンスが生成される', () => {
     spawnAt(0, 3, 100, 100);
-    const u = getUnit(0);
+    const u = unit(0);
     u.hp = u.maxHp * 0.5;
 
     const count = renderScene(0);

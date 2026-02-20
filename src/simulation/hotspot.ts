@@ -1,12 +1,12 @@
 import { POOL_UNITS } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;
 
 type CellData = { t0: number; t1: number; sx: number; sy: number; count: number };
 
-let hotspot: { x: number; y: number; radius: number } | null = null;
+let _hotspot: { x: number; y: number; radius: number } | null = null;
 let frameCounter = 0;
 
 function cellKey(x: number, y: number): number {
@@ -18,7 +18,7 @@ function cellKey(x: number, y: number): number {
 function buildCellMap(): Map<number, CellData> {
   const cells = new Map<number, CellData>();
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) continue;
     const key = cellKey(u.x, u.y);
     let cell = cells.get(key);
@@ -55,7 +55,7 @@ function pickBestCell(cells: Map<number, CellData>): { key: number; cell: CellDa
 function maxDistanceInCell(cellKeyValue: number, centerX: number, centerY: number): number {
   let maxDist = 0;
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) continue;
     if (cellKey(u.x, u.y) !== cellKeyValue) continue;
     const dx = u.x - centerX;
@@ -73,21 +73,21 @@ export function updateHotspot(): void {
   const cells = buildCellMap();
   const best = pickBestCell(cells);
   if (!best) {
-    hotspot = null;
+    _hotspot = null;
     return;
   }
 
   const centerX = best.cell.sx / best.cell.count;
   const centerY = best.cell.sy / best.cell.count;
   const maxDist = maxDistanceInCell(best.key, centerX, centerY);
-  hotspot = { x: centerX, y: centerY, radius: Math.max(HOTSPOT_CELL_SIZE * 0.5, maxDist + 50) };
+  _hotspot = { x: centerX, y: centerY, radius: Math.max(HOTSPOT_CELL_SIZE * 0.5, maxDist + 50) };
 }
 
-export function getHotspot(): { x: number; y: number; radius: number } | null {
-  return hotspot;
+export function hotspot(): { x: number; y: number; radius: number } | null {
+  return _hotspot;
 }
 
 export function resetHotspot(): void {
-  hotspot = null;
+  _hotspot = null;
   frameCounter = 0;
 }

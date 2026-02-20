@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -22,28 +22,28 @@ afterEach(() => {
 
 describe('initUnits', () => {
   it('全ユニットの alive を false にリセットしてから再生成する', () => {
-    getUnit(0).alive = true;
-    getUnit(1).alive = true;
+    unit(0).alive = true;
+    unit(1).alive = true;
     initUnits(rng);
-    expect(poolCounts.unitCount).toBeGreaterThan(0);
+    expect(poolCounts.units).toBeGreaterThan(0);
   });
 
   it('全パーティクルの alive を false にリセットする', () => {
-    getParticle(0).alive = true;
+    particle(0).alive = true;
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
-      if (getParticle(i).alive) aliveCount++;
+      if (particle(i).alive) aliveCount++;
     }
     expect(aliveCount).toBe(0);
   });
 
   it('全プロジェクタイルの alive を false にリセットする', () => {
-    getProjectile(0).alive = true;
+    projectile(0).alive = true;
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      if (getProjectile(i).alive) aliveCount++;
+      if (projectile(i).alive) aliveCount++;
     }
     expect(aliveCount).toBe(0);
   });
@@ -57,14 +57,14 @@ describe('initUnits', () => {
   it('両チーム合計 n合計 × 2チーム ユニットを生成する', () => {
     initUnits(rng);
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
-    expect(poolCounts.unitCount).toBe(perTeam * 2);
+    expect(poolCounts.units).toBe(perTeam * 2);
   });
 
   it('生成ユニットは全て alive', () => {
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (getUnit(i).alive) aliveCount++;
+      if (unit(i).alive) aliveCount++;
     }
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
     expect(aliveCount).toBe(perTeam * 2);
@@ -75,7 +75,7 @@ describe('initUnits', () => {
     let team0 = 0;
     let team1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      const u = getUnit(i);
+      const u = unit(i);
       if (!u.alive) continue;
       if (u.team === 0) team0++;
       else team1++;

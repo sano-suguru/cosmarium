@@ -61,7 +61,7 @@ export interface Projectile {
   b: number;
   homing: boolean;
   aoe: number;
-  targetIndex: UnitIndex;
+  target: UnitIndex;
 }
 
 export interface UnitType {

@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
-import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const testRng = () => 0.5;
@@ -19,8 +19,8 @@ describe('spawnParticle', () => {
   it('パーティクルを生成し poolCounts.particleCount が増加する', () => {
     const idx = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     expect(idx).toBe(0);
-    expect(poolCounts.particleCount).toBe(1);
-    const p = getParticle(0);
+    expect(poolCounts.particles).toBe(1);
+    const p = particle(0);
     expect(p.alive).toBe(true);
     expect(p.x).toBe(10);
     expect(p.y).toBe(20);
@@ -40,7 +40,7 @@ describe('spawnParticle', () => {
     const i2 = spawnParticle(5, 5, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     expect(i1).toBe(0);
     expect(i2).toBe(1);
-    expect(poolCounts.particleCount).toBe(2);
+    expect(poolCounts.particles).toBe(2);
   });
 
   it('プール満杯時に NO_PARTICLE を返す', () => {
@@ -54,8 +54,8 @@ describe('spawnProjectile', () => {
   it('プロジェクタイルを生成する', () => {
     const idx = spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(idx).toBe(0);
-    expect(poolCounts.projectileCount).toBe(1);
-    const p = getProjectile(0);
+    expect(poolCounts.projectiles).toBe(1);
+    const p = projectile(0);
     expect(p.alive).toBe(true);
     expect(p.x).toBe(100);
     expect(p.y).toBe(200);
@@ -63,16 +63,16 @@ describe('spawnProjectile', () => {
     expect(p.team).toBe(0);
     expect(p.homing).toBe(false);
     expect(p.aoe).toBe(0);
-    expect(p.targetIndex).toBe(-1);
+    expect(p.target).toBe(-1);
   });
 
   it('オプション引数が反映される', () => {
     const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42 as UnitIndex);
     expect(idx).toBe(0);
-    const p = getProjectile(0);
+    const p = projectile(0);
     expect(p.homing).toBe(true);
     expect(p.aoe).toBe(70);
-    expect(p.targetIndex).toBe(42);
+    expect(p.target).toBe(42);
   });
 
   it('プール満杯時に NO_PROJECTILE を返す', () => {
@@ -86,9 +86,9 @@ describe('spawnUnit', () => {
   it('Fighterユニットを生成する (type=1)', () => {
     const idx = spawnUnit(0, 1, 100, 200, testRng);
     expect(idx).toBe(0);
-    expect(poolCounts.unitCount).toBe(1);
-    const u = getUnit(0);
-    const fighter = getUnitType(1);
+    expect(poolCounts.units).toBe(1);
+    const u = unit(0);
+    const fighter = unitType(1);
     expect(u.alive).toBe(true);
     expect(u.team).toBe(0);
     expect(u.type).toBe(1);
@@ -107,7 +107,7 @@ describe('spawnUnit', () => {
     fillUnitPool();
     const overflow = spawnUnit(0, 0, 0, 0, testRng);
     expect(overflow).toBe(-1);
-    expect(poolCounts.unitCount).toBe(POOL_UNITS);
+    expect(poolCounts.units).toBe(POOL_UNITS);
   });
 
   it('dead スロットを再利用する', () => {
@@ -116,59 +116,59 @@ describe('spawnUnit', () => {
     killUnit(0 as UnitIndex);
     const reused = spawnUnit(1, 1, 50, 50, testRng);
     expect(reused).toBe(0);
-    expect(getUnit(0).team).toBe(1);
-    expect(getUnit(0).x).toBe(50);
+    expect(unit(0).team).toBe(1);
+    expect(unit(0).x).toBe(50);
   });
 });
 
 describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
     spawnUnit(0, 0, 0, 0, testRng);
-    expect(poolCounts.unitCount).toBe(1);
+    expect(poolCounts.units).toBe(1);
     killUnit(0 as UnitIndex);
-    expect(getUnit(0).alive).toBe(false);
-    expect(poolCounts.unitCount).toBe(0);
+    expect(unit(0).alive).toBe(false);
+    expect(poolCounts.units).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnUnit(0, 0, 0, 0, testRng);
     killUnit(0 as UnitIndex);
     killUnit(0 as UnitIndex);
-    expect(poolCounts.unitCount).toBe(0);
+    expect(poolCounts.units).toBe(0);
   });
 });
 
 describe('killParticle', () => {
   it('パーティクルを無効化し poolCounts.particleCount を減少させる', () => {
     spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
-    expect(poolCounts.particleCount).toBe(1);
+    expect(poolCounts.particles).toBe(1);
     killParticle(0 as ParticleIndex);
-    expect(getParticle(0).alive).toBe(false);
-    expect(poolCounts.particleCount).toBe(0);
+    expect(particle(0).alive).toBe(false);
+    expect(poolCounts.particles).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     killParticle(0 as ParticleIndex);
     killParticle(0 as ParticleIndex);
-    expect(poolCounts.particleCount).toBe(0);
+    expect(poolCounts.particles).toBe(0);
   });
 });
 
 describe('killProjectile', () => {
   it('プロジェクタイルを無効化し poolCounts.projectileCount を減少させる', () => {
     spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
-    expect(poolCounts.projectileCount).toBe(1);
+    expect(poolCounts.projectiles).toBe(1);
     killProjectile(0 as ProjectileIndex);
-    expect(getProjectile(0).alive).toBe(false);
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(projectile(0).alive).toBe(false);
+    expect(poolCounts.projectiles).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     killProjectile(0 as ProjectileIndex);
     killProjectile(0 as ProjectileIndex);
-    expect(poolCounts.projectileCount).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
   });
 });
 

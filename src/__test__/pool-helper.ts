@@ -1,15 +1,15 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
-  getParticle,
-  getProjectile,
-  getUnit,
+  particle,
+  projectile,
   resetPoolCounts,
-  setParticleCountForTest,
-  setProjectileCountForTest,
-  setUnitCountForTest,
+  setParticleCount,
+  setProjectileCount,
+  setUnitCount,
+  unit,
 } from '../pools.ts';
-import { resetPendingChains } from '../simulation/effects.ts';
+import { resetChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
@@ -18,7 +18,7 @@ import { NO_UNIT } from '../types.ts';
 
 export function resetPools() {
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     u.alive = false;
     u.team = 0;
     u.type = 0;
@@ -51,7 +51,7 @@ export function resetPools() {
     u.swarmN = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = getParticle(i);
+    const p = particle(i);
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -66,7 +66,7 @@ export function resetPools() {
     p.shape = 0;
   }
   for (let i = 0; i < POOL_PROJECTILES; i++) {
-    const p = getProjectile(i);
+    const p = projectile(i);
     p.alive = false;
     p.x = 0;
     p.y = 0;
@@ -81,7 +81,7 @@ export function resetPools() {
     p.b = 0;
     p.homing = false;
     p.aoe = 0;
-    p.targetIndex = NO_UNIT;
+    p.target = NO_UNIT;
   }
   resetPoolCounts();
   beams.length = 0;
@@ -90,18 +90,18 @@ export function resetPools() {
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
 export function fillUnitPool() {
-  for (let i = 0; i < POOL_UNITS; i++) getUnit(i).alive = true;
-  setUnitCountForTest(POOL_UNITS);
+  for (let i = 0; i < POOL_UNITS; i++) unit(i).alive = true;
+  setUnitCount(POOL_UNITS);
 }
 
 export function fillParticlePool() {
-  for (let i = 0; i < POOL_PARTICLES; i++) getParticle(i).alive = true;
-  setParticleCountForTest(POOL_PARTICLES);
+  for (let i = 0; i < POOL_PARTICLES; i++) particle(i).alive = true;
+  setParticleCount(POOL_PARTICLES);
 }
 
 export function fillProjectilePool() {
-  for (let i = 0; i < POOL_PROJECTILES; i++) getProjectile(i).alive = true;
-  setProjectileCountForTest(POOL_PROJECTILES);
+  for (let i = 0; i < POOL_PROJECTILES; i++) projectile(i).alive = true;
+  setProjectileCount(POOL_PROJECTILES);
 }
 
 const stateDefaults = {
@@ -119,7 +119,7 @@ export function resetState() {
   seedRng(12345);
   beams.length = 0;
   trackingBeams.length = 0;
-  resetPendingChains();
+  resetChains();
 }
 
 /** テスト用 GameLoopState ファクトリ。state のプロパティをリアルタイムに参照する getter/setter でラップする */

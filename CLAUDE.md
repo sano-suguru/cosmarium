@@ -59,7 +59,7 @@ src/
   constants.ts       # Pool limits, WORLD_SIZE, CELL_SIZE, MAX_INSTANCES, STRIDE_BYTES
   state.ts           # Game state object (mutable properties)
   pools.ts           # Object pools + poolCounts
-  colors.ts          # Team/trail color tables + getColor()/getTrailColor()
+  colors.ts          # Team/trail color tables + color()/trailColor()
   unit-types.ts      # TYPES[15] unit definitions
   shaders/           # GLSL source files (vite-plugin-glsl)
   renderer/          # WebGL 2 setup, shaders, FBO, buffers, scene/bloom/minimap rendering
@@ -74,7 +74,7 @@ src/
 ```
 frame() → dt clamp(0.05) → camera lerp + shake decay
   → update(dt * timeScale)  — dt > 1/REF_FPS なら最大8サブステップに分割
-      stepOnce: buildHash → updateSwarmN → resetReflectedSet
+      stepOnce: buildHash → updateSwarmN → resetReflected
         → per unit: steer+combat+trail+boostEffect
         → applyReflectorShields → projectiles → particles
         → beams(swap-and-pop) → pendingChains → trackingBeams

@@ -1,17 +1,17 @@
 import './style.css';
 
 import { BASE_SPEED, REF_FPS } from './constants.ts';
-import { cam, initCamera, setAutoFollow, updateAutoFollowCamera } from './input/camera.ts';
+import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { initBuffers } from './renderer/buffers.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { initShaders } from './renderer/shaders.ts';
 import { initWebGL, resize } from './renderer/webgl-setup.ts';
-import { getHotspot, updateHotspot } from './simulation/hotspot.ts';
+import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import { demoRng, syncCodexDemoCamera, updateCodexDemo } from './ui/codex.ts';
+import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 
@@ -84,13 +84,13 @@ function frame(now: number) {
     // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
     // ゲームPRNG汚染を防ぐため demoRng を使用
     update(dt * BASE_SPEED, t, demoRng, gameLoopState);
-    syncCodexDemoCamera();
+    syncDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
     const scaledDt = dt * state.timeScale * BASE_SPEED;
     update(scaledDt, t, rng, gameLoopState);
     updateHotspot();
-    updateAutoFollowCamera(getHotspot());
+    updateAutoFollow(hotspot());
     renderFrame(t);
     updateHUD(displayFps);
     if (frameCount % 2 === 0) drawMinimap();

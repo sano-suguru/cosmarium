@@ -28,7 +28,7 @@
 `render-scene.ts`の`renderScene()`に`writeInstance()`追加。描画順: particles→beams→projectiles→units。`MAX_INSTANCES`超過で描画消失→`constants.ts`の値を確認。
 
 ### ミニマップ描画追加
-`minimap.ts`の`drawMinimap()`に`writeMinimapInstance()`追加。座標=ワールド×`1/WORLD_SIZE`で正規化。
+`minimap.ts`の`drawMinimap()`に`writeMinimap()`追加。座標=ワールド×`1/WORLD_SIZE`で正規化。
 
 ## Critical Gotchas
 

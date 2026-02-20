@@ -1,10 +1,10 @@
-import { getColor, getTrailColor } from '../colors.ts';
+import { color, trailColor } from '../colors.ts';
 import { POOL_UNITS, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
@@ -50,7 +50,7 @@ function spawnExplosionFlash(x: number, y: number, size: number, rng: () => numb
 function applyKnockbackToNeighbors(x: number, y: number, size: number) {
   const nn = getNeighbors(x, y, size * 8);
   for (let i = 0; i < nn; i++) {
-    const o = getUnit(getNeighborAt(i));
+    const o = unit(getNeighborAt(i));
     if (!o.alive) continue;
     const ddx = o.x - x,
       ddy = o.y - y;
@@ -61,7 +61,7 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
 
 function updateKillerVet(killer: UnitIndex) {
   if (killer !== NO_UNIT && killer < POOL_UNITS) {
-    const ku = getUnit(killer);
+    const ku = unit(killer);
     if (ku.alive) {
       ku.kills++;
       if (ku.kills >= 3) ku.vet = 1;
@@ -71,8 +71,8 @@ function updateKillerVet(killer: UnitIndex) {
 }
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex, rng: () => number) {
-  const size = getUnitType(type).size;
-  const c = getColor(type, team);
+  const size = unitType(type).size;
+  const c = color(type, team);
 
   spawnExplosionDebris(x, y, size, c, rng);
   spawnExplosionFlash(x, y, size, rng);
@@ -92,8 +92,8 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
 }
 
 export function trail(u: Unit, rng: () => number) {
-  const t = getUnitType(u.type),
-    c = getTrailColor(u.type, u.team);
+  const t = unitType(u.type),
+    c = trailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
   spawnParticle(
@@ -131,11 +131,11 @@ interface PendingChain {
 const pendingChains: PendingChain[] = [];
 const CHAIN_HOP_DELAY = 0.06;
 
-export function resetPendingChains() {
+export function resetChains() {
   pendingChains.length = 0;
 }
 
-export function snapshotPendingChains() {
+export function snapshotChains() {
   return pendingChains.map((pc) => ({
     hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
     team: pc.team,
@@ -144,7 +144,7 @@ export function snapshotPendingChains() {
   }));
 }
 
-export function restorePendingChains(snapshot: ReturnType<typeof snapshotPendingChains>) {
+export function restoreChains(snapshot: ReturnType<typeof snapshotChains>) {
   pendingChains.length = 0;
   for (const pc of snapshot) {
     pendingChains.push({
@@ -171,7 +171,7 @@ function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): bool
   return pc.nextHop >= pc.hops.length;
 }
 
-export function updatePendingChains(dt: number, rng: () => number) {
+export function updateChains(dt: number, rng: () => number) {
   for (let i = pendingChains.length - 1; i >= 0; i--) {
     const pc = pendingChains[i];
     if (pc === undefined) continue;
@@ -203,10 +203,10 @@ function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Co
 }
 
 function fireChainHop(hop: ChainHop, rng: () => number) {
-  const from = hop.fromIndex !== NO_UNIT ? getUnit(hop.fromIndex) : undefined;
+  const from = hop.fromIndex !== NO_UNIT ? unit(hop.fromIndex) : undefined;
   const fx = from?.alive ? from.x : hop.fromX;
   const fy = from?.alive ? from.y : hop.fromY;
-  const o = getUnit(hop.targetIndex);
+  const o = unit(hop.targetIndex);
   const tx = o.alive ? o.x : hop.toX;
   const ty = o.alive ? o.y : hop.toY;
   emitChainVisual(fx, fy, tx, ty, hop.col, rng);
@@ -230,7 +230,7 @@ function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o.team === team || hit.has(oi)) continue;
     const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
     if (d < bd) {
@@ -251,7 +251,7 @@ function applyChainHit(
   col: Color3,
   rng: () => number,
 ): { hx: number; hy: number } {
-  const o = getUnit(bi);
+  const o = unit(bi);
   // kill 前に退避 — killUnit でスロットが再利用されると値が壊れる
   const hx = o.x,
     hy = o.y,
@@ -292,10 +292,10 @@ export function chainLightning(
       cy = pos.hy;
       // killUnit後にスロットが再利用されると後続ホップで無関係なユニットにスナップするため、
       // 死亡時はNO_UNITにしてフォールバック座標を使わせる
-      prevTarget = getUnit(bi).alive ? bi : NO_UNIT;
+      prevTarget = unit(bi).alive ? bi : NO_UNIT;
       continue;
     }
-    const o = getUnit(bi);
+    const o = unit(bi);
     hops.push({
       fromIndex: prevTarget,
       fromX: cx,
@@ -316,8 +316,8 @@ export function chainLightning(
 }
 
 export function boostBurst(u: Unit, rng: () => number) {
-  const t = getUnitType(u.type);
-  const c = getTrailColor(u.type, u.team);
+  const t = unitType(u.type);
+  const c = trailColor(u.type, u.team);
   const bx = u.x - Math.cos(u.angle) * t.size * 0.8;
   const by = u.y - Math.sin(u.angle) * t.size * 0.8;
 
@@ -334,8 +334,8 @@ export function boostBurst(u: Unit, rng: () => number) {
 
 export function boostTrail(u: Unit, dt: number, rng: () => number) {
   if (rng() < 1 - 0.6 ** (dt * REF_FPS)) {
-    const t = getUnitType(u.type);
-    const c = getTrailColor(u.type, u.team);
+    const t = unitType(u.type);
+    const c = trailColor(u.type, u.team);
     const cos = Math.cos(u.angle);
     const sin = Math.sin(u.angle);
     const ox = u.x - cos * t.size * 0.8 + (rng() - 0.5) * t.size * 0.5;

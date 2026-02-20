@@ -1,8 +1,8 @@
 import { PI, POOL_UNITS, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
+import { unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 interface SteerForce {
@@ -20,7 +20,7 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (o.team === u.team || !o.alive) continue;
     const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
     if (d < bd) {
@@ -36,7 +36,7 @@ function findNearestGlobalEnemy(u: Unit): UnitIndex {
   let bd = 1e18,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < POOL_UNITS; i++) {
-    const o = getUnit(i);
+    const o = unit(i);
     if (!o.alive || o.team === u.team) continue;
     const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
     if (d2 < bd) {
@@ -48,7 +48,7 @@ function findNearestGlobalEnemy(u: Unit): UnitIndex {
 }
 
 function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => number): UnitIndex {
-  if (u.target !== NO_UNIT && getUnit(u.target).alive) return u.target;
+  if (u.target !== NO_UNIT && unit(u.target).alive) return u.target;
 
   const localTarget = findNearestLocalEnemy(u, nn, range);
   if (localTarget !== NO_UNIT) return localTarget;
@@ -72,7 +72,7 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   const d = Math.sqrt(d2);
 
   if (d < sd) {
-    const massScale = Math.sqrt(getUnitType(o.type).mass / uMass);
+    const massScale = Math.sqrt(unitType(o.type).mass / uMass);
     _boids.sx += (dx / d / d2) * 200 * massScale;
     _boids.sy += (dy / d / d2) * 200 * massScale;
   }
@@ -103,7 +103,7 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
   const sd = t.size * 4;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o === u) continue;
     accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
@@ -125,7 +125,7 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
 
 function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number, rng: () => number): SteerForce {
   if (tgt !== NO_UNIT) {
-    const o = getUnit(tgt);
+    const o = unit(tgt);
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -159,15 +159,15 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
-      o = getUnit(oi);
+      o = unit(oi);
     if (o.team !== u.team || !o.alive || o === u) continue;
-    if (getUnitType(o.type).mass > bm) {
-      bm = getUnitType(o.type).mass;
+    if (unitType(o.type).mass > bm) {
+      bm = unitType(o.type).mass;
       bi = oi;
     }
   }
   if (bi !== NO_UNIT) {
-    const o = getUnit(bi);
+    const o = unit(bi);
     _force.x = (o.x - u.x) * 0.05;
     _force.y = (o.y - u.y) * 0.05;
     return _force;
@@ -203,7 +203,7 @@ function handleBoost(
   }
 
   if (u.boostTimer <= 0 && u.boostCooldown <= 0 && tgt !== NO_UNIT) {
-    const o = getUnit(tgt);
+    const o = unit(tgt);
     const dx = o.x - u.x;
     const dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
@@ -221,7 +221,7 @@ function handleBoost(
 
 function tickBoostDuringStun(u: Unit, dt: number) {
   if (u.boostTimer <= 0 && u.boostCooldown <= 0) return;
-  const bt = getUnitType(u.type).boost;
+  const bt = unitType(u.type).boost;
   if (!bt) return;
   if (u.boostTimer > 0) {
     u.boostTimer = 0;
@@ -236,14 +236,14 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);
-    const stunDrag = (0.93 ** (1 / Math.sqrt(getUnitType(u.type).mass))) ** (dt * REF_FPS);
+    const stunDrag = (0.93 ** (1 / Math.sqrt(unitType(u.type).mass))) ** (dt * REF_FPS);
     u.vx *= stunDrag;
     u.vy *= stunDrag;
     u.x += u.vx * dt;
     u.y += u.vy * dt;
     return;
   }
-  const t = getUnitType(u.type);
+  const t = unitType(u.type);
   const nn = getNeighbors(u.x, u.y, 200);
 
   const boids = computeBoidsForce(u, nn, t);

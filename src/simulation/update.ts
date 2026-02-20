@@ -6,20 +6,20 @@ import {
   POOL_PROJECTILES,
   POOL_UNITS,
   REF_FPS,
-  REFLECTOR_SHIELD_LINGER,
-  REFLECTOR_TETHER_BEAM_LIFE,
   SH_CIRCLE,
   SH_EXPLOSION_RING,
+  SHIELD_LINGER,
   SWARM_RADIUS_SQ,
   TAU,
+  TETHER_BEAM_LIFE,
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
+import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { getUnitType } from '../unit-types.ts';
-import { combat, resetReflectedSet } from './combat.ts';
-import { boostBurst, boostTrail, explosion, trail, updatePendingChains } from './effects.ts';
+import { unitType } from '../unit-types.ts';
+import { combat, resetReflected } from './combat.ts';
+import { boostBurst, boostTrail, explosion, trail, updateChains } from './effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
@@ -29,7 +29,7 @@ import { steer } from './steering.ts';
 const REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER = 0.3;
 
 function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
-  const tg = getUnit(p.targetIndex);
+  const tg = unit(p.target);
   if (tg.alive) {
     let ca = Math.atan2(p.vy, p.vx);
     const da = Math.atan2(tg.y - p.y, tg.x - p.x);
@@ -50,7 +50,7 @@ function detonateAoe(p: Projectile, rng: () => number) {
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o.team === p.team) continue;
     const ddx = o.x - p.x,
       ddy = o.y - p.y;
@@ -87,9 +87,9 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
   const nn = getNeighbors(p.x, p.y, 30);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
-      o = getUnit(oi);
+      o = unit(oi);
     if (!o.alive || o.team === p.team) continue;
-    const hs = getUnitType(o.type).size;
+    const hs = unitType(o.type).size;
     if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
       let dmg = p.damage;
       if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
@@ -125,12 +125,12 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
 }
 
 function updateProjectiles(dt: number, rng: () => number) {
-  for (let i = 0, prem = poolCounts.projectileCount; i < POOL_PROJECTILES && prem > 0; i++) {
-    const p = getProjectile(i);
+  for (let i = 0, prem = poolCounts.projectiles; i < POOL_PROJECTILES && prem > 0; i++) {
+    const p = projectile(i);
     if (!p.alive) continue;
     prem--;
 
-    if (p.homing && p.targetIndex !== NO_UNIT) steerHomingProjectile(p, dt, rng);
+    if (p.homing && p.target !== NO_UNIT) steerHomingProjectile(p, dt, rng);
 
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -148,8 +148,8 @@ function updateProjectiles(dt: number, rng: () => number) {
 }
 
 function updateParticles(dt: number) {
-  for (let i = 0, rem = poolCounts.particleCount; i < POOL_PARTICLES && rem > 0; i++) {
-    const pp = getParticle(i);
+  for (let i = 0, rem = poolCounts.particles; i < POOL_PARTICLES && rem > 0; i++) {
+    const pp = particle(i);
     if (!pp.alive) continue;
     rem--;
     pp.x += pp.vx * dt;
@@ -182,8 +182,8 @@ function updateTrackingBeams(dt: number) {
   for (let i = 0; i < trackingBeams.length; ) {
     const tb = getTrackingBeam(i);
     tb.life -= dt;
-    const src = getUnit(tb.srcUnit);
-    const tgt = getUnit(tb.tgtUnit);
+    const src = unit(tb.srcUnit);
+    const tgt = unit(tb.tgtUnit);
     if (tb.life <= 0 || !src.alive || !tgt.alive || src.team !== tgt.team) {
       const last = trackingBeams[trackingBeams.length - 1];
       if (last !== undefined) trackingBeams[i] = last;
@@ -202,7 +202,7 @@ function countSwarmAllies(u: Unit): number {
   const nn = getNeighbors(u.x, u.y, 80);
   let allies = 0;
   for (let j = 0; j < nn; j++) {
-    const o = getUnit(getNeighborAt(j));
+    const o = unit(getNeighborAt(j));
     if (o === u || !o.alive || o.team !== u.team || o.type !== u.type) continue;
     const dx = o.x - u.x,
       dy = o.y - u.y;
@@ -212,11 +212,11 @@ function countSwarmAllies(u: Unit): number {
 }
 
 export function updateSwarmN() {
-  for (let i = 0, urem3 = poolCounts.unitCount; i < POOL_UNITS && urem3 > 0; i++) {
-    const u = getUnit(i);
+  for (let i = 0, urem3 = poolCounts.units; i < POOL_UNITS && urem3 > 0; i++) {
+    const u = unit(i);
     if (!u.alive) continue;
     urem3--;
-    if (!getUnitType(u.type).swarm) {
+    if (!unitType(u.type).swarm) {
       u.swarmN = 0;
       continue;
     }
@@ -225,8 +225,8 @@ export function updateSwarmN() {
 }
 
 function updateUnits(dt: number, now: number, rng: () => number) {
-  for (let i = 0, urem = poolCounts.unitCount; i < POOL_UNITS && urem > 0; i++) {
-    const u = getUnit(i);
+  for (let i = 0, urem = poolCounts.units; i < POOL_UNITS && urem > 0; i++) {
+    const u = unit(i);
     if (!u.alive) continue;
     urem--;
     const wasNotBoosting = u.boostTimer <= 0;
@@ -245,8 +245,8 @@ function updateUnits(dt: number, now: number, rng: () => number) {
 }
 
 function decayShieldTimers(dt: number) {
-  for (let i = 0, rem = poolCounts.unitCount; i < POOL_UNITS && rem > 0; i++) {
-    const u = getUnit(i);
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
     if (!u.alive) continue;
     rem--;
     if (u.shieldLingerTimer > 0) u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
@@ -257,20 +257,20 @@ function shieldNearbyAllies(u: Unit, i: number) {
   const nn = getNeighbors(u.x, u.y, 100);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
-    const o = getUnit(oi);
-    if (!o.alive || o.team !== u.team || oi === i || getUnitType(o.type).reflects) continue;
-    if (o.shieldLingerTimer <= 0) addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, REFLECTOR_TETHER_BEAM_LIFE, 1.5);
-    o.shieldLingerTimer = REFLECTOR_SHIELD_LINGER;
+    const o = unit(oi);
+    if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) continue;
+    if (o.shieldLingerTimer <= 0) addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, TETHER_BEAM_LIFE, 1.5);
+    o.shieldLingerTimer = SHIELD_LINGER;
   }
 }
 
 function applyReflectorShields(dt: number) {
   decayShieldTimers(dt);
-  for (let i = 0, urem2 = poolCounts.unitCount; i < POOL_UNITS && urem2 > 0; i++) {
-    const u = getUnit(i);
+  for (let i = 0, urem2 = poolCounts.units; i < POOL_UNITS && urem2 > 0; i++) {
+    const u = unit(i);
     if (!u.alive) continue;
     urem2--;
-    if (!getUnitType(u.type).reflects) continue;
+    if (!unitType(u.type).reflects) continue;
     shieldNearbyAllies(u, i);
   }
 }
@@ -284,7 +284,7 @@ function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoo
   const co = gameState.codexOpen;
   buildHash();
   updateSwarmN();
-  resetReflectedSet();
+  resetReflected();
 
   updateUnits(dt, now, rng);
 
@@ -293,7 +293,7 @@ function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoo
   updateProjectiles(dt, rng);
   updateParticles(dt);
   updateBeams(dt);
-  updatePendingChains(dt, rng);
+  updateChains(dt, rng);
   updateTrackingBeams(dt);
 
   if (!co) {

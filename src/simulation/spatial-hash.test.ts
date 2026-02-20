@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, spawnAt } from '../__test__/pool-helper.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killUnit } from './spawn.ts';
 
@@ -58,8 +58,8 @@ describe('buildHash + getNeighbors', () => {
     let n = getNeighbors(50, 50, 100);
     expect(n).toBe(1);
 
-    getUnit(idx).x = 2000;
-    getUnit(idx).y = 2000;
+    unit(idx).x = 2000;
+    unit(idx).y = 2000;
     buildHash();
     n = getNeighbors(50, 50, 100);
     expect(n).toBe(0);
@@ -77,44 +77,44 @@ describe('getNeighborAt — エラーパス', () => {
 describe('knockback', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 1, 100, 0);
-    getUnit(idx).vx = 0;
-    getUnit(idx).vy = 0;
+    unit(idx).vx = 0;
+    unit(idx).vy = 0;
     knockback(idx, 0, 0, 50);
-    expect(getUnit(idx).vx).toBeGreaterThan(0);
-    expect(getUnit(idx).vy).toBeCloseTo(0);
+    expect(unit(idx).vx).toBeGreaterThan(0);
+    expect(unit(idx).vy).toBeCloseTo(0);
   });
 
   it('斜め方向にノックバックする', () => {
     const idx = spawnAt(0, 1, 100, 100);
-    getUnit(idx).vx = 0;
-    getUnit(idx).vy = 0;
+    unit(idx).vx = 0;
+    unit(idx).vy = 0;
     knockback(idx, 0, 0, 50);
-    expect(getUnit(idx).vx).toBeGreaterThan(0);
-    expect(getUnit(idx).vy).toBeGreaterThan(0);
-    expect(getUnit(idx).vx).toBeCloseTo(getUnit(idx).vy);
+    expect(unit(idx).vx).toBeGreaterThan(0);
+    expect(unit(idx).vy).toBeGreaterThan(0);
+    expect(unit(idx).vx).toBeCloseTo(unit(idx).vy);
   });
 
   it('既存速度に加算される', () => {
     const idx = spawnAt(0, 1, 100, 0);
-    getUnit(idx).vx = 10;
-    getUnit(idx).vy = 5;
+    unit(idx).vx = 10;
+    unit(idx).vy = 5;
     knockback(idx, 0, 0, 50);
-    expect(getUnit(idx).vx).toBeGreaterThan(10);
-    expect(getUnit(idx).vy).toBeCloseTo(5);
+    expect(unit(idx).vx).toBeGreaterThan(10);
+    expect(unit(idx).vy).toBeCloseTo(5);
   });
 
   it('mass が大きいほどノックバックが小さい', () => {
     const i1 = spawnAt(0, 1, 100, 0);
-    getUnit(i1).vx = 0;
-    getUnit(i1).mass = 1;
+    unit(i1).vx = 0;
+    unit(i1).mass = 1;
     knockback(i1, 0, 0, 50);
-    const lightKB = getUnit(i1).vx;
+    const lightKB = unit(i1).vx;
 
     const i2 = spawnAt(1, 1, 100, 0);
-    getUnit(i2).vx = 0;
-    getUnit(i2).mass = 10;
+    unit(i2).vx = 0;
+    unit(i2).mass = 10;
     knockback(i2, 0, 0, 50);
-    const heavyKB = getUnit(i2).vx;
+    const heavyKB = unit(i2).vx;
 
     expect(lightKB).toBeGreaterThan(heavyKB);
   });

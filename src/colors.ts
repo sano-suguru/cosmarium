@@ -126,12 +126,12 @@ const trailColors: ReadonlyArray<readonly [Color3, Color3]> = [
   ],
 ];
 
-export function getColor(t: number, tm: Team): Color3 {
+export function color(t: number, tm: Team): Color3 {
   const row = teamColors[t];
   if (row === undefined) throw new RangeError(`teamColors[${t}] out of range`);
   return row[tm];
 }
-export function getTrailColor(t: number, tm: Team): Color3 {
+export function trailColor(t: number, tm: Team): Color3 {
   const row = trailColors[t];
   if (row === undefined) throw new RangeError(`trailColors[${t}] out of range`);
   return row[tm];

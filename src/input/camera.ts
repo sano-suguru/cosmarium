@@ -65,25 +65,25 @@ export function initCamera() {
 }
 
 let autoFollow = false;
-let onAutoFollowChange: ((on: boolean) => void) | null = null;
+let _onAutoFollowCb: ((on: boolean) => void) | null = null;
 
-export function setOnAutoFollowChanged(cb: (on: boolean) => void): void {
-  onAutoFollowChange = cb;
+export function onAutoFollowChange(cb: (on: boolean) => void): void {
+  _onAutoFollowCb = cb;
 }
 
 export function toggleAutoFollow(): boolean {
   autoFollow = !autoFollow;
-  onAutoFollowChange?.(autoFollow);
+  _onAutoFollowCb?.(autoFollow);
   return autoFollow;
 }
 
 export function setAutoFollow(v: boolean): void {
   if (autoFollow === v) return;
   autoFollow = v;
-  onAutoFollowChange?.(autoFollow);
+  _onAutoFollowCb?.(autoFollow);
 }
 
-export function updateAutoFollowCamera(hotspot: { x: number; y: number; radius: number } | null): void {
+export function updateAutoFollow(hotspot: { x: number; y: number; radius: number } | null): void {
   if (!autoFollow || !hotspot) return;
   cam.targetX = hotspot.x;
   cam.targetY = hotspot.y;
@@ -128,7 +128,7 @@ export function snapCamera(): void {
   cam.z = cam.targetZ;
 }
 
-export function updateCodexDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {
+export function updateDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {
   cam.targetX = centroid.cx;
   cam.targetY = centroid.cy;
   cam.targetZ = Math.max(1.0, Math.min(3.5, Math.min(viewport.W, viewport.H) / (centroid.radius * 2.5)));

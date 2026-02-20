@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getUnitType, TYPES, unitTypeIndex } from './unit-types.ts';
+import { TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
   it('要素数が15', () => {
@@ -49,52 +49,52 @@ describe('TYPES 配列', () => {
   });
 
   it('特殊フラグ: idx 2 (Bomber) は aoe を持つ', () => {
-    expect(getUnitType(2).aoe).toBe(42);
+    expect(unitType(2).aoe).toBe(42);
   });
 
   it('特殊フラグ: idx 3 (Cruiser) は sweep を持つ', () => {
-    expect(getUnitType(3).sweep).toBe(true);
+    expect(unitType(3).sweep).toBe(true);
   });
 
   it('特殊フラグ: idx 5 (Healer) は heals を持つ', () => {
-    expect(getUnitType(5).heals).toBe(true);
+    expect(unitType(5).heals).toBe(true);
   });
 
   it('特殊フラグ: idx 6 (Reflector) は reflects を持つ', () => {
-    expect(getUnitType(6).reflects).toBe(true);
+    expect(unitType(6).reflects).toBe(true);
   });
 
   it('特殊フラグ: idx 7 (Carrier) は spawns を持つ', () => {
-    expect(getUnitType(7).spawns).toBe(true);
+    expect(unitType(7).spawns).toBe(true);
   });
 
   it('特殊フラグ: idx 9 (Lancer) は rams を持つ', () => {
-    expect(getUnitType(9).rams).toBe(true);
+    expect(unitType(9).rams).toBe(true);
   });
 
   it('特殊フラグ: idx 10 (Launcher) は homing を持つ', () => {
-    expect(getUnitType(10).homing).toBe(true);
+    expect(unitType(10).homing).toBe(true);
   });
 
   it('特殊フラグ: idx 11 (Disruptor) は emp を持つ', () => {
-    expect(getUnitType(11).emp).toBe(true);
+    expect(unitType(11).emp).toBe(true);
   });
 
   it('特殊フラグ: idx 12 (Beam Frig.) は beam を持つ', () => {
-    expect(getUnitType(12).beam).toBe(true);
+    expect(unitType(12).beam).toBe(true);
   });
 
   it('特殊フラグ: idx 13 (Teleporter) は teleports を持つ', () => {
-    expect(getUnitType(13).teleports).toBe(true);
+    expect(unitType(13).teleports).toBe(true);
   });
 
   it('特殊フラグ: idx 14 (Arcer) は chain を持つ', () => {
-    expect(getUnitType(14).chain).toBe(true);
+    expect(unitType(14).chain).toBe(true);
   });
 
   it('フラグを持たないタイプ (Drone, Fighter, Flagship, Sniper) は特殊フラグなし', () => {
     for (const idx of [0, 1, 4, 8]) {
-      const t = getUnitType(idx);
+      const t = unitType(idx);
       expect(t.beam).toBeUndefined();
       expect(t.heals).toBeUndefined();
       expect(t.reflects).toBeUndefined();
@@ -110,11 +110,11 @@ describe('TYPES 配列', () => {
 
 describe('getUnitType — エラーパス', () => {
   it('負のインデックスでRangeError', () => {
-    expect(() => getUnitType(-1)).toThrow(RangeError);
+    expect(() => unitType(-1)).toThrow(RangeError);
   });
 
   it('TYPES.length以上のインデックスでRangeError', () => {
-    expect(() => getUnitType(TYPES.length)).toThrow(RangeError);
+    expect(() => unitType(TYPES.length)).toThrow(RangeError);
   });
 });
 
@@ -131,7 +131,7 @@ describe('unitTypeIndex', () => {
 
   it('全タイプ名が正引き可能', () => {
     for (let i = 0; i < TYPES.length; i++) {
-      const t = getUnitType(i);
+      const t = unitType(i);
       expect(unitTypeIndex(t.name)).toBe(i);
     }
   });

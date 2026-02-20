@@ -1,5 +1,5 @@
 import { CELL_SIZE, NEIGHBOR_BUFFER_SIZE, POOL_UNITS } from '../constants.ts';
-import { getUnit } from '../pools.ts';
+import { unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 
 const hashMap = new Map<number, UnitIndex[]>();
@@ -25,7 +25,7 @@ export function buildHash() {
   _used.length = 0;
   hashMap.clear();
   for (let i = 0; i < POOL_UNITS; i++) {
-    const u = getUnit(i);
+    const u = unit(i);
     if (!u.alive) continue;
     const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
     let a = hashMap.get(k);
@@ -66,7 +66,7 @@ export function getNeighbors(x: number, y: number, r: number): number {
 }
 
 export function knockback(ti: UnitIndex, fx: number, fy: number, force: number) {
-  const u = getUnit(ti);
+  const u = unit(ti);
   const dx = u.x - fx,
     dy = u.y - fy;
   const d = Math.sqrt(dx * dx + dy * dy) || 1;
