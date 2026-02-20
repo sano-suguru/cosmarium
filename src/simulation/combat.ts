@@ -746,7 +746,7 @@ function fireCarpetBomb(ctx: CombatContext, ang: number, d: number) {
   spawnMuzzleFlash(ctx, ang);
 }
 
-// localX = forward axis, localY = starboard (perpendicular right)
+// localX = forward, localY = starboard
 const _fwBuf: [number, number] = [0, 0];
 function flagshipWorld(u: Unit, localX: number, localY: number): [number, number] {
   const cos = Math.cos(u.angle);
@@ -756,7 +756,7 @@ function flagshipWorld(u: Unit, localX: number, localY: number): [number, number
   return _fwBuf;
 }
 
-// 3 per hull, 6 total (Y offsets in hull-local coords)
+// 3 per hull side, 6 total
 const ENGINE_OFFSETS = [0.14, 0.24, 0.34] as const;
 const MUZZLE_FWD = 0.6;
 
@@ -818,7 +818,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   // non-homing lock ±0.15 → weak vs swarms (intentional)
   for (let i = -1; i <= 1; i++) {
     const ba = lockAngle + i * 0.15;
-    const hullSign = i >= 0 ? 1 : -1; // starboard=右偏向+中央, port=左偏向
+    const hullSign = i >= 0 ? 1 : -1;
     const [ox, oy] = flagshipWorld(u, t.size * MUZZLE_FWD, hullSign * 0.24 * t.size);
     spawnProjectile(
       ox,
@@ -1081,8 +1081,7 @@ function fireNormal(ctx: CombatContext) {
   dispatchFire(ctx, ang, d);
 }
 
-/** 射撃モード分岐。優先度順: carpet → homing → burst → aoe → railgun → default。
- *  COMBAT_FLAG_PRIORITY の末尾 (carpet → homing → burst → swarm) と一致させること */
+/** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること */
 function dispatchFire(ctx: CombatContext, ang: number, d: number) {
   const { u, t } = ctx;
 

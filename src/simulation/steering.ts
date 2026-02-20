@@ -16,7 +16,7 @@ const _force: SteerForce = { x: 0, y: 0 };
 
 const VET_TARGET_WEIGHT = 0.3;
 
-// findTarget ヘルパー: 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる）
+// 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる）
 function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
   let bs = range * 3,
     bi: UnitIndex = NO_UNIT;
@@ -34,7 +34,7 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
   return bi;
 }
 
-// findTarget ヘルパー: 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる）
+// 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる）
 function findNearestGlobalEnemy(u: Unit): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
@@ -64,11 +64,10 @@ function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => n
   return NO_UNIT;
 }
 
-// computeBoidsForce 専用 accumulator — computeBoidsForce がリセットし
-// accumulateBoidsNeighbor が累積する。外部から直接呼ばないこと
+// Boids accumulator — computeBoidsForce がリセットし accumulateBoidsNeighbor が累積
 const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
 
-// computeBoidsForce 内部ヘルパー: 近傍単体の Boids 力を _boids に集約
+// 近傍単体の Boids 力を _boids に集約
 function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   const dx = u.x - o.x,
     dy = u.y - o.y;

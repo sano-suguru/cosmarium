@@ -48,7 +48,7 @@ let elCodexList: HTMLElement | null = null;
 let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
 
-// --- Snapshot型 ---
+// --- Snapshot ---
 interface PoolSnapshot {
   units: Array<{ index: number; data: Unit }>;
   particles: Array<{ index: number; data: Particle }>;
@@ -104,7 +104,6 @@ export function restorePools(snapshot: PoolSnapshot) {
   setPoolCounts(snapshot.counts.units, snapshot.counts.particles, snapshot.counts.projectiles);
 }
 
-/** デモの全エンティティを除去。setupCodexDemo冒頭で使用 */
 function clearCurrentDemo() {
   clearAllPools();
   resetChains();
@@ -350,7 +349,7 @@ export function updateCodexDemo(dt: number) {
   }
 }
 
-/** サブステップ外で1フレームに1回だけ呼ぶ。デモ中のカメラtargetを更新する */
+/** 1フレーム1回呼び出し。デモ中のカメラtargetを更新 */
 export function syncDemoCamera(): void {
   const bounds = computeDemoBounds();
   updateDemoCamera(bounds);

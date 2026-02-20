@@ -285,14 +285,12 @@ export const TYPES: UnitType[] = [
   },
 ];
 
-/** pools.ts と同パターンの安全アクセサ */
 export function unitType(id: number): UnitType {
   const t = TYPES[id];
   if (t === undefined) throw new RangeError(`Invalid unit type id: ${id}`);
   return t;
 }
 
-/** TYPES配列のnameからインデックスを導出する。存在しない名前はコンパイル時に弾けないためランタイムエラー */
 export function unitTypeIndex(name: string): number {
   const idx = TYPES.findIndex((t) => t.name === name);
   if (idx === -1) throw new RangeError(`Unknown unit type name: ${name}`);

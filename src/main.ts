@@ -36,7 +36,6 @@ let lastTime = 0,
   fpsTime = 0,
   displayFps = 0;
 
-/** state のミュータブルフィールドを GameLoopState として公開する薄いラッパー */
 const gameLoopState = {
   get codexOpen() {
     return state.codexOpen;
@@ -81,8 +80,7 @@ function frame(now: number) {
 
   if (state.codexOpen) {
     setAutoFollow(false);
-    // デモは timeScale を無視して常に 1x で再生（速度設定に依存しない一貫した表示のため）
-    // ゲームPRNG汚染を防ぐため demoRng を使用
+    // デモは timeScale 無視で常に 1x 再生。ゲームPRNG汚染防止のため demoRng 使用
     update(dt * BASE_SPEED, t, demoRng, gameLoopState);
     syncDemoCamera();
     renderFrame(t);
