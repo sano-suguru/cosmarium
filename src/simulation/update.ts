@@ -9,6 +9,7 @@ import {
   REFLECTOR_SHIELD_LINGER,
   REFLECTOR_TETHER_BEAM_LIFE,
   SH_CIRCLE,
+  SH_EXPLOSION_RING,
   SWARM_RADIUS_SQ,
   TAU,
 } from '../constants.ts';
@@ -78,7 +79,7 @@ function detonateAoe(p: Projectile, rng: () => number) {
       SH_CIRCLE,
     );
   }
-  spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, 10);
+  spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
   addShake(3);
 }
 
