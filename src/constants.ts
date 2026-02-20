@@ -16,3 +16,15 @@ export const TAU = Math.PI * 2;
 export const BASE_SPEED = 0.55;
 export const REF_FPS = 30;
 export const MAX_STEPS_PER_FRAME = 8;
+
+// Non-unit shape IDs (particles, projectiles, overlays)
+// These occupy unused slots in the 0-26 shape range to avoid collision with unit shapes
+export const SH_CIRCLE = 3;
+export const SH_DIAMOND = 4;
+export const SH_EXPLOSION_RING = 10;
+export const SH_BEAM = 12;
+export const SH_HOMING = 14;
+export const SH_STAR = 17;
+export const SH_BAR = 21;
+export const SH_OCT_SHIELD = 22;
+export const SH_LIGHTNING = 23;

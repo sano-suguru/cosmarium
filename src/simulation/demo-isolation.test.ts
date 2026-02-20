@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { clearAllPools, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex.ts';
@@ -57,7 +57,7 @@ describe('snapshot & restore ラウンドトリップ', () => {
   });
 
   it('パーティクルが復元される', () => {
-    const pi = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    const pi = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     const pBefore = { ...getParticle(pi) };
 
     const snapshot = snapshotPools();
@@ -143,7 +143,7 @@ describe('snapshot & restore ラウンドトリップ', () => {
   it('poolCountsが正確に復元される', () => {
     spawnAt(0, 0, 0, 0);
     spawnAt(1, 1, 100, 100);
-    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     spawnProjectile(0, 0, 1, 0, 1, 5, 0, 2, 1, 0, 0);
 
     const snapshot = snapshotPools();
@@ -167,7 +167,7 @@ describe('snapshot & restore ラウンドトリップ', () => {
 describe('clearAllPools', () => {
   it('全プールをクリアする', () => {
     spawnAt(0, 0, 100, 100);
-    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     spawnProjectile(0, 0, 1, 0, 1, 5, 0, 2, 1, 0, 0);
     addBeam(0, 0, 10, 10, 1, 0, 0, 1, 2);
     trackingBeams.push({
@@ -243,7 +243,7 @@ describe('空プールのsnapshot & restore', () => {
 
     // デモエンティティを生成
     spawnAt(0, 0, 50, 50);
-    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.unitCount).toBe(1);
 
     restorePools(snapshot);

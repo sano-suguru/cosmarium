@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { POOL_UNITS } from '../constants.ts';
+import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe('spawnParticle', () => {
   it('パーティクルを生成し poolCounts.particleCount が増加する', () => {
-    const idx = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    const idx = spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     expect(idx).toBe(0);
     expect(poolCounts.particleCount).toBe(1);
     const p = getParticle(0);
@@ -32,12 +32,12 @@ describe('spawnParticle', () => {
     expect(p.r).toBe(1);
     expect(p.g).toBe(0.5);
     expect(p.b).toBe(0);
-    expect(p.shape).toBe(0);
+    expect(p.shape).toBe(SH_CIRCLE);
   });
 
   it('複数生成で空きスロットを探索する', () => {
-    const i1 = spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
-    const i2 = spawnParticle(5, 5, 0, 0, 1, 1, 1, 1, 1, 0);
+    const i1 = spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
+    const i2 = spawnParticle(5, 5, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     expect(i1).toBe(0);
     expect(i2).toBe(1);
     expect(poolCounts.particleCount).toBe(2);
@@ -45,7 +45,7 @@ describe('spawnParticle', () => {
 
   it('プール満杯時に NO_PARTICLE を返す', () => {
     fillParticlePool();
-    const idx = spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, 0);
+    const idx = spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     expect(idx).toBe(NO_PARTICLE);
   });
 });
@@ -140,7 +140,7 @@ describe('killUnit', () => {
 
 describe('killParticle', () => {
   it('パーティクルを無効化し poolCounts.particleCount を減少させる', () => {
-    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     expect(poolCounts.particleCount).toBe(1);
     killParticle(0 as ParticleIndex);
     expect(getParticle(0).alive).toBe(false);
@@ -148,7 +148,7 @@ describe('killParticle', () => {
   });
 
   it('二重killしても poolCounts が負にならない', () => {
-    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, 0);
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     killParticle(0 as ParticleIndex);
     killParticle(0 as ParticleIndex);
     expect(poolCounts.particleCount).toBe(0);

@@ -41,7 +41,8 @@ const float FWIDTH_MULT[27]=float[27](
 void main(){
   float d=length(vU), a=0.0;
   int sh=int(vSh+0.5);
-  if(sh==0){ vec2 p=vU*0.66; float t=vA;
+  sh=clamp(sh,0,26);
+  if(sh==0){ vec2 p=vU*0.66; float t=vA+uTime;
     // Drone: Small insect-like triangular body, micro-wings with flutter
     // 1. Compact triangular fuselage
     float dFuse=sdRoundedBox(p-vec2(0.05,0.0),vec2(0.22,0.12),0.06);
@@ -72,7 +73,7 @@ void main(){
     if(p.x<-0.30){float dy=abs(p.y);trail=exp(-dy*16.0)*exp((p.x+0.30)*3.0)*pulse*0.4;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.70+(tipL+tipR)*0.40+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==1){ vec2 p=vU*0.70; float t=vA;
+  else if(sh==1){ vec2 p=vU*0.70; float t=vA+uTime;
     // Fighter: X-wing style, forward-swept wings, gun mounts
     // 1. Sleek central fuselage
     float dFuse=sdRoundedBox(p-vec2(0.08,0.0),vec2(0.38,0.08),0.04);
@@ -112,7 +113,7 @@ void main(){
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.65+mFlash*0.30+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==2){
-    vec2 p=vU*0.82; float t=vA;
+    vec2 p=vU*0.82; float t=vA+uTime;
     // Heavy Bomber: Wide fuselage, thick wings, cargo bay
     
     // 1. Wings (Back): Wide sweep
@@ -169,11 +170,12 @@ void main(){
     a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + cargoGlow*0.3 + glow + trail;
     a=1.2*tanh(a/1.2); // Tone map
   }
-  else if(sh==3){ float dd=hexDist(vU);
-    a=smoothstep(1.0,0.8,dd)+exp(-dd*2.5)*0.5; }
-  else if(sh==4){ float cx=step(abs(vU.x),0.2)+step(abs(vU.y),0.2);
-    a=min(cx,1.0)*smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
-  else if(sh==5){ vec2 p=vU*0.68; float t=vA;
+  else if(sh==3){ // Circle (particles, AOE projectiles)
+    a=smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
+  else if(sh==4){ // Diamond (projectiles)
+    float dd=abs(vU.x)+abs(vU.y);
+    a=smoothstep(1.0,0.6,dd)+exp(-dd*2.0)*0.4; }
+  else if(sh==5){ vec2 p=vU*0.68; float t=vA+uTime;
     // Beam Frigate: Forward focusing dish, beam emitter spine, charging anim
     // 1. Rear hull (compact engine block)
     float dHull=sdRoundedBox(p-vec2(-0.20,0.0),vec2(0.25,0.16),0.06);
@@ -211,7 +213,7 @@ void main(){
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==6){
-    vec2 p=vU*0.67; float t=vA;
+    vec2 p=vU*0.67; float t=vA+uTime;
     // Launcher: Sleek Missile Frigate
     // Long thin hull, sharp nose, side missile pods
     
@@ -270,7 +272,7 @@ void main(){
     a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + glow + trail + podGlow;
     a=1.1*tanh(a/1.1);
   }
-  else if(sh==7){ vec2 p=vU*0.62; float t=vA;
+  else if(sh==7){ vec2 p=vU*0.62; float t=vA+uTime;
     // Carrier: Flat flight deck, central catapult, side hangars, drone bay glow
     // 1. Main deck (wide flat body)
     float dDeck=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.52,0.22),0.06);
@@ -296,15 +298,15 @@ void main(){
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 6. Catapult runway lights (animated forward)
+    // 7. Catapult runway lights (animated forward)
     float rwGlow=(1.0-smoothstep(0.0,aa*2.0,abs(dRunway)))
                  *(0.4+0.6*(0.5+0.5*sin(p.x*12.0-t*8.0)))*0.45;
-    // 7. Hangar bay glow (pulsing drone readiness)
+    // 8. Hangar bay glow (pulsing drone readiness)
     float bayPulse=0.5+0.5*sin(t*2.5);
     float bayGlow=(exp(-abs(dBayL)*18.0)+exp(-abs(dBayR)*18.0))*bayPulse*0.5;
-    // 8. Bridge window lights
+    // 9. Bridge window lights
     float bridgeGlow=exp(-length(p-vec2(-0.18,0.24))*16.0)*(0.6+0.4*sin(t*1.5));
-    // 9. Twin engines + trail
+    // 10. Twin engines + trail
     float eP=0.6+0.4*sin(t*5.0);
     float dE1=length(p-vec2(-0.54,0.10)); float dE2=length(p-vec2(-0.54,-0.10));
     float eng=exp(-min(dE1,dE2)*8.0)*eP;
@@ -313,7 +315,7 @@ void main(){
       trail=exp(-dy*10.0)*exp((p.x+0.54)*2.0)*eP*0.4;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rwGlow+bayGlow+bridgeGlow*0.35+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==8){ vec2 p=vU*0.72; float t=vA;
+  else if(sh==8){ vec2 p=vU*0.72; float t=vA+uTime;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
     // 1. Compact rear body (engine + power plant)
     float dRear=sdRoundedBox(p-vec2(-0.28,0.0),vec2(0.20,0.16),0.05);
@@ -350,7 +352,7 @@ void main(){
     if(p.x<-0.48){float dy=abs(p.y);trail=exp(-dy*16.0)*exp((p.x+0.48)*3.0)*pulse*0.35;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==9){ vec2 p=vU*0.74; float t=vA;
+  else if(sh==9){ vec2 p=vU*0.74; float t=vA+uTime;
     // Lancer: Arrowhead/spear shape, extreme forward point, heavy boost trail
     // 1. Central spear body (very pointed nose)
     float dSpear=sdRoundedBox(p-vec2(0.12,0.0),vec2(0.42,0.10),0.03);
@@ -388,7 +390,7 @@ void main(){
     a=1.2*tanh(a/1.2); }
   else if(sh==10){ float ring=abs(d-0.75);
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
-  else if(sh==11){ vec2 p=vU*0.64; float t=vA;
+  else if(sh==11){ vec2 p=vU*0.64; float t=vA+uTime;
     // Disruptor: Radial antenna array, circular core, EMP ring emission
     // 1. Circular core body
     float dCore=length(p)-0.18;
@@ -430,7 +432,7 @@ void main(){
   else if(sh==12){ float by=abs(vU.y),bx=abs(vU.x);
     float xf=smoothstep(1.0,0.4,bx);
     a=(exp(-by*6.0)*1.0+exp(-by*2.5)*0.4)*xf+exp(-d*1.5)*0.2; }
-  else if(sh==13){ vec2 p=vU*0.66; float t=vA;
+  else if(sh==13){ vec2 p=vU*0.66; float t=vA+uTime;
     // Teleporter: Octagonal frame, hollow center, phase distortion ripple
     // 1. Outer octagonal frame (ring shape)
     float dOuter=octDist(p)-0.38;
@@ -467,9 +469,10 @@ void main(){
     if(p.x<-0.44){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.44)*2.5)*pulse*0.35;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+distortion+frameEdge+nodes+eng*0.45+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==14){ float r=polarR(vU,3.0,0.55,0.3);
-    a=smoothstep(r+0.15,r-0.1,d)+exp(-d*2.0)*0.3; }
-  else if(sh==15){ vec2 p=vU*0.69; float t=vA;
+  else if(sh==14){ // Homing missile (elongated diamond / arrowhead)
+    float dd=abs(vU.x)*0.6+abs(vU.y);
+    a=smoothstep(1.0,0.5,dd)+exp(-dd*2.5)*0.4; }
+  else if(sh==15){ vec2 p=vU*0.69; float t=vA+uTime;
     // Arcer: Tesla coil Y-shape, triple prongs, electrical arc discharge
     // 1. Central body (power generator)
     float dCore=sdRoundedBox(p-vec2(-0.10,0.0),vec2(0.20,0.14),0.06);
@@ -511,7 +514,7 @@ void main(){
     if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.34)*2.5)*pulse*0.4;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==16){ vec2 p=vU*0.66; float t=vA;
+  else if(sh==16){ vec2 p=vU*0.66; float t=vA+uTime;
     // Cruiser: Pentagon-based heavy armored hull, beam turret slit, armored panels
     // 1. Pentagon-ish main hull (wide, angular, heavy)
     float dHull=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.40,0.24),0.08);
@@ -551,6 +554,9 @@ void main(){
       trail=exp(-dy*10.0)*exp((p.x+0.44)*2.0)*eP*0.45;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+prowGlow*0.40+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
+  else if(sh==17){ // Star (vet badge)
+    float r=polarR(vU,5.0,0.55,0.3);
+    a=smoothstep(r+0.15,r-0.1,d)+exp(-d*2.0)*0.3; }
   else if(sh==20){ float dd=hexDist(vU);
     a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
@@ -558,7 +564,7 @@ void main(){
   else if(sh==22){ float od=octDist(vU);
     float edge=abs(od-0.75);
     a=smoothstep(0.06,0.01,edge)*0.7;
-    float t=vA*4.0;
+    float t=vA*4.0+uTime;
     vec2 v0=vec2(0.75,0.311); vec2 v1=vec2(0.311,0.75);
     vec2 v2=vec2(-0.311,0.75); vec2 v3=vec2(-0.75,0.311);
     vec2 v4=vec2(-0.75,-0.311); vec2 v5=vec2(-0.311,-0.75);
@@ -576,7 +582,7 @@ void main(){
     float core=exp(-by*8.0)*1.3;
     float glow=exp(-by*2.5)*0.4;
     a=core+glow; }
-  else if(sh==24){ vec2 p=vU*0.84; float t=vA;
+  else if(sh==24){ vec2 p=vU*0.84; float t=vA+uTime;
     float dTop=sdCapsule(p,vec2(-0.72,0.24),vec2(0.62,0.24),0.18);
     float dBot=sdCapsule(p,vec2(-0.72,-0.24),vec2(0.62,-0.24),0.18);
     float dBody=smin(min(dTop,dBot),sdRoundedBox(p-vec2(0.66,0.0),vec2(0.18,0.30),0.08),0.08);
@@ -612,7 +618,7 @@ void main(){
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(0.35,0.85,p.x);
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.70;
     a=1.2*tanh(a/1.2); }
-  else if(sh==25){ vec2 p=vU*0.55; float t=vA;
+  else if(sh==25){ vec2 p=vU*0.55; float t=vA+uTime;
     // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
 
     // 1. Wide oval hull (distinctly rounder/wider than combat ships)
@@ -686,7 +692,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.60+trail;
     a=1.2*tanh(a/1.2); }
-  else if(sh==26){ vec2 p=vU*0.54; float t=vA;
+  else if(sh==26){ vec2 p=vU*0.54; float t=vA+uTime;
     // Prism Shield: compact hull behind massive front shield, swept fins
 
     // 1. Compact angular hull (rear body)

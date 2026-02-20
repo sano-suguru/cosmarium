@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
-import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER } from '../constants.ts';
+import { POOL_UNITS, REF_FPS, REFLECTOR_SHIELD_LINGER, SH_CIRCLE } from '../constants.ts';
 import { decUnitCount, getParticle, getProjectile, getUnit, poolCounts } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { getUnitType } from '../unit-types.ts';
@@ -88,7 +88,7 @@ describe('buildHash call count — sub-stepping検証', () => {
 // ============================================================
 describe('dt sub-stepping', () => {
   it('rawDt > 0.033 はサブステップに分割される', () => {
-    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.particleCount).toBe(1);
     update(0.05, 0, rng, gameLoopState());
     // rawDt=0.05, maxStep=0.033, steps=ceil(0.05/0.033)=2, dt=0.05/2=0.025
@@ -97,7 +97,7 @@ describe('dt sub-stepping', () => {
   });
 
   it('rawDt <= 0.033 はそのまま使われる', () => {
-    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, SH_CIRCLE);
     update(0.02, 0, rng, gameLoopState());
     expect(getParticle(0).life).toBeCloseTo(1.0 - 0.02);
   });
@@ -108,7 +108,7 @@ describe('dt sub-stepping', () => {
 // ============================================================
 describe('パーティクル pass', () => {
   it('移動 + drag 0.97', () => {
-    spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, SH_CIRCLE);
     update(0.016, 0, rng, gameLoopState());
     expect(getParticle(0).x).toBeCloseTo(100 * 0.016, 1);
     expect(getParticle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
@@ -116,7 +116,7 @@ describe('パーティクル pass', () => {
   });
 
   it('life<=0 で消滅', () => {
-    spawnParticle(0, 0, 0, 0, 0.01, 1, 1, 1, 1, 0);
+    spawnParticle(0, 0, 0, 0, 0.01, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.particleCount).toBe(1);
     update(0.016, 0, rng, gameLoopState());
     expect(getParticle(0).alive).toBe(false);

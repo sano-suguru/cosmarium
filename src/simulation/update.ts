@@ -8,6 +8,7 @@ import {
   REF_FPS,
   REFLECTOR_SHIELD_LINGER,
   REFLECTOR_TETHER_BEAM_LIFE,
+  SH_CIRCLE,
   SWARM_RADIUS_SQ,
   TAU,
 } from '../constants.ts';
@@ -40,7 +41,7 @@ function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
     p.vy = Math.sin(ca) * sp;
   }
   if (rng() < 1 - 0.5 ** (dt * REF_FPS)) {
-    spawnParticle(p.x, p.y, (rng() - 0.5) * 18, (rng() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, 0);
+    spawnParticle(p.x, p.y, (rng() - 0.5) * 18, (rng() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, SH_CIRCLE);
   }
 }
 
@@ -74,7 +75,7 @@ function detonateAoe(p: Projectile, rng: () => number) {
       p.r,
       p.g * 0.8 + 0.2,
       p.b * 0.3,
-      0,
+      SH_CIRCLE,
     );
   }
   spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, 10);
@@ -93,7 +94,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
       if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
       o.hp -= dmg;
       knockback(oi, p.x, p.y, p.damage * 12);
-      spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, 0);
+      spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
       if (o.hp <= 0) {
         killUnit(oi);
         explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
@@ -117,7 +118,7 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
       p.r * 0.6,
       p.g * 0.6,
       p.b * 0.6,
-      0,
+      SH_CIRCLE,
     );
   }
 }

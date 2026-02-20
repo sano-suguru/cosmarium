@@ -1,21 +1,26 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { getColor } from '../colors.ts';
-import { MAX_INSTANCES, POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import {
+  MAX_INSTANCES,
+  POOL_PARTICLES,
+  POOL_PROJECTILES,
+  POOL_UNITS,
+  SH_BAR,
+  SH_BEAM,
+  SH_CIRCLE,
+  SH_DIAMOND,
+  SH_EXPLOSION_RING,
+  SH_HOMING,
+  SH_LIGHTNING,
+  SH_OCT_SHIELD,
+  SH_STAR,
+  TAU,
+} from '../constants.ts';
 import { getParticle, getProjectile, getUnit } from '../pools.ts';
 import type { Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { getUnitType } from '../unit-types.ts';
 import { instanceData, writeSlots } from './buffers.ts';
-
-const SH_CIRCLE = 0;
-const SH_DIAMOND = 1;
-const SH_HOMING = 6;
-const SH_STAR = 7;
-const SH_EXPLOSION_RING = 10;
-const SH_BEAM = 12;
-const SH_BAR = 21;
-const SH_OCT_SHIELD = 22;
-const SH_LIGHTNING = 23;
 
 const _writer = { idx: 0, overflowWarned: false };
 
@@ -276,13 +281,17 @@ function renderProjectiles() {
   }
 }
 
+// TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
+const WRAP_PERIOD = TAU * 10000;
+
 export function renderScene(now: number): number {
   _writer.idx = 0;
+  const t = now % WRAP_PERIOD;
 
   renderParticles();
-  renderBeams(now);
+  renderBeams(t);
   renderProjectiles();
-  renderUnits(now);
+  renderUnits(t);
 
   return _writer.idx;
 }

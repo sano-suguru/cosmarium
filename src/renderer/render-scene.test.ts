@@ -302,7 +302,7 @@ describe('writeInstance（直接使用）', () => {
 
     const calls = getWriteCalls();
     const expectedAngle = Math.atan2(1, 1);
-    const prCall = calls.find((c) => c.shape === 1 && Math.abs(c.angle - expectedAngle) < 0.01);
+    const prCall = calls.find((c) => c.shape === 4 && Math.abs(c.angle - expectedAngle) < 0.01);
     expect(prCall).toBeDefined();
   });
 
@@ -316,7 +316,7 @@ describe('writeInstance（直接使用）', () => {
     renderScene(now);
 
     const calls = getWriteCalls();
-    const badgeCall = calls.find((c) => c.shape === 7 && Math.abs(c.angle - now * 3) < 0.01);
+    const badgeCall = calls.find((c) => c.shape === 17 && Math.abs(c.angle - now * 3) < 0.01);
     expect(badgeCall).toBeDefined();
   });
 });

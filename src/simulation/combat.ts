@@ -1,5 +1,5 @@
 import { getColor } from '../colors.ts';
-import { POOL_PROJECTILES, REF_FPS } from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectile, getUnit, poolCounts } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -93,7 +93,7 @@ function handleRam(ctx: CombatContext) {
           1,
           0.9,
           0.4,
-          0,
+          SH_CIRCLE,
         );
       }
       if (o.hp <= 0) {
@@ -175,7 +175,7 @@ function reflectProjectile(
       c[0],
       c[1],
       c[2],
-      0,
+      SH_CIRCLE,
     );
   }
   spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, 10);
@@ -239,7 +239,7 @@ function handleReflector(ctx: CombatContext) {
       c[0] * 0.5,
       c[1] * 0.5,
       c[2] * 0.5,
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -265,7 +265,7 @@ function handleCarrier(ctx: CombatContext) {
         c[0],
         c[1],
         c[2],
-        0,
+        SH_CIRCLE,
       );
     }
   }
@@ -303,7 +303,7 @@ function handleEmp(ctx: CombatContext) {
       0.5,
       0.5,
       1,
-      0,
+      SH_CIRCLE,
     );
   }
   spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, 10);
@@ -323,7 +323,7 @@ function handleTeleporter(ctx: CombatContext) {
     u.teleportTimer = 3 + ctx.rng() * 2;
     for (let i = 0; i < 8; i++) {
       const a = ctx.rng() * 6.283;
-      spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], 0);
+      spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], SH_CIRCLE);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], 10);
     const ta = ctx.rng() * 6.283,
@@ -332,7 +332,7 @@ function handleTeleporter(ctx: CombatContext) {
     u.y = o.y + Math.sin(ta) * td;
     for (let i = 0; i < 8; i++) {
       const a = ctx.rng() * 6.283;
-      spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], 0);
+      spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], SH_CIRCLE);
     }
     spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, 10);
     for (let i = 0; i < 5; i++) {
@@ -410,7 +410,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
       c[0],
       c[1],
       c[2],
-      0,
+      SH_CIRCLE,
     );
     if (n.hp <= 0) {
       killUnit(ni);
@@ -458,7 +458,7 @@ function sweepTipSpark(ctx: CombatContext, x: number, y: number, c: Color3, dt: 
       c[0],
       c[1],
       c[2],
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -489,7 +489,7 @@ function sweepPathParticles(
       c[0],
       c[1],
       c[2],
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -614,7 +614,7 @@ function handleFocusBeam(ctx: CombatContext) {
         c[0],
         c[1],
         c[2],
-        0,
+        SH_CIRCLE,
       );
     }
     if (o.hp <= 0) {
@@ -783,7 +783,7 @@ function flagshipChargeVfx(ctx: CombatContext, progress: number) {
           c[0] * 0.7 + 0.3,
           c[1] * 0.7 + 0.3,
           c[2] * 0.7 + 0.3,
-          0,
+          SH_CIRCLE,
         );
       }
     }
@@ -845,7 +845,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
         c[0] * 0.5 + 0.5,
         c[1] * 0.5 + 0.5,
         c[2] * 0.5 + 0.5,
-        0,
+        SH_CIRCLE,
       );
     }
   }
@@ -871,7 +871,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
           c[0] * 0.6 + 0.4,
           c[1] * 0.6 + 0.4,
           c[2] * 0.6 + 0.4,
-          0,
+          SH_CIRCLE,
         );
       }
     }
@@ -927,7 +927,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
         c[0],
         c[1],
         c[2],
-        0,
+        SH_CIRCLE,
       );
     }
 
@@ -1030,7 +1030,7 @@ function fireRailgun(ctx: CombatContext, ang: number) {
       1,
       1,
       0.8,
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -1050,10 +1050,10 @@ function spawnMuzzleFlash(ctx: CombatContext, ang: number) {
       c[0],
       c[1],
       c[2],
-      0,
+      SH_CIRCLE,
     );
   }
-  spawnParticle(mx, my, 0, 0, 0.05, 3 + t.damage * 0.5, 1, 1, 1, 0);
+  spawnParticle(mx, my, 0, 0, 0.05, 3 + t.damage * 0.5, 1, 1, 1, SH_CIRCLE);
 }
 
 function fireNormal(ctx: CombatContext) {

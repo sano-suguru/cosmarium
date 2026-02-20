@@ -115,7 +115,7 @@ export function spawnParticle(
       p.r = r;
       p.g = g;
       p.b = b;
-      p.shape = shape || 0;
+      p.shape = shape;
       incParticleCount();
       return i as ParticleIndex;
     }

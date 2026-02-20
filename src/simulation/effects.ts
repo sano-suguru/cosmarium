@@ -1,5 +1,5 @@
 import { getColor, getTrailColor } from '../colors.ts';
-import { POOL_UNITS, REF_FPS, TAU } from '../constants.ts';
+import { POOL_UNITS, REF_FPS, SH_CIRCLE, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getUnit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
@@ -24,7 +24,7 @@ function spawnExplosionDebris(x: number, y: number, size: number, c: Color3, rng
       c[0] * 0.5 + 0.5,
       c[1] * 0.5 + 0.5,
       c[2] * 0.5 + 0.5,
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -42,7 +42,7 @@ function spawnExplosionFlash(x: number, y: number, size: number, rng: () => numb
       1,
       1,
       1,
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -81,7 +81,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   for (let i = 0; i < dc; i++) {
     const a = rng() * 6.283;
     const sp = 15 + rng() * 140;
-    spawnParticle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.5 + rng() * 2, 1 + rng() * 2, 0.5, 0.35, 0.2, 0);
+    spawnParticle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.5 + rng() * 2, 1 + rng() * 2, 0.5, 0.35, 0.2, SH_CIRCLE);
   }
   spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 10);
 
@@ -106,7 +106,7 @@ export function trail(u: Unit, rng: () => number) {
     c[0],
     c[1],
     c[2],
-    0,
+    SH_CIRCLE,
   );
 }
 
@@ -197,7 +197,7 @@ function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Co
       col[0],
       col[1],
       col[2],
-      0,
+      SH_CIRCLE,
     );
   }
 }
@@ -328,7 +328,7 @@ export function boostBurst(u: Unit, rng: () => number) {
     const vy = Math.sin(angle) * speed;
     const life = 0.15 + rng() * 0.1;
     const size = t.size * 0.4 + rng() * 2;
-    spawnParticle(bx, by, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, 0);
+    spawnParticle(bx, by, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, SH_CIRCLE);
   }
 }
 
@@ -344,6 +344,6 @@ export function boostTrail(u: Unit, dt: number, rng: () => number) {
     const vy = -sin * 40 + (rng() - 0.5) * 20;
     const life = 0.08 + rng() * 0.12;
     const size = t.size * 0.5 + rng() * 2;
-    spawnParticle(ox, oy, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, 0);
+    spawnParticle(ox, oy, vx, vy, life, size, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, SH_CIRCLE);
   }
 }
