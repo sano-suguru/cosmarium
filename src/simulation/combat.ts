@@ -10,6 +10,7 @@ import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
+const REFLECTOR_WEAK_SHOT_SPEED = 400;
 
 // GC回避: aimAt() の結果を再利用するシングルトン
 const _aim = { ang: 0, dist: 0 };
@@ -20,7 +21,9 @@ function smallestPositiveRoot(a: number, b: number, c: number): number {
   if (disc < 0) return -1;
 
   if (Math.abs(a) < 1e-6) {
-    return Math.abs(b) < 1e-6 ? -1 : -c / b;
+    if (Math.abs(b) < 1e-6) return -1;
+    const t = -c / b;
+    return t > 0 ? t : -1;
   }
   const sqrtDisc = Math.sqrt(disc);
   const t1 = (-b - sqrtDisc) / (2 * a);
@@ -77,18 +80,20 @@ export function aimAt(
   return _aim;
 }
 
-/** dispatchFire の分岐順序と一致させた弾速決定 */
+/** dispatchFire() の分岐順序と一致させた弾速決定。射撃モード追加時は両方を同期すること */
 function projSpeed(t: UnitType): number {
-  if (t.carpet) return AOE_PROJ_SPEED;
-  if (t.homing) return HOMING_SPEED;
-  if (t.burst) return 480 + t.damage * 12;
-  if (t.aoe) return AOE_PROJ_SPEED;
-  if (t.shape === 8) return 900;
-  return 480 + t.damage * 12;
+  // ── dispatchFire() と同じ分岐順序 ──
+  if (t.carpet) return AOE_PROJ_SPEED; // fireCarpetBomb
+  if (t.homing) return HOMING_SPEED; // fireHomingBurst
+  if (t.burst) return 480 + t.damage * 12; // fireBurst
+  if (t.aoe) return AOE_PROJ_SPEED; // fireAoe
+  if (t.shape === 8) return 900; // fireRailgun
+  return 480 + t.damage * 12; // fireBurst (default)
 }
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
+const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
 const BROADSIDE_PHASE_CHARGE = 0;
@@ -287,13 +292,13 @@ function handleReflector(ctx: CombatContext) {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d < fireRange) {
         u.cooldown = t.fireRate;
-        const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, 400, t.leadAccuracy);
+        const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, REFLECTOR_WEAK_SHOT_SPEED, t.leadAccuracy);
         spawnProjectile(
           u.x,
           u.y,
-          Math.cos(aim.ang) * 400,
-          Math.sin(aim.ang) * 400,
-          aim.dist / 400 + 0.1,
+          Math.cos(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+          Math.sin(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+          aim.dist / REFLECTOR_WEAK_SHOT_SPEED + 0.1,
           t.damage * vd,
           u.team,
           1.5,
@@ -887,7 +892,7 @@ function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: nu
 
 function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const { u, c, t, vd } = ctx;
-  const sp = 380;
+  const sp = FLAGSHIP_MAIN_GUN_SPEED;
   const dx = Math.cos(lockAngle);
   const dy = Math.sin(lockAngle);
 
@@ -1048,7 +1053,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
 
   // Charge phase: lock angle, build up
   if (u.beamOn === 0) {
-    const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, 380, t.leadAccuracy);
+    const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, FLAGSHIP_MAIN_GUN_SPEED, t.leadAccuracy);
     u.sweepBaseAngle = aim.ang;
     u.beamOn = 0.001;
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
@@ -1158,7 +1163,7 @@ function fireNormal(ctx: CombatContext) {
   dispatchFire(ctx, aim.ang, aim.dist);
 }
 
-/** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること */
+/** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること。分岐追加時は projSpeed() も同期すること */
 function dispatchFire(ctx: CombatContext, ang: number, d: number) {
   const { u, t } = ctx;
 
