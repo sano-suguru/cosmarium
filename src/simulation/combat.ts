@@ -80,16 +80,6 @@ export function aimAt(
   return _aim;
 }
 
-/** dispatchFire() の分岐順序と一致させた弾速決定。射撃モード追加時は両方を同期すること */
-function projSpeed(t: UnitType): number {
-  // ── dispatchFire() と同じ分岐順序 ──
-  if (t.carpet) return AOE_PROJ_SPEED; // fireCarpetBomb
-  if (t.homing) return HOMING_SPEED; // fireHomingBurst
-  if (t.burst) return 480 + t.damage * 12; // fireBurst
-  if (t.aoe) return AOE_PROJ_SPEED; // fireAoe
-  if (t.shape === 8) return 900; // fireRailgun
-  return 480 + t.damage * 12; // fireBurst (default)
-}
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
@@ -724,12 +714,11 @@ function swarmDmgMul(u: Unit): number {
   return 1 + u.swarmN * 0.15;
 }
 
-function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
+function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1) {
   const { u, c, t, vd } = ctx;
   if (u.burstCount <= 0) u.burstCount = t.burst ?? 1;
   const sizeMul = 1 + (dmgMul - 1) * 0.5;
   const wb = (dmgMul - 1) * 0.4;
-  const sp = 480 + t.damage * 12;
   spawnProjectile(
     u.x + Math.cos(u.angle) * t.size,
     u.y + Math.sin(u.angle) * t.size,
@@ -751,7 +740,7 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
 const HOMING_SPREAD = 0.15;
 const HOMING_SPEED = 280;
 
-function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
+function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   const burst = t.burst ?? 1;
   if (u.burstCount <= 0) u.burstCount = burst;
@@ -760,9 +749,9 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(spreadAng) * HOMING_SPEED,
-    Math.sin(spreadAng) * HOMING_SPEED,
-    d / HOMING_SPEED + 1,
+    Math.cos(spreadAng) * sp,
+    Math.sin(spreadAng) * sp,
+    d / sp + 1,
     t.damage * vd,
     u.team,
     2.5,
@@ -778,15 +767,15 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
   spawnMuzzleFlash(ctx, ang);
 }
 
-function fireAoe(ctx: CombatContext, ang: number, d: number) {
+function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   u.cooldown = t.fireRate;
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(ang) * AOE_PROJ_SPEED,
-    Math.sin(ang) * AOE_PROJ_SPEED,
-    d / AOE_PROJ_SPEED + 0.2,
+    Math.cos(ang) * sp,
+    Math.sin(ang) * sp,
+    d / sp + 0.2,
     t.damage * vd,
     u.team,
     AOE_PROJ_SIZE,
@@ -801,7 +790,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number) {
 
 const CARPET_SPREAD = 0.2;
 
-function fireCarpetBomb(ctx: CombatContext, ang: number, d: number) {
+function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   const carpet = t.carpet ?? 1;
   if (u.burstCount <= 0) u.burstCount = carpet;
@@ -810,9 +799,9 @@ function fireCarpetBomb(ctx: CombatContext, ang: number, d: number) {
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(spreadAng) * AOE_PROJ_SPEED,
-    Math.sin(spreadAng) * AOE_PROJ_SPEED,
-    d / AOE_PROJ_SPEED + 0.2,
+    Math.cos(spreadAng) * sp,
+    Math.sin(spreadAng) * sp,
+    d / sp + 0.2,
     t.damage * vd,
     u.team,
     AOE_PROJ_SIZE,
@@ -1083,15 +1072,15 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   }
 }
 
-function fireRailgun(ctx: CombatContext, ang: number) {
+function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
   const { u, c, t, vd } = ctx;
   u.cooldown = t.fireRate;
   spawnProjectile(
     u.x + Math.cos(ang) * t.size,
     u.y + Math.sin(ang) * t.size,
-    Math.cos(ang) * 900,
-    Math.sin(ang) * 900,
-    t.range / 900 + 0.05,
+    Math.cos(ang) * sp,
+    Math.sin(ang) * sp,
+    t.range / sp + 0.05,
     t.damage * vd,
     u.team,
     3,
@@ -1159,36 +1148,45 @@ function fireNormal(ctx: CombatContext) {
     return;
   }
 
-  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, projSpeed(t), t.leadAccuracy);
-  dispatchFire(ctx, aim.ang, aim.dist);
+  dispatchFire(ctx, o);
 }
 
-/** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること。分岐追加時は projSpeed() も同期すること */
-function dispatchFire(ctx: CombatContext, ang: number, d: number) {
+/** 射撃モード分岐 + 弾速決定 + 偏差射撃。COMBAT_FLAG_PRIORITY の末尾と一致させること */
+function dispatchFire(ctx: CombatContext, o: Unit) {
   const { u, t } = ctx;
 
+  // ── 弾速: 各fire関数と1:1対応。分岐追加時はここだけ更新すればよい ──
+  let sp: number;
+  if (t.carpet) sp = AOE_PROJ_SPEED;
+  else if (t.homing) sp = HOMING_SPEED;
+  else if (t.aoe) sp = AOE_PROJ_SPEED;
+  else if (t.shape === 8) sp = 900;
+  else sp = 480 + t.damage * 12;
+
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, t.leadAccuracy);
+
   if (t.carpet) {
-    fireCarpetBomb(ctx, ang, d);
+    fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.homing) {
-    fireHomingBurst(ctx, ang, d);
+    fireHomingBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.burst) {
-    fireBurst(ctx, ang, d);
+    fireBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.aoe) {
-    fireAoe(ctx, ang, d);
+    fireAoe(ctx, aim.ang, aim.dist, sp);
   } else if (t.shape === 8) {
-    fireRailgun(ctx, ang);
+    fireRailgun(ctx, aim.ang, sp);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
-    fireBurst(ctx, ang, d, dmgMul);
+    fireBurst(ctx, aim.ang, aim.dist, sp, dmgMul);
   }
 }
 
