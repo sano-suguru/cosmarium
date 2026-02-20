@@ -14,9 +14,10 @@ import {
   SH_LIGHTNING,
   SH_OCT_SHIELD,
   TAU,
+  WORLD_SIZE,
   WRAP_PERIOD,
 } from '../constants.ts';
-import { particle, projectile, unit } from '../pools.ts';
+import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
@@ -69,6 +70,10 @@ function writeBeam(
 /** Minimum world-size for rendering so small-unit SDF details stay visible. */
 const MIN_RENDER_SIZE = 10;
 
+// 最大距離 = WORLD_SIZE*2*sqrt(2), ステップ幅8px
+const MAX_LIGHTNING_STEPS = ((WORLD_SIZE * 2 * Math.SQRT2) / 8) | 0;
+const _lightningPts = new Float64Array((MAX_LIGHTNING_STEPS + 1) * 2);
+
 function renderStunStars(u: Unit, ut: UnitType, now: number, rs: number) {
   if (u.stun > 0) {
     for (let j = 0; j < 2; j++) {
@@ -100,10 +105,18 @@ function renderHpBar(u: Unit, ut: UnitType, rs: number) {
   }
 }
 
+function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
+  if (u.shieldLingerTimer > 0)
+    writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
+  else if (ut.reflects)
+    writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
+}
+
 function renderUnits(now: number) {
-  for (let i = 0; i < POOL_UNITS; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
+    rem--;
     const ut = unitType(u.type);
     const rs = Math.max(MIN_RENDER_SIZE, ut.size) / ut.size;
     const c = color(u.type, u.team);
@@ -111,10 +124,7 @@ function renderUnits(now: number) {
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
-    if (u.shieldLingerTimer > 0)
-      writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
-    else if (ut.reflects)
-      writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
+    renderShieldOverlay(u, ut, now, rs);
     renderStunStars(u, ut, now, rs);
     if (u.vet > 0) {
       const pulse = 1 + Math.sin(now * 4) * 0.1;
@@ -134,9 +144,10 @@ function renderUnits(now: number) {
 }
 
 function renderParticles() {
-  for (let i = 0; i < POOL_PARTICLES; i++) {
+  for (let i = 0, rem = poolCounts.particles; i < POOL_PARTICLES && rem > 0; i++) {
     const p = particle(i);
     if (!p.alive) continue;
+    rem--;
     const al = Math.min(1, p.life / p.maxLife);
     let size = p.size * (0.5 + al * 0.5);
     const shape = p.shape;
@@ -164,10 +175,10 @@ function renderBeams(now: number) {
     const steps = Math.max(3, (d / (5 * divisor)) | 0);
     const ang = Math.atan2(dy, dx);
     if (bm.lightning) {
-      const lSteps = Math.max(3, (d / 8) | 0);
+      const lSteps = Math.min(MAX_LIGHTNING_STEPS, Math.max(3, (d / 8) | 0));
       const perpX = -Math.sin(ang),
         perpY = Math.cos(ang);
-      const pts: number[] = [];
+      let ptsLen = 0;
       for (let j = 0; j <= lSteps; j++) {
         const t = j / lSteps;
         let off = 0;
@@ -176,13 +187,14 @@ function renderBeams(now: number) {
           const rnd = h - Math.floor(h);
           off = (rnd * 2 - 1) * bm.width * 4;
         }
-        pts.push(bm.x1 + dx * t + perpX * off, bm.y1 + dy * t + perpY * off);
+        _lightningPts[ptsLen++] = bm.x1 + dx * t + perpX * off;
+        _lightningPts[ptsLen++] = bm.y1 + dy * t + perpY * off;
       }
       for (let j = 0; j < lSteps; j++) {
-        const x0 = pts[j * 2] as number,
-          y0 = pts[j * 2 + 1] as number;
-        const x1 = pts[j * 2 + 2] as number,
-          y1 = pts[j * 2 + 3] as number;
+        const x0 = _lightningPts[j * 2] as number,
+          y0 = _lightningPts[j * 2 + 1] as number;
+        const x1 = _lightningPts[j * 2 + 2] as number,
+          y1 = _lightningPts[j * 2 + 3] as number;
         const mx = (x0 + x1) * 0.5,
           my = (y0 + y1) * 0.5;
         const segDx = x1 - x0,
@@ -247,9 +259,10 @@ function renderBeams(now: number) {
 }
 
 function renderProjectiles() {
-  for (let i = 0; i < POOL_PROJECTILES; i++) {
+  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
     const pr = projectile(i);
     if (!pr.alive) continue;
+    rem--;
     let shape: number;
     if (pr.homing) shape = SH_HOMING;
     else if (pr.aoe > 0) shape = SH_CIRCLE;

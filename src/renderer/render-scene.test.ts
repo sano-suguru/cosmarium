@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { MAX_INSTANCES } from '../constants.ts';
-import { particle, projectile, unit } from '../pools.ts';
+import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
 
@@ -136,6 +136,7 @@ describe('writeParticle', () => {
     p.life = 0.8;
     p.maxLife = 1;
     p.shape = 3;
+    setParticleCount(1);
 
     renderScene(0);
 
@@ -159,6 +160,7 @@ describe('writeParticle', () => {
     p.life = 0.5;
     p.maxLife = 1;
     p.shape = 10;
+    setParticleCount(1);
 
     renderScene(0);
 
@@ -297,6 +299,7 @@ describe('writeInstance（直接使用）', () => {
     pr.b = 0;
     pr.homing = false;
     pr.aoe = 0;
+    setProjectileCount(1);
 
     renderScene(0);
 
