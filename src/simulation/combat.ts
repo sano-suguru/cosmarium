@@ -794,29 +794,14 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
 const CARPET_SPREAD = 0.2;
 
 function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, t } = ctx;
   const carpet = t.carpet ?? 1;
   if (u.burstCount <= 0) u.burstCount = carpet;
   const burstIdx = carpet - u.burstCount;
   const spreadAng = ang + (burstIdx - (carpet - 1) / 2) * CARPET_SPREAD;
-  spawnProjectile(
-    u.x,
-    u.y,
-    Math.cos(spreadAng) * sp,
-    Math.sin(spreadAng) * sp,
-    d / sp + 0.2,
-    t.damage * vd,
-    u.team,
-    AOE_PROJ_SIZE,
-    c[0] * 0.8,
-    c[1] * 0.7 + 0.3,
-    c[2],
-    false,
-    t.aoe,
-  );
+  fireAoe(ctx, spreadAng, d, sp);
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
-  spawnMuzzleFlash(ctx, ang);
 }
 
 // localX = forward, localY = starboard
