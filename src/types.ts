@@ -78,6 +78,8 @@ export interface UnitType {
   mass: number;
   accel: number;
   drag: number;
+  /** 偏差射撃精度 (0=直射, 1=完全予測)。プロジェクタイル発射時にインターセプト予測を適用する度合い */
+  leadAccuracy: number;
   description: string;
   attackDesc: string;
   aoe?: number;

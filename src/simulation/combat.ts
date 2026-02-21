@@ -10,9 +10,82 @@ import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
+const REFLECTOR_WEAK_SHOT_SPEED = 400;
+
+// GC回避: aimAt() の結果を再利用するシングルトン
+const _aim = { ang: 0, dist: 0 };
+
+/** 二次方程式 at²+bt+c=0 の最小正の実数解。解なしなら -1 */
+function smallestPositiveRoot(a: number, b: number, c: number): number {
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return -1;
+
+  if (Math.abs(a) < 1e-6) {
+    if (Math.abs(b) < 1e-6) return -1;
+    const t = -c / b;
+    return t > 0 ? t : -1;
+  }
+  const sqrtDisc = Math.sqrt(disc);
+  const t1 = (-b - sqrtDisc) / (2 * a);
+  const t2 = (-b + sqrtDisc) / (2 * a);
+  if (t1 > 0 && t2 > 0) return Math.min(t1, t2);
+  if (t1 > 0) return t1;
+  if (t2 > 0) return t2;
+  return -1;
+}
+
+function setDirect(ang: number, dist: number): { ang: number; dist: number } {
+  _aim.ang = ang;
+  _aim.dist = dist;
+  return _aim;
+}
+
+/**
+ * 偏差射撃を考慮した照準角度と予測距離を返す。
+ * 二次方程式でインターセプト地点を求め、accuracy (0–1) で直射とブレンドする。
+ */
+export function aimAt(
+  ux: number,
+  uy: number,
+  ox: number,
+  oy: number,
+  ovx: number,
+  ovy: number,
+  speed: number,
+  accuracy: number,
+): { ang: number; dist: number } {
+  const dx = ox - ux;
+  const dy = oy - uy;
+  const directAng = Math.atan2(dy, dx);
+  const directDist = Math.sqrt(dx * dx + dy * dy);
+
+  if (accuracy <= 0 || speed <= 0) return setDirect(directAng, directDist);
+
+  // |P + V*t|² = (s*t)²  →  (V²-s²)t² + 2(P·V)t + P·P = 0
+  const t = smallestPositiveRoot(ovx * ovx + ovy * ovy - speed * speed, 2 * (dx * ovx + dy * ovy), dx * dx + dy * dy);
+  if (t <= 0) return setDirect(directAng, directDist);
+
+  const px = dx + ovx * t;
+  const py = dy + ovy * t;
+  const leadAng = Math.atan2(py, px);
+  const leadDist = Math.sqrt(px * px + py * py);
+
+  // accuracy でブレンド（角度は最短弧で補間）
+  let angleDiff = leadAng - directAng;
+  if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+  _aim.ang = directAng + angleDiff * accuracy;
+  _aim.dist = directDist + (leadDist - directDist) * accuracy;
+  return _aim;
+}
+
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
+const RAILGUN_SHAPE = 8;
+const RAILGUN_SPEED = 900;
+const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
 const BROADSIDE_PHASE_CHARGE = 0;
@@ -211,13 +284,13 @@ function handleReflector(ctx: CombatContext) {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d < fireRange) {
         u.cooldown = t.fireRate;
-        const ang = Math.atan2(dy, dx);
+        const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, REFLECTOR_WEAK_SHOT_SPEED, t.leadAccuracy);
         spawnProjectile(
           u.x,
           u.y,
-          Math.cos(ang) * 400,
-          Math.sin(ang) * 400,
-          d / 400 + 0.1,
+          Math.cos(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+          Math.sin(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+          aim.dist / REFLECTOR_WEAK_SHOT_SPEED + 0.1,
           t.damage * vd,
           u.team,
           1.5,
@@ -533,6 +606,7 @@ function handleSweepBeam(ctx: CombatContext) {
   }
 
   if (u.sweepPhase === 0) {
+    // 直射角度を使用（sweep系は現状 leadAccuracy=0 のため偏差射撃不要）
     u.sweepBaseAngle = Math.atan2(dy, dx);
     u.sweepPhase = 0.001;
     u.beamOn = 1;
@@ -643,12 +717,11 @@ function swarmDmgMul(u: Unit): number {
   return 1 + u.swarmN * 0.15;
 }
 
-function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
+function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1) {
   const { u, c, t, vd } = ctx;
   if (u.burstCount <= 0) u.burstCount = t.burst ?? 1;
   const sizeMul = 1 + (dmgMul - 1) * 0.5;
   const wb = (dmgMul - 1) * 0.4;
-  const sp = 480 + t.damage * 12;
   spawnProjectile(
     u.x + Math.cos(u.angle) * t.size,
     u.y + Math.sin(u.angle) * t.size,
@@ -670,7 +743,7 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, dmgMul = 1) {
 const HOMING_SPREAD = 0.15;
 const HOMING_SPEED = 280;
 
-function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
+function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   const burst = t.burst ?? 1;
   if (u.burstCount <= 0) u.burstCount = burst;
@@ -679,9 +752,9 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(spreadAng) * HOMING_SPEED,
-    Math.sin(spreadAng) * HOMING_SPEED,
-    d / HOMING_SPEED + 1,
+    Math.cos(spreadAng) * sp,
+    Math.sin(spreadAng) * sp,
+    d / sp + 1,
     t.damage * vd,
     u.team,
     2.5,
@@ -697,15 +770,15 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number) {
   spawnMuzzleFlash(ctx, ang);
 }
 
-function fireAoe(ctx: CombatContext, ang: number, d: number) {
+function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   u.cooldown = t.fireRate;
   spawnProjectile(
     u.x,
     u.y,
-    Math.cos(ang) * AOE_PROJ_SPEED,
-    Math.sin(ang) * AOE_PROJ_SPEED,
-    d / AOE_PROJ_SPEED + 0.2,
+    Math.cos(ang) * sp,
+    Math.sin(ang) * sp,
+    d / sp + 0.2,
     t.damage * vd,
     u.team,
     AOE_PROJ_SIZE,
@@ -720,30 +793,15 @@ function fireAoe(ctx: CombatContext, ang: number, d: number) {
 
 const CARPET_SPREAD = 0.2;
 
-function fireCarpetBomb(ctx: CombatContext, ang: number, d: number) {
-  const { u, c, t, vd } = ctx;
+function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
+  const { u, t } = ctx;
   const carpet = t.carpet ?? 1;
   if (u.burstCount <= 0) u.burstCount = carpet;
   const burstIdx = carpet - u.burstCount;
   const spreadAng = ang + (burstIdx - (carpet - 1) / 2) * CARPET_SPREAD;
-  spawnProjectile(
-    u.x,
-    u.y,
-    Math.cos(spreadAng) * AOE_PROJ_SPEED,
-    Math.sin(spreadAng) * AOE_PROJ_SPEED,
-    d / AOE_PROJ_SPEED + 0.2,
-    t.damage * vd,
-    u.team,
-    AOE_PROJ_SIZE,
-    c[0] * 0.8,
-    c[1] * 0.7 + 0.3,
-    c[2],
-    false,
-    t.aoe,
-  );
+  fireAoe(ctx, spreadAng, d, sp);
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
-  spawnMuzzleFlash(ctx, ang);
 }
 
 // localX = forward, localY = starboard
@@ -811,7 +869,7 @@ function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: nu
 
 function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const { u, c, t, vd } = ctx;
-  const sp = 380;
+  const sp = FLAGSHIP_MAIN_GUN_SPEED;
   const dx = Math.cos(lockAngle);
   const dy = Math.sin(lockAngle);
 
@@ -972,7 +1030,8 @@ function handleFlagshipBarrage(ctx: CombatContext) {
 
   // Charge phase: lock angle, build up
   if (u.beamOn === 0) {
-    u.sweepBaseAngle = Math.atan2(dy, dx);
+    const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, FLAGSHIP_MAIN_GUN_SPEED, t.leadAccuracy);
+    u.sweepBaseAngle = aim.ang;
     u.beamOn = 0.001;
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
   }
@@ -1001,15 +1060,15 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   }
 }
 
-function fireRailgun(ctx: CombatContext, ang: number) {
+function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
   const { u, c, t, vd } = ctx;
   u.cooldown = t.fireRate;
   spawnProjectile(
     u.x + Math.cos(ang) * t.size,
     u.y + Math.sin(ang) * t.size,
-    Math.cos(ang) * 900,
-    Math.sin(ang) * 900,
-    t.range / 900 + 0.05,
+    Math.cos(ang) * sp,
+    Math.sin(ang) * sp,
+    t.range / sp + 0.05,
     t.damage * vd,
     u.team,
     3,
@@ -1077,36 +1136,45 @@ function fireNormal(ctx: CombatContext) {
     return;
   }
 
-  const ang = Math.atan2(dy, dx);
-  dispatchFire(ctx, ang, d);
+  dispatchFire(ctx, o);
 }
 
-/** 射撃モード分岐。COMBAT_FLAG_PRIORITY の末尾と一致させること */
-function dispatchFire(ctx: CombatContext, ang: number, d: number) {
+/** 射撃モード分岐 + 弾速決定 + 偏差射撃。COMBAT_FLAG_PRIORITY の末尾と一致させること */
+function dispatchFire(ctx: CombatContext, o: Unit) {
   const { u, t } = ctx;
 
+  // ── 弾速: 各fire関数と1:1対応。分岐追加時はここだけ更新すればよい ──
+  let sp: number;
+  if (t.carpet) sp = AOE_PROJ_SPEED;
+  else if (t.homing) sp = HOMING_SPEED;
+  else if (t.aoe) sp = AOE_PROJ_SPEED;
+  else if (t.shape === RAILGUN_SHAPE) sp = RAILGUN_SPEED;
+  else sp = 480 + t.damage * 12;
+
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, t.leadAccuracy);
+
   if (t.carpet) {
-    fireCarpetBomb(ctx, ang, d);
+    fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.homing) {
-    fireHomingBurst(ctx, ang, d);
+    fireHomingBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.burst) {
-    fireBurst(ctx, ang, d);
+    fireBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
 
   if (t.aoe) {
-    fireAoe(ctx, ang, d);
-  } else if (t.shape === 8) {
-    fireRailgun(ctx, ang);
+    fireAoe(ctx, aim.ang, aim.dist, sp);
+  } else if (t.shape === RAILGUN_SHAPE) {
+    fireRailgun(ctx, aim.ang, sp);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
-    fireBurst(ctx, ang, d, dmgMul);
+    fireBurst(ctx, aim.ang, aim.dist, sp, dmgMul);
   }
 }
 
