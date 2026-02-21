@@ -67,7 +67,7 @@ describe('spawnProjectile', () => {
   });
 
   it('オプション引数が反映される', () => {
-    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42 as UnitIndex);
+    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, { homing: true, aoe: 70, target: 42 as UnitIndex });
     expect(idx).toBe(0);
     const p = projectile(0);
     expect(p.homing).toBe(true);

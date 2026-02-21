@@ -761,9 +761,7 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number)
     c[0],
     c[1],
     c[2],
-    true,
-    0,
-    u.target,
+    { homing: true, target: u.target },
   );
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -785,8 +783,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
     c[0] * 0.8,
     c[1] * 0.7 + 0.3,
     c[2],
-    false,
-    t.aoe,
+    { aoe: t.aoe },
   );
   spawnMuzzleFlash(ctx, ang);
 }
@@ -1075,11 +1072,7 @@ function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
     c[0] * 0.5 + 0.5,
     c[1] * 0.5 + 0.5,
     c[2] * 0.5 + 0.5,
-    false,
-    0,
-    undefined,
-    0.6,
-    ctx.ui,
+    { piercing: 0.6, sourceUnit: ctx.ui },
   );
   addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
   for (let i = 0; i < 4; i++) {

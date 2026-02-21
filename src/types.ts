@@ -67,6 +67,14 @@ export interface Projectile {
   sourceUnit: UnitIndex;
 }
 
+export interface ProjectileOpts {
+  homing?: boolean | undefined;
+  aoe?: number | undefined;
+  target?: UnitIndex | undefined;
+  piercing?: number | undefined;
+  sourceUnit?: UnitIndex | undefined;
+}
+
 export interface UnitType {
   name: string;
   size: number;

@@ -59,8 +59,12 @@ function detonateAoe(p: Projectile, rng: () => number) {
       o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
+        const ox = o.x,
+          oy = o.y,
+          oTeam = o.team,
+          oType = o.type;
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
+        explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
       }
     }
   }
@@ -92,7 +96,7 @@ function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => 
   explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
   if (p.sourceUnit !== NO_UNIT) {
     const shooter = unit(p.sourceUnit);
-    if (shooter.alive) {
+    if (shooter.alive && shooter.team === p.team) {
       const st = unitType(shooter.type);
       if (st.cooldownResetOnKill !== undefined) {
         shooter.cooldown = Math.min(shooter.cooldown, st.cooldownResetOnKill);
