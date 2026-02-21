@@ -4,7 +4,6 @@ import { POOL_UNITS } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
-import { buildHash } from './spatial-hash.ts';
 import { update } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -19,11 +18,17 @@ vi.mock('../ui/game-control.ts', () => ({
   initUI: vi.fn(),
 }));
 
+vi.mock('./spawn.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./spawn.ts')>();
+  return {
+    ...actual,
+    spawnParticle: vi.fn(),
+  };
+});
+
 afterEach(() => {
   resetPools();
   resetState();
-  vi.restoreAllMocks();
-  vi.clearAllMocks();
 });
 
 interface UnitSnapshot {
@@ -69,7 +74,6 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
   const gs = makeGameLoopState();
 
   for (let i = 0; i < ticks; i++) {
-    buildHash();
     update(0.033, i * 0.033, rng, gs);
   }
 
@@ -102,7 +106,7 @@ describe('determinism', () => {
       expect(s2.team).toBe(s1.team);
       expect(s2.type).toBe(s1.type);
     }
-  }, 10_000);
+  }, 5_000);
 
   it('同一シード → 同一結果（300tick — 複数増援サイクル）', () => {
     const snapshot1 = runSimulation(42, 300);
@@ -129,7 +133,7 @@ describe('determinism', () => {
       expect(s2.team).toBe(s1.team);
       expect(s2.type).toBe(s1.type);
     }
-  }, 10_000);
+  }, 5_000);
 
   it('異なるシード → 異なる結果', () => {
     const snapshot1 = runSimulation(12345, 100);
