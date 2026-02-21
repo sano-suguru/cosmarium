@@ -62,6 +62,9 @@ export interface Projectile {
   homing: boolean;
   aoe: number;
   target: UnitIndex;
+  piercing: number;
+  lastHitUnit: UnitIndex;
+  sourceUnit: UnitIndex;
 }
 
 export interface UnitType {
@@ -98,6 +101,10 @@ export interface UnitType {
   broadside?: boolean;
   burst?: number;
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
+  massWeight?: number;
+  engageMin?: number;
+  engageMax?: number;
+  cooldownResetOnKill?: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */

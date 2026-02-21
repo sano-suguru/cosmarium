@@ -83,28 +83,54 @@ function detonateAoe(p: Projectile, rng: () => number) {
   addShake(3);
 }
 
+function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
+  const ox = o.x,
+    oy = o.y,
+    oTeam = o.team,
+    oType = o.type;
+  killUnit(oi);
+  explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
+  if (p.sourceUnit !== NO_UNIT) {
+    const shooter = unit(p.sourceUnit);
+    if (shooter.alive) {
+      const st = unitType(shooter.type);
+      if (st.cooldownResetOnKill !== undefined) {
+        shooter.cooldown = Math.min(shooter.cooldown, st.cooldownResetOnKill);
+      }
+    }
+  }
+}
+
+function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
+  let dmg = p.damage;
+  if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
+  o.hp -= dmg;
+  knockback(oi, p.x, p.y, p.damage * 12);
+  spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
+  if (o.hp <= 0) handleProjectileKill(p, oi, o, rng);
+}
+
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
   const nn = getNeighbors(p.x, p.y, 30);
+  let hit = false;
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
     if (!o.alive || o.team === p.team) continue;
+    if (p.piercing > 0 && oi === p.lastHitUnit) continue;
     const hs = unitType(o.type).size;
-    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
-      let dmg = p.damage;
-      if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
-      o.hp -= dmg;
-      knockback(oi, p.x, p.y, p.damage * 12);
-      spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
-      if (o.hp <= 0) {
-        killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
-      }
-      killProjectile(pi);
-      return true;
+    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) >= hs * hs) continue;
+    applyProjectileDamage(p, oi, o, rng);
+    if (p.piercing > 0) {
+      p.damage *= p.piercing;
+      p.lastHitUnit = oi;
+      hit = true;
+      continue;
     }
+    killProjectile(pi);
+    return true;
   }
-  return false;
+  return hit;
 }
 
 function projectileTrail(p: Projectile, dt: number, rng: () => number) {

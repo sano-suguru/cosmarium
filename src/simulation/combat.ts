@@ -1075,6 +1075,11 @@ function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
     c[0] * 0.5 + 0.5,
     c[1] * 0.5 + 0.5,
     c[2] * 0.5 + 0.5,
+    false,
+    0,
+    undefined,
+    0.6,
+    ctx.ui,
   );
   addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
   for (let i = 0; i < 4; i++) {

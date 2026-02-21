@@ -154,5 +154,8 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     homing: false,
     aoe: 0,
     target: NO_UNIT,
+    piercing: 0,
+    lastHitUnit: NO_UNIT,
+    sourceUnit: NO_UNIT,
   };
 }
