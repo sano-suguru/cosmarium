@@ -20,6 +20,7 @@ import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { combat, resetReflected } from './combat.ts';
 import { boostBurst, boostTrail, explosion, trail, updateChains } from './effects.ts';
+import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
@@ -59,8 +60,13 @@ function detonateAoe(p: Projectile, rng: () => number) {
       o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
+        const ox = o.x,
+          oy = o.y,
+          oTeam = o.team,
+          oType = o.type;
         killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
+        explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
+        applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileAoe);
       }
     }
   }
@@ -83,26 +89,42 @@ function detonateAoe(p: Projectile, rng: () => number) {
   addShake(3);
 }
 
+function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
+  const ox = o.x,
+    oy = o.y,
+    oTeam = o.team,
+    oType = o.type;
+  killUnit(oi);
+  explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
+  applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileDirect);
+}
+
+function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
+  let dmg = p.damage;
+  if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
+  o.hp -= dmg;
+  knockback(oi, p.x, p.y, p.damage * 12);
+  spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
+  if (o.hp <= 0) handleProjectileKill(p, oi, o, rng);
+}
+
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
   const nn = getNeighbors(p.x, p.y, 30);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
     if (!o.alive || o.team === p.team) continue;
+    if (p.piercing > 0 && oi === p.lastHitUnit) continue;
     const hs = unitType(o.type).size;
-    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) < hs * hs) {
-      let dmg = p.damage;
-      if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
-      o.hp -= dmg;
-      knockback(oi, p.x, p.y, p.damage * 12);
-      spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
-      if (o.hp <= 0) {
-        killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, NO_UNIT, rng);
-      }
-      killProjectile(pi);
+    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) >= hs * hs) continue;
+    applyProjectileDamage(p, oi, o, rng);
+    if (p.piercing > 0) {
+      p.damage *= p.piercing;
+      p.lastHitUnit = oi;
       return true;
     }
+    killProjectile(pi);
+    return true;
   }
   return false;
 }

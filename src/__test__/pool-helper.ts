@@ -82,6 +82,9 @@ export function resetPools() {
     p.homing = false;
     p.aoe = 0;
     p.target = NO_UNIT;
+    p.piercing = 0;
+    p.lastHitUnit = NO_UNIT;
+    p.sourceUnit = NO_UNIT;
   }
   resetPoolCounts();
   beams.length = 0;

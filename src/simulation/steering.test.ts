@@ -154,6 +154,53 @@ describe('steer — ターゲット探索', () => {
   });
 });
 
+describe('steer — massWeight ターゲット優先', () => {
+  it('massWeight>0: 近い軽い敵より遠い重い敵を優先', () => {
+    // Sniper (type=8, massWeight=0.15)
+    const sniper = spawnAt(0, 8, 0, 0);
+    spawnAt(1, 0, 100, 0); // Drone mass=1, 距離100
+    const flagship = spawnAt(1, 4, 180, 0); // Flagship mass=30, 距離180（neighbor radius 200以内）
+    buildHash();
+    steer(unit(sniper), 0.016, rng);
+    // score(drone) = 100²/(1.15²) = 10000/1.3225 ≈ 7561
+    // score(flagship) = 180²/((1+0.15*30)²) = 32400/30.25 ≈ 1071
+    // → Flagship が優先される
+    expect(unit(sniper).target).toBe(flagship);
+  });
+
+  it('massWeight=0（通常ユニット）: 距離のみで判定し近い敵を優先', () => {
+    // Fighter (type=1, massWeight なし)
+    const fighter = spawnAt(0, 1, 0, 0);
+    const drone = spawnAt(1, 0, 100, 0); // 距離100
+    spawnAt(1, 4, 300, 0); // Flagship 距離300
+    buildHash();
+    steer(unit(fighter), 0.016, rng);
+    expect(unit(fighter).target).toBe(drone);
+  });
+});
+
+describe('steer — engageMin/engageMax カスタム距離管理', () => {
+  it('Sniper: engageMin=300 より近いと後退する', () => {
+    const sniper = spawnAt(0, 8, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0); // 距離200 < engageMin=300
+    unit(sniper).target = enemy;
+    buildHash();
+    for (let i = 0; i < 30; i++) steer(unit(sniper), 0.033, rng);
+    // 後退: x が減少（敵から離れる方向）
+    expect(unit(sniper).x).toBeLessThan(0);
+  });
+
+  it('Sniper: engageMax=500 より遠いと前進する', () => {
+    const sniper = spawnAt(0, 8, 0, 0);
+    const enemy = spawnAt(1, 1, 550, 0); // 距離550 > engageMax=500
+    unit(sniper).target = enemy;
+    buildHash();
+    for (let i = 0; i < 30; i++) steer(unit(sniper), 0.033, rng);
+    // 前進: x が増加（敵に近づく方向）
+    expect(unit(sniper).x).toBeGreaterThan(0);
+  });
+});
+
 describe('steer — LANCER型', () => {
   it('LANCER型はターゲットに向かって強い力で突進', () => {
     const lancer = spawnAt(0, 9, 0, 0); // type 9 = Lancer

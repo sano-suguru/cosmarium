@@ -356,6 +356,85 @@ describe('projectile pass', () => {
 });
 
 // ============================================================
+// 5b. 貫通プロジェクタイル + キルCD短縮
+// ============================================================
+describe('piercing projectile', () => {
+  it('貫通弾は最初のヒット後も alive', () => {
+    const enemy = spawnAt(1, 1, 5, 0);
+    unit(enemy).trailTimer = 99;
+    // piercing=0.6, sourceUnit=undefined
+    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
+    update(0.016, 0, rng, gameLoopState());
+    expect(projectile(0).alive).toBe(true);
+  });
+
+  it('貫通後にダメージが piercing 倍に減衰', () => {
+    const enemy = spawnAt(1, 1, 5, 0);
+    unit(enemy).trailTimer = 99;
+    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
+    update(0.016, 0, rng, gameLoopState());
+    expect(projectile(0).damage).toBeCloseTo(6); // 10 * 0.6
+  });
+
+  it('lastHitUnit と同じ敵には再ヒットしない', () => {
+    const enemy = spawnAt(1, 1, 5, 0);
+    unit(enemy).trailTimer = 99;
+    unit(enemy).hp = 100; // 死なないように
+    spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
+    // 1フレーム目: ヒット
+    update(0.016, 0, rng, gameLoopState());
+    const hpAfterFirst = unit(enemy).hp;
+    expect(hpAfterFirst).toBe(95); // 100 - 5
+    // 弾が動かない(vx=0) → 2フレーム目: 同じ敵の近傍にいるが lastHitUnit でスキップ
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).hp).toBe(95); // 再ヒットしない
+  });
+
+  it('非貫通弾（piercing=0）は最初のヒットで消滅（従来通り）', () => {
+    const enemy = spawnAt(1, 1, 5, 0);
+    unit(enemy).trailTimer = 99;
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(projectile(0).alive).toBe(false);
+  });
+});
+
+describe('キル時クールダウン短縮', () => {
+  it('sourceUnit 指定時: キルで kills カウントが上昇', () => {
+    const sniper = spawnAt(0, 8, 0, 0); // Sniper
+    unit(sniper).trailTimer = 99;
+    const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
+    unit(enemy).trailTimer = 99;
+    // sourceUnit=sniper の弾を生成
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).alive).toBe(false);
+    expect(unit(sniper).kills).toBe(1);
+  });
+
+  it('cooldownResetOnKill: キル時にクールダウンが短縮される', () => {
+    const sniper = spawnAt(0, 8, 0, 0); // Sniper (cooldownResetOnKill=0.8)
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 2.5; // 射撃直後のクールダウン
+    const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
+    unit(enemy).trailTimer = 99;
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
+    update(0.016, 0, rng, gameLoopState());
+    // combat() で cooldown 2.5→2.484, 次に detectProjectileHit で min(2.484, 0.8)=0.8
+    expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
+  });
+
+  it('sourceUnit 未指定: キルしても誰のvetも上昇しない', () => {
+    const enemy = spawnAt(1, 0, 3, 0);
+    unit(enemy).trailTimer = 99;
+    // sourceUnit なし（デフォルト NO_UNIT）→ 誰もvet上昇しない
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).alive).toBe(false);
+  });
+});
+
+// ============================================================
 // 6. reinforce
 // ============================================================
 describe('reinforce', () => {

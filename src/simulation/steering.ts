@@ -16,8 +16,15 @@ const _force: SteerForce = { x: 0, y: 0 };
 
 const VET_TARGET_WEIGHT = 0.3;
 
-// 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる）
-function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
+function targetScore(ux: number, uy: number, o: Unit, massWeight: number): number {
+  const d2 = (o.x - ux) * (o.x - ux) + (o.y - uy) * (o.y - uy);
+  const vf = 1 + VET_TARGET_WEIGHT * o.vet;
+  const mf = massWeight > 0 ? 1 + massWeight * unitType(o.type).mass : 1;
+  return d2 / (vf * vf * mf * mf);
+}
+
+// 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる、massWeight>0で重い敵優先）
+function findNearestLocalEnemy(u: Unit, nn: number, range: number, massWeight: number): UnitIndex {
   const limit = range * 3;
   let bs = limit * limit,
     bi: UnitIndex = NO_UNIT;
@@ -25,9 +32,7 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
     const oi = getNeighborAt(i),
       o = unit(oi);
     if (o.team === u.team || !o.alive) continue;
-    const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
-    const vf = 1 + VET_TARGET_WEIGHT * o.vet;
-    const score = d2 / (vf * vf);
+    const score = targetScore(u.x, u.y, o, massWeight);
     if (score < bs) {
       bs = score;
       bi = oi;
@@ -36,8 +41,8 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number): UnitIndex {
   return bi;
 }
 
-// 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる）
-function findNearestGlobalEnemy(u: Unit): UnitIndex {
+// 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる、massWeight>0で重い敵優先）
+function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
@@ -45,9 +50,7 @@ function findNearestGlobalEnemy(u: Unit): UnitIndex {
     if (!o.alive) continue;
     rem--;
     if (o.team === u.team) continue;
-    const d2 = (o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y);
-    const vf = 1 + VET_TARGET_WEIGHT * o.vet;
-    const score = d2 / (vf * vf);
+    const score = targetScore(u.x, u.y, o, massWeight);
     if (score < bs) {
       bs = score;
       bi = i as UnitIndex;
@@ -56,14 +59,14 @@ function findNearestGlobalEnemy(u: Unit): UnitIndex {
   return bi;
 }
 
-function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => number): UnitIndex {
+function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => number, massWeight: number): UnitIndex {
   if (u.target !== NO_UNIT && unit(u.target).alive) return u.target;
 
-  const localTarget = findNearestLocalEnemy(u, nn, range);
+  const localTarget = findNearestLocalEnemy(u, nn, range, massWeight);
   if (localTarget !== NO_UNIT) return localTarget;
 
   if (rng() < 1 - (1 - 0.012) ** (dt * REF_FPS)) {
-    return findNearestGlobalEnemy(u);
+    return findNearestGlobalEnemy(u, massWeight);
   }
   return NO_UNIT;
 }
@@ -142,12 +145,14 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
       _force.y = (dy / d) * t.speed * 3;
       return _force;
     }
-    if (d > t.range * 0.7) {
+    const engageMax = t.engageMax ?? t.range * 0.7;
+    const engageMin = t.engageMin ?? t.range * 0.3;
+    if (d > engageMax) {
       _force.x = (dx / d) * t.speed * 2;
       _force.y = (dy / d) * t.speed * 2;
       return _force;
     }
-    if (d < t.range * 0.3) {
+    if (d < engageMin) {
       _force.x = -(dx / d) * t.speed;
       _force.y = (dy / d) * t.speed * 0.5;
       return _force;
@@ -258,7 +263,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const tgt = findTarget(u, nn, t.range, dt, rng);
+  const tgt = findTarget(u, nn, t.range, dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
   const engage = computeEngagementForce(u, tgt, t, dt, rng);
