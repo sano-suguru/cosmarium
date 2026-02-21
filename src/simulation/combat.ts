@@ -83,6 +83,8 @@ export function aimAt(
 const SWEEP_DURATION = 0.8;
 const BURST_INTERVAL = 0.07;
 const HALF_ARC = 0.524; // ±30°
+const RAILGUN_SHAPE = 8;
+const RAILGUN_SPEED = 900;
 const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
@@ -604,6 +606,7 @@ function handleSweepBeam(ctx: CombatContext) {
   }
 
   if (u.sweepPhase === 0) {
+    // 直射角度を使用（sweep系は現状 leadAccuracy=0 のため偏差射撃不要）
     u.sweepBaseAngle = Math.atan2(dy, dx);
     u.sweepPhase = 0.001;
     u.beamOn = 1;
@@ -1160,7 +1163,7 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   if (t.carpet) sp = AOE_PROJ_SPEED;
   else if (t.homing) sp = HOMING_SPEED;
   else if (t.aoe) sp = AOE_PROJ_SPEED;
-  else if (t.shape === 8) sp = 900;
+  else if (t.shape === RAILGUN_SHAPE) sp = RAILGUN_SPEED;
   else sp = 480 + t.damage * 12;
 
   const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, t.leadAccuracy);
@@ -1182,7 +1185,7 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
 
   if (t.aoe) {
     fireAoe(ctx, aim.ang, aim.dist, sp);
-  } else if (t.shape === 8) {
+  } else if (t.shape === RAILGUN_SHAPE) {
     fireRailgun(ctx, aim.ang, sp);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;

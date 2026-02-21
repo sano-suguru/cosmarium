@@ -1137,7 +1137,7 @@ describe('aimAt — 偏差射撃の照準計算', () => {
   });
 
   it('accuracy=0.5 → 直射とフルリードの中間', () => {
-    // aimAt はシングルトンを返すため、呼び出しごとに値を退避する
+    // aimAt はシングルトンを返すが、.ang でプリミティブを即時取得するため安全
     const directAng = aimAt(0, 0, 100, 0, 0, 200, 500, 0).ang;
     const fullAng = aimAt(0, 0, 100, 0, 0, 200, 500, 1.0).ang;
     const halfAng = aimAt(0, 0, 100, 0, 0, 200, 500, 0.5).ang;
