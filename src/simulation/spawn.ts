@@ -1,9 +1,11 @@
 import { beams, trackingBeams } from '../beams.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
+import { POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
+  allocParticleSlot,
   decParticles,
   decProjectiles,
   decUnits,
+  freeParticleSlot,
   incParticles,
   incProjectiles,
   incUnits,
@@ -79,6 +81,7 @@ export function killParticle(i: ParticleIndex) {
   if (p.alive) {
     p.alive = false;
     decParticles();
+    freeParticleSlot(i);
   }
 }
 
@@ -102,26 +105,23 @@ export function spawnParticle(
   b: number,
   shape: number,
 ): ParticleIndex {
-  for (let i = 0; i < POOL_PARTICLES; i++) {
-    const p = particle(i);
-    if (!p.alive) {
-      p.alive = true;
-      p.x = x;
-      p.y = y;
-      p.vx = vx;
-      p.vy = vy;
-      p.life = life;
-      p.maxLife = life;
-      p.size = size;
-      p.r = r;
-      p.g = g;
-      p.b = b;
-      p.shape = shape;
-      incParticles();
-      return i as ParticleIndex;
-    }
-  }
-  return NO_PARTICLE;
+  const slot = allocParticleSlot();
+  if (slot === NO_PARTICLE) return NO_PARTICLE;
+  const p = particle(slot);
+  p.alive = true;
+  p.x = x;
+  p.y = y;
+  p.vx = vx;
+  p.vy = vy;
+  p.life = life;
+  p.maxLife = life;
+  p.size = size;
+  p.r = r;
+  p.g = g;
+  p.b = b;
+  p.shape = shape;
+  incParticles();
+  return slot;
 }
 
 export function spawnProjectile(

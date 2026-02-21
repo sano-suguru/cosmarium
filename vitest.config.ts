@@ -8,6 +8,9 @@ export default mergeConfig(
       include: ['src/**/*.test.ts'],
       environment: 'node',
       restoreMocks: true,
+      benchmark: {
+        include: ['src/**/*.bench.ts'],
+      },
     },
   }),
 );

@@ -1,11 +1,58 @@
 import { beams, trackingBeams } from './beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
-import type { Particle, Projectile, Unit } from './types.ts';
-import { NO_UNIT } from './types.ts';
+import type { Particle, ParticleIndex, Projectile, Unit } from './types.ts';
+import { NO_PARTICLE, NO_UNIT } from './types.ts';
 
 const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
 const projectilePool: Projectile[] = [];
+
+/* ---------- particle free stack (LIFO) ---------- */
+if (POOL_PARTICLES > 0xffff) throw new RangeError('POOL_PARTICLES exceeds Uint16Array range (65535)');
+const _particleFree = new Uint16Array(POOL_PARTICLES);
+const _particleInFree = new Uint8Array(POOL_PARTICLES);
+let _particleFreeTop = POOL_PARTICLES;
+
+function _initParticleFreeStack() {
+  for (let i = 0; i < POOL_PARTICLES; i++) {
+    _particleFree[i] = POOL_PARTICLES - 1 - i;
+    _particleInFree[i] = 1;
+  }
+  _particleFreeTop = POOL_PARTICLES;
+}
+_initParticleFreeStack();
+
+export function allocParticleSlot(): ParticleIndex {
+  if (_particleFreeTop === 0) return NO_PARTICLE;
+  _particleFreeTop--;
+  const v = _particleFree[_particleFreeTop] as number;
+  if (particlePool[v]?.alive) throw new RangeError('particle free stack corrupted');
+  _particleInFree[v] = 0;
+  return v as unknown as ParticleIndex;
+}
+
+export function freeParticleSlot(i: ParticleIndex) {
+  const raw = i as unknown as number;
+  if (raw < 0 || raw >= POOL_PARTICLES) throw new RangeError(`particle index out of range: ${raw}`);
+  if (particlePool[raw]?.alive) throw new RangeError(`particle slot ${raw} is still alive`);
+  if (_particleInFree[raw]) throw new RangeError(`particle slot ${raw} already in free stack`);
+  if (_particleFreeTop >= POOL_PARTICLES) throw new RangeError('particle free stack overflow');
+  _particleFree[_particleFreeTop] = raw;
+  _particleFreeTop++;
+  _particleInFree[raw] = 1;
+}
+
+function rebuildParticleFreeStack() {
+  _particleFreeTop = 0;
+  _particleInFree.fill(0);
+  for (let i = POOL_PARTICLES - 1; i >= 0; i--) {
+    if (!particlePool[i]?.alive) {
+      _particleFree[_particleFreeTop] = i;
+      _particleFreeTop++;
+      _particleInFree[i] = 1;
+    }
+  }
+}
 
 const _counts = { units: 0, particles: 0, projectiles: 0 };
 
@@ -41,12 +88,14 @@ export function resetPoolCounts() {
   _counts.units = 0;
   _counts.particles = 0;
   _counts.projectiles = 0;
+  _initParticleFreeStack();
 }
 export function setUnitCount(n: number) {
   _counts.units = n;
 }
 export function setParticleCount(n: number) {
   _counts.particles = n;
+  rebuildParticleFreeStack();
 }
 export function setProjectileCount(n: number) {
   _counts.projectiles = n;
@@ -68,6 +117,7 @@ export function setPoolCounts(units: number, particles: number, projectiles: num
   _counts.units = units;
   _counts.particles = particles;
   _counts.projectiles = projectiles;
+  rebuildParticleFreeStack();
 }
 
 /* プール配列アクセサ — noUncheckedIndexedAccess の undefined チェックを集約 */

@@ -13,6 +13,7 @@
     "knip": "knip",
     "test": "vitest",
     "test:run": "vitest run",
+    "bench": "vitest bench",
     "cpd": "jscpd src/",
     "similarity": "similarity-ts --min-lines 7 --threshold 0.92 src/",
     "check:deps": "depcruise --validate .dependency-cruiser.cjs src",
