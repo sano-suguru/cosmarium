@@ -20,6 +20,7 @@ import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { combat, resetReflected } from './combat.ts';
 import { boostBurst, boostTrail, explosion, trail, updateChains } from './effects.ts';
+import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
@@ -65,6 +66,7 @@ function detonateAoe(p: Projectile, rng: () => number) {
           oType = o.type;
         killUnit(oi);
         explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
+        applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileAoe);
       }
     }
   }
@@ -94,15 +96,7 @@ function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => 
     oType = o.type;
   killUnit(oi);
   explosion(ox, oy, oTeam, oType, p.sourceUnit, rng);
-  if (p.sourceUnit !== NO_UNIT) {
-    const shooter = unit(p.sourceUnit);
-    if (shooter.alive && shooter.team === p.team) {
-      const st = unitType(shooter.type);
-      if (st.cooldownResetOnKill !== undefined) {
-        shooter.cooldown = Math.min(shooter.cooldown, st.cooldownResetOnKill);
-      }
-    }
-  }
+  applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileDirect);
 }
 
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
