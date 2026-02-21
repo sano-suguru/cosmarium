@@ -11,7 +11,7 @@ import {
   projectile,
   unit,
 } from '../pools.ts';
-import type { Beam, ParticleIndex, ProjectileIndex, ProjectileOpts, Team, TrackingBeam, UnitIndex } from '../types.ts';
+import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 
@@ -135,7 +135,11 @@ export function spawnProjectile(
   r: number,
   g: number,
   b: number,
-  opts?: ProjectileOpts,
+  homing?: boolean,
+  aoe?: number,
+  target?: UnitIndex,
+  piercing?: number,
+  sourceUnit?: UnitIndex,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = projectile(i);
@@ -152,12 +156,12 @@ export function spawnProjectile(
       p.r = r;
       p.g = g;
       p.b = b;
-      p.homing = opts?.homing ?? false;
-      p.aoe = opts?.aoe ?? 0;
-      p.target = opts?.target ?? NO_UNIT;
-      p.piercing = opts?.piercing ?? 0;
+      p.homing = homing ?? false;
+      p.aoe = aoe ?? 0;
+      p.target = target ?? NO_UNIT;
+      p.piercing = piercing ?? 0;
       p.lastHitUnit = NO_UNIT;
-      p.sourceUnit = opts?.sourceUnit ?? NO_UNIT;
+      p.sourceUnit = sourceUnit ?? NO_UNIT;
       incProjectiles();
       return i as ProjectileIndex;
     }

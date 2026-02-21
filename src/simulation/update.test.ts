@@ -285,7 +285,7 @@ describe('projectile pass', () => {
   it('AOE 爆発: 範囲内の敵にダメージ + addShake(3)', () => {
     const enemy = spawnAt(1, 1, 30, 0);
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, { aoe: 70 });
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBeLessThan(10);
     expect(addShake).toHaveBeenCalledWith(3);
@@ -323,7 +323,7 @@ describe('projectile pass', () => {
   it('homing: ターゲット生存時に追尾で曲がる', () => {
     const target = spawnAt(1, 1, 0, 200);
     unit(target).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, { homing: true, target });
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     update(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBeGreaterThan(0);
   });
@@ -333,14 +333,14 @@ describe('projectile pass', () => {
     unit(target).alive = false;
     decUnits();
     unit(target).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, { homing: true, target });
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     update(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBe(0);
   });
 
   it('AOE 爆発: パーティクルがチームカラーを使う (hardcoded orange ではなく)', () => {
     // Team 0: blue (r=0, g=0.3, b=1)
-    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, { aoe: 70 });
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, false, 70);
     expect(poolCounts.projectiles).toBe(1);
     const origParticleCount = poolCounts.particles;
     update(0.016, 0, rng, gameLoopState());
@@ -363,7 +363,7 @@ describe('piercing projectile', () => {
     const enemy = spawnAt(1, 1, 5, 0);
     unit(enemy).trailTimer = 99;
     // piercing=0.6, sourceUnit=undefined
-    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, { piercing: 0.6 });
+    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
     update(0.016, 0, rng, gameLoopState());
     expect(projectile(0).alive).toBe(true);
   });
@@ -371,7 +371,7 @@ describe('piercing projectile', () => {
   it('貫通後にダメージが piercing 倍に減衰', () => {
     const enemy = spawnAt(1, 1, 5, 0);
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, { piercing: 0.6 });
+    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
     update(0.016, 0, rng, gameLoopState());
     expect(projectile(0).damage).toBeCloseTo(6); // 10 * 0.6
   });
@@ -380,7 +380,7 @@ describe('piercing projectile', () => {
     const enemy = spawnAt(1, 1, 5, 0);
     unit(enemy).trailTimer = 99;
     unit(enemy).hp = 100; // 死なないように
-    spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0, { piercing: 0.6 });
+    spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
     // 1フレーム目: ヒット
     update(0.016, 0, rng, gameLoopState());
     const hpAfterFirst = unit(enemy).hp;
@@ -406,7 +406,7 @@ describe('キル時クールダウン短縮', () => {
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     // sourceUnit=sniper の弾を生成
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(unit(sniper).kills).toBe(1);
@@ -418,7 +418,7 @@ describe('キル時クールダウン短縮', () => {
     unit(sniper).cooldown = 2.5; // 射撃直後のクールダウン
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
     update(0.016, 0, rng, gameLoopState());
     // combat() で cooldown 2.5→2.484, 次に detectProjectileHit で min(2.484, 0.8)=0.8
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
