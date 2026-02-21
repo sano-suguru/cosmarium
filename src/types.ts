@@ -68,11 +68,11 @@ export interface Projectile {
 }
 
 export interface ProjectileOpts {
-  homing?: boolean | undefined;
-  aoe?: number | undefined;
-  target?: UnitIndex | undefined;
-  piercing?: number | undefined;
-  sourceUnit?: UnitIndex | undefined;
+  homing?: boolean;
+  aoe?: number;
+  target?: UnitIndex;
+  piercing?: number;
+  sourceUnit?: UnitIndex;
 }
 
 export interface UnitType {

@@ -783,7 +783,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
     c[0] * 0.8,
     c[1] * 0.7 + 0.3,
     c[2],
-    { aoe: t.aoe },
+    { aoe: t.aoe ?? 0 },
   );
   spawnMuzzleFlash(ctx, ang);
 }
