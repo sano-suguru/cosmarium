@@ -212,6 +212,7 @@ function fireChainHop(hop: ChainHop, rng: () => number) {
   emitChainVisual(fx, fy, tx, ty, hop.col, rng);
   if (o.alive) {
     o.hp -= hop.damage;
+    o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
     if (o.hp <= 0) {
       const hx = o.x,
@@ -260,6 +261,7 @@ function applyChainHit(
   emitChainVisual(cx, cy, hx, hy, col, rng);
   const dd = damage * (1 - ch * 0.12);
   o.hp -= dd;
+  o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
     killUnit(bi);

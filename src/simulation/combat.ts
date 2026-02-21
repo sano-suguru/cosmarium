@@ -152,6 +152,7 @@ function handleRam(ctx: CombatContext) {
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < t.size + unitType(o.type).size) {
       o.hp -= Math.ceil(u.mass * 3 * vd);
+      o.hitFlash = 1;
       knockback(oi, u.x, u.y, u.mass * 55);
       u.hp -= Math.ceil(unitType(o.type).mass);
       for (let k = 0; k < 10; k++) {
@@ -357,6 +358,7 @@ function handleEmp(ctx: CombatContext) {
     if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
       oo.stun = 1.5;
       oo.hp -= t.damage;
+      oo.hitFlash = 1;
       if (oo.hp <= 0) {
         killUnit(oi);
         explosion(oo.x, oo.y, oo.team, oo.type, ctx.ui, ctx.rng);
@@ -472,6 +474,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     let dmg = t.damage * vd;
     if (n.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     n.hp -= dmg;
+    n.hitFlash = 1;
     knockback(ni, u.x, u.y, dmg * 3);
     spawnParticle(
       n.x + (ctx.rng() - 0.5) * 8,
@@ -673,6 +676,7 @@ function handleFocusBeam(ctx: CombatContext) {
     let dmg = t.damage * u.beamOn * vd;
     if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
     o.hp -= dmg;
+    o.hitFlash = 1;
     knockback(u.target, u.x, u.y, dmg * 5);
     const pCount = 1 + Math.floor(u.beamOn * 2);
     const pSize = 2 + u.beamOn * 0.5;

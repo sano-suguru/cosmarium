@@ -57,6 +57,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.burstCount = 0;
       u.broadsidePhase = 0;
       u.swarmN = 0;
+      u.hitFlash = 0;
       incUnits();
       return i as UnitIndex;
     }

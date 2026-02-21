@@ -119,6 +119,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     burstCount: 0,
     broadsidePhase: 0,
     swarmN: 0,
+    hitFlash: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {

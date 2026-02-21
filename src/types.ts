@@ -29,6 +29,7 @@ export interface Unit {
   swarmN: number;
   boostTimer: number;
   boostCooldown: number;
+  hitFlash: number;
 }
 
 export interface Particle {

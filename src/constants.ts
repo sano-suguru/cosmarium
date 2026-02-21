@@ -11,6 +11,7 @@ export const NEIGHBOR_BUFFER_SIZE = 350;
 export const SHIELD_LINGER = 2;
 export const TETHER_BEAM_LIFE = 0.7;
 export const SWARM_RADIUS_SQ = 80 * 80;
+export const HIT_FLASH_DURATION = 0.08;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;
 export const BASE_SPEED = 0.55;

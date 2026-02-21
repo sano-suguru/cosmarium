@@ -1,5 +1,6 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import {
+  HIT_FLASH_DURATION,
   MAX_STEPS_PER_FRAME,
   PI,
   POOL_PARTICLES,
@@ -58,6 +59,7 @@ function detonateAoe(p: Projectile, rng: () => number) {
     if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
       const dd = Math.sqrt(ddx * ddx + ddy * ddy);
       o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
+      o.hitFlash = 1;
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
         const ox = o.x,
@@ -103,6 +105,7 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   let dmg = p.damage;
   if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
   o.hp -= dmg;
+  o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
   spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
   if (o.hp <= 0) handleProjectileKill(p, oi, o, rng);
@@ -251,9 +254,11 @@ function updateUnits(dt: number, now: number, rng: () => number) {
     const u = unit(i);
     if (!u.alive) continue;
     urem--;
+    const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
     steer(u, dt, rng);
     combat(u, i as UnitIndex, dt, now, rng);
+    if (u.alive && u.hp < prevHp) u.hitFlash = 1;
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + rng() * 0.02;
@@ -263,6 +268,16 @@ function updateUnits(dt: number, now: number, rng: () => number) {
       boostTrail(u, dt, rng);
       if (wasNotBoosting) boostBurst(u, rng);
     }
+  }
+}
+
+function decayHitFlash(dt: number) {
+  const decay = dt / HIT_FLASH_DURATION;
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.hitFlash > 0) u.hitFlash = Math.max(0, u.hitFlash - decay);
   }
 }
 
@@ -304,6 +319,7 @@ export interface GameLoopState extends ReinforcementState {
 
 function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
   const co = gameState.codexOpen;
+  decayHitFlash(dt);
   buildHash();
   updateSwarmN();
   resetReflected();
