@@ -112,7 +112,6 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
 
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
   const nn = getNeighbors(p.x, p.y, 30);
-  let hit = false;
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
@@ -124,13 +123,12 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
     if (p.piercing > 0) {
       p.damage *= p.piercing;
       p.lastHitUnit = oi;
-      hit = true;
-      continue;
+      return true;
     }
     killProjectile(pi);
     return true;
   }
-  return hit;
+  return false;
 }
 
 function projectileTrail(p: Projectile, dt: number, rng: () => number) {

@@ -400,7 +400,7 @@ describe('piercing projectile', () => {
 });
 
 describe('キル時クールダウン短縮', () => {
-  it('sourceUnit 指定時: キルで vet が上昇', () => {
+  it('sourceUnit 指定時: キルで kills カウントが上昇', () => {
     const sniper = spawnAt(0, 8, 0, 0); // Sniper
     unit(sniper).trailTimer = 99;
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
