@@ -18,9 +18,9 @@ import { addShake } from '../input/camera.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { combat, resetReflected } from './combat.ts';
-import { boostBurst, boostTrail, explosion, trail, updateChains } from './effects.ts';
+import { boostBurst, boostTrail, explosion, flagshipTrail, trail, updateChains } from './effects.ts';
 import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
@@ -48,12 +48,13 @@ function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
   }
 }
 
-function detonateAoe(p: Projectile, rng: () => number) {
+function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
     if (!o.alive || o.team === p.team) continue;
+    if (skipUnit !== undefined && oi === skipUnit) continue;
     const ddx = o.x - p.x,
       ddy = o.y - p.y;
     if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
@@ -125,6 +126,9 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
       p.damage *= p.piercing;
       p.lastHitUnit = oi;
       return true;
+    }
+    if (p.aoe > 0) {
+      detonateAoe(p, rng, oi);
     }
     killProjectile(pi);
     return true;
@@ -249,6 +253,13 @@ export function updateSwarmN() {
   }
 }
 
+const FLAGSHIP = unitTypeIndex('Flagship');
+
+function emitTrail(u: Unit, rng: () => number) {
+  if (u.type === FLAGSHIP) flagshipTrail(u, rng);
+  else trail(u, rng);
+}
+
 function updateUnits(dt: number, now: number, rng: () => number) {
   for (let i = 0, urem = poolCounts.units; i < POOL_UNITS && urem > 0; i++) {
     const u = unit(i);
@@ -262,7 +273,7 @@ function updateUnits(dt: number, now: number, rng: () => number) {
     u.trailTimer -= dt;
     if (u.trailTimer <= 0) {
       u.trailTimer = 0.03 + rng() * 0.02;
-      trail(u, rng);
+      emitTrail(u, rng);
     }
     if (u.boostTimer > 0 && u.stun <= 0) {
       boostTrail(u, dt, rng);

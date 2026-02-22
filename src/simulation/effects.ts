@@ -4,7 +4,7 @@ import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
@@ -108,6 +108,35 @@ export function trail(u: Unit, rng: () => number) {
     c[2],
     SH_CIRCLE,
   );
+}
+
+export function flagshipTrail(u: Unit, rng: () => number) {
+  const t = unitType(u.type),
+    c = trailColor(u.type, u.team);
+  const cos = Math.cos(u.angle);
+  const sin = Math.sin(u.angle);
+  const localX = -(t.size * 1.05); // 後方（シェーダノズル0.80より奥）
+  for (const sign of [-1, 1] as const) {
+    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
+      // 毎フレーム全4基ではなくrng確率で約2基をspawn
+      if (rng() < 0.45) continue;
+      const localY = sign * ey * t.size;
+      const wx = u.x + cos * localX - sin * localY;
+      const wy = u.y + sin * localX + cos * localY;
+      spawnParticle(
+        wx + (rng() - 0.5) * t.size * 0.15,
+        wy + (rng() - 0.5) * t.size * 0.15,
+        -cos * 40 + (rng() - 0.5) * 20,
+        -sin * 40 + (rng() - 0.5) * 20,
+        0.12 + rng() * 0.2 * t.trailInterval,
+        t.size * 0.18 + rng() * 1.5,
+        c[0],
+        c[1],
+        c[2],
+        SH_CIRCLE,
+      );
+    }
+  }
 }
 
 interface ChainHop {

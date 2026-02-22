@@ -86,7 +86,7 @@ export const TYPES: UnitType[] = [
     name: 'Flagship',
     size: 30,
     hp: 200,
-    speed: 35,
+    speed: 55,
     turnRate: 0.5,
     fireRate: 1.8,
     range: 400,
@@ -95,7 +95,7 @@ export const TYPES: UnitType[] = [
     trailInterval: 1.3,
     mass: 30,
     accel: 2.0,
-    drag: 0.8,
+    drag: 0.6,
     leadAccuracy: 0.85,
     broadside: true,
     description: '重砲斉射で中型艦を圧倒する艦隊旗艦。対小型群には脆弱。',
@@ -323,3 +323,6 @@ export function unitTypeIndex(name: string): number {
   if (idx === -1) throw new RangeError(`Unknown unit type name: ${name}`);
   return idx;
 }
+
+/** Flagship エンジンY軸オフセット比率 — 左右対称 × 2段 = 計4基 */
+export const FLAGSHIP_ENGINE_OFFSETS = [0.18, 0.38] as const;
