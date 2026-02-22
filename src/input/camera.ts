@@ -7,8 +7,27 @@ let dragging = false,
   dragStart = { x: 0, y: 0 },
   cameraStart = { x: 0, y: 0 };
 
-export function addShake(v: number) {
-  cam.shake += v;
+export function addShake(v: number, x: number, y: number) {
+  const halfW = viewport.W / (2 * cam.z);
+  const halfH = viewport.H / (2 * cam.z);
+  const viewRadius = Math.sqrt(halfW * halfW + halfH * halfH);
+
+  const dx = x - cam.x;
+  const dy = y - cam.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  const fadeEnd = viewRadius * 3;
+
+  let factor: number;
+  if (dist <= viewRadius) {
+    factor = 1;
+  } else if (dist >= fadeEnd) {
+    factor = 0;
+  } else {
+    factor = 1 - (dist - viewRadius) / (fadeEnd - viewRadius);
+  }
+
+  cam.shake += v * factor;
   cam.shake = Math.min(cam.shake, 60);
 }
 
