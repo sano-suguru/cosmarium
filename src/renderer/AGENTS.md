@@ -8,16 +8,18 @@
 
 ## ファイル一覧
 
-| ファイル | 行数 | 役割 |
-|---------|------|------|
-| webgl-setup.ts | 34 | Canvas取得(#c)、WebGL2コンテキスト初期化、resize() |
-| shaders.ts | 126 | GLSLインポート→compile→link。mainLocations/bloomLocations等を公開 |
-| buffers.ts | 106 | VAO3つ(mainVAO/mmVAO/qVAO)初期化。instanceData Float32Array確保 |
-| fbo.ts | 42 | FBO生成/削除。scene(フル解像度)/bloom1,bloom2(半分解像度) |
-| render-pass.ts | 95 | renderFrame()：4パス制御。uniform設定、FBOバインド |
-| render-scene.ts | 289 | writeInstance()でinstanceDataに書込み。描画順制御 |
-| minimap.ts | 110 | initMinimap + drawMinimap。scissor/viewport切替、mmVAO使用 |
-| utils.ts | 5 | required() — WebGLリソース生成失敗チェック |
+| ファイル | 役割 |
+|---------|------|
+| render-scene.ts | writeInstance()でinstanceDataに書込み。描画順制御 |
+| shaders.ts | GLSLインポート→compile→link。mainLocations/bloomLocations等を公開 |
+| minimap.ts | initMinimap + drawMinimap。scissor/viewport切替、mmVAO使用 |
+| buffers.ts | VAO3つ(mainVAO/mmVAO/qVAO)初期化。instanceData Float32Array確保 |
+| render-pass.ts | renderFrame()：4パス制御。uniform設定、FBOバインド |
+| fbo.ts | FBO生成/削除。scene(フル解像度)/bloom1,bloom2(半分解像度) |
+| webgl-setup.ts | Canvas取得(#c)、WebGL2コンテキスト初期化、resize() |
+| utils.ts | required() — WebGLリソース生成失敗チェック |
+
+テスト: `render-scene.test.ts` — writeInstance/描画順/instanceData書込みの検証。
 
 ## 変更ガイド
 
@@ -38,7 +40,7 @@
 - minimap描画後はscissor/viewport/blendをリストア必須
 - instance layout: 9 floats/stride=36bytes。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
 - `resize()`後に`createFBOs()`を再呼出し必須（FBOサイズはviewportに依存）
-- シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可（詳細: `src/shaders/AGENTS.md`）
+- シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可
 
 ## 初期化順序（main.tsから）
 `initWebGL()` → `initShaders()` → `createFBOs()` → `initBuffers()` — 順序変更不可

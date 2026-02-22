@@ -8,21 +8,52 @@
 
 ## ファイル一覧
 
-| ファイル | 行数 | 役割 |
-|---------|------|------|
-| main.vert.glsl | 14 | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
-| main.frag.glsl | 72 | shape ID別SDF描画。#include sdf.glsl |
-| quad.vert.glsl | 4 | bloom/composite用フルスクリーンquad |
-| bloom.frag.glsl | 14 | H/Vガウス畳み込み。uT,uD,uR |
-| composite.frag.glsl | 12 | vignette + Reinhardトーンマップ。uS,uB |
-| minimap.vert.glsl | 11 | ミニマップ頂点。aSYはaAスロット転用 |
-| minimap.frag.glsl | 9 | SDF不使用。色をそのまま出力 |
-| includes/sdf.glsl | 19 | hexDist, octDist, manDist |
+| ファイル | 役割 |
+|---------|------|
+| main.frag.glsl | shape ID別SDF描画。#include sdf.glsl。最大ファイル |
+| includes/sdf.glsl | hexDist, octDist, manDist |
+| main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
+| bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
+| composite.frag.glsl | vignette + Reinhardトーンマップ。uS,uB |
+| minimap.vert.glsl | ミニマップ頂点。aSYはaAスロット転用 |
+| minimap.frag.glsl | SDF不使用。色をそのまま出力 |
+| quad.vert.glsl | bloom/composite用フルスクリーンquad |
+
+## Shape IDs
+
+フラグメントシェーダ (`main.frag.glsl`) が整数shape IDでSDF描画を分岐する:
+
+| ID | Shape | Used by |
+|----|-------|---------|
+| 0 | Circle | particle, projectile(aoe/default), HP bar, stun spark |
+| 1 | Diamond | projectile(通常弾), minimap背景/unit |
+| 2 | Triangle | — |
+| 3 | Hexagon | asteroid |
+| 4 | Cross | — |
+| 5 | Ring | reflector shield表示 |
+| 6 | Arrow | homing projectile, minimap unit |
+| 7 | Star(5) | — |
+| 8 | Crescent | — |
+| 9 | Square | — |
+| 10 | Glow ring | explosion ring, vet glow, EMP ring, shield aura, base glow |
+| 11 | Chevron | — |
+| 12 | Beam | beam segments |
+| 13 | Diamond ring | — |
+| 14 | Trefoil | — |
+| 15 | Lightning | — |
+| 16 | Pentagon | — |
+| 20 | Large hexagon | base (mode=2) |
+| 21 | Bar | HPバー (背景+前景) |
+| 22 | Octagon shield | reflectorシールド/shield linger |
+| 23 | Lightning beam | チェーンライトニングのビームセグメント |
+| 24 | Flagship Dreadnought | Flagship |
+| 25 | Medical Frigate | Healer |
+| 26 | Prism Shield | Reflector |
 
 ## 新Shape追加手順
 
 1. `main.frag.glsl` — 最後の`else if`の前に`else if(sh==次のID)`を追加
-2. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `manDist`）
+2. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `octDist`, `manDist`）
 3. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
 4. 描画確認はブラウザのみ
 
@@ -30,7 +61,6 @@
 
 ## Critical Gotchas
 
-- vite-plugin-glslの`removeDuplicatedImports: true`設定により、同一ファイルの重複#includeは自動除去される
 - `int sh=int(vSh+0.5)` — floatからint変換の精度対策
 - `aSY`は`aA`スロット転用（minimap.vertのみ。バッファレイアウトは同一だが意味が異なる）
 - GLSL構文エラーはランタイムのみ検出（`gl.compileShader`失敗=黒画面）

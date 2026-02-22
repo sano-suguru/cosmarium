@@ -1,24 +1,39 @@
 # AGENTS.md — COSMARIUM
 
-> 変更作業時の判断指針。数値の正は常にソースコード。
+> 変更作業時の判断指針。数値の正は常にソースコード。Infiniteモード（永続的な宇宙戦争シミュレーション）のみ。
 
 ## Quick Reference
 
 - **言語**: 日本語で返答
 - **型チェック**: `bun run typecheck` — strict mode、`noUnusedLocals`/`noUnusedParameters` on
 - **ビルド**: `bun run build`
-- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd + similarity + test
-- **テスト**: `bun run test:run` — `src/simulation/*.test.ts`(10) + `src/*.test.ts`(5) + `src/renderer/*.test.ts`(1)。計16。ヘルパー: `src/__test__/pool-helper.ts`
+- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd + similarity + test + check:deps
+- **テスト**: `bun run test:run` — ヘルパー: `src/__test__/pool-helper.ts`
 - **Lint/Format**: Biome。`src/shaders/**`は除外。singleQuote, lineWidth=120
-- **Biome重要ルール**: `noConsole: error`(error/warnのみ許可)、`noNonNullAssertion: error`、`noForEach: error`(for-of使用)、`noExplicitAny: error`、`noEvolvingTypes: error`、`noBarrelFile: error`、`noExcessiveCognitiveComplexity: error`(上限15)
-- **Pre-commit**: `biome check --staged --write`。エラーのみブロック
-- **コード品質**: `bun run similarity` — 類似度検出(閾値0.92、最小7行)。`bun run check:deps` — dependency-cruiser依存ルール検証
+- **Biome重要ルール**: `noConsole: error`(error/warnのみ許可)、`noExplicitAny: error`。他は`biome.json`参照
+- **Pre-commit**: simple-git-hooks経由。`biome check --staged --write`。エラーのみブロック
+- **コード品質**: `bun run similarity` — 類似度検出(閾値0.92、最小7行)。`bun run check:deps` — dependency-cruiser依存ルール検証。`bun run knip` — 未使用export検出。`bun run cpd` — コピペ検出(jscpd)
 - **Import規約**: 相対パス + `.ts`拡張子明示。パスエイリアスなし。barrel export なし
 - **TSC strict（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexは`T | undefined`)、`noImplicitReturns`
 
-## Game Mode
+## 構造
 
-Infinite モードのみ。永続的な宇宙戦争シミュレーション。
+```
+src/
+├── main.ts              # エントリ + requestAnimationFrame ループ
+├── types.ts             # 全型定義（Unit/Particle/Projectile/Beam等）。全ファイルが依存
+├── constants.ts         # プール上限、WORLD_SIZE、シェーダ定数
+├── state.ts             # ミュータブルgame state + mulberry32 rng closure
+├── pools.ts             # オブジェクトプール（unit/particle/projectile）+ poolCounts
+├── colors.ts            # チームカラー、トレイルカラーテーブル
+├── unit-types.ts        # 15ユニットタイプ定義（UnitType配列）
+├── beams.ts             # beam/trackingBeam 動的配列
+├── simulation/          # ゲームロジック（詳細: simulation/AGENTS.md）
+├── renderer/            # WebGL2レンダリング（詳細: renderer/AGENTS.md）
+├── shaders/             # GLSLソース（詳細: shaders/AGENTS.md）
+├── ui/                  # Codex/HUD/メニュー（詳細: ui/AGENTS.md）
+└── input/camera.ts      # カメラ状態 + マウス/キー入力ハンドリング
+```
 
 ## 依存ルール（dependency-cruiser）
 
@@ -32,11 +47,12 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 
 ## Data Flow概要
 
-- main loop: `gameState==='play'`時のみ実行
-- dtサブステップ: main.ts(`Math.min(dt, 0.05)`でフレーム間隔を上限クランプ) → update.ts(`rawDt > 1/REF_FPS`なら最大`MAX_STEPS_PER_FRAME=8`回の`stepOnce`に分割。クランプではなく分割)
-- update順: `buildHash()` → per unit(`steer`→`combat`、`codexOpen`時は非デモユニットスキップ) → reflector pass → projectile pass → particle/beam pass → `!codexOpen`時のみ `reinforce(dt)`
-- `update(rawDt, now, rng, gameState)`: `rng`は`state.ts`のclosureラッパー、`gameState`は`GameLoopState`（`codexOpen`, `isCodexDemoUnit`, `updateCodexDemo` + `ReinforcementState`の`reinforcementTimer`）
-- `codexOpen`時: 非デモユニットのsteer/combatスキップ + reinforce スキップ → `updateCodexDemo(dt)`実行。renderer: カメラ→原点z=2.5固定。input: 操作無効化。メニューからもアクセス可能
+詳細は`src/simulation/AGENTS.md`のTick順序を参照。概略:
+
+- main loop: `gameState==='play'`時のみ実行。dtは`Math.min(dt, 0.05)`でクランプ
+- update.tsがサブステップ分割（最大`MAX_STEPS_PER_FRAME=8`回）→ 各ステップでhash→steer→combat→effects→reinforce
+- `codexOpen`時: simulation/renderer/input/mainの4層に波及。非デモユニットのsteer/combatスキップ、reinforceスキップ、カメラ固定、操作無効化
+- RNG: main.tsが`state.rng`(seeded)か`demoRng`を選択し`update()`に引数注入。simulation内は全て引数経由（依存ルール準拠）
 
 ## ファイル変更ガイド
 
@@ -52,21 +68,20 @@ Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 ## 規約
 
 - **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
-- **poolCounts**: Readonly export（`.units`/`.particles`/`.projectiles`）。外部から直接変更は型エラー。`killUnit`/`killParticle`/`killProjectile`集約関数経由で操作
-- **spawn/kill**: プール先頭からdead slot線形スキャン。全kill関数に二重kill防止ガードあり
-  - poolCountsを直接インラインで変更しない — 必ず集約関数（`killUnit`/`killParticle`/`killProjectile`等）経由
-- **rng**: `state.ts`がmulberry32ベースの`rng()`をclosureラッパーでexport。simulationは引数として受取り（dependency-cruiserルール準拠）
+- **poolCounts**: Readonly export。外部からの直接変更は型エラー。必ず`killUnit`/`killParticle`/`killProjectile`等の集約関数経由で操作
+- **spawn/kill**: Unit/Projectileはプール先頭からdead slot線形スキャン。Particleは LIFO free stack（Uint16Array）で高速アロケーション。全kill関数に二重kill防止ガードあり
 - **新オブジェクト種追加時**: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加
+- **プールアクセサ**: `unit(i)`/`particle(i)`/`projectile(i)`はpools.tsの集約関数経由。noUncheckedIndexedAccessのundefinedチェックを集約
 
 ## テストパターン
 
-vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`resetState()`/`spawnAt()`)を必ず使用。`afterEach`で`resetPools()` + `resetState()` + `vi.restoreAllMocks()`。`vi.mock()`でUI/camera依存を排除。
+vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`resetState()`/`spawnAt()`/`fillUnitPool()`/`makeGameLoopState()`)を必ず使用。`afterEach`で`resetPools()` + `resetState()` + `vi.restoreAllMocks()`。`vi.mock()`でUI/camera依存を排除。`seedRng(12345)`でRNG決定論性を担保。
 
 ## 作業方針
 
 ### 調査と実装を分離する
 
-調査（ファイル読み、依存関係の把握）と実装は別フェーズ。調査をサブタスクに委譲した場合、結果が返るまで同じ調査を自分で始めない。
+調査（ファイル読み、依存関係の把握）と実装は別フェーズ。調査をサブタスクに委譲した場合、結果が返るまで同じ調査を自分で始めない。全ファイルを読んでから実装を始めるのではなく、必要な箇所だけ読む。
 
 ### 計画が必要なタスク
 
@@ -85,18 +100,12 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 - ロジック変更 → `bun run test:run`で検証 → 次へ
 - シェーダ変更 → ブラウザで目視確認 → 次へ
 
-各単位で`bun run typecheck`が通る状態を維持する。
-
-### Don't
-
-- 調査を委譲した後、結果を待たずに同じ調査を自分で行う
-- 全ファイルを読んでから実装を始める（必要な箇所だけ読む）
-- 複数モジュールを一度に変更して最後にまとめて検証する
+各単位で`bun run typecheck`が通る状態を維持する。複数モジュールを一度に変更して最後にまとめて検証しない。
 
 ## Critical Gotchas
 
-- `neighborBuffer`は共有バッファ: `getNeighbors()`が書込み、戻り値=有効数。コピーせず即使用
-- `codexOpen`は simulation/renderer/input/main の4層に波及（上記Data Flow参照）
-- GLSLのGPUコンパイルはランタイムのみ。CIでは検出不可（詳細: `src/shaders/AGENTS.md`）
-- シェーダは`vite-plugin-glsl`経由でimport。`#include`展開もplugin側で処理
-- `killUnit()`前に参照する値はローカル変数に退避 — killでスロット即時再利用、データ破壊の可能性あり（詳細: `src/simulation/AGENTS.md`）
+- Codexの`snapshotPools()`/`restorePools()`はshallow copy。Object.assignで書き戻し
+- `1 - team`ではなく `.team !== u.team` で比較する（`1 - team`は`number`型になり`Team`型にならない）
+- ブランドindex: プールループでは`i as UnitIndex`（ParticleIndex/ProjectileIndex）にキャスト必要
+
+simulation固有のgotchas（`neighborBuffer`共有バッファ、`killUnit()`前の値退避、`beams`のswap-and-pop等）は`src/simulation/AGENTS.md`参照。シェーダ固有（GLSLランタイムコンパイル、`vite-plugin-glsl`の`#include`展開等）は`src/shaders/AGENTS.md`参照。

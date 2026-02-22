@@ -8,13 +8,15 @@ DOM + CSS でHUD/メニュー/Codexパネルを構成。WebGL Canvasとは分離
 
 ## ファイル一覧
 
-| ファイル | 行数 | 役割 |
-|---------|------|------|
-| game-control.ts | 174 | initUI: メニュー/ボタン/キーボード(Tab/Esc/速度)。codex toggle |
-| codex.ts | 520 | Codex DOM構築 + デモ生成/更新/破棄 + snapshot/restore。最大ファイル |
-| hud.ts | 55 | initHUD + updateHUD(毎フレーム)。プール走査でカウント表示 |
-| dom-ids.ts | 22 | DOM ID定数。新UI要素追加時はここにID追加 |
-| dev-overlay.ts | 75 | 開発用警告オーバーレイ(devWarn/devError) |
+| ファイル | 役割 |
+|---------|------|
+| codex.ts | Codex DOM構築 + デモ生成/更新/破棄 + snapshot/restore。最大ファイル |
+| game-control.ts | initUI: メニュー/ボタン/キーボード(Tab/Esc/速度)。codex toggle |
+| dev-overlay.ts | 開発用警告オーバーレイ(devWarn/devError) |
+| hud.ts | initHUD + updateHUD(毎フレーム)。プール走査でカウント表示 |
+| dom-ids.ts | DOM ID定数。新UI要素追加時はここにID追加 |
+
+テスト: `codex-camera.test.ts` — Codexデモ時のカメラ挙動検証。
 
 ## Codexのプール副作用（最重要）
 
@@ -49,8 +51,8 @@ Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUni
 
 ## Critical Gotchas
 
-- `setupCodexDemo()`は`spawnUnit()`で実ユニット生成 → プール上限に影響
 - DOM要素IDは`dom-ids.ts`で定数化済み。新規追加時はここに追加
 - `updateHUD`は毎フレームO(`POOL_UNITS`)でプール走査。DOMノードは`initHUD()`でキャッシュ済み
 - `codex.ts` → `game-control.ts` の逆方向importは循環依存になるため禁止（game-control.ts にNOTEコメントあり）
 - タッチ入力（touchstart/pointer*）は未実装。現在はマウス+キーボードのみ
+- Codexデモ中のRNG: main.tsが`demoRng`（`Math.random`ベース）を注入。意図的に非決定論的
