@@ -4,7 +4,7 @@ import { addShake } from '../input/camera.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
@@ -915,9 +915,7 @@ function flagshipWorld(u: Unit, localX: number, localY: number): [number, number
   return _fwBuf;
 }
 
-// 3 per hull side, 6 total
-const ENGINE_OFFSETS = [0.14, 0.24, 0.34] as const;
-const MUZZLE_FWD = 0.6;
+const MUZZLE_FWD = 0.65;
 
 function flagshipChargeVfx(ctx: CombatContext, progress: number) {
   const { u, c, t } = ctx;
@@ -928,9 +926,9 @@ function flagshipChargeVfx(ctx: CombatContext, progress: number) {
   }
 
   for (const sign of [-1, 1] as const) {
-    for (const ey of ENGINE_OFFSETS) {
+    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
       if (ctx.rng() < progress * 0.6) {
-        const [ex, eyy] = flagshipWorld(u, -t.size * 0.8, sign * ey * t.size);
+        const [ex, eyy] = flagshipWorld(u, -t.size * 1.05, sign * ey * t.size);
         const speed = 90 + ctx.rng() * 70;
         spawnParticle(
           ex,
@@ -987,10 +985,12 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
       t.range / sp + 0.1,
       t.damage * vd,
       u.team,
-      4,
+      7,
       c[0],
       c[1],
       c[2],
+      false,
+      60,
     );
     for (let j = 0; j < 5; j++) {
       const a = ba + (ctx.rng() - 0.5) * 0.5;
@@ -1017,8 +1017,8 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const backX = -Math.cos(u.angle);
   const backY = -Math.sin(u.angle);
   for (const sign of [-1, 1] as const) {
-    for (const ey of ENGINE_OFFSETS) {
-      const [ex, eyy] = flagshipWorld(u, -t.size * 0.8, sign * ey * t.size);
+    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
+      const [ex, eyy] = flagshipWorld(u, -t.size * 1.05, sign * ey * t.size);
       for (let j = 0; j < 2; j++) {
         spawnParticle(
           ex,
@@ -1063,13 +1063,13 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
       (t.range * 0.7) / sp + 0.1,
       perpDmg,
       u.team,
-      3,
+      5,
       c[0] * 0.8,
       c[1] * 0.8,
       c[2] * 0.8,
     );
 
-    for (const ey of ENGINE_OFFSETS) {
+    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
       const [bx, by] = flagshipWorld(u, -t.size * 0.3, side * ey * t.size);
       addBeam(bx, by, bx + baDx * 70, by + baDy * 70, c[0] * 0.8, c[1] * 0.8, c[2] * 0.8, 0.04, 2.0, true, 6);
     }
