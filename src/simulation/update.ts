@@ -89,7 +89,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
     );
   }
   spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
-  addShake(3);
+  addShake(3, p.x, p.y);
 }
 
 function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {

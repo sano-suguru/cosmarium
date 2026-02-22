@@ -85,7 +85,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   }
   spawnParticle(x, y, 0, 0, 0.45, size * 2.5, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, SH_EXPLOSION_RING);
 
-  if (size >= 14) addShake(size * 0.8);
+  if (size >= 14) addShake(size * 0.8, x, y);
 
   applyKnockbackToNeighbors(x, y, size);
   updateKillerVet(killer);

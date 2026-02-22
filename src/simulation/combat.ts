@@ -441,7 +441,7 @@ function blinkArrive(ctx: CombatContext) {
   spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, SH_EXPLOSION_RING);
   spawnParticle(u.x, u.y, 0, 0, 0.25, 10, c[0], c[1], c[2], SH_DIAMOND_RING);
 
-  addShake(1.2);
+  addShake(1.2, u.x, u.y);
 
   const nn = getNeighbors(u.x, u.y, BLINK_IMPACT_RADIUS);
   for (let i = 0; i < nn; i++) {
@@ -946,7 +946,7 @@ function flagshipChargeVfx(ctx: CombatContext, progress: number) {
     }
   }
 
-  addShake(0.4 * progress * ctx.dt * REF_FPS);
+  addShake(0.4 * progress * ctx.dt * REF_FPS, u.x, u.y);
 }
 
 function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: number) {
@@ -1042,7 +1042,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
     addBeam(mx, my, mx + dx * 240, my + dy * 240, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.06, 2.5, true, 8);
   }
 
-  addShake(6);
+  addShake(6, u.x, u.y);
 }
 
 function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
@@ -1093,7 +1093,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
     addBeam(ox, oy, ox + baDx * t.range * 0.5, oy + baDy * t.range * 0.5, c[0], c[1], c[2], 0.06, 4.0, true, 6);
   }
 
-  addShake(4);
+  addShake(4, u.x, u.y);
 }
 
 /**
