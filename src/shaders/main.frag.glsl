@@ -11,7 +11,7 @@ const float RIM_THRESH[27]=float[27](
   0.025,0.028,0.030,0.012,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
   0.020,0.022,0.020,0.015,0.020, // 10-14 sh11=Disruptor
   0.022,0.028,0.020,0.020,0.020, // 15-19
-  0.020,0.020,0.020,0.020,0.035, // 20-24 sh24=Flagship
+  0.020,0.020,0.020,0.020,0.028, // 20-24 sh24=Flagship
   0.025,0.038                    // 25-26 sh25=Healer,sh26=Reflector
 );
 const float RIM_WEIGHT[27]=float[27](
@@ -19,7 +19,7 @@ const float RIM_WEIGHT[27]=float[27](
   0.43,0.52,0.48,0.40,0.55, // 5-9
   0.38,0.42,0.38,0.35,0.38, // 10-14 sh11=Disruptor
   0.40,0.50,0.38,0.38,0.38, // 15-19
-  0.38,0.38,0.38,0.38,0.50, // 20-24 sh24=Flagship
+  0.38,0.38,0.38,0.38,0.55, // 20-24 sh24=Flagship
   0.35,0.52                  // 25-26 sh25=Healer,sh26=Reflector
 );
 const float HF_WEIGHT[27]=float[27](
@@ -27,7 +27,7 @@ const float HF_WEIGHT[27]=float[27](
   0.50,0.58,0.50,0.55,0.55, // 5-9
   0.48,0.43,0.48,0.42,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.48,0.52,0.48,0.48,0.48, // 15-19 sh15=Arcer,sh16=Cruiser
-  0.48,0.48,0.48,0.48,0.55, // 20-24 sh24=Flagship
+  0.48,0.48,0.48,0.48,0.52, // 20-24 sh24=Flagship
   0.48,0.45                  // 25-26 sh25=Healer,sh26=Reflector
 );
 const float FWIDTH_MULT[27]=float[27](
@@ -35,7 +35,7 @@ const float FWIDTH_MULT[27]=float[27](
   1.4,1.3,1.20,2.0,1.15, // 5-9
   1.5,1.6,1.5,1.7,1.5, // 10-14 sh11=Disruptor
   1.5,1.20,1.5,1.5,1.5, // 15-19
-  1.5,1.5,1.5,1.5,1.2,// 20-24 sh24=Flagship
+  1.5,1.5,1.5,1.5,1.15,// 20-24 sh24=Flagship
   1.8,1.2               // 25-26 sh25=Healer,sh26=Reflector
 );
 void main(){
@@ -623,39 +623,51 @@ void main(){
     float glow=exp(-by*2.5)*0.4;
     a=core+glow; }
   else if(sh==24){ vec2 p=vU*0.84; float t=vA+uTime;
-    float dTop=sdCapsule(p,vec2(-0.72,0.24),vec2(0.62,0.24),0.18);
-    float dBot=sdCapsule(p,vec2(-0.72,-0.24),vec2(0.62,-0.24),0.18);
-    float dBody=smin(min(dTop,dBot),sdRoundedBox(p-vec2(0.66,0.0),vec2(0.18,0.30),0.08),0.08);
-    dBody=smin(dBody,sdRoundedBox(p-vec2(-0.84,0.0),vec2(0.11,0.36),0.07),0.07);
-    dBody=max(dBody,-sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.74,0.11),0.06));
-    dBody=max(dBody,-sdRoundedBox(p-vec2(-0.84,0.0),vec2(0.18,0.12),0.06));
-    dBody=max(dBody,-min(sdRoundedBox(p-vec2(-0.18,0.24),vec2(0.26,0.06),0.03),
-                        sdRoundedBox(p-vec2(-0.18,-0.24),vec2(0.26,0.06),0.03)));
+    // Flagship: Sleek catamaran battleship — tapered twin hulls
+    // 1. Tapered twin hulls (sdTrapezoid via p.yx: stern wide, bow narrow)
+    float dTop=sdTrapezoid(p.yx-vec2(0.28,-0.05),0.20,0.05,0.58);
+    float dBot=sdTrapezoid(p.yx-vec2(-0.28,-0.05),0.20,0.05,0.58);
+    // 2. Bow turret bridge (connects twin hulls at front)
+    float dBow=sdRoundedBox(p-vec2(0.46,0.0),vec2(0.12,0.22),0.05);
+    // 3. Stern engineering section (wide rear connection)
+    float dStern=sdRoundedBox(p-vec2(-0.68,0.0),vec2(0.10,0.38),0.06);
+    // 4. Union hulls + bridge + stern
+    float dBody=smin(min(dTop,dBot),dBow,0.06);
+    dBody=smin(dBody,dStern,0.05);
+    // 5. Center channel cutout (gap between twin hulls)
+    dBody=max(dBody,-sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.52,0.13),0.05));
+    // 6. Stern engine bay cutout
+    dBody=max(dBody,-sdRoundedBox(p-vec2(-0.68,0.0),vec2(0.14,0.14),0.04));
+    // 7. Hull notches (break smooth hull surface on each hull)
+    dBody=max(dBody,-min(sdRoundedBox(p-vec2(-0.10,0.28),vec2(0.22,0.05),0.02),
+                        sdRoundedBox(p-vec2(-0.10,-0.28),vec2(0.22,0.05),0.02)));
+    // 8. Dorsal keel ridges (armor plates along each hull)
+    float dKeelT=sdRoundedBox(p-vec2(0.05,0.28),vec2(0.30,0.015),0.005);
+    float dKeelB=sdRoundedBox(p-vec2(0.05,-0.28),vec2(0.30,0.015),0.005);
+    dBody=max(dBody,-min(dKeelT,dKeelB)+0.008);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     float xSeg=p.x*7.0+0.2;
     float rib=(1.0-smoothstep(0.42,0.50,abs(fract(xSeg)-0.5)+fwidth(xSeg)*0.6))
               *smoothstep(-0.60,-0.10,p.x)*hf*0.16;
-    float lane=max(1.0-smoothstep(0.055,0.055+aa,abs(p.y-0.24)),
-                   1.0-smoothstep(0.055,0.055+aa,abs(p.y+0.24)));
+    float lane=max(1.0-smoothstep(0.055,0.055+aa,abs(p.y-0.28)),
+                   1.0-smoothstep(0.055,0.055+aa,abs(p.y+0.28)));
     float wx=p.x*14.0+t*0.8;
     float win=(1.0-smoothstep(0.34,0.48,abs(fract(wx)-0.5)+fwidth(wx)*0.8))
-              *smoothstep(-0.55,0.55,p.x)*lane*hf;
-    float dCh=sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.74,0.11),0.06);
+              *smoothstep(-0.55,0.45,p.x)*lane*hf;
+    float dCh=sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.52,0.13),0.05);
     float reactor=exp(-18.0*max(length(p-vec2(0.08,0.0))-0.10,0.0))
                   *(0.72+0.28*sin(t*2.4))*(1.0-smoothstep(0.0,aa,dCh))*hf;
     float engP=0.70+0.30*sin(t*9.0+p.y*4.0);
-    float eR=0.055; float eF=30.0; float pF=200.0; float pD=10.0;
-    float e1=length(p-vec2(0.80,0.14))-eR; float e2=length(p-vec2(0.80,0.24))-eR;
-    float e3=length(p-vec2(0.80,0.34))-eR; float e4=length(p-vec2(0.80,-0.14))-eR;
-    float e5=length(p-vec2(0.80,-0.24))-eR; float e6=length(p-vec2(0.80,-0.34))-eR;
-    float engC=exp(-eF*max(min(min(min(min(min(e1,e2),e3),e4),e5),e6),0.0))*engP;
-    float plm=exp(-pD*max(p.x-0.78,0.0))*(
-      exp(-pF*(p.y-0.14)*(p.y-0.14))+exp(-pF*(p.y-0.24)*(p.y-0.24))+
-      exp(-pF*(p.y-0.34)*(p.y-0.34))+exp(-pF*(p.y+0.14)*(p.y+0.14))+
-      exp(-pF*(p.y+0.24)*(p.y+0.24))+exp(-pF*(p.y+0.34)*(p.y+0.34)));
-    float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(0.35,0.85,p.x);
+    float eR=0.07; float eF=24.0; float pF=150.0; float pD=10.0;
+    float e1=length(p-vec2(-0.80,0.18))-eR; float e2=length(p-vec2(-0.80,0.38))-eR;
+    float e3=length(p-vec2(-0.80,-0.18))-eR; float e4=length(p-vec2(-0.80,-0.38))-eR;
+    float engC=exp(-eF*max(min(min(min(e1,e2),e3),e4),0.0))*engP;
+    float plm=exp(-pD*max(-p.x-0.78,0.0))*(
+      exp(-pF*(p.y-0.18)*(p.y-0.18))+exp(-pF*(p.y-0.38)*(p.y-0.38))+
+      exp(-pF*(p.y+0.18)*(p.y+0.18))+exp(-pF*(p.y+0.38)*(p.y+0.38)));
+    float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(-0.85,-0.35,p.x);
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.70;
     a=1.2*tanh(a/1.2); }
   else if(sh==25){ vec2 p=vU*0.55; float t=vA+uTime;
