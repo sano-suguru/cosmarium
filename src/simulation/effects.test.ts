@@ -34,7 +34,7 @@ describe('explosion', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 3 (Cruiser) は size=15
     explosion(0, 0, 0, 3, NO_UNIT, rng);
-    expect(addShake).toHaveBeenCalledWith(15 * 0.8);
+    expect(addShake).toHaveBeenCalledWith(15 * 0.8, 0, 0);
   });
 
   it('小型ユニット (size<14) → addShake が呼ばれない', () => {

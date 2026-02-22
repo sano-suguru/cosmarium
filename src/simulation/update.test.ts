@@ -288,7 +288,7 @@ describe('projectile pass', () => {
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBeLessThan(10);
-    expect(addShake).toHaveBeenCalledWith(3);
+    expect(addShake).toHaveBeenCalledWith(3, expect.any(Number), expect.any(Number));
   });
 
   it('ユニットヒット: 通常ダメージ', () => {
