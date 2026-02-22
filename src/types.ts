@@ -108,6 +108,8 @@ export interface UnitType {
   engageMin?: number;
   engageMax?: number;
   cooldownResetOnKill?: number;
+  /** HP比率がこの値を下回ると退避行動を開始 (0-1, 省略時は退避なし) */
+  retreatHpRatio?: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */

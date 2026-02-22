@@ -3,6 +3,7 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng } from '../state.ts';
+import type { UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -634,5 +635,139 @@ describe('steer — boost mechanism', () => {
     steer(u, 1 / 30, rng);
     expect(u.boostTimer).toBe(0);
     expect(u.boostCooldown).toBeGreaterThan(0);
+  });
+});
+
+describe('steer — HP退避ポテンシャル', () => {
+  /** retreatHpRatio を持つ mockType を作り unitType を差し替える（boost無効化で退避力を純粋にテスト） */
+  async function mockRetreat(base: number, retreatHpRatio: number) {
+    const { boost: _, ...rest } = unitType(base);
+    const mock: UnitType = { ...rest, retreatHpRatio };
+    const { TYPES } = await import('../unit-types.ts');
+    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockImplementation((id) => {
+      if (id === base) return mock;
+      const t = TYPES[id];
+      if (!t) throw new Error(`Unknown type id: ${id}`);
+      return t;
+    });
+    return mock;
+  }
+
+  it('HP < retreatHpRatio → 敵から離れる方向に退避（steer経由）', async () => {
+    await mockRetreat(1, 0.5);
+    const ally = spawnAt(0, 1, 0, 0);
+    const u = unit(ally);
+    u.hp = 1;
+    u.maxHp = 10;
+    spawnAt(1, 1, 60, 0);
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u, 0.033, rng);
+    }
+    // 敵(x=60)から離れる → x方向に後退
+    expect(u.x).toBeLessThan(0);
+  });
+
+  it('HP >= retreatHpRatio → 退避力なし（通常エンゲージメント）', async () => {
+    await mockRetreat(1, 0.3);
+    const ally = spawnAt(0, 1, 0, 0);
+    const u = unit(ally);
+    u.hp = 5; // ratio=0.5 >= 0.3
+    u.maxHp = 10;
+    const enemy = spawnAt(1, 1, 80, 0);
+    u.target = enemy;
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u, 0.033, rng);
+    }
+    // 退避なし → 敵に向かって接近
+    expect(u.x).toBeGreaterThan(0);
+  });
+
+  it('urgencyスケーリング: HPが低いほど退避量が大きい', async () => {
+    await mockRetreat(1, 0.5);
+
+    // HP 40% (ratio 0.4 < 0.5) → urgency = 0.2
+    const mild = spawnAt(0, 1, 0, 100);
+    const uMild = unit(mild);
+    uMild.hp = 4;
+    uMild.maxHp = 10;
+    spawnAt(1, 1, 80, 100);
+
+    // HP 10% (ratio 0.1 < 0.5) → urgency = 0.8
+    const severe = spawnAt(0, 1, 0, -100);
+    const uSevere = unit(severe);
+    uSevere.hp = 1;
+    uSevere.maxHp = 10;
+    spawnAt(1, 1, 80, -100);
+
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(uMild, 0.033, rng);
+      steer(uSevere, 0.033, rng);
+    }
+    // 重傷ユニットの方がより大きく後退
+    expect(uSevere.x).toBeLessThan(uMild.x);
+  });
+
+  it('retreatHpRatio未設定 → 退避しない（Drone等）', () => {
+    // Drone (type=0) は retreatHpRatio 未設定
+    expect(unitType(0).retreatHpRatio).toBeUndefined();
+    const drone = spawnAt(0, 0, 0, 0);
+    const u = unit(drone);
+    u.hp = 1;
+    u.maxHp = 3; // ratio=0.33
+    const enemy = spawnAt(1, 0, 80, 0);
+    u.target = enemy;
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u, 0.033, rng);
+    }
+    // 退避なし → 敵方向に移動
+    expect(u.x).toBeGreaterThan(0);
+  });
+
+  it('kiting: 退避中もターゲット維持', async () => {
+    await mockRetreat(1, 0.5);
+    const ally = spawnAt(0, 1, 0, 0);
+    const u = unit(ally);
+    u.hp = 1;
+    u.maxHp = 10;
+    const enemy = spawnAt(1, 1, 80, 0);
+    u.target = enemy;
+    buildHash();
+    steer(u, 0.033, rng);
+    // ターゲットはクリアされない
+    expect(u.target).toBe(enemy);
+  });
+
+  it('近傍内の敵がいると退避し、いないと退避しない（steer経由）', async () => {
+    await mockRetreat(1, 0.5);
+
+    // ケース1: 近傍内に敵がいる (距離100 < nearRadius=200)
+    const inRange = spawnAt(0, 1, 0, 1000);
+    const uIn = unit(inRange);
+    uIn.hp = 0.01;
+    uIn.maxHp = 10;
+    spawnAt(1, 1, 100, 1000);
+
+    // ケース2: 近傍外に敵がいる (距離300 > nearRadius=200 → 退避力なし)
+    const outRange = spawnAt(0, 1, 0, -1000);
+    const uOut = unit(outRange);
+    uOut.hp = 0.01;
+    uOut.maxHp = 10;
+    spawnAt(1, 1, 300, -1000);
+
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(uIn, 0.033, rng);
+      steer(uOut, 0.033, rng);
+    }
+    // 近傍内の敵からは退避するので、より大きく後退する
+    expect(uIn.x).toBeLessThan(uOut.x);
   });
 });

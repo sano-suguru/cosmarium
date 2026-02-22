@@ -10,9 +10,12 @@ interface SteerForce {
   y: number;
 }
 
-// 再利用ベクトル — 各 compute 関数が上書きして返却する
-// 呼び出し側は返却後すぐに fx/fy に転写すること
-const _force: SteerForce = { x: 0, y: 0 };
+// 再利用ベクトル — 各 compute 関数が専用スロットに上書きして返却する
+// 関数ごとに独立しているため呼び出し順序の制約はない
+const _boidsForce: SteerForce = { x: 0, y: 0 };
+const _engageForce: SteerForce = { x: 0, y: 0 };
+const _retreatForce: SteerForce = { x: 0, y: 0 };
+const _healForce: SteerForce = { x: 0, y: 0 };
 
 const VET_TARGET_WEIGHT = 0.3;
 
@@ -129,9 +132,9 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
     fx += (_boids.chx / _boids.cc - u.x) * 0.01;
     fy += (_boids.chy / _boids.cc - u.y) * 0.01;
   }
-  _force.x = fx;
-  _force.y = fy;
-  return _force;
+  _boidsForce.x = fx;
+  _boidsForce.y = fy;
+  return _boidsForce;
 }
 
 function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number, rng: () => number): SteerForce {
@@ -141,30 +144,64 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     if (t.rams) {
-      _force.x = (dx / d) * t.speed * 3;
-      _force.y = (dy / d) * t.speed * 3;
-      return _force;
+      _engageForce.x = (dx / d) * t.speed * 3;
+      _engageForce.y = (dy / d) * t.speed * 3;
+      return _engageForce;
     }
     const engageMax = t.engageMax ?? t.range * 0.7;
     const engageMin = t.engageMin ?? t.range * 0.3;
     if (d > engageMax) {
-      _force.x = (dx / d) * t.speed * 2;
-      _force.y = (dy / d) * t.speed * 2;
-      return _force;
+      _engageForce.x = (dx / d) * t.speed * 2;
+      _engageForce.y = (dy / d) * t.speed * 2;
+      return _engageForce;
     }
     if (d < engageMin) {
-      _force.x = -(dx / d) * t.speed;
-      _force.y = (dy / d) * t.speed * 0.5;
-      return _force;
+      _engageForce.x = -(dx / d) * t.speed;
+      _engageForce.y = (dy / d) * t.speed * 0.5;
+      return _engageForce;
     }
-    _force.x = (-dy / d) * t.speed * 0.8;
-    _force.y = (dx / d) * t.speed * 0.8;
-    return _force;
+    _engageForce.x = (-dy / d) * t.speed * 0.8;
+    _engageForce.y = (dx / d) * t.speed * 0.8;
+    return _engageForce;
   }
   u.wanderAngle += (rng() - 0.5) * 2 * dt;
-  _force.x = Math.cos(u.wanderAngle) * t.speed * 0.5;
-  _force.y = Math.sin(u.wanderAngle) * t.speed * 0.5;
-  return _force;
+  _engageForce.x = Math.cos(u.wanderAngle) * t.speed * 0.5;
+  _engageForce.y = Math.sin(u.wanderAngle) * t.speed * 0.5;
+  return _engageForce;
+}
+
+function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number): SteerForce {
+  if (t.retreatHpRatio === undefined || hpRatio >= t.retreatHpRatio) {
+    _retreatForce.x = 0;
+    _retreatForce.y = 0;
+    return _retreatForce;
+  }
+  const urgency = 1 - hpRatio / t.retreatHpRatio;
+  let rx = 0,
+    ry = 0;
+  for (let i = 0; i < nn; i++) {
+    const oi = getNeighborAt(i),
+      o = unit(oi);
+    if (o.team === u.team || !o.alive) continue;
+    const dx = u.x - o.x,
+      dy = u.y - o.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 1) continue;
+    const f = t.range / d;
+    rx += (dx / d) * f;
+    ry += (dy / d) * f;
+  }
+  // sigmoidスケーリング: 近距離・多敵で飽和、遠距離・少敵で減衰する滑らかな曲線
+  const mag = Math.sqrt(rx * rx + ry * ry);
+  if (mag > 0) {
+    const s = mag / (1 + mag);
+    rx = (rx / mag) * s;
+    ry = (ry / mag) * s;
+  }
+  const scale = urgency * t.speed * 2.5;
+  _retreatForce.x = rx * scale;
+  _retreatForce.y = ry * scale;
+  return _retreatForce;
 }
 
 function computeHealerFollow(u: Unit, nn: number): SteerForce {
@@ -181,13 +218,13 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   }
   if (bi !== NO_UNIT) {
     const o = unit(bi);
-    _force.x = (o.x - u.x) * 0.05;
-    _force.y = (o.y - u.y) * 0.05;
-    return _force;
+    _healForce.x = (o.x - u.x) * 0.05;
+    _healForce.y = (o.y - u.y) * 0.05;
+    return _healForce;
   }
-  _force.x = 0;
-  _force.y = 0;
-  return _force;
+  _healForce.x = 0;
+  _healForce.y = 0;
+  return _healForce;
 }
 
 // 再利用ブースト速度バッファ — handleBoost が上書きして返却する
@@ -267,9 +304,20 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   const tgt = findTarget(u, nn, t.range, dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
+  // retreat urgency を先行計算 — engage力のアッテネーションに使用
+  const hpRatio = u.maxHp > 0 ? u.hp / u.maxHp : 0;
+  const retreatUrgency =
+    t.retreatHpRatio !== undefined && hpRatio < t.retreatHpRatio ? 1 - hpRatio / t.retreatHpRatio : 0;
+
   const engage = computeEngagementForce(u, tgt, t, dt, rng);
-  fx += engage.x;
-  fy += engage.y;
+  // 退避中はengage力を減衰 — urgency=1で完全退避、urgency=0で通常エンゲージ
+  const engageAtten = 1 - retreatUrgency;
+  fx += engage.x * engageAtten;
+  fy += engage.y * engageAtten;
+
+  const retreat = computeRetreatForce(u, nn, t, hpRatio);
+  fx += retreat.x;
+  fy += retreat.y;
 
   if (t.heals) {
     const heal = computeHealerFollow(u, nn);
