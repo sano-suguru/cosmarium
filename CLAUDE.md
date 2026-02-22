@@ -21,14 +21,16 @@ bun run build        # Production build
 bun run typecheck    # Type check (strict mode)
 bun run lint:fix     # Biome lint with auto-fix
 bun run format       # Biome format (write)
+bun run format:check # Biome format check (read-only)
 bun run knip         # Unused export detection
 bun run cpd          # Copy-paste detection
 bun run test         # Vitest watch mode
 bun run test:run     # Vitest single run
+bun run bench        # Vitest benchmark
 bun run check        # All checks combined (typecheck + biome ci + knip + cpd + similarity + vitest run + check:deps)
 ```
 
-**Biome** (config in `biome.json`): Pre-commit hook runs `biome check --staged --write`. Key non-obvious rules:
+**Biome** (config in `biome.json`): Pre-commit hook runs `biome check --staged --write`. Formatter: singleQuote, semicolons: always, trailingCommas: all, indentWidth: 2, lineWidth: 120. Key non-obvious rules:
 - `noConsole: error` — only `console.error`/`console.warn` allowed (test files exempt)
 - `noExplicitAny: error`, `noEvolvingTypes: error`, `noDelete: error`, `noBarrelFile: error`
 - `noNonNullAssertion: error` — `!`非null断言禁止
@@ -49,6 +51,10 @@ GLSL shaders are imported via `vite-plugin-glsl` (`#include` directives). Shared
 **PRNG**: `rng()` (`state.ts`) — mulberry32ベースの決定論的乱数。`seedRng(seed)` でシード固定可能（テスト用）。シミュレーション内では`rng()`を使用。`main.ts`のカメラシェイクは`Math.random()`（シード制御対象外）。
 
 **similarity-ts**: `bun run similarity` — コード類似度検出（閾値0.92、最小7行）。`check`に含まれる。
+
+## Game Mode
+
+Infinite モードのみ。永続的な宇宙戦争シミュレーション。
 
 ## Architecture
 
