@@ -25,9 +25,11 @@ export const SH_DIAMOND = 4;
 export const SH_EXPLOSION_RING = 10;
 export const SH_BEAM = 12;
 export const SH_HOMING = 14;
+export const SH_DIAMOND_RING = 17;
 export const SH_BAR = 21;
 export const SH_OCT_SHIELD = 22;
 export const SH_LIGHTNING = 23;
+export const BLINK_KILL_CD = 0.8;
 
 // TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
 export const WRAP_PERIOD = TAU * 10000;

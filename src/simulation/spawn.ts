@@ -60,6 +60,8 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.broadsidePhase = 0;
       u.swarmN = 0;
       u.hitFlash = 0;
+      u.blinkCount = 0;
+      u.blinkPhase = 0;
       incUnits();
       return i as UnitIndex;
     }

@@ -49,6 +49,8 @@ export function resetPools() {
     u.burstCount = 0;
     u.broadsidePhase = 0;
     u.swarmN = 0;
+    u.blinkCount = 0;
+    u.blinkPhase = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = particle(i);

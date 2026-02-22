@@ -92,6 +92,40 @@ describe('applyOnKillEffects', () => {
     });
   });
 
+  describe('Teleporter ブリンクCD短縮', () => {
+    it('teleports持ち && blinkCount=0 → teleportTimerが0.8短縮', () => {
+      const tp = spawnAt(0, 13, 0, 0);
+      unit(tp).teleportTimer = 3.0;
+      unit(tp).blinkCount = 0;
+      applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
+      expect(unit(tp).teleportTimer).toBeCloseTo(2.2);
+    });
+
+    it('blinkCount>0 (ブリンク中) → teleportTimer変化なし', () => {
+      const tp = spawnAt(0, 13, 0, 0);
+      unit(tp).teleportTimer = 0.17;
+      unit(tp).blinkCount = 2;
+      applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
+      expect(unit(tp).teleportTimer).toBeCloseTo(0.17);
+    });
+
+    it('teleportTimerが0.8未満 → 0にクランプ', () => {
+      const tp = spawnAt(0, 13, 0, 0);
+      unit(tp).teleportTimer = 0.3;
+      unit(tp).blinkCount = 0;
+      applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
+      expect(unit(tp).teleportTimer).toBe(0);
+    });
+
+    it('ProjectileAoe → 短縮されない', () => {
+      const tp = spawnAt(0, 13, 0, 0);
+      unit(tp).teleportTimer = 3.0;
+      unit(tp).blinkCount = 0;
+      applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileAoe);
+      expect(unit(tp).teleportTimer).toBeCloseTo(3.0);
+    });
+  });
+
   describe('エッジケース', () => {
     it('NO_UNIT → 何もしない（例外なし）', () => {
       expect(() => applyOnKillEffects(NO_UNIT, 0, KILL_CONTEXT.ProjectileDirect)).not.toThrow();

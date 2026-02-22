@@ -30,6 +30,8 @@ export interface Unit {
   boostTimer: number;
   boostCooldown: number;
   hitFlash: number;
+  blinkCount: number;
+  blinkPhase: number;
 }
 
 export interface Particle {

@@ -330,46 +330,285 @@ describe('combat — DISRUPTOR', () => {
   });
 });
 
-describe('combat — TELEPORTER', () => {
-  it('距離80-500でテレポート + 5発射撃', () => {
-    const tp = spawnAt(0, 13, 0, 0); // Teleporter
-    const enemy = spawnAt(1, 1, 200, 0);
-    unit(tp).teleportTimer = 0; // クールダウン切れ
-    unit(tp).target = enemy;
-    buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
-    // テレポート後: tp > 0 にリセット
-    expect(unit(tp).teleportTimer).toBeGreaterThan(0);
-    // テレポート射撃5発（combat内ループ）+ NORMAL FIRE フォールスルー1発 = 計6
-    expect(poolCounts.projectiles).toBe(6);
-    // パーティクル生成（テレポートエフェクト）
-    expect(poolCounts.particles).toBeGreaterThan(0);
-  });
-
-  it('tp>0 では何もしない', () => {
+describe('combat — TELEPORTER (3連ブリンク)', () => {
+  it('距離80-600で出発 → blinkPhase=1, blinkCount未減', () => {
     const tp = spawnAt(0, 13, 0, 0);
     const enemy = spawnAt(1, 1, 200, 0);
-    unit(tp).teleportTimer = 3.0; // クールダウン中
+    unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
-    unit(tp).cooldown = 999; // NORMAL FIREも防ぐ
     buildHash();
     combat(unit(tp), tp, 0.016, 0, rng);
-    // tp はdt分減少するだけ
+    expect(unit(tp).blinkPhase).toBe(1);
+    expect(unit(tp).blinkCount).toBe(3);
+    expect(unit(tp).teleportTimer).toBeCloseTo(0.25);
+    expect(poolCounts.projectiles).toBe(0);
+    expect(poolCounts.particles).toBe(8);
+    expect(beams.length).toBeGreaterThan(0);
+  });
+
+  it('到着: blinkPhase=0, blinkCount--, 2発射撃', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(0);
+    expect(unit(tp).blinkCount).toBe(2);
+    expect(poolCounts.projectiles).toBe(2);
+    expect(poolCounts.particles).toBeGreaterThanOrEqual(19);
+  });
+
+  it('シーケンス継続: blinkCount>0 → 出発+到着ペア', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).blinkCount = 2;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    expect(unit(tp).blinkCount).toBe(2);
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(0);
+    expect(unit(tp).blinkCount).toBe(1);
+    expect(poolCounts.projectiles).toBe(2);
+  });
+
+  it('最終ブリンク: blinkCount=1→出発→到着→0、メインCDセット', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).blinkCount = 1;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkCount).toBe(0);
+    expect(unit(tp).blinkPhase).toBe(0);
+    expect(unit(tp).teleportTimer).toBeGreaterThanOrEqual(2.5);
+    expect(unit(tp).teleportTimer).toBeLessThanOrEqual(4.0);
+    expect(poolCounts.projectiles).toBe(2);
+  });
+
+  it('3連ブリンク全実行で計6発', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // ブリンク1: 出発→到着
+    combat(unit(tp), tp, 0.016, 0, rng);
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(2);
+    // ブリンク2: 出発→到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(4);
+    // ブリンク3: 出発→到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(6);
+    expect(unit(tp).blinkCount).toBe(0);
+  });
+
+  it('teleportTimer>0 では何もしない', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 3.0;
+    unit(tp).target = enemy;
+    unit(tp).cooldown = 999;
+    buildHash();
+    combat(unit(tp), tp, 0.016, 0, rng);
     expect(unit(tp).teleportTimer).toBeCloseTo(3.0 - 0.016);
     expect(poolCounts.projectiles).toBe(0);
   });
 
-  it('距離が80未満ではテレポートしない', () => {
+  it('距離が80未満ではブリンク開始しない', () => {
     const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 30, 0); // 距離 30 < 80
+    const enemy = spawnAt(1, 1, 30, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     unit(tp).cooldown = 999;
     buildHash();
     combat(unit(tp), tp, 0.016, 0, rng);
-    // tp -= dt は常に実行されるのでtp = 0 - 0.016
     expect(unit(tp).teleportTimer).toBeCloseTo(-0.016);
     expect(poolCounts.projectiles).toBe(0);
+    expect(unit(tp).blinkCount).toBe(0);
+  });
+
+  it('ターゲット死亡でblinkCountリセット', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).blinkCount = 2;
+    unit(tp).target = enemy;
+    unit(enemy).alive = false;
+    buildHash();
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkCount).toBe(0);
+    expect(unit(tp).target).toBe(NO_UNIT);
+  });
+
+  it('ターゲットなしでblinkCountリセット', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).blinkCount = 2;
+    unit(tp).target = NO_UNIT;
+    buildHash();
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkCount).toBe(0);
+  });
+
+  it('到着後はcooldownが抑制されfireNormalが発火しない', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).cooldown = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).cooldown).toBeGreaterThanOrEqual(0.14);
+    expect(poolCounts.projectiles).toBe(2);
+  });
+
+  it('射撃にsourceUnitが設定される', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(projectile(0).sourceUnit).toBe(tp);
+    expect(projectile(1).sourceUnit).toBe(tp);
+  });
+
+  it('blinkPhase=1の中間状態: 不可視で射撃なし', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    expect(poolCounts.projectiles).toBe(0);
+    expect(unit(tp).teleportTimer).toBeCloseTo(0.25);
+  });
+
+  it('ワープ中にターゲット死亡 → 到着はするが射撃なし', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    // ワープ中にターゲット死亡
+    unit(enemy).alive = false;
+    // 到着
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
+  });
+
+  it('着地衝撃: 近接敵にノックバック + ミニスタン', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    const nearby = spawnAt(1, 0, 0, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(tp).blinkPhase).toBe(1);
+    // 到着地点の近くに敵を移動
+    const tpU = unit(tp);
+    unit(nearby).x = tpU.x + 30;
+    unit(nearby).y = tpU.y;
+    unit(nearby).vx = 0;
+    unit(nearby).vy = 0;
+    unit(nearby).stun = 0;
+    // hashを再構築して到着
+    buildHash();
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(nearby).stun).toBeGreaterThanOrEqual(0.25);
+    expect(unit(nearby).vx).not.toBe(0);
+  });
+
+  it('着地衝撃: 味方にはノックバック/スタンがかからない', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    const ally = spawnAt(0, 0, 0, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    // 味方を到着地点の近くに移動
+    const tpU = unit(tp);
+    unit(ally).x = tpU.x + 20;
+    unit(ally).y = tpU.y;
+    unit(ally).stun = 0;
+    unit(ally).vx = 0;
+    unit(ally).vy = 0;
+    buildHash();
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(ally).stun).toBe(0);
+    expect(unit(ally).vx).toBe(0);
+    expect(unit(ally).vy).toBe(0);
+  });
+
+  it('着地衝撃: 効果範囲外の敵は影響なし', () => {
+    const tp = spawnAt(0, 13, 0, 0);
+    const enemy = spawnAt(1, 1, 200, 0);
+    const farEnemy = spawnAt(1, 0, 0, 0);
+    unit(tp).teleportTimer = 0;
+    unit(tp).target = enemy;
+    buildHash();
+    // 出発
+    combat(unit(tp), tp, 0.016, 0, rng);
+    // 遠い敵を着地点から半径80超の位置に配置
+    const tpU = unit(tp);
+    unit(farEnemy).x = tpU.x + 150;
+    unit(farEnemy).y = tpU.y;
+    unit(farEnemy).stun = 0;
+    unit(farEnemy).vx = 0;
+    unit(farEnemy).vy = 0;
+    buildHash();
+    unit(tp).teleportTimer = 0;
+    combat(unit(tp), tp, 0.016, 0, rng);
+    expect(unit(farEnemy).stun).toBe(0);
+    expect(unit(farEnemy).vx).toBe(0);
+    expect(unit(farEnemy).vy).toBe(0);
   });
 });
 

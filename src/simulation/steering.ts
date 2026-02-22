@@ -246,6 +246,7 @@ function tickBoostDuringStun(u: Unit, dt: number) {
 }
 
 export function steer(u: Unit, dt: number, rng: () => number) {
+  if (u.blinkPhase === 1) return;
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);

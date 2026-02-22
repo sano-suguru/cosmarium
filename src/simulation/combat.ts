@@ -1,5 +1,5 @@
 import { color } from '../colors.ts';
-import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_DIAMOND_RING, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -384,48 +384,145 @@ function handleEmp(ctx: CombatContext) {
   spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, SH_EXPLOSION_RING);
 }
 
+const BLINK_COUNT = 3;
+const WARP_DELAY = 0.25;
+const BLINK_GAP = 0.09;
+const BLINK_SHOTS = 2;
+const BLINK_DIST_MIN = 100;
+const BLINK_DIST_MAX = 220;
+const BLINK_CD_MIN = 2.5;
+const BLINK_CD_RNG = 1.5;
+const BLINK_SHOT_SPEED = 520;
+const BLINK_ACCURACY = 0.7;
+const BLINK_SHOT_SPREAD = 0.04;
+const BLINK_IMPACT_RADIUS = 80;
+const BLINK_IMPACT_KNOCKBACK = 200;
+const BLINK_IMPACT_STUN = 0.25;
+
+/** @pre u.target !== NO_UNIT && unit(u.target).alive — 呼び出し元で検証済み */
+function blinkDepart(ctx: CombatContext) {
+  const { u, c } = ctx;
+  const o = unit(u.target);
+
+  const prevX = u.x;
+  const prevY = u.y;
+
+  for (let i = 0; i < 6; i++) {
+    const a = ctx.rng() * 6.283;
+    spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], SH_CIRCLE);
+  }
+  spawnParticle(u.x, u.y, 0, 0, 0.2, 12, c[0], c[1], c[2], SH_EXPLOSION_RING);
+  spawnParticle(u.x, u.y, 0, 0, 0.25, 8, c[0], c[1], c[2], SH_DIAMOND_RING);
+
+  // ターゲット背面側(120°-240°)にランダム出現
+  const baseAng = Math.atan2(o.y - prevY, o.x - prevX);
+  const zigzag = baseAng + (2.094 + ctx.rng() * 2.094);
+  const dist = BLINK_DIST_MIN + ctx.rng() * (BLINK_DIST_MAX - BLINK_DIST_MIN);
+  u.x = o.x + Math.cos(zigzag) * dist;
+  u.y = o.y + Math.sin(zigzag) * dist;
+
+  addBeam(prevX, prevY, u.x, u.y, c[0], c[1], c[2], 0.28, 3, true);
+
+  u.angle = Math.atan2(o.y - u.y, o.x - u.x);
+
+  u.blinkPhase = 1;
+}
+
+function blinkArrive(ctx: CombatContext) {
+  const { u, c, t, vd } = ctx;
+
+  u.blinkPhase = 0;
+
+  for (let i = 0; i < 8; i++) {
+    const a = ctx.rng() * 6.283;
+    spawnParticle(u.x, u.y, Math.cos(a) * 90, Math.sin(a) * 90, 0.3, 3.5, c[0], c[1], c[2], SH_CIRCLE);
+  }
+  spawnParticle(u.x, u.y, 0, 0, 0.25, 16, c[0], c[1], c[2], SH_EXPLOSION_RING);
+  spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, SH_EXPLOSION_RING);
+  spawnParticle(u.x, u.y, 0, 0, 0.25, 10, c[0], c[1], c[2], SH_DIAMOND_RING);
+
+  addShake(1.2);
+
+  const nn = getNeighbors(u.x, u.y, BLINK_IMPACT_RADIUS);
+  for (let i = 0; i < nn; i++) {
+    const oi = getNeighborAt(i);
+    const o = unit(oi);
+    if (!o.alive || o.team === u.team) continue;
+    knockback(oi, u.x, u.y, BLINK_IMPACT_KNOCKBACK);
+    o.stun = Math.max(o.stun, BLINK_IMPACT_STUN);
+  }
+
+  if (u.target !== NO_UNIT) {
+    const o = unit(u.target);
+    if (o.alive) {
+      const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, BLINK_SHOT_SPEED, BLINK_ACCURACY);
+      for (let i = 0; i < BLINK_SHOTS; i++) {
+        const spread = (ctx.rng() - 0.5) * BLINK_SHOT_SPREAD * 2;
+        const shotAng = aim.ang + spread;
+        spawnProjectile(
+          u.x,
+          u.y,
+          Math.cos(shotAng) * BLINK_SHOT_SPEED,
+          Math.sin(shotAng) * BLINK_SHOT_SPEED,
+          aim.dist / BLINK_SHOT_SPEED + 0.1,
+          t.damage * vd,
+          u.team,
+          2,
+          c[0],
+          c[1],
+          c[2],
+          false,
+          0,
+          undefined,
+          0,
+          ctx.ui,
+        );
+      }
+      u.angle = aim.ang;
+    }
+  }
+
+  u.blinkCount--;
+  u.teleportTimer = u.blinkCount > 0 ? BLINK_GAP : BLINK_CD_MIN + ctx.rng() * BLINK_CD_RNG;
+  u.cooldown = Math.max(u.cooldown, BLINK_GAP + 0.05);
+}
+
 function handleTeleporter(ctx: CombatContext) {
-  const { u, c, t, dt, vd } = ctx;
+  const { u, dt } = ctx;
   u.teleportTimer -= dt;
-  if (u.teleportTimer > 0 || u.target === NO_UNIT) return;
+  if (u.teleportTimer > 0) return;
+
+  if (u.blinkPhase === 1) {
+    blinkArrive(ctx);
+    return;
+  }
+
+  if (u.target === NO_UNIT) {
+    u.blinkCount = 0;
+    return;
+  }
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
+    u.blinkCount = 0;
     return;
   }
-  const d = Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
-  if (d < 500 && d > 80) {
-    u.teleportTimer = 3 + ctx.rng() * 2;
-    for (let i = 0; i < 8; i++) {
-      const a = ctx.rng() * 6.283;
-      spawnParticle(u.x, u.y, Math.cos(a) * 70, Math.sin(a) * 70, 0.25, 3, c[0], c[1], c[2], SH_CIRCLE);
-    }
-    spawnParticle(u.x, u.y, 0, 0, 0.3, 16, c[0], c[1], c[2], SH_EXPLOSION_RING);
-    const ta = ctx.rng() * 6.283,
-      td = 55 + ctx.rng() * 35;
-    u.x = o.x + Math.cos(ta) * td;
-    u.y = o.y + Math.sin(ta) * td;
-    for (let i = 0; i < 8; i++) {
-      const a = ctx.rng() * 6.283;
-      spawnParticle(u.x, u.y, Math.cos(a) * 55, Math.sin(a) * 55, 0.2, 3, c[0], c[1], c[2], SH_CIRCLE);
-    }
-    spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, SH_EXPLOSION_RING);
-    for (let i = 0; i < 5; i++) {
-      const ba = ctx.rng() * 6.283;
-      spawnProjectile(
-        u.x,
-        u.y,
-        Math.cos(ba) * 430,
-        Math.sin(ba) * 430,
-        0.3,
-        t.damage * vd,
-        u.team,
-        2,
-        c[0],
-        c[1],
-        c[2],
-      );
-    }
+
+  if (u.blinkCount > 0) {
+    blinkDepart(ctx);
+    u.teleportTimer = WARP_DELAY;
+    u.cooldown = Math.max(u.cooldown, WARP_DELAY + 0.05);
+    return;
+  }
+
+  const dx = o.x - u.x;
+  const dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d > 80 && d < 600) {
+    u.blinkCount = BLINK_COUNT;
+    blinkDepart(ctx);
+    u.teleportTimer = WARP_DELAY;
+    u.cooldown = Math.max(u.cooldown, WARP_DELAY + 0.05);
   }
 }
 
@@ -1216,6 +1313,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     handleEmp(_ctx);
     return;
   }
+  // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
   if (t.teleports) handleTeleporter(_ctx);
   if (t.chain && u.cooldown <= 0) {
     handleChain(_ctx);

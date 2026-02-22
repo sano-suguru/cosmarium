@@ -117,6 +117,7 @@ function renderUnits(now: number) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
+    if (u.blinkPhase === 1) continue;
     const ut = unitType(u.type);
     const rs = Math.max(MIN_RENDER_SIZE, ut.size) / ut.size;
     const c = color(u.type, u.team);

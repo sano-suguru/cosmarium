@@ -1,3 +1,4 @@
+import { BLINK_KILL_CD } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -39,5 +40,8 @@ export function applyOnKillEffects(sourceUnit: UnitIndex, sourceTeam: Team, ctx:
   const st = unitType(shooter.type);
   if (st.cooldownResetOnKill !== undefined) {
     shooter.cooldown = Math.min(shooter.cooldown, st.cooldownResetOnKill);
+  }
+  if (st.teleports && shooter.blinkCount === 0) {
+    shooter.teleportTimer = Math.max(0, shooter.teleportTimer - BLINK_KILL_CD);
   }
 }

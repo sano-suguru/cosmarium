@@ -595,6 +595,8 @@ void main(){
       trail=exp(-dy*12.0)*exp((p.x+0.46)*2.5)*eP*0.45;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
+  else if(sh==17){ float dd=manDist(vU); float ring=abs(dd-0.65);
+    a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
   else if(sh==20){ float dd=hexDist(vU);
     a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
