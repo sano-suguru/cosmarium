@@ -19,7 +19,7 @@ describe('getColor', () => {
   });
 
   it('RGB値は全て 0〜1 の範囲', () => {
-    for (let t = 0; t < 15; t++) {
+    for (let t = 0; t < 16; t++) {
       for (const tm of [0, 1] as const) {
         const c = color(t, tm);
         expect(c).toHaveLength(3);
@@ -42,7 +42,7 @@ describe('getTrailColor', () => {
   });
 
   it('トレイルカラーはメインカラーより暗い（合計値が小さい）', () => {
-    for (let t = 0; t < 15; t++) {
+    for (let t = 0; t < 16; t++) {
       for (const tm of [0, 1] as const) {
         const main = color(t, tm);
         const trail = trailColor(t, tm);
@@ -57,13 +57,13 @@ describe('getTrailColor', () => {
 describe('getColor — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => color(-1, 0)).toThrow(RangeError);
-    expect(() => color(15, 0)).toThrow(RangeError);
+    expect(() => color(16, 0)).toThrow(RangeError);
   });
 });
 
 describe('getTrailColor — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => trailColor(-1, 0)).toThrow(RangeError);
-    expect(() => trailColor(15, 0)).toThrow(RangeError);
+    expect(() => trailColor(16, 0)).toThrow(RangeError);
   });
 });

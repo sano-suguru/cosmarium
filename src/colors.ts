@@ -61,6 +61,10 @@ const teamColors: ReadonlyArray<readonly [Color3, Color3]> = [
     [1, 1, 0.3],
     [0.3, 1, 1],
   ],
+  [
+    [0.15, 0.75, 0.95],
+    [0.95, 0.4, 0.2],
+  ],
 ];
 
 const trailColors: ReadonlyArray<readonly [Color3, Color3]> = [
@@ -123,6 +127,10 @@ const trailColors: ReadonlyArray<readonly [Color3, Color3]> = [
   [
     [0.6, 0.6, 0.15],
     [0.15, 0.6, 0.6],
+  ],
+  [
+    [0.08, 0.45, 0.55],
+    [0.55, 0.22, 0.1],
   ],
 ];
 
