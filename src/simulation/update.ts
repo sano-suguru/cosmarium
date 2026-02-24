@@ -1,12 +1,19 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
+import { color } from '../colors.ts';
 import {
+  BASTION_MAX_TETHERS,
+  BASTION_SHIELD_RADIUS,
   HIT_FLASH_DURATION,
   MAX_STEPS_PER_FRAME,
+  ORPHAN_TETHER_PROJECTILE_MULT,
   PI,
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
   REF_FPS,
+  REFLECT_FIELD_COOLDOWN,
+  REFLECT_FIELD_MAX_HP,
+  REFLECT_FIELD_RADIUS,
   SH_CIRCLE,
   SH_EXPLOSION_RING,
   SHIELD_LINGER,
@@ -16,10 +23,10 @@ import {
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
-import type { ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
+import type { Color3, ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
-import { combat, resetReflected } from './combat.ts';
+import { absorbByBastionShield, applyTetherAbsorb, combat, reflectProjectile, resetReflected } from './combat.ts';
 import { boostBurst, boostTrail, explosion, flagshipTrail, trail, updateChains } from './effects.ts';
 import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
@@ -27,8 +34,6 @@ import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
-
-const REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER = 0.3;
 
 function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
   const tg = unit(p.target);
@@ -102,9 +107,22 @@ function handleProjectileKill(p: Projectile, oi: UnitIndex, o: Unit, rng: () => 
   applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileDirect);
 }
 
+function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
+  if (o.reflectFieldHp <= 0) return false;
+  o.reflectFieldHp -= p.damage;
+  if (o.reflectFieldHp <= 0) {
+    o.reflectFieldHp = 0;
+    o.reflectFieldCooldown = REFLECT_FIELD_COOLDOWN;
+  }
+  const c: Color3 = color(o.type, o.team);
+  reflectProjectile(rng, o.x, o.y, p, o.team, c);
+  return true;
+}
+
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
-  let dmg = p.damage;
-  if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_PROJECTILE_SHIELD_MULTIPLIER;
+  if (tryReflectField(p, o, rng)) return;
+  let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
+  dmg = absorbByBastionShield(o, dmg);
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
@@ -282,6 +300,32 @@ function updateUnits(dt: number, now: number, rng: () => number) {
   }
 }
 
+function tickReflectorShield(u: Unit, dt: number) {
+  if (u.shieldCooldown <= 0) return;
+  u.shieldCooldown -= dt;
+  if (u.shieldCooldown <= 0) {
+    u.shieldCooldown = 0;
+    u.energy = u.maxEnergy;
+  }
+}
+
+/** エネルギー自然回復（stun 中も回復する）。Reflectorはシールドクールダウン→全回復制 */
+function regenEnergy(dt: number) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.maxEnergy <= 0) continue;
+    const t = unitType(u.type);
+    if (t.reflects) {
+      tickReflectorShield(u, dt);
+    } else {
+      const regen = t.energyRegen ?? 0;
+      u.energy = Math.min(u.maxEnergy, u.energy + regen * dt);
+    }
+  }
+}
+
 function decayHitFlash(dt: number) {
   const decay = dt / HIT_FLASH_DURATION;
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
@@ -301,25 +345,98 @@ function decayShieldTimers(dt: number) {
   }
 }
 
-function shieldNearbyAllies(u: Unit, i: number) {
-  const nn = getNeighbors(u.x, u.y, 100);
+function decayReflectFieldCooldowns(dt: number) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.reflectFieldCooldown > 0) u.reflectFieldCooldown = Math.max(0, u.reflectFieldCooldown - dt);
+  }
+}
+
+/** Reflector が味方に反射フィールドを一括付与する */
+function applyReflectorAllyField(u: Unit, i: number) {
+  if (u.maxEnergy <= 0) return;
+  const nn = getNeighbors(u.x, u.y, REFLECT_FIELD_RADIUS);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) continue;
-    if (o.shieldLingerTimer <= 0) addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, TETHER_BEAM_LIFE, 1.5);
-    o.shieldLingerTimer = SHIELD_LINGER;
+    if (o.reflectFieldCooldown > 0) continue;
+    if (o.reflectFieldHp <= 0) {
+      o.reflectFieldHp = REFLECT_FIELD_MAX_HP;
+    }
   }
 }
 
-function applyReflectorShields(dt: number) {
+/** 既存テザービームの life をリフレッシュする */
+function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
+  for (let i = 0; i < trackingBeams.length; i++) {
+    const tb = getTrackingBeam(i);
+    if (tb.srcUnit === src && tb.tgtUnit === tgt) {
+      tb.life = tb.maxLife;
+      return true;
+    }
+  }
+  return false;
+}
+
+// tetherNearbyAllies 用ソート済みバッファ — サイズは BASTION_MAX_TETHERS に結合。
+// 複数 Bastion が存在しても applyShieldsAndFields 内の逐次ループで呼ばれるため同時使用は起きない。
+const _tetherOi = new Int32Array(BASTION_MAX_TETHERS);
+const _tetherDist = new Float64Array(BASTION_MAX_TETHERS);
+
+/** ソート済みバッファに (oi, d) を挿入ソートで配置 */
+function tetherBubbleInsert(start: number, oi: number, d: number) {
+  let p = start;
+  while (p > 0 && (_tetherDist[p - 1] ?? 0) > d) {
+    _tetherOi[p] = _tetherOi[p - 1] ?? 0;
+    _tetherDist[p] = _tetherDist[p - 1] ?? 0;
+    p--;
+  }
+  _tetherOi[p] = oi;
+  _tetherDist[p] = d;
+}
+
+/** Bastion が味方にテザーを繋ぐ */
+function tetherNearbyAllies(u: Unit, i: number) {
+  const nn = getNeighbors(u.x, u.y, BASTION_SHIELD_RADIUS);
+  let count = 0;
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j);
+    const o = unit(oi);
+    if (!o.alive || o.team !== u.team || oi === i) continue;
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    const d = dx * dx + dy * dy;
+    if (count < BASTION_MAX_TETHERS) {
+      tetherBubbleInsert(count, oi, d);
+      count++;
+    } else if (d < (_tetherDist[count - 1] ?? 0)) {
+      tetherBubbleInsert(count - 1, oi, d);
+    }
+  }
+  for (let j = 0; j < count; j++) {
+    const oi = (_tetherOi[j] ?? 0) as UnitIndex;
+    const o = unit(oi);
+    if (!refreshTetherBeam(i as UnitIndex, oi)) {
+      addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, TETHER_BEAM_LIFE, 1.5);
+    }
+    o.shieldLingerTimer = SHIELD_LINGER;
+    o.shieldSourceUnit = i as UnitIndex;
+  }
+}
+
+function applyShieldsAndFields(dt: number) {
   decayShieldTimers(dt);
+  decayReflectFieldCooldowns(dt);
   for (let i = 0, urem2 = poolCounts.units; i < POOL_UNITS && urem2 > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     urem2--;
-    if (!unitType(u.type).reflects) continue;
-    shieldNearbyAllies(u, i);
+    const t = unitType(u.type);
+    if (t.reflects) applyReflectorAllyField(u, i);
+    if (t.shields) tetherNearbyAllies(u, i);
   }
 }
 
@@ -336,8 +453,9 @@ function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoo
   resetReflected();
 
   updateUnits(dt, now, rng);
+  regenEnergy(dt);
 
-  applyReflectorShields(dt);
+  applyShieldsAndFields(dt);
 
   updateProjectiles(dt, rng);
   updateParticles(dt);

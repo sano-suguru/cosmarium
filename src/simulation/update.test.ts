@@ -1,10 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { beams, trackingBeams } from '../beams.ts';
-import { POOL_UNITS, REF_FPS, SH_CIRCLE, SHIELD_LINGER } from '../constants.ts';
+import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
+import {
+  BASTION_ABSORB_RATIO,
+  BASTION_SELF_ABSORB_RATIO,
+  POOL_UNITS,
+  REF_FPS,
+  REFLECT_FIELD_COOLDOWN,
+  REFLECT_FIELD_MAX_HP,
+  SH_CIRCLE,
+  SHIELD_LINGER,
+  TETHER_BEAM_LIFE,
+} from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { unitType } from '../unit-types.ts';
+import { NO_UNIT } from '../types.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -164,95 +174,69 @@ describe('steer + combat + trail', () => {
 });
 
 // ============================================================
-// 4. Reflector shield (Step 3)
+// 4. Reflector reflect field (Step 3)
 // ============================================================
-describe('Reflector shield', () => {
-  it('範囲内の味方が shieldLingerTimer=REFLECTOR_SHIELD_LINGER になる', () => {
+describe('Reflector reflect field', () => {
+  it('範囲内の味方が reflectFieldHp=MAX になる（エネルギーあり）', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(ally).shieldLingerTimer).toBe(SHIELD_LINGER);
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
-  it('範囲外の味方は shieldLingerTimer=0', () => {
+  it('範囲外の味方は reflectFieldHp=0', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 250, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(ally).shieldLingerTimer).toBe(0);
+    expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
-  it('敵チームは shieldLingerTimer=0', () => {
+  it('敵チームは reflectFieldHp=0', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const enemy = spawnAt(1, 0, 50, 0);
     unit(ref).trailTimer = 99;
     unit(enemy).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(enemy).shieldLingerTimer).toBe(0);
+    expect(unit(enemy).reflectFieldHp).toBe(0);
   });
 
-  it('codexOpen=true → Reflector は通常通り shieldLingerTimer を付与する（snapshot/restore方式）', () => {
+  it('codexOpen=true → Reflector は通常通りフィールドを付与する', () => {
     state.codexOpen = true;
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(ally).shieldLingerTimer).toBe(SHIELD_LINGER);
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
-  it('範囲内の味方にシールドテザービームが生成される', () => {
-    const ref = spawnAt(0, 6, 0, 0);
-    spawnAt(0, 1, 50, 0);
-    unit(ref).trailTimer = 99;
-    unit(0).trailTimer = 99;
-    trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
-    expect(trackingBeams.length).toBeGreaterThan(0);
-  });
-
-  it('範囲外の味方にはシールドテザービームが生成されない', () => {
-    const ref = spawnAt(0, 6, 0, 0);
-    spawnAt(0, 1, 250, 0);
-    unit(ref).trailTimer = 99;
-    unit(0).trailTimer = 99;
-    trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
-    expect(trackingBeams.length).toBe(0);
-  });
-
-  it('シールド持続中に範囲内にいてもテザービームは再発射されない', () => {
+  it('maxEnergy=0のReflectorは味方にフィールドを付与しない', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
-    unit(ref).trailTimer = 99;
-    unit(ally).trailTimer = 99;
-    unit(ally).shieldLingerTimer = 1.0;
-    trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
-    expect(trackingBeams.length).toBe(0);
-  });
-
-  it('テザービームがユニットの移動に追従する', () => {
-    const ref = spawnAt(0, 6, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).energy = 0;
+    unit(ref).maxEnergy = 0;
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
-    expect(trackingBeams.length).toBeGreaterThan(0);
-    update(0.016, 0, rng, gameLoopState());
-    const tb = trackingBeams[0];
-    expect(tb).toBeDefined();
-    if (tb === undefined) return;
-    expect(tb.x1).toBe(unit(ref).x);
-    expect(tb.y1).toBe(unit(ref).y);
-    expect(tb.x2).toBe(unit(ally).x);
-    expect(tb.y2).toBe(unit(ally).y);
+    expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
-  it('Reflector範囲から出てもシールドは持続する', () => {
+  it('シールドダウン中のReflectorでも味方フィールド補充は継続', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).energy = 0;
+    unit(ref).shieldCooldown = 3; // ダウン中
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+  });
+
+  it('Reflector範囲から出てもフィールドは持続する', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
@@ -260,7 +244,169 @@ describe('Reflector shield', () => {
     update(0.016, 0, rng, gameLoopState());
     unit(ally).x = 500;
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(ally).shieldLingerTimer).toBeGreaterThan(0);
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+  });
+});
+
+// ============================================================
+// 4b. Bastion tether (Step 3b)
+// ============================================================
+describe('Bastion tether', () => {
+  it('範囲内の味方に shieldLingerTimer を付与しテザービームを生成する', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).shieldLingerTimer).toBe(SHIELD_LINGER);
+    expect(trackingBeams.length).toBeGreaterThan(0);
+  });
+
+  it('範囲外の味方にはテザーが付与されない', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 500, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).shieldLingerTimer).toBe(0);
+    expect(trackingBeams.length).toBe(0);
+  });
+
+  it('テザービームがユニットの移動に追従する', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(trackingBeams.length).toBeGreaterThan(0);
+    update(0.016, 0, rng, gameLoopState());
+    const tb = trackingBeams[0];
+    expect(tb).toBeDefined();
+    if (tb === undefined) return;
+    expect(tb.x1).toBe(unit(bastion).x);
+    expect(tb.y1).toBe(unit(bastion).y);
+    expect(tb.x2).toBe(unit(ally).x);
+    expect(tb.y2).toBe(unit(ally).y);
+  });
+
+  it('テザー接続中はビームが消えない（60フレーム後も life > 0）', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(trackingBeams.length).toBe(1);
+    // 60フレーム分（TETHER_BEAM_LIFE=0.7秒を大幅に超える）
+    for (let f = 0; f < 60; f++) {
+      update(0.016, 0, rng, gameLoopState());
+    }
+    expect(trackingBeams.length).toBe(1);
+    expect(getTrackingBeam(0).life).toBeGreaterThan(0);
+  });
+
+  it('範囲外に出るとビームがフェードアウトして消える', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(trackingBeams.length).toBe(1);
+    // 範囲外に移動
+    unit(ally).x = 5000;
+    unit(ally).y = 5000;
+    // TETHER_BEAM_LIFE (0.7s) 以上の時間を進める
+    const frames = Math.ceil(TETHER_BEAM_LIFE / 0.016) + 5;
+    for (let f = 0; f < frames; f++) {
+      update(0.016, 0, rng, gameLoopState());
+    }
+    expect(trackingBeams.length).toBe(0);
+  });
+
+  it('接続中もビーム重複が発生しない（30フレーム後もtrackingBeams.length === 1）', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(bastion).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    trackingBeams.length = 0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(trackingBeams.length).toBe(1);
+    for (let f = 0; f < 30; f++) {
+      update(0.016, 0, rng, gameLoopState());
+    }
+    expect(trackingBeams.length).toBe(1);
+  });
+});
+
+// ============================================================
+// 4c. Bastion self-shield (energy absorb)
+// ============================================================
+describe('Bastion self-shield', () => {
+  it('energy>0 のBastionは被弾ダメージの30%をenergyで吸収する', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    unit(bastion).trailTimer = 99;
+    unit(bastion).energy = 25;
+    unit(bastion).maxEnergy = 25;
+    const hpBefore = unit(bastion).hp;
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    // 30% of 10 = 3 absorbed by energy, 70% = 7 to hp
+    expect(unit(bastion).energy).toBeCloseTo(25 - 3);
+    expect(unit(bastion).hp).toBeCloseTo(hpBefore - 7);
+  });
+
+  it('energy不足時は残energy分のみ吸収する', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    unit(bastion).trailTimer = 99;
+    // maxEnergy=1 にキャップ → regenEnergy で 1 を超えない
+    unit(bastion).energy = 1;
+    unit(bastion).maxEnergy = 1;
+    const hpBefore = unit(bastion).hp;
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    // min(10*0.3, 1) = 1 absorbed, 9 to hp
+    expect(unit(bastion).energy).toBeCloseTo(0);
+    expect(unit(bastion).hp).toBeCloseTo(hpBefore - 9);
+  });
+
+  it('energy=0 のBastionは吸収しない', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    unit(bastion).trailTimer = 99;
+    // maxEnergy=0 → regenEnergy がスキップされる
+    unit(bastion).energy = 0;
+    unit(bastion).maxEnergy = 0;
+    const hpBefore = unit(bastion).hp;
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(bastion).energy).toBe(0);
+    expect(unit(bastion).hp).toBeCloseTo(hpBefore - 10);
+  });
+
+  it('テザー吸収と自身シールドがスタックする', () => {
+    const bastion = spawnAt(1, 15, 0, 200);
+    const target = spawnAt(1, 15, 0, 0);
+    unit(bastion).trailTimer = 99;
+    unit(target).trailTimer = 99;
+    unit(target).energy = 25;
+    unit(target).maxEnergy = 25;
+    unit(target).shieldLingerTimer = 2;
+    unit(target).shieldSourceUnit = bastion;
+    const bastionHpBefore = unit(bastion).hp;
+    const targetHpBefore = unit(target).hp;
+    const dmg = 10;
+    spawnProjectile(5, 0, 0, 0, 1.0, dmg, 0, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    // 1) Tether absorbs 40%: bastion takes 4 directly to hp, remaining dmg = 6
+    const tetherDmg = dmg * BASTION_ABSORB_RATIO;
+    const afterTether = dmg - tetherDmg;
+    // 2) Self-shield absorbs 30% of 6 = 1.8 from energy, hp takes 4.2
+    const selfAbsorbed = afterTether * BASTION_SELF_ABSORB_RATIO;
+    expect(unit(bastion).hp).toBeCloseTo(bastionHpBefore - tetherDmg);
+    expect(unit(target).energy).toBeCloseTo(25 - selfAbsorbed);
+    expect(unit(target).hp).toBeCloseTo(targetHpBefore - (afterTether - selfAbsorbed));
   });
 });
 
@@ -300,15 +446,53 @@ describe('projectile pass', () => {
     expect(projectile(0).alive).toBe(false);
   });
 
-  it('shielded ヒット: 0.3 倍ダメージ', () => {
-    const reflectorRange = unitType(6).range;
-    const reflector = spawnAt(1, 6, 0, reflectorRange + 10);
+  it('Bastion テザー下のヒット: Bastion が40%、味方が60%ダメージ', () => {
+    const bastion = spawnAt(1, 15, 0, 200);
     const target = spawnAt(1, 1, 0, 0);
-    unit(reflector).trailTimer = 99;
+    unit(bastion).trailTimer = 99;
     unit(target).trailTimer = 99;
+    unit(target).shieldLingerTimer = 2;
+    unit(target).shieldSourceUnit = bastion;
+    const bastionHpBefore = unit(bastion).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(target).hp).toBe(7);
+    // target takes 60% of 10 = 6, so hp = 10 - 6 = 4
+    expect(unit(target).hp).toBe(4);
+    // bastion takes 40% of 10 = 4
+    expect(unit(bastion).hp).toBe(bastionHpBefore - 4);
+  });
+
+  it('Bastion死亡済み参照: 孤児テザー軽減が適用される', () => {
+    const bastion = spawnAt(1, 15, 0, 200);
+    const target = spawnAt(1, 1, 0, 0);
+    unit(bastion).trailTimer = 99;
+    unit(target).trailTimer = 99;
+    unit(target).shieldLingerTimer = 2;
+    unit(target).shieldSourceUnit = bastion;
+    // Bastion を死亡状態にする
+    unit(bastion).alive = false;
+    decUnits();
+    const hpBefore = unit(target).hp;
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    // 孤児テザー軽減: dmg * 0.7 = 7（Bastion生存時60%より弱い30%軽減）
+    expect(unit(target).hp).toBe(hpBefore - 10 * 0.7);
+    // 参照がクリアされる
+    expect(unit(target).shieldSourceUnit).toBe(NO_UNIT);
+  });
+
+  it('Bastion テザー吸収時にエネルギーフローパーティクルが生成される', () => {
+    const bastion = spawnAt(1, 15, 0, 200);
+    const target = spawnAt(1, 1, 0, 0);
+    unit(bastion).trailTimer = 99;
+    unit(target).trailTimer = 99;
+    unit(target).shieldLingerTimer = 2;
+    unit(target).shieldSourceUnit = bastion;
+    const particlesBefore = poolCounts.particles;
+    spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    // テザー吸収が発生し、4個のエネルギーフローパーティクルが生成される
+    expect(poolCounts.particles).toBeGreaterThanOrEqual(particlesBefore + 4);
   });
 
   it('ヒットで HP<=0 → ユニット死亡', () => {
@@ -552,5 +736,140 @@ describe('swarmN 更新', () => {
     unit(b).trailTimer = 99;
     update(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(1);
+  });
+});
+
+// ============================================================
+// 9. Reflector shieldCooldown recovery
+// ============================================================
+describe('Reflector shieldCooldown 回復', () => {
+  it('shieldCooldownがdt分カウントダウンされる', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    unit(ref).energy = 0;
+    unit(ref).shieldCooldown = 3;
+    unit(ref).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ref).shieldCooldown).toBeCloseTo(3 - 0.016);
+  });
+
+  it('shieldCooldown到達で全回復（energy = maxEnergy）', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    unit(ref).energy = 0;
+    unit(ref).shieldCooldown = 0.01; // すぐ回復
+    unit(ref).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ref).shieldCooldown).toBe(0);
+    expect(unit(ref).energy).toBe(unit(ref).maxEnergy);
+  });
+
+  it('Bastionのenergy回復に影響なし', () => {
+    const bastion = spawnAt(0, 15, 0, 0);
+    unit(bastion).energy = 10;
+    unit(bastion).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    // Bastion energyRegen=4, energy = 10 + 4*0.016 = 10.064
+    expect(unit(bastion).energy).toBeCloseTo(10 + 4 * 0.016);
+  });
+
+  it('Reflectorはenergy自然回復しない（shieldCooldown=0、energy < maxEnergy）', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    unit(ref).energy = 50;
+    unit(ref).shieldCooldown = 0;
+    unit(ref).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    // shieldCooldown=0かつenergy>0: 何も起きない（energyRegenなし）
+    expect(unit(ref).energy).toBe(50);
+  });
+});
+
+// ============================================================
+// 10. reflectFieldHp による確定反射
+// ============================================================
+describe('reflectFieldHp 反射', () => {
+  it('reflectFieldHp > 0 で確定反射し、damage分減算される', () => {
+    const ally = spawnAt(0, 1, 0, 0);
+    unit(ally).reflectFieldHp = 10;
+    unit(ally).trailTimer = 99;
+    const hpBefore = unit(ally).hp;
+    spawnProjectile(5, 0, -100, 0, 1.0, 3, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(7); // 10 - 3
+    expect(unit(ally).hp).toBe(hpBefore); // ダメージ受けない
+    expect(projectile(0).team).toBe(0); // 反射済み
+  });
+
+  it('reflectFieldHp = 0 で反射なし', () => {
+    const ally = spawnAt(0, 1, 0, 0);
+    unit(ally).reflectFieldHp = 0;
+    unit(ally).trailTimer = 99;
+    const hpBefore = unit(ally).hp;
+    spawnProjectile(5, 0, -100, 0, 1.0, 3, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).hp).toBeLessThan(hpBefore); // ダメージ受ける
+  });
+
+  it('フィールドアクティブ中はHP再付与しない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    // 初回付与
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+    // HPを減らす
+    unit(ally).reflectFieldHp = 5;
+    update(0.016, 0, rng, gameLoopState());
+    // HP > 0 のため再付与されない
+    expect(unit(ally).reflectFieldHp).toBe(5);
+  });
+
+  it('クールダウン中はフィールドが再付与されない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    unit(ally).reflectFieldCooldown = 2.0;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(0);
+  });
+
+  it('クールダウン完了後に再付与される', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    unit(ally).reflectFieldCooldown = 0.01; // すぐ終わる
+    update(0.016, 0, rng, gameLoopState());
+    // クールダウンが0に到達し、同フレームで再付与
+    expect(unit(ally).reflectFieldCooldown).toBe(0);
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+  });
+
+  it('HP枯渇時にクールダウンが開始される', () => {
+    const ally = spawnAt(0, 1, 0, 0);
+    unit(ally).reflectFieldHp = 2;
+    unit(ally).trailTimer = 99;
+    // damage=5 > reflectFieldHp=2 → HP枯渇
+    spawnProjectile(5, 0, -100, 0, 1.0, 5, 1, 2, 1, 0, 0);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(0);
+    expect(unit(ally).reflectFieldCooldown).toBe(REFLECT_FIELD_COOLDOWN);
+  });
+
+  it('範囲外に出ても被弾しない限りフィールドは消滅しない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    // 初回付与
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+    // 範囲外に移動
+    unit(ally).x = 5000;
+    // 60フレーム分経過させてもフィールドは残る
+    for (let f = 0; f < 60; f++) {
+      update(0.016, 0, rng, gameLoopState());
+    }
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 });
