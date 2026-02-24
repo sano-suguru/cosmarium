@@ -177,7 +177,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     shieldSourceUnit: NO_UNIT,
     shieldCooldown: 0,
     reflectFieldHp: 0,
-    reflectFieldCooldown: 0,
+    fieldGrantCooldown: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {

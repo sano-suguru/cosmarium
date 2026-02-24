@@ -6,7 +6,7 @@ import {
   BASTION_SELF_ABSORB_RATIO,
   POOL_UNITS,
   REF_FPS,
-  REFLECT_FIELD_COOLDOWN,
+  REFLECT_FIELD_GRANT_INTERVAL,
   REFLECT_FIELD_MAX_HP,
   SH_CIRCLE,
   SHIELD_LINGER,
@@ -816,44 +816,80 @@ describe('reflectFieldHp 反射', () => {
     // 初回付与
     update(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
-    // HPを減らす
+    // HPを減らし、インターバルをリセットして「スキャンしてもHP>0なら上書きしない」ことを検証
     unit(ally).reflectFieldHp = 5;
+    unit(ref).fieldGrantCooldown = 0;
     update(0.016, 0, rng, gameLoopState());
     // HP > 0 のため再付与されない
     expect(unit(ally).reflectFieldHp).toBe(5);
   });
 
-  it('クールダウン中はフィールドが再付与されない', () => {
+  it('HP枯渇時に味方側ペナルティなし（次のスキャンで即再付与可能）', () => {
     const ref = spawnAt(0, 6, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    unit(ally).reflectFieldCooldown = 2.0;
+    // 初回付与
     update(0.016, 0, rng, gameLoopState());
-    expect(unit(ally).reflectFieldHp).toBe(0);
-  });
-
-  it('クールダウン完了後に再付与される', () => {
-    const ref = spawnAt(0, 6, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
-    unit(ref).trailTimer = 99;
-    unit(ally).trailTimer = 99;
-    unit(ally).reflectFieldCooldown = 0.01; // すぐ終わる
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+    // フィールドHPを枯渇させる
+    unit(ally).reflectFieldHp = 0;
+    // Reflectorのインターバルをリセットして再スキャン可能に
+    unit(ref).fieldGrantCooldown = 0;
     update(0.016, 0, rng, gameLoopState());
-    // クールダウンが0に到達し、同フレームで再付与
-    expect(unit(ally).reflectFieldCooldown).toBe(0);
+    // 即再付与される
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
-  it('HP枯渇時にクールダウンが開始される', () => {
-    const ally = spawnAt(0, 1, 0, 0);
-    unit(ally).reflectFieldHp = 2;
+  it('ReflectorのfieldGrantCooldown > 0の間はフィールド付与しない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    // damage=5 > reflectFieldHp=2 → HP枯渇
-    spawnProjectile(5, 0, -100, 0, 1.0, 5, 1, 2, 1, 0, 0);
+    unit(ref).fieldGrantCooldown = 2.0;
     update(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(0);
-    expect(unit(ally).reflectFieldCooldown).toBe(REFLECT_FIELD_COOLDOWN);
+  });
+
+  it('フィールド付与時にReflectorのfieldGrantCooldownがREFLECT_FIELD_GRANT_INTERVALに設定される', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+    expect(unit(ref).fieldGrantCooldown).toBe(REFLECT_FIELD_GRANT_INTERVAL);
+  });
+
+  it('全味方がフィールド保有中はfieldGrantCooldownが開始されない', () => {
+    const ref = spawnAt(0, 6, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    // 味方に事前にフィールドを付与
+    unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
+    update(0.016, 0, rng, gameLoopState());
+    // 全味方がフィールド保有中なので granted=false → インターバル開始しない
+    expect(unit(ref).fieldGrantCooldown).toBe(0);
+  });
+
+  it('複数Reflectorがインターバルをずらしてカバーできる', () => {
+    const ref1 = spawnAt(0, 6, 0, 0);
+    const ref2 = spawnAt(0, 6, 30, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(ref1).trailTimer = 99;
+    unit(ref2).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    // 初回: ref1 or ref2 が付与
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+    // フィールドを破壊し、ref1のインターバルを残す
+    unit(ally).reflectFieldHp = 0;
+    unit(ref1).fieldGrantCooldown = 0.5; // ref1はまだインターバル中
+    unit(ref2).fieldGrantCooldown = 0; // ref2はインターバル完了
+    update(0.016, 0, rng, gameLoopState());
+    // ref2が再付与できる
+    expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
   it('範囲外に出ても被弾しない限りフィールドは消滅しない', () => {

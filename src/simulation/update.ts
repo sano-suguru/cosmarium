@@ -11,7 +11,7 @@ import {
   POOL_PROJECTILES,
   POOL_UNITS,
   REF_FPS,
-  REFLECT_FIELD_COOLDOWN,
+  REFLECT_FIELD_GRANT_INTERVAL,
   REFLECT_FIELD_MAX_HP,
   REFLECT_FIELD_RADIUS,
   SH_CIRCLE,
@@ -112,7 +112,6 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
   o.reflectFieldHp -= p.damage;
   if (o.reflectFieldHp <= 0) {
     o.reflectFieldHp = 0;
-    o.reflectFieldCooldown = REFLECT_FIELD_COOLDOWN;
   }
   const c: Color3 = effectColor(o.type, o.team);
   reflectProjectile(rng, o.x, o.y, p, o.team, c);
@@ -345,27 +344,26 @@ function decayShieldTimers(dt: number) {
   }
 }
 
-function decayReflectFieldCooldowns(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
-    if (u.reflectFieldCooldown > 0) u.reflectFieldCooldown = Math.max(0, u.reflectFieldCooldown - dt);
-  }
-}
-
 /** Reflector が味方に反射フィールドを一括付与する */
-function applyReflectorAllyField(u: Unit, i: number) {
+function applyReflectorAllyField(u: Unit, i: number, dt: number) {
   if (u.maxEnergy <= 0) return;
+  if (u.fieldGrantCooldown > 0) {
+    u.fieldGrantCooldown = Math.max(0, u.fieldGrantCooldown - dt);
+    return;
+  }
+  let granted = false;
   const nn = getNeighbors(u.x, u.y, REFLECT_FIELD_RADIUS);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) continue;
-    if (o.reflectFieldCooldown > 0) continue;
     if (o.reflectFieldHp <= 0) {
       o.reflectFieldHp = REFLECT_FIELD_MAX_HP;
+      granted = true;
     }
+  }
+  if (granted) {
+    u.fieldGrantCooldown = REFLECT_FIELD_GRANT_INTERVAL;
   }
 }
 
@@ -429,13 +427,12 @@ function tetherNearbyAllies(u: Unit, i: number) {
 
 function applyShieldsAndFields(dt: number) {
   decayShieldTimers(dt);
-  decayReflectFieldCooldowns(dt);
   for (let i = 0, urem2 = poolCounts.units; i < POOL_UNITS && urem2 > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     urem2--;
     const t = unitType(u.type);
-    if (t.reflects) applyReflectorAllyField(u, i);
+    if (t.reflects) applyReflectorAllyField(u, i, dt);
     if (t.shields) tetherNearbyAllies(u, i);
   }
 }

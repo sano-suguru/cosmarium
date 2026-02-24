@@ -37,7 +37,7 @@ export interface Unit {
   shieldSourceUnit: UnitIndex;
   shieldCooldown: number;
   reflectFieldHp: number;
-  reflectFieldCooldown: number;
+  fieldGrantCooldown: number;
 }
 
 export interface Particle {

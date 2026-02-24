@@ -33,7 +33,7 @@ export const SH_REFLECT_FIELD = 27;
 export const BLINK_KILL_CD = 0.8;
 
 export const REFLECT_FIELD_MAX_HP = 15;
-export const REFLECT_FIELD_COOLDOWN = 3;
+export const REFLECT_FIELD_GRANT_INTERVAL = 1;
 export const REFLECT_FIELD_RADIUS = 100;
 export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
 

@@ -67,7 +67,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.shieldSourceUnit = NO_UNIT;
       u.shieldCooldown = 0;
       u.reflectFieldHp = 0;
-      u.reflectFieldCooldown = 0;
+      u.fieldGrantCooldown = 0;
       incUnits();
       return i as UnitIndex;
     }
