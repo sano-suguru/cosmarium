@@ -19,7 +19,7 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
-const BEAM_FRIG_TYPE = unitTypeIndex('Beam Frig.');
+const SCORCHER_TYPE = unitTypeIndex('Scorcher');
 const CRUISER_TYPE = unitTypeIndex('Cruiser');
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
@@ -171,7 +171,7 @@ function demoReflector(mi: UnitIndex) {
   }
   const fi = spawnUnit(1, 1, -120, 0, demoRng);
   if (fi !== NO_UNIT) unit(fi).target = mi;
-  const bi1 = spawnUnit(1, BEAM_FRIG_TYPE, 200 + demoRng() * 40, 60, demoRng);
+  const bi1 = spawnUnit(1, SCORCHER_TYPE, 200 + demoRng() * 40, 60, demoRng);
   if (bi1 !== NO_UNIT) unit(bi1).target = mi;
   const bi2 = spawnUnit(1, CRUISER_TYPE, 200 + demoRng() * 40, 100, demoRng);
   if (bi2 !== NO_UNIT) unit(bi2).target = mi;

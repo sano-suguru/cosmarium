@@ -846,15 +846,15 @@ describe('combat — UNIT STATS', () => {
     expect(unitType(3).damage).toBe(8);
   });
 
-  it('Beam Frig(type 12) の fireRate は 0.1', () => {
+  it('Scorcher(type 12) の fireRate は 0.1', () => {
     expect(unitType(12).fireRate).toBe(0.1);
   });
 
-  it('Beam Frig の damage は 0.8', () => {
+  it('Scorcher の damage は 0.8', () => {
     expect(unitType(12).damage).toBe(0.8);
   });
 
-  it('Beam Frig に sweep がない', () => {
+  it('Scorcher に sweep がない', () => {
     expect(unitType(12).sweep).toBeUndefined();
   });
 });
@@ -1181,7 +1181,7 @@ describe('combat — FOCUS BEAM', () => {
     expect(poolCounts.particles).toBe(5);
   });
 
-  it('DPS検証: 10秒で Beam Frig DPS ≈ 8-16', () => {
+  it('DPS検証: 10秒で Scorcher DPS ≈ 8-16', () => {
     const frig = spawnAt(0, 12, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(frig).target = enemy;
@@ -1545,60 +1545,60 @@ describe('combat — 偏差射撃統合', () => {
 
 describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   it('攻撃元に直接ダメージが返る', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0);
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    const hpBefore = unit(beamFrig).hp;
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     const expectedDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0 * REFLECT_BEAM_DAMAGE_MULT;
-    expect(unit(beamFrig).hp).toBeCloseTo(hpBefore - expectedDmg);
-    expect(unit(beamFrig).hitFlash).toBe(1);
+    expect(unit(scorcher).hp).toBeCloseTo(hpBefore - expectedDmg);
+    expect(unit(scorcher).hitFlash).toBe(1);
   });
 
   it('Reflector の angle に依存せず攻撃元にダメージ', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0);
     unit(reflector).angle = -Math.PI / 4; // 斜め向き
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    const hpBefore = unit(beamFrig).hp;
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    expect(unit(beamFrig).hp).toBeLessThan(hpBefore);
+    expect(unit(scorcher).hp).toBeLessThan(hpBefore);
   });
 
   it('第三者にはダメージが及ばない', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0);
     const bystander = spawnAt(0, 1, 0, 200);
     unit(bystander).hp = 100;
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     expect(unit(bystander).hp).toBe(100);
   });
 
   it('反射ビームが攻撃元に向かって描画される', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0);
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     // 反射ビーム + 元のフォーカスビーム
     expect(beams.length).toBeGreaterThanOrEqual(2);
@@ -1606,23 +1606,23 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     const reflBeam = beams.find((b) => b.x1 === unit(reflector).x && b.y1 === unit(reflector).y);
     expect(reflBeam).toBeDefined();
     if (reflBeam) {
-      expect(reflBeam.x2).toBe(unit(beamFrig).x);
-      expect(reflBeam.y2).toBe(unit(beamFrig).y);
+      expect(reflBeam.x2).toBe(unit(scorcher).x);
+      expect(reflBeam.y2).toBe(unit(scorcher).y);
     }
   });
 
   it('攻撃元が kill される場合', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0);
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    unit(beamFrig).hp = 0.01; // ほぼ死亡
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    unit(scorcher).hp = 0.01; // ほぼ死亡
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    expect(unit(beamFrig).alive).toBe(false);
+    expect(unit(scorcher).alive).toBe(false);
   });
 
   it('Sweep beam + Reflector でバッファ競合なく動作する', () => {
@@ -1664,120 +1664,120 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
 
 describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射)', () => {
   it('フィールド持ち味方がビームを反射しダメージを返却する', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0); // Drone (non-reflector)
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     unit(ally).hp = 100;
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    const hpBefore = unit(beamFrig).hp;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     const baseDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0;
     const expectedDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
-    expect(unit(beamFrig).hp).toBeCloseTo(hpBefore - expectedDmg);
-    expect(unit(beamFrig).hitFlash).toBe(1);
+    expect(unit(scorcher).hp).toBeCloseTo(hpBefore - expectedDmg);
+    expect(unit(scorcher).hitFlash).toBe(1);
     // allyのHPは変化しない（反射成功でダメージスキップ）
     expect(unit(ally).hp).toBe(100);
   });
 
   it('フィールドHPがビームダメージ分減少する', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     const baseDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0;
     expect(unit(ally).reflectFieldHp).toBeCloseTo(REFLECT_FIELD_MAX_HP - baseDmg);
   });
 
   it('フィールドHP枯渇後はビームが貫通する', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0);
     unit(ally).reflectFieldHp = 0;
     unit(ally).hp = 100;
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    const attackerHpBefore = unit(beamFrig).hp;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    const attackerHpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     // 攻撃者のHPは変化しない（反射されない）
-    expect(unit(beamFrig).hp).toBe(attackerHpBefore);
+    expect(unit(scorcher).hp).toBe(attackerHpBefore);
     // allyはダメージを受ける
     expect(unit(ally).hp).toBeLessThan(100);
   });
 
   it('反射ダメージで攻撃者がkillされる', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     unit(ally).hp = 100;
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
-    unit(beamFrig).hp = 0.01;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
+    unit(scorcher).hp = 0.01;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    expect(unit(beamFrig).alive).toBe(false);
+    expect(unit(scorcher).alive).toBe(false);
   });
 
   it('反射ビームが攻撃元に向かって描画される', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     const reflBeam = beams.find((b) => b.x1 === unit(ally).x && b.y1 === unit(ally).y);
     expect(reflBeam).toBeDefined();
     if (reflBeam) {
-      expect(reflBeam.x2).toBe(unit(beamFrig).x);
-      expect(reflBeam.y2).toBe(unit(beamFrig).y);
+      expect(reflBeam.x2).toBe(unit(scorcher).x);
+      expect(reflBeam.y2).toBe(unit(scorcher).y);
     }
   });
 
   it('フィールドHPがダメージ以下の場合0に固定される', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const ally = spawnAt(1, 1, 0, 0);
     unit(ally).reflectFieldHp = 0.1; // ダメージより小さい
 
-    unit(beamFrig).target = ally;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = ally;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
   it('Reflector本体のenergy反射がフィールド反射より優先される', () => {
-    const beamFrig = spawnAt(0, 12, -200, 0);
+    const scorcher = spawnAt(0, 12, -200, 0);
     const reflector = spawnAt(1, 6, 0, 0); // Reflector本体
     unit(reflector).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const energyBefore = unit(reflector).energy;
 
-    unit(beamFrig).target = reflector;
-    unit(beamFrig).cooldown = 0;
-    unit(beamFrig).beamOn = 1.0;
+    unit(scorcher).target = reflector;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
     // Reflector本体のenergyが消費される（tryReflectBeamが先に発火）
     expect(unit(reflector).energy).toBeLessThan(energyBefore);

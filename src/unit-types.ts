@@ -256,7 +256,7 @@ export const TYPES: UnitType[] = [
     attackDesc: 'EMPバースト（1.5秒スタン）',
   },
   {
-    name: 'Beam Frig.',
+    name: 'Scorcher',
     size: 13,
     hp: 30,
     speed: 85,

@@ -9,7 +9,7 @@ out vec4 fragColor;
 // Non-unit shapes (3,4,10,12,14,17-23,27) have default values
 const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.035,0.045,0.032,0.020,0.020, // 0-4  sh0=Drone,sh1=Fighter,sh2=Bomber
-  0.008,0.025,0.025,0.006,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
+  0.008,0.025,0.025,0.006,0.035, // 5-9  sh5=Scorcher,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
   0.020,0.060,0.020,0.008,0.020, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.040,0.022,0.020,0.020,0.020, // 15-19 sh15=Arcer
   0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
@@ -177,7 +177,7 @@ void main(){
     float dd=abs(vU.x)+abs(vU.y);
     a=smoothstep(1.0,0.6,dd)+exp(-dd*2.0)*0.4; }
   else if(sh==5){ vec2 p=vU*0.68; float t=vA+uTime;
-    // Beam Frigate: Forward focusing dish, beam emitter spine, charging anim
+    // Scorcher: Forward focusing dish, beam emitter spine, charging anim
     // 1. Rear hull (compact engine block)
     float dHull=sdRoundedBox(p-vec2(-0.20,0.0),vec2(0.25,0.16),0.06);
     // 2. Central spine (beam conduit running forward)

@@ -86,7 +86,7 @@ describe('TYPES 配列', () => {
     expect(unitType(11).emp).toBe(true);
   });
 
-  it('特殊フラグ: idx 12 (Beam Frig.) は beam を持つ', () => {
+  it('特殊フラグ: idx 12 (Scorcher) は beam を持つ', () => {
     expect(unitType(12).beam).toBe(true);
   });
 

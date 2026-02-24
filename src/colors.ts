@@ -26,7 +26,7 @@ interface UnitColorMod {
 //   小型攻撃  (Drone, Fighter, Teleporter) — warm lean
 //   重火力    (Bomber, Cruiser, Flagship, Lancer) — strong warm
 //   支援      (Healer, Reflector, Bastion) — cool lean
-//   射撃/特殊 (Sniper, Launcher, Disruptor, Beam Frig., Arcer) — mixed
+//   射撃/特殊 (Sniper, Launcher, Disruptor, Scorcher, Arcer) — mixed
 //   母艦      (Carrier) — unique deep purple
 const UNIT_MODS: readonly UnitColorMod[] = [
   // 0  Drone       — 小型攻撃: warm lean, vivid
@@ -53,7 +53,7 @@ const UNIT_MODS: readonly UnitColorMod[] = [
   { hue: 0.12, lum: 1.0, sat: 1.05, effectHue: 0.21, effectSat: 1.25 },
   // 11 Disruptor   — 射撃/特殊: warm magenta lean
   { hue: -0.04, lum: 1.1, sat: 1.15, effectHue: -0.1, effectSat: 1.35 },
-  // 12 Beam Frig.  — 射撃/特殊: cool blue-cyan
+  // 12 Scorcher    — 射撃/特殊: cool blue-cyan
   { hue: 0.05, lum: 0.9, sat: 1.0, effectHue: 0.11, effectSat: 1.2 },
   // 13 Teleporter  — 小型攻撃: warm pink lean, bright
   { hue: -0.09, lum: 1.15, sat: 1.2, effectHue: -0.17, effectSat: 1.4 },
