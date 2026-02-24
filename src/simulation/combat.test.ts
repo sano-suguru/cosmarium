@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { POOL_UNITS, REFLECT_BEAM_DAMAGE_MULT } from '../constants.ts';
+import { decUnits, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -214,6 +214,39 @@ describe('combat — REFLECTOR', () => {
     combat(unit(reflector), reflector, 0.016, 0, rng);
     const speedAfter = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     expect(speedAfter).toBeCloseTo(speedBefore, 1);
+  });
+
+  it('反射でシールドHP -= p.damage（固定コストではなく実ダメージ）', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    unit(reflector).energy = 50;
+    buildHash();
+    spawnProjectile(20, 0, -100, 0, 1, 12, 1, 2, 1, 0, 0);
+    combat(unit(reflector), reflector, 0.016, 0, rng);
+    expect(unit(reflector).energy).toBe(38); // 50 - 12
+  });
+
+  it('シールドHP=0でshieldCooldownがセットされる', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    unit(reflector).energy = 5; // 弾のdamage(10)より低い
+    buildHash();
+    spawnProjectile(20, 0, -100, 0, 1, 10, 1, 2, 1, 0, 0);
+    combat(unit(reflector), reflector, 0.016, 0, rng);
+    expect(unit(reflector).energy).toBe(0);
+    expect(unit(reflector).shieldCooldown).toBe(3); // UnitType.shieldCooldown
+  });
+
+  it('shieldCooldown中は反射スキップ', () => {
+    const reflector = spawnAt(0, 6, 0, 0);
+    unit(reflector).energy = 50;
+    unit(reflector).shieldCooldown = 3; // ダウン中
+    buildHash();
+    spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
+    const p = projectile(0);
+    const vxBefore = p.vx;
+    combat(unit(reflector), reflector, 0.016, 0, rng);
+    expect(p.vx).toBe(vxBefore); // 反射されない
+    expect(p.team).toBe(1);
+    expect(unit(reflector).energy).toBe(50); // エネルギー消費なし
   });
 
   it('cooldown<=0 かつ target あり → 射撃', () => {
@@ -935,7 +968,31 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     expect(unit(farEnemy).hp).toBe(hpBefore);
   });
 
-  it('shielded 60%軽減: 8 * 0.4 = 3.2', () => {
+  it('Bastion死亡済み参照: 孤児テザー軽減がビームに適用される', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const bastion = spawnAt(1, 15, 0, 200);
+    const enemy = spawnAt(1, 1, 200, 0);
+    unit(cruiser).target = enemy;
+    unit(cruiser).cooldown = 0;
+    unit(cruiser).beamOn = 1;
+    unit(cruiser).sweepPhase = 0.4;
+    unit(cruiser).sweepBaseAngle = 0;
+    unit(cruiser).angle = 0;
+    unit(enemy).shieldLingerTimer = 1.0;
+    unit(enemy).shieldSourceUnit = bastion;
+    // Bastion を死亡状態にする
+    unit(bastion).alive = false;
+    decUnits();
+    buildHash();
+    const hpBefore = unit(enemy).hp;
+    combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    // 孤児テザー軽減: 8 * 0.8 = 6.4（Bastion生存時60%より弱い20%軽減）
+    expect(unit(enemy).hp).toBeCloseTo(hpBefore - 8 * 0.8);
+    // 参照がクリアされる
+    expect(unit(enemy).shieldSourceUnit).toBe(NO_UNIT);
+  });
+
+  it('孤児テザー（sourceUnit未設定）: 8 * 0.8 = 6.4', () => {
     const cruiser = spawnAt(0, 3, 0, 0);
     const enemy = spawnAt(1, 1, 200, 0);
     unit(cruiser).target = enemy;
@@ -948,7 +1005,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     buildHash();
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    expect(unit(enemy).hp).toBeCloseTo(hpBefore - 3.2);
+    expect(unit(enemy).hp).toBeCloseTo(hpBefore - 8 * 0.8);
   });
 
   it('敵kill: hp<=0 → killUnit', () => {
@@ -1483,5 +1540,124 @@ describe('combat — 偏差射撃統合', () => {
     combat(unit(flagship), flagship, 0.016, 0, rng);
     // チャージ開始 → sweepBaseAngle が直射 (0) より正方向にずれている
     expect(unit(flagship).sweepBaseAngle).toBeGreaterThan(0);
+  });
+});
+
+describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
+  it('攻撃元に直接ダメージが返る', () => {
+    const beamFrig = spawnAt(0, 12, -200, 0);
+    const reflector = spawnAt(1, 6, 0, 0);
+
+    unit(beamFrig).target = reflector;
+    unit(beamFrig).cooldown = 0;
+    unit(beamFrig).beamOn = 1.0;
+    const hpBefore = unit(beamFrig).hp;
+    buildHash();
+    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+
+    const expectedDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0 * REFLECT_BEAM_DAMAGE_MULT;
+    expect(unit(beamFrig).hp).toBeCloseTo(hpBefore - expectedDmg);
+    expect(unit(beamFrig).hitFlash).toBe(1);
+  });
+
+  it('Reflector の angle に依存せず攻撃元にダメージ', () => {
+    const beamFrig = spawnAt(0, 12, -200, 0);
+    const reflector = spawnAt(1, 6, 0, 0);
+    unit(reflector).angle = -Math.PI / 4; // 斜め向き
+
+    unit(beamFrig).target = reflector;
+    unit(beamFrig).cooldown = 0;
+    unit(beamFrig).beamOn = 1.0;
+    const hpBefore = unit(beamFrig).hp;
+    buildHash();
+    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+
+    expect(unit(beamFrig).hp).toBeLessThan(hpBefore);
+  });
+
+  it('第三者にはダメージが及ばない', () => {
+    const beamFrig = spawnAt(0, 12, -200, 0);
+    const reflector = spawnAt(1, 6, 0, 0);
+    const bystander = spawnAt(0, 1, 0, 200);
+    unit(bystander).hp = 100;
+
+    unit(beamFrig).target = reflector;
+    unit(beamFrig).cooldown = 0;
+    unit(beamFrig).beamOn = 1.0;
+    buildHash();
+    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+
+    expect(unit(bystander).hp).toBe(100);
+  });
+
+  it('反射ビームが攻撃元に向かって描画される', () => {
+    const beamFrig = spawnAt(0, 12, -200, 0);
+    const reflector = spawnAt(1, 6, 0, 0);
+
+    unit(beamFrig).target = reflector;
+    unit(beamFrig).cooldown = 0;
+    unit(beamFrig).beamOn = 1.0;
+    buildHash();
+    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+
+    // 反射ビーム + 元のフォーカスビーム
+    expect(beams.length).toBeGreaterThanOrEqual(2);
+    // 反射ビームの終点が攻撃元に向いている
+    const reflBeam = beams.find((b) => b.x1 === unit(reflector).x && b.y1 === unit(reflector).y);
+    expect(reflBeam).toBeDefined();
+    if (reflBeam) {
+      expect(reflBeam.x2).toBe(unit(beamFrig).x);
+      expect(reflBeam.y2).toBe(unit(beamFrig).y);
+    }
+  });
+
+  it('攻撃元が kill される場合', () => {
+    const beamFrig = spawnAt(0, 12, -200, 0);
+    const reflector = spawnAt(1, 6, 0, 0);
+
+    unit(beamFrig).target = reflector;
+    unit(beamFrig).cooldown = 0;
+    unit(beamFrig).beamOn = 1.0;
+    unit(beamFrig).hp = 0.01; // ほぼ死亡
+    buildHash();
+    combat(unit(beamFrig), beamFrig, 0.016, 0, rng);
+
+    expect(unit(beamFrig).alive).toBe(false);
+  });
+
+  it('Sweep beam + Reflector でバッファ競合なく動作する', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const reflector = spawnAt(1, 6, 200, 0);
+
+    unit(cruiser).target = reflector;
+    unit(cruiser).cooldown = 0;
+    unit(cruiser).beamOn = 1;
+    unit(cruiser).sweepPhase = 0.4;
+    unit(cruiser).sweepBaseAngle = 0;
+    unit(cruiser).angle = 0;
+    buildHash();
+
+    expect(() => {
+      combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    }).not.toThrow();
+  });
+
+  it('Sweep中にReflector反射でattackerが死亡 → 例外なく中断', () => {
+    const cruiser = spawnAt(0, 3, 0, 0);
+    const reflector = spawnAt(1, 6, 80, 0);
+
+    unit(cruiser).target = reflector;
+    unit(cruiser).cooldown = 0;
+    unit(cruiser).beamOn = 1;
+    unit(cruiser).sweepPhase = 0.4;
+    unit(cruiser).sweepBaseAngle = 0;
+    unit(cruiser).angle = 0;
+    unit(cruiser).hp = 0.01; // 反射ダメージで死亡する程度のHP
+    buildHash();
+
+    expect(() => {
+      combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    }).not.toThrow();
+    expect(unit(cruiser).alive).toBe(false);
   });
 });

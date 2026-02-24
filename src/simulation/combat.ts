@@ -1,5 +1,17 @@
 import { color } from '../colors.ts';
-import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_DIAMOND_RING, SH_EXPLOSION_RING } from '../constants.ts';
+import {
+  BASTION_ABSORB_RATIO,
+  BASTION_SELF_ABSORB_RATIO,
+  NEIGHBOR_BUFFER_SIZE,
+  ORPHAN_TETHER_BEAM_MULT,
+  POOL_PROJECTILES,
+  REF_FPS,
+  REFLECT_BEAM_DAMAGE_MULT,
+  SH_CIRCLE,
+  SH_DIAMOND,
+  SH_DIAMOND_RING,
+  SH_EXPLOSION_RING,
+} from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -9,11 +21,36 @@ import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
-const REFLECTOR_BEAM_SHIELD_MULTIPLIER = 0.4;
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
 
 // GC回避: aimAt() の結果を再利用するシングルトン
 const _aim = { ang: 0, dist: 0 };
+
+/** 被弾ユニット→Bastion方向のエネルギーフローパーティクルを放出 */
+function tetherAbsorbFx(ox: number, oy: number, tx: number, ty: number, rng: () => number) {
+  const dx = tx - ox,
+    dy = ty - oy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist <= 1) return;
+  const nx = dx / dist,
+    ny = dy / dist;
+  for (let k = 0; k < 4; k++) {
+    const speed = 120 + rng() * 80;
+    const lat = (rng() - 0.5) * 40;
+    spawnParticle(
+      ox + nx * (rng() * dist * 0.3),
+      oy + ny * (rng() * dist * 0.3),
+      nx * speed + ny * lat,
+      ny * speed - nx * lat,
+      0.2 + rng() * 0.1,
+      1.8,
+      0.5,
+      0.85,
+      1.0,
+      SH_DIAMOND,
+    );
+  }
+}
 
 /** 二次方程式 at²+bt+c=0 の最小正の実数解。解なしなら -1 */
 function smallestPositiveRoot(a: number, b: number, c: number): number {
@@ -93,6 +130,17 @@ const BROADSIDE_PHASE_FIRE = -1;
 const AOE_PROJ_SPEED = 170;
 const AOE_PROJ_SIZE = 5;
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
+
+// neighborBuffer 上書き防止用スナップショット（beam反射で getNeighbors が再呼び出しされるため）
+const _sweepSnapshot = new Int32Array(NEIGHBOR_BUFFER_SIZE);
+let _sweepSnapshotCount = 0;
+
+/** getNeighbors 結果を _sweepSnapshot にコピー */
+function snapshotNeighbors(x: number, y: number, r: number): number {
+  const nn = getNeighbors(x, y, r);
+  for (let k = 0; k < nn; k++) _sweepSnapshot[k] = getNeighborAt(k);
+  return nn;
+}
 /** 同一フレーム内で反射済みのプロジェクタイルインデックス。対向リフレクター間の無限バウンスを防止 */
 const reflectedThisFrame = new Set<number>();
 
@@ -204,8 +252,17 @@ const REFLECT_SCATTER = 0.524; // 全幅30°（±15°）
 const REFLECT_SPEED_MULT = 1.0;
 const REFLECT_LIFE = 0.5;
 
-function reflectProjectile(
-  ctx: CombatContext,
+/**
+ * Reflector による弾の鏡面反射+散乱。弾の速度・チーム・色を書き換える。
+ * @param rng 決定論的乱数（散乱角・パーティクルに使用）
+ * @param ux Reflector の X 座標（反射法線の原点）
+ * @param uy Reflector の Y 座標
+ * @param p 反射対象（vx/vy/life/team/色を上書き）
+ * @param team 反射後に設定するチーム
+ * @param c 反射ビーム・パーティクルの色
+ */
+export function reflectProjectile(
+  rng: () => number,
   ux: number,
   uy: number,
   p: { x: number; y: number; vx: number; vy: number; life: number; team: number; r: number; g: number; b: number },
@@ -227,7 +284,7 @@ function reflectProjectile(
   const dot = p.vx * nx + p.vy * ny;
   const rvx = p.vx - 2 * dot * nx;
   const rvy = p.vy - 2 * dot * ny;
-  const scatter = (ctx.rng() - 0.5) * REFLECT_SCATTER;
+  const scatter = (rng() - 0.5) * REFLECT_SCATTER;
   const cs = Math.cos(scatter);
   const sn = Math.sin(scatter);
   p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
@@ -239,23 +296,21 @@ function reflectProjectile(
   p.b = c[2];
   addBeam(ux, uy, p.x, p.y, c[0], c[1], c[2], 0.15, 1.5);
   for (let j = 0; j < 4; j++) {
-    spawnParticle(
-      p.x,
-      p.y,
-      (ctx.rng() - 0.5) * 80,
-      (ctx.rng() - 0.5) * 80,
-      0.15,
-      3 + ctx.rng() * 2,
-      c[0],
-      c[1],
-      c[2],
-      SH_CIRCLE,
-    );
+    spawnParticle(p.x, p.y, (rng() - 0.5) * 80, (rng() - 0.5) * 80, 0.15, 3 + rng() * 2, c[0], c[1], c[2], SH_CIRCLE);
   }
   spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, SH_EXPLOSION_RING);
 }
 
+function consumeReflectorShieldHp(u: Unit, damage: number, cooldown: number) {
+  const prev = u.energy;
+  u.energy = Math.max(0, prev - damage);
+  if (prev > 0 && u.energy <= 0) {
+    u.shieldCooldown = cooldown;
+  }
+}
+
 function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number, team: number, c: Color3) {
+  const cooldown = ctx.t.shieldCooldown ?? 3;
   for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) continue;
@@ -263,10 +318,13 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number,
     if (reflectedThisFrame.has(i) || p.team === team) continue;
     const dx = p.x - u.x;
     const dy = p.y - u.y;
-    if (dx * dx + dy * dy < reflectR * reflectR) {
-      reflectProjectile(ctx, u.x, u.y, p, team, c);
-      reflectedThisFrame.add(i);
-    }
+    if (dx * dx + dy * dy >= reflectR * reflectR) continue;
+    // ループ途中でenergy枯渇 or クールダウン開始した場合の早期脱出（呼び出し元のガードとは別目的）
+    if (u.energy <= 0 || u.shieldCooldown > 0) break;
+    consumeReflectorShieldHp(u, p.damage, cooldown);
+    reflectProjectile(ctx.rng, u.x, u.y, p, team, c);
+    reflectedThisFrame.add(i);
+    if (u.energy <= 0) break;
   }
 }
 
@@ -274,7 +332,9 @@ function handleReflector(ctx: CombatContext) {
   const { u, c, t, vd } = ctx;
   const fireRange = t.range;
   const reflectR = t.size * REFLECT_RADIUS_MULT;
-  reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);
+  if (u.shieldCooldown <= 0 && u.energy > 0) {
+    reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);
+  }
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
     const o = unit(u.target);
     if (!o.alive) {
@@ -537,11 +597,127 @@ function handleChain(ctx: CombatContext): void {
   }
 }
 
+function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): boolean {
+  const nt = unitType(n.type);
+  if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
+  consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
+
+  const attacker = unit(attackerUi);
+  if (!attacker.alive) return true;
+
+  const c = color(n.type, n.team);
+
+  addBeam(n.x, n.y, attacker.x, attacker.y, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.08, 3);
+  spawnParticle(n.x, n.y, 0, 0, 0.15, 12, c[0], c[1], c[2], SH_EXPLOSION_RING);
+
+  const reflectDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
+  attacker.hp -= reflectDmg;
+  attacker.hitFlash = 1;
+  knockback(attackerUi, n.x, n.y, reflectDmg * 5);
+
+  for (let j = 0; j < 4; j++) {
+    spawnParticle(
+      attacker.x + (rng() - 0.5) * 8,
+      attacker.y + (rng() - 0.5) * 8,
+      (rng() - 0.5) * 60,
+      (rng() - 0.5) * 60,
+      0.1,
+      2.5,
+      c[0],
+      c[1],
+      c[2],
+      SH_CIRCLE,
+    );
+  }
+
+  if (attacker.hp <= 0) {
+    const { x, y, team, type } = attacker;
+    killUnit(attackerUi);
+    explosion(x, y, team, type, ni, rng);
+  }
+  return true;
+}
+
+/** Bastion 自身のシールドエネルギーでダメージを部分吸収する */
+export function absorbByBastionShield(u: Unit, dmg: number): number {
+  const t = unitType(u.type);
+  if (!t.shields || u.energy <= 0) return dmg;
+  const absorbed = Math.min(dmg * BASTION_SELF_ABSORB_RATIO, u.energy);
+  u.energy -= absorbed;
+  return dmg - absorbed;
+}
+
+/**
+ * テザー吸収: shieldLingerTimer 中の Bastion が肩代わりするダメージ計算。
+ * 吸収FXは内部で直接発火。Bastion 死亡時は killUnit + explosion 実行。
+ * 軽減後のダメージを返す。
+ */
+export function applyTetherAbsorb(
+  n: Unit,
+  dmg: number,
+  orphanMult: number,
+  killerUi: UnitIndex,
+  rng: () => number,
+): number {
+  if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
+    const src = unit(n.shieldSourceUnit);
+    if (src.alive && unitType(src.type).shields) {
+      src.hp -= dmg * BASTION_ABSORB_RATIO;
+      src.hitFlash = 1;
+      tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
+      if (src.hp <= 0) {
+        const { x, y, team, type } = src;
+        killUnit(n.shieldSourceUnit);
+        explosion(x, y, team, type, killerUi, rng);
+        n.shieldSourceUnit = NO_UNIT;
+      }
+      return dmg * (1 - BASTION_ABSORB_RATIO);
+    }
+    n.shieldSourceUnit = NO_UNIT;
+    return dmg * orphanMult;
+  }
+  if (n.shieldLingerTimer > 0) return dmg * orphanMult;
+  return dmg;
+}
+
+/** ビームダメージの反射/吸収/軽減を適用。反射成功時は -1 を返す（ダメージスキップ）*/
+function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerUi: UnitIndex): number {
+  if (tryReflectBeam(n, ni, baseDmg, rng, killerUi)) return -1;
+  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerUi, rng);
+  dmg = absorbByBastionShield(n, dmg);
+  return dmg;
+}
+
+/** sweep ヒット1件を適用。反射でattacker死亡なら true を返す */
+function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: Unit, dmg: number) {
+  const { u, c } = ctx;
+  n.hp -= dmg;
+  n.hitFlash = 1;
+  knockback(ni, u.x, u.y, dmg * 3);
+  spawnParticle(
+    n.x + (ctx.rng() - 0.5) * 8,
+    n.y + (ctx.rng() - 0.5) * 8,
+    (ctx.rng() - 0.5) * 50,
+    (ctx.rng() - 0.5) * 50,
+    0.08,
+    2,
+    c[0],
+    c[1],
+    c[2],
+    SH_CIRCLE,
+  );
+  if (n.hp <= 0) {
+    const { x, y, team, type } = n;
+    killUnit(ni);
+    explosion(x, y, team, type, ctx.ui, ctx.rng);
+  }
+}
+
 function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, t, vd } = ctx;
   const base = u.sweepBaseAngle;
   const TOL = 0.05;
-  const nn = getNeighbors(u.x, u.y, t.range);
+  _sweepSnapshotCount = snapshotNeighbors(u.x, u.y, t.range);
 
   const normalize = (a: number): number => {
     let r = a - base;
@@ -555,8 +731,8 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   const lo = Math.min(relPrev, relCurr) - TOL;
   const hi = Math.max(relPrev, relCurr) + TOL;
 
-  for (let i = 0; i < nn; i++) {
-    const ni = getNeighborAt(i);
+  for (let i = 0; i < _sweepSnapshotCount; i++) {
+    const ni = _sweepSnapshot[i] as UnitIndex;
     const n = unit(ni);
     if (!n.alive || n.team === u.team) continue;
     const ndx = n.x - u.x,
@@ -568,27 +744,11 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     if (relEnemy < lo || relEnemy > hi) continue;
     if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
     sweepHitMap.get(ctx.ui)?.add(ni);
-    let dmg = t.damage * vd;
-    if (n.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
-    n.hp -= dmg;
-    n.hitFlash = 1;
-    knockback(ni, u.x, u.y, dmg * 3);
-    spawnParticle(
-      n.x + (ctx.rng() - 0.5) * 8,
-      n.y + (ctx.rng() - 0.5) * 8,
-      (ctx.rng() - 0.5) * 50,
-      (ctx.rng() - 0.5) * 50,
-      0.08,
-      2,
-      c[0],
-      c[1],
-      c[2],
-      SH_CIRCLE,
-    );
-    if (n.hp <= 0) {
-      killUnit(ni);
-      explosion(n.x, n.y, n.team, n.type, ctx.ui, ctx.rng);
-    }
+    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui);
+    if (dmg < 0) continue;
+    // 反射ダメージでattacker(u)が死亡した場合、sweep中断
+    if (!u.alive) return;
+    applySweepHit(ctx, ni, n, dmg);
   }
 }
 
@@ -770,11 +930,14 @@ function handleFocusBeam(ctx: CombatContext) {
 
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
-    let dmg = t.damage * u.beamOn * vd;
-    if (o.shieldLingerTimer > 0) dmg *= REFLECTOR_BEAM_SHIELD_MULTIPLIER;
-    o.hp -= dmg;
-    o.hitFlash = 1;
-    knockback(u.target, u.x, u.y, dmg * 5);
+    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui);
+    // 反射で自身(attacker)が死亡した場合、ビーム描画をスキップ
+    if (!u.alive) return;
+    if (dmg >= 0) {
+      o.hp -= dmg;
+      o.hitFlash = 1;
+      knockback(u.target, u.x, u.y, dmg * 5);
+    }
     const pCount = 1 + Math.floor(u.beamOn * 2);
     const pSize = 2 + u.beamOn * 0.5;
     const pSpeed = 50 + u.beamOn * 25;
@@ -793,8 +956,9 @@ function handleFocusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
+      const { x, y, team, type } = o;
       killUnit(u.target);
-      explosion(o.x, o.y, o.team, o.type, ui, ctx.rng);
+      explosion(x, y, team, type, ui, ctx.rng);
       u.beamOn = 0;
     }
   }
@@ -1284,6 +1448,26 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   }
 }
 
+function handleShielder(ctx: CombatContext) {
+  const { u, c, dt } = ctx;
+  if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
+    const a = ctx.rng() * Math.PI * 2;
+    const r = u.mass * 3.5;
+    spawnParticle(
+      u.x + Math.cos(a) * r,
+      u.y + Math.sin(a) * r,
+      Math.cos(a) * 25,
+      Math.sin(a) * 25,
+      0.5,
+      4,
+      c[0] * 0.6,
+      c[1] * 0.6,
+      c[2] * 0.8,
+      SH_DIAMOND_RING,
+    );
+  }
+}
+
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = unitType(u.type);
   if (u.stun > 0) return;
@@ -1308,6 +1492,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     handleReflector(_ctx);
     return;
   }
+  if (t.shields) handleShielder(_ctx);
   if (t.spawns) handleCarrier(_ctx);
   if (t.emp && u.abilityCooldown <= 0) {
     handleEmp(_ctx);
@@ -1338,6 +1523,7 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'rams',
   'heals',
   'reflects',
+  'shields',
   'spawns',
   'emp',
   'teleports',
