@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
-  it('要素数が15', () => {
-    expect(TYPES).toHaveLength(15);
+  it('要素数が16', () => {
+    expect(TYPES).toHaveLength(16);
   });
 
   it('全タイプに必須プロパティが存在する', () => {
@@ -64,6 +64,12 @@ describe('TYPES 配列', () => {
     expect(unitType(6).reflects).toBe(true);
   });
 
+  it('Reflector: energyRegen未定義, shieldCooldown=3', () => {
+    const r = unitType(6);
+    expect(r.energyRegen).toBeUndefined();
+    expect(r.shieldCooldown).toBe(3);
+  });
+
   it('特殊フラグ: idx 7 (Carrier) は spawns を持つ', () => {
     expect(unitType(7).spawns).toBe(true);
   });
@@ -90,6 +96,10 @@ describe('TYPES 配列', () => {
 
   it('特殊フラグ: idx 14 (Arcer) は chain を持つ', () => {
     expect(unitType(14).chain).toBe(true);
+  });
+
+  it('特殊フラグ: idx 15 (Bastion) は shields を持つ', () => {
+    expect(unitType(15).shields).toBe(true);
   });
 
   it('フラグを持たないタイプ (Drone, Fighter, Flagship, Sniper) は特殊フラグなし', () => {
