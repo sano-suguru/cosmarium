@@ -10,7 +10,7 @@ import { spawnUnit } from '../simulation/spawn.ts';
 import { state } from '../state.ts';
 import type { Beam, DemoFlag, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES, unitType } from '../unit-types.ts';
+import { TYPES, unitType, unitTypeIndex } from '../unit-types.ts';
 import {
   DOM_ID_CODEX,
   DOM_ID_CODEX_DESC,
@@ -18,6 +18,8 @@ import {
   DOM_ID_CODEX_NAME,
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
+
+const BEAM_FRIG_TYPE = unitTypeIndex('Beam Frig.');
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 export const demoRng: () => number = Math.random;
@@ -37,6 +39,7 @@ const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
   sweep: (mi) => demoSweepBeam(mi),
   beam: () => demoFocusBeam(),
   broadside: (mi) => demoFlagship(mi),
+  shields: () => demoBastion(),
 };
 
 let elCodex: HTMLElement | null = null;
@@ -162,15 +165,18 @@ function demoHealer() {
 }
 
 function demoReflector(mi: UnitIndex) {
-  for (let i = 0; i < 3; i++) {
-    const a = ((i + 1) / 4) * Math.PI * 2;
-    spawnUnit(0, 0, Math.cos(a) * 50, Math.sin(a) * 50, demoRng);
+  for (let i = 0; i < 2; i++) {
+    spawnUnit(0, 1, -40, (i === 0 ? -1 : 1) * 30, demoRng);
   }
-  for (let i = 0; i < 5; i++) {
-    const ei = spawnUnit(1, 1, 80 + demoRng() * 40, (i - 2) * 40, demoRng);
-    if (ei !== NO_UNIT) {
-      unit(ei).target = mi;
-    }
+  for (let i = 0; i < 2; i++) {
+    spawnUnit(1, 1, -120, (i === 0 ? -1 : 1) * 40, demoRng);
+  }
+  for (let i = 0; i < 2; i++) {
+    const bi = spawnUnit(1, BEAM_FRIG_TYPE, 200 + demoRng() * 40, 60 + i * 40, demoRng);
+    if (bi !== NO_UNIT) unit(bi).target = mi;
+  }
+  for (let i = 0; i < 2; i++) {
+    spawnUnit(1, 0, (i === 0 ? -1 : 1) * 50, -100 - demoRng() * 50, demoRng);
   }
 }
 
@@ -247,6 +253,17 @@ function demoHomingLauncher(mi: UnitIndex) {
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }
+  }
+}
+
+function demoBastion() {
+  for (let i = 0; i < 3; i++) {
+    const a = ((i + 1) / 4) * Math.PI * 2;
+    const ai = spawnUnit(0, 1, Math.cos(a) * 70, Math.sin(a) * 70, demoRng);
+    if (ai !== NO_UNIT) unit(ai).hp = 5;
+  }
+  for (let i = 0; i < 4; i++) {
+    spawnUnit(1, 0, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
