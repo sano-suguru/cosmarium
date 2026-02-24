@@ -55,7 +55,7 @@ describe('writeOverlay', () => {
     expect(shieldCall?.a).toBe(0.5);
   });
 
-  it('passive shield (Reflector class) は a=0.15 で描画される', () => {
+  it('passive shield (Reflector class) は SH_REFLECT_FIELD(27) エネルギー連動alpha で描画される', () => {
     const idx = spawnAt(0, 6, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 0;
@@ -63,9 +63,27 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 22);
+    const shieldCall = calls.find((c) => c.shape === 27);
     expect(shieldCall).toBeDefined();
-    expect(shieldCall?.a).toBe(0.15);
+    // energy満タン: energyRatio(1.0) * 0.2 = 0.2
+    expect(shieldCall?.a).toBe(0.2);
+  });
+
+  it('Reflector シールドダウン時は赤系の SH_REFLECT_FIELD(27) で描画される', () => {
+    const idx = spawnAt(0, 6, 100, 100);
+    const u = unit(idx);
+    u.shieldCooldown = 3;
+    u.energy = 0;
+
+    renderScene(0);
+
+    const calls = getWriteCalls();
+    const shieldCall = calls.find((c) => c.shape === 27);
+    expect(shieldCall).toBeDefined();
+    // 赤系: r=1.0, g=0.2, b=0.2
+    expect(shieldCall?.r).toBe(1.0);
+    expect(shieldCall?.g).toBe(0.2);
+    expect(shieldCall?.b).toBe(0.2);
   });
 
   it('active shield は passive shield より優先される (Reflector + shieldLingerTimer > 0)', () => {
@@ -334,6 +352,40 @@ describe('writeInstance（直接使用）', () => {
     if (baseCall && vetCall) {
       expect(vetCall.r).toBeGreaterThan(baseCall.r);
     }
+  });
+});
+
+describe('Reflector 味方フィールド描画', () => {
+  it('味方ユニットに reflectFieldHp > 0 で SH_REFLECT_FIELD が描画される', () => {
+    const ally = spawnAt(0, 1, 100, 100); // Fighter (reflects なし)
+    const u = unit(ally);
+    u.reflectFieldHp = 15;
+    renderScene(0);
+    const calls = getWriteCalls();
+    const fieldCall = calls.find((c) => c.shape === 27);
+    expect(fieldCall).toBeDefined();
+    expect(fieldCall?.r).toBe(0.7);
+    expect(fieldCall?.g).toBe(0.5);
+    expect(fieldCall?.b).toBe(1.0);
+  });
+
+  it('reflectFieldHp = 0 の味方には SH_REFLECT_FIELD が描画されない', () => {
+    spawnAt(0, 1, 100, 100);
+    renderScene(0);
+    const calls = getWriteCalls();
+    const fieldCall = calls.find((c) => c.shape === 27);
+    expect(fieldCall).toBeUndefined();
+  });
+
+  it('Reflector 自身は味方フィールド描画ではなく自前描画を使う', () => {
+    const idx = spawnAt(0, 6, 100, 100);
+    const u = unit(idx);
+    u.reflectFieldHp = 15;
+    renderScene(0);
+    const calls = getWriteCalls();
+    // SH_REFLECT_FIELD は1個のみ（自前描画分）
+    const fieldCalls = calls.filter((c) => c.shape === 27);
+    expect(fieldCalls).toHaveLength(1);
   });
 });
 

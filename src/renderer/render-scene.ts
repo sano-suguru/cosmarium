@@ -5,6 +5,7 @@ import {
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
+  REFLECT_FIELD_MAX_HP,
   SH_BAR,
   SH_BEAM,
   SH_CIRCLE,
@@ -13,12 +14,13 @@ import {
   SH_HOMING,
   SH_LIGHTNING,
   SH_OCT_SHIELD,
+  SH_REFLECT_FIELD,
   TAU,
   WORLD_SIZE,
   WRAP_PERIOD,
 } from '../constants.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
-import type { Unit, UnitType } from '../types.ts';
+import type { Beam, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
 import { instanceData, writeSlots } from './buffers.ts';
@@ -106,10 +108,47 @@ function renderHpBar(u: Unit, ut: UnitType, rs: number) {
 }
 
 function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
+  if (ut.shields && u.maxEnergy > 0 && u.energy > 0) {
+    const alpha = 0.15 + (u.energy / u.maxEnergy) * 0.25;
+    writeInstance(u.x, u.y, ut.size * 1.5 * rs, 0.3, 0.6, 1, alpha, (now * 0.8) % TAU, SH_OCT_SHIELD);
+  }
+
   if (u.shieldLingerTimer > 0)
     writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
-  else if (ut.reflects)
-    writeInstance(u.x, u.y, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.15, (now * 0.5) % TAU, SH_OCT_SHIELD);
+  if (u.reflectFieldHp > 0 && !ut.reflects) {
+    const hpRatio = u.reflectFieldHp / REFLECT_FIELD_MAX_HP;
+    writeInstance(
+      u.x,
+      u.y,
+      ut.size * 1.6 * rs,
+      0.7,
+      0.5,
+      1.0,
+      0.12 + hpRatio * 0.18,
+      (now * 1.2) % TAU,
+      SH_REFLECT_FIELD,
+    );
+  }
+  if (ut.reflects && u.maxEnergy > 0) {
+    if (u.shieldCooldown > 0) {
+      const blink = Math.sin(now * 8) * 0.5 + 0.5;
+      writeInstance(
+        u.x,
+        u.y,
+        ut.size * 1.6 * rs,
+        1.0,
+        0.2,
+        0.2,
+        0.1 + blink * 0.15,
+        (now * 1.2) % TAU,
+        SH_REFLECT_FIELD,
+      );
+    } else if (u.energy > 0) {
+      const energyRatio = u.energy / u.maxEnergy;
+      const baseAlpha = energyRatio * 0.2;
+      writeInstance(u.x, u.y, ut.size * 1.6 * rs, 0.7, 0.5, 1.0, baseAlpha, (now * 1.2) % TAU, SH_REFLECT_FIELD);
+    }
+  }
 }
 
 function renderUnits(now: number) {
@@ -168,76 +207,50 @@ function computeTaperScale(tail: number): number {
   return 1;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: lightning beam logic adds complexity
-function renderBeams(now: number) {
-  for (let i = 0; i < beams.length; i++) {
-    const bm = getBeam(i);
-    const al = bm.life / bm.maxLife;
-    const dx = bm.x2 - bm.x1,
-      dy = bm.y2 - bm.y1;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    const divisor = bm.stepDiv ?? 1;
-    const steps = Math.max(3, (d / (5 * divisor)) | 0);
-    const ang = Math.atan2(dy, dx);
-    if (bm.lightning) {
-      const lSteps = Math.min(MAX_LIGHTNING_STEPS, Math.max(3, (d / 8) | 0));
-      const perpX = -Math.sin(ang),
-        perpY = Math.cos(ang);
-      let ptsLen = 0;
-      for (let j = 0; j <= lSteps; j++) {
-        const t = j / lSteps;
-        let off = 0;
-        if (j > 0 && j < lSteps) {
-          const h = Math.sin(j * 127.1 + now * 40) * 43758.5;
-          const rnd = h - Math.floor(h);
-          off = (rnd * 2 - 1) * bm.width * 4;
-        }
-        _lightningPts[ptsLen++] = bm.x1 + dx * t + perpX * off;
-        _lightningPts[ptsLen++] = bm.y1 + dy * t + perpY * off;
-      }
-      for (let j = 0; j < lSteps; j++) {
-        const x0 = _lightningPts[j * 2] as number,
-          y0 = _lightningPts[j * 2 + 1] as number;
-        const x1 = _lightningPts[j * 2 + 2] as number,
-          y1 = _lightningPts[j * 2 + 3] as number;
-        const mx = (x0 + x1) * 0.5,
-          my = (y0 + y1) * 0.5;
-        const segDx = x1 - x0,
-          segDy = y1 - y0;
-        const segLen = Math.sqrt(segDx * segDx + segDy * segDy);
-        const segAng = Math.atan2(segDy, segDx);
-        const fl = 0.8 + Math.sin(j * 5.0 + now * 55) * 0.2;
-        const white = 0.5 + al * 0.5;
-        writeBeam(
-          mx,
-          my,
-          segLen * 0.6,
-          (bm.r * 0.4 + white * 0.6) * al * fl,
-          (bm.g * 0.4 + white * 0.6) * al * fl,
-          (bm.b * 0.4 + white * 0.6) * al * fl,
-          al * 0.9,
-          segAng,
-          SH_LIGHTNING,
-        );
-      }
-    } else {
-      for (let j = 0; j <= steps; j++) {
-        const t = j / steps;
-        const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
-        const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
-        writeBeam(
-          bm.x1 + dx * t,
-          bm.y1 + dy * t,
-          bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
-          bm.r * al * fl,
-          bm.g * al * fl,
-          bm.b * al * fl,
-          al * 0.85,
-          ang,
-        );
-      }
+function renderLightningBeam(bm: Beam, now: number, al: number, dx: number, dy: number, d: number, ang: number) {
+  const lSteps = Math.min(MAX_LIGHTNING_STEPS, Math.max(3, (d / 8) | 0));
+  const perpX = -Math.sin(ang),
+    perpY = Math.cos(ang);
+  let ptsLen = 0;
+  for (let j = 0; j <= lSteps; j++) {
+    const t = j / lSteps;
+    let off = 0;
+    if (j > 0 && j < lSteps) {
+      const h = Math.sin(j * 127.1 + now * 40) * 43758.5;
+      const rnd = h - Math.floor(h);
+      off = (rnd * 2 - 1) * bm.width * 4;
     }
+    _lightningPts[ptsLen++] = bm.x1 + dx * t + perpX * off;
+    _lightningPts[ptsLen++] = bm.y1 + dy * t + perpY * off;
   }
+  for (let j = 0; j < lSteps; j++) {
+    const x0 = _lightningPts[j * 2] as number,
+      y0 = _lightningPts[j * 2 + 1] as number;
+    const x1 = _lightningPts[j * 2 + 2] as number,
+      y1 = _lightningPts[j * 2 + 3] as number;
+    const mx = (x0 + x1) * 0.5,
+      my = (y0 + y1) * 0.5;
+    const segDx = x1 - x0,
+      segDy = y1 - y0;
+    const segLen = Math.sqrt(segDx * segDx + segDy * segDy);
+    const segAng = Math.atan2(segDy, segDx);
+    const fl = 0.8 + Math.sin(j * 5.0 + now * 55) * 0.2;
+    const white = 0.5 + al * 0.5;
+    writeBeam(
+      mx,
+      my,
+      segLen * 0.6,
+      (bm.r * 0.4 + white * 0.6) * al * fl,
+      (bm.g * 0.4 + white * 0.6) * al * fl,
+      (bm.b * 0.4 + white * 0.6) * al * fl,
+      al * 0.9,
+      segAng,
+      SH_LIGHTNING,
+    );
+  }
+}
+
+function renderTrackingBeams(now: number) {
   for (let i = 0; i < trackingBeams.length; i++) {
     const tb = getTrackingBeam(i);
     const al = tb.life / tb.maxLife;
@@ -261,6 +274,39 @@ function renderBeams(now: number) {
       );
     }
   }
+}
+
+function renderBeams(now: number) {
+  for (let i = 0; i < beams.length; i++) {
+    const bm = getBeam(i);
+    const al = bm.life / bm.maxLife;
+    const dx = bm.x2 - bm.x1,
+      dy = bm.y2 - bm.y1;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    const divisor = bm.stepDiv ?? 1;
+    const steps = Math.max(3, (d / (5 * divisor)) | 0);
+    const ang = Math.atan2(dy, dx);
+    if (bm.lightning) {
+      renderLightningBeam(bm, now, al, dx, dy, d, ang);
+    } else {
+      for (let j = 0; j <= steps; j++) {
+        const t = j / steps;
+        const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
+        const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
+        writeBeam(
+          bm.x1 + dx * t,
+          bm.y1 + dy * t,
+          bm.width * (1 + Math.sin(j * 0.6 + now * 25) * 0.25) * tipScale,
+          bm.r * al * fl,
+          bm.g * al * fl,
+          bm.b * al * fl,
+          al * 0.85,
+          ang,
+        );
+      }
+    }
+  }
+  renderTrackingBeams(now);
 }
 
 function renderProjectiles() {
