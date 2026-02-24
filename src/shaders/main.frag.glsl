@@ -8,36 +8,36 @@ out vec4 fragColor;
 // Per-unit rendering parameters indexed by shape ID (0..NUM_SHAPES-1)
 // Non-unit shapes (3,4,10,12,14,17-23,27) have default values
 const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
-  0.015,0.015,0.028,0.020,0.020, // 0-4  sh0=Drone,sh1=Fighter,sh2=Bomber,sh3=N/A,sh4=N/A
-  0.025,0.028,0.030,0.012,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
-  0.020,0.022,0.020,0.015,0.020, // 10-14 sh11=Disruptor
-  0.022,0.028,0.020,0.020,0.020, // 15-19
-  0.020,0.020,0.020,0.020,0.028, // 20-24 sh20=Bastion,sh24=Flagship
-  0.025,0.038,0.020              // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
+  0.035,0.045,0.032,0.020,0.020, // 0-4  sh0=Drone,sh1=Fighter,sh2=Bomber
+  0.008,0.025,0.025,0.006,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
+  0.020,0.060,0.020,0.008,0.020, // 10-14 sh11=Disruptor,sh13=Teleporter
+  0.040,0.022,0.020,0.020,0.020, // 15-19 sh15=Arcer
+  0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
+  0.028,0.030,0.020              // 25-27 sh25=Healer,sh26=Reflector
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
-  0.33,0.45,0.42,0.38,0.38, // 0-4
-  0.43,0.52,0.48,0.40,0.55, // 5-9
-  0.38,0.42,0.38,0.35,0.38, // 10-14 sh11=Disruptor
-  0.40,0.50,0.38,0.38,0.38, // 15-19
-  0.50,0.38,0.38,0.38,0.55, // 20-24 sh20=Bastion,sh24=Flagship
-  0.35,0.52,0.38             // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
+  0.65,0.72,0.55,0.38,0.38, // 0-4
+  0.35,0.55,0.45,0.32,0.60, // 5-9
+  0.38,0.70,0.38,0.18,0.38, // 10-14 sh11=Disruptor,sh13=Teleporter
+  0.75,0.45,0.38,0.38,0.38, // 15-19 sh15=Arcer
+  0.25,0.38,0.38,0.38,0.50, // 20-24 sh20=Bastion,sh24=Flagship
+  0.28,0.30,0.38             // 25-27 sh25=Healer,sh26=Reflector
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
-  0.52,0.55,0.52,0.48,0.48, // 0-4
-  0.50,0.58,0.50,0.55,0.55, // 5-9
-  0.48,0.43,0.48,0.42,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
-  0.48,0.52,0.48,0.48,0.48, // 15-19 sh15=Arcer,sh16=Cruiser
-  0.50,0.48,0.48,0.48,0.52, // 20-24 sh20=Bastion,sh24=Flagship
-  0.48,0.45,0.48             // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
+  0.65,0.70,0.50,0.48,0.48, // 0-4
+  0.70,0.50,0.35,0.75,0.50, // 5-9
+  0.48,0.25,0.48,0.70,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
+  0.35,0.30,0.48,0.48,0.48, // 15-19 sh15=Arcer
+  0.22,0.48,0.48,0.48,0.32, // 20-24 sh20=Bastion,sh24=Flagship
+  0.35,0.40,0.48             // 25-27 sh25=Healer,sh26=Reflector
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
-  1.8,1.8,1.3,1.5,1.5, // 0-4
-  1.4,1.3,1.20,2.0,1.15, // 5-9
-  1.5,1.6,1.5,1.7,1.5, // 10-14 sh11=Disruptor
-  1.5,1.20,1.5,1.5,1.5, // 15-19
-  1.3,1.5,1.5,1.5,1.15,// 20-24 sh20=Bastion,sh24=Flagship
-  1.8,1.2,1.5            // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
+  2.4,2.2,1.4,1.5,1.5, // 0-4
+  0.9,1.4,1.1,0.85,1.3, // 5-9
+  1.5,2.5,1.5,2.8,1.5, // 10-14 sh11=Disruptor,sh13=Teleporter
+  0.9,1.1,1.5,1.5,1.5, // 15-19 sh15=Arcer
+  0.85,1.5,1.5,1.5,1.1,// 20-24 sh20=Bastion,sh24=Flagship
+  2.2,2.5,1.5            // 25-27 sh25=Healer,sh26=Reflector
 );
 void main(){
   float d=length(vU), a=0.0;
@@ -64,15 +64,15 @@ void main(){
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     // 5. Engine glow (tiny, rear)
-    float pulse=0.5+0.5*sin(t*14.0);
+    float pulse=0.5+0.5*sin(t*18.0);
     float eng=exp(-length(p-vec2(-0.30,0.0))*12.0)*pulse;
     // 6. Wing-tip lights (alternating blink)
     float tipL=exp(-length(p-vec2(-0.18,0.32+flutter))*18.0)*(0.5+0.5*sin(t*8.0));
     float tipR=exp(-length(p-vec2(-0.18,-0.32-flutter))*18.0)*(0.5+0.5*sin(t*8.0+3.14));
     // 7. Trail
     float trail=0.0;
-    if(p.x<-0.30){float dy=abs(p.y);trail=exp(-dy*16.0)*exp((p.x+0.30)*3.0)*pulse*0.4;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.70+(tipL+tipR)*0.40+trail;
+    if(p.x<-0.30){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.30)*3.8)*pulse*0.3;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.85+(tipL+tipR)*0.55+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==1){ vec2 p=vU*0.70; float t=vA+uTime;
     // Fighter: X-wing style, forward-swept wings, gun mounts
@@ -100,7 +100,7 @@ void main(){
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     // 5. Quad engines (rear of each wing root)
-    float pulse=0.6+0.4*sin(t*10.0);
+    float pulse=0.6+0.4*sin(t*16.0);
     float eUp=exp(-length(p-vec2(-0.34,0.12))*10.0);
     float eDn=exp(-length(p-vec2(-0.34,-0.12))*10.0);
     float eng=(eUp+eDn)*pulse;
@@ -110,8 +110,8 @@ void main(){
     // 7. Trail
     float trail=0.0;
     if(p.x<-0.34){float dy=min(abs(p.y-0.12),abs(p.y+0.12));
-      trail=exp(-dy*12.0)*exp((p.x+0.34)*2.5)*pulse*0.5;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.65+mFlash*0.30+trail;
+      trail=exp(-dy*20.0)*exp((p.x+0.34)*3.5)*pulse*0.35;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.90+mFlash*0.30+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==2){
     vec2 p=vU*0.82; float t=vA+uTime;
@@ -154,8 +154,8 @@ void main(){
     float dEng2=length(p-vec2(-0.45,-0.45));
     float engDist=min(dEng1,dEng2);
     
-    float pulse=0.6+0.4*sin(t*4.0);
-    float glow=exp(-engDist*6.0)*pulse;
+    float pulse=0.6+0.4*sin(t*8.0);
+    float glow=exp(-engDist*4.0)*pulse;
     
     // Exhaust trails (going left, negative X)
     // p.x < -0.45 is behind engine.
@@ -165,7 +165,7 @@ void main(){
        float dy1=abs(p.y-0.45);
        float dy2=abs(p.y+0.45);
        float dy=min(dy1,dy2);
-       trail=exp(-dy*10.0) * exp((p.x+0.45)*2.0) * pulse * 0.5;
+       trail=exp(-dy*4.0) * exp((p.x+0.45)*1.5) * pulse * 0.9;
     }
 
     a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + cargoGlow*0.3 + glow + trail;
@@ -206,12 +206,12 @@ void main(){
     // 7. Dish focus point (bright convergence at front)
     float focus=exp(-length(p-vec2(0.36,0.0))*12.0)*charge;
     // 8. Engine glow
-    float pulse=0.65+0.35*sin(t*6.0);
+    float pulse=0.65+0.35*sin(t*3.5);
     float eng=exp(-length(p-vec2(-0.46,0.0))*8.0)*pulse;
     // 9. Trail
     float trail=0.0;
-    if(p.x<-0.46){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.46)*2.5)*pulse*0.4;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.55+trail;
+    if(p.x<-0.46){float dy=abs(p.y);trail=exp(-dy*20.0)*exp((p.x+0.46)*4.5)*pulse*0.25;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.40+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==6){
     vec2 p=vU*0.67; float t=vA+uTime;
@@ -257,14 +257,14 @@ void main(){
     
     // Engine Glow (Single, central, rear)
     float dEng=length(p-vec2(-0.6,0.0));
-    float pulse=0.7+0.3*sin(t*10.0);
-    float glow=exp(-dEng*8.0)*pulse;
+    float pulse=0.7+0.3*sin(t*14.0);
+    float glow=exp(-dEng*6.0)*pulse;
     
     // Engine Trail (Single narrow stream)
     float trail=0.0;
     if(p.x < -0.6) {
        float dy=abs(p.y);
-       trail=exp(-dy*15.0) * exp((p.x+0.6)*2.5) * pulse * 0.6;
+       trail=exp(-dy*18.0) * exp((p.x+0.6)*3.0) * pulse * 0.4;
     }
     
     // Missile Pod Glow (Subtle status lights)
@@ -314,15 +314,15 @@ void main(){
     float flash=step(0.93,fract(t*0.7+0.3));
     float launchFlash=(exp(-length(p-hornL)*18.0)+exp(-length(p-hornR)*18.0))*flash*0.55;
     // 10. Triple engines (rear of core) + trail
-    float eP=0.6+0.4*sin(t*5.0);
+    float eP=0.6+0.4*sin(t*6.0);
     float dE1=length(p-vec2(-0.40,0.0));
     float dE2=length(p-vec2(-0.38,0.10));
     float dE3=length(p-vec2(-0.38,-0.10));
     float eng=(exp(-dE1*9.0)+exp(-dE2*10.0)+exp(-dE3*10.0))*eP;
     float trail=0.0;
     if(p.x<-0.40){float dy=abs(p.y);
-      trail=exp(-dy*8.0)*exp((p.x+0.40)*2.0)*eP*0.4;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+hangarGlow+coreGlow*0.50+innerGlow+launchFlash+eng*0.45+trail;
+      trail=exp(-dy*8.0)*exp((p.x+0.40)*1.8)*eP*0.5;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+hangarGlow+coreGlow*0.50+innerGlow+launchFlash+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==8){ vec2 p=vU*0.72; float t=vA+uTime;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
@@ -355,11 +355,11 @@ void main(){
     // 8. Scope lens glow
     float scope=exp(-length(p-vec2(0.08,0.07))*20.0)*0.5;
     // 9. Engine + trail (single, focused)
-    float pulse=0.6+0.4*sin(t*5.0);
+    float pulse=0.6+0.4*sin(t*3.0);
     float eng=exp(-length(p-vec2(-0.48,0.0))*9.0)*pulse;
     float trail=0.0;
-    if(p.x<-0.48){float dy=abs(p.y);trail=exp(-dy*16.0)*exp((p.x+0.48)*3.0)*pulse*0.35;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.50+trail;
+    if(p.x<-0.48){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.48)*5.0)*pulse*0.2;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.35+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==9){ vec2 p=vU*0.74; float t=vA+uTime;
     // Lancer: Star Destroyer wedge — heavy dagger silhouette
@@ -396,7 +396,7 @@ void main(){
     // 8. Ram tip glow (pulsing forward energy)
     float tipGlow=exp(-length(p-vec2(0.56,0.0))*12.0)*(0.5+0.5*sin(t*6.0));
     // 9. Triple heavy engines (wide spread across stern)
-    float pulse=0.7+0.3*sin(t*7.0+p.y*4.0);
+    float pulse=0.7+0.3*sin(t*10.0+p.y*4.0);
     float eC=exp(-length(p-vec2(-0.48,0.0))*8.0);
     float eL=exp(-length(p-vec2(-0.46,0.17))*9.0);
     float eR=exp(-length(p-vec2(-0.46,-0.17))*9.0);
@@ -404,10 +404,10 @@ void main(){
     // 10. Heavy exhaust trail (wide, bright — Lancer signature)
     float trail=0.0;
     if(p.x<-0.46){float dy=abs(p.y);
-      trail=exp(-dy*4.8)*exp((p.x+0.46)*1.6)*pulse*0.7;}
+      trail=exp(-dy*4.0)*exp((p.x+0.46)*1.4)*pulse*0.95;}
     // 11. Bridge window glow
     float bridgeGlow=exp(-length(p-vec2(-0.22,0.0))*18.0)*0.25;
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.55+trail+bridgeGlow;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.75+trail+bridgeGlow;
     a=1.2*tanh(a/1.2); }
   else if(sh==10){ float ring=abs(d-0.75);
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
@@ -430,13 +430,13 @@ void main(){
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     // 3. EMP pulse rings (expanding outward)
     float rd=length(p);
-    float rT1=fract(t*0.4)*0.8;
+    float rT1=fract(t*0.6)*0.8;
     float rT2=fract(t*0.4+0.5)*0.8;
     float rA1=smoothstep(0.0,0.12,rT1)*smoothstep(0.8,0.35,rT1);
     float rA2=smoothstep(0.0,0.12,rT2)*smoothstep(0.8,0.35,rT2);
     float rings=(exp(-abs(rd-rT1)*16.0)*rA1+exp(-abs(rd-rT2)*16.0)*rA2)*0.30;
     // 4. Antenna tip nodes (pulsing phase-stagger)
-    float n0=exp(-length(p-vec2(0.42,0.0))*16.0)*(0.5+0.5*sin(t*5.0));
+    float n0=exp(-length(p-vec2(0.42,0.0))*16.0)*(0.5+0.5*sin(t*12.0));
     float n1=exp(-length(p-vec2(0.21,0.36))*16.0)*(0.5+0.5*sin(t*5.0+1.05));
     float n2=exp(-length(p-vec2(-0.21,0.36))*16.0)*(0.5+0.5*sin(t*5.0+2.09));
     float n3=exp(-length(p-vec2(-0.42,0.0))*16.0)*(0.5+0.5*sin(t*5.0+3.14));
@@ -446,9 +446,9 @@ void main(){
     // 5. Core reactor glow
     float coreGlow=exp(-rd*10.0)*(0.6+0.4*sin(t*4.0));
     // 6. Engine (rear prong doubles as thruster)
-    float pulse=0.6+0.4*sin(t*7.0);
+    float pulse=0.6+0.4*sin(t*15.0);
     float eng=exp(-length(p-vec2(-0.44,0.0))*8.0)*pulse;
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+nodes+coreGlow*0.50+eng*0.40;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+nodes+coreGlow*0.50+eng*0.30;
     a=1.2*tanh(a/1.2); }
   else if(sh==12){ float by=abs(vU.y),bx=abs(vU.x);
     float xf=smoothstep(1.0,0.4,bx);
@@ -472,7 +472,7 @@ void main(){
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     // 3. Phase distortion in hollow center (ripple pattern)
     float rd=length(p);
-    float phase=sin(rd*28.0-t*6.0)*0.5+0.5;
+    float phase=sin(rd*28.0-t*12.0)*0.5+0.5;
     float centerMask=smoothstep(0.22,0.12,rd);
     float distortion=phase*centerMask*0.35;
     // 4. Frame edge energy (octagonal glow cycling)
@@ -484,11 +484,11 @@ void main(){
     float nD=exp(-length(p-vec2(0.0,-0.42))*16.0)*(0.5+0.5*sin(t*4.0+4.71));
     float nodes=(nR+nL+nU+nD)*0.45;
     // 6. Engine (rear pylon acts as thruster)
-    float pulse=0.6+0.4*sin(t*6.0);
+    float pulse=0.6+0.4*sin(t*20.0);
     float eng=exp(-length(p-vec2(-0.44,0.0))*8.0)*pulse;
     float trail=0.0;
-    if(p.x<-0.44){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.44)*2.5)*pulse*0.35;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+distortion+frameEdge+nodes+eng*0.45+trail;
+    if(p.x<-0.44){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.44)*4.0)*pulse*0.15;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+distortion+frameEdge+nodes+eng*0.25+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==14){ // Homing missile (elongated diamond / arrowhead)
     float dd=abs(vU.x)*0.6+abs(vU.y);
@@ -529,11 +529,11 @@ void main(){
     // 6. Core energy glow
     float coreGlow=exp(-length(p-vec2(-0.06,0.0))*10.0)*(0.5+0.5*sin(t*4.0));
     // 7. Engine + trail
-    float pulse=0.6+0.4*sin(t*6.0);
+    float pulse=0.6+0.4*sin(t*12.0);
     float eng=exp(-length(p-vec2(-0.34,0.0))*8.0)*pulse;
     float trail=0.0;
-    if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*14.0)*exp((p.x+0.34)*2.5)*pulse*0.4;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.50+trail;
+    if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*6.0)*exp((p.x+0.34)*2.0)*pulse*0.6;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.80+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==16){ vec2 p=vU*0.62; float t=vA+uTime;
     // Cruiser: Nebulon-B style dumbbell — hammerhead command + spine + engine block
@@ -588,13 +588,13 @@ void main(){
     // 14. Engine block reactor core glow
     float reactor=exp(-length(p-vec2(-0.30,0.0))*12.0)*(0.5+0.5*sin(t*3.5));
     // 15. Twin engines + trail
-    float eP=0.65+0.35*sin(t*6.0);
+    float eP=0.65+0.35*sin(t*5.0);
     float dE1=length(p-vec2(-0.46,0.08)); float dE2=length(p-vec2(-0.46,-0.08));
     float eng=exp(-min(dE1,dE2)*9.0)*eP;
     float trail=0.0;
     if(p.x<-0.46){float dy=min(abs(p.y-0.08),abs(p.y+0.08));
-      trail=exp(-dy*12.0)*exp((p.x+0.46)*2.5)*eP*0.45;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.55+trail;
+      trail=exp(-dy*10.0)*exp((p.x+0.46)*2.2)*eP*0.55;}
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==17){ float dd=manDist(vU); float ring=abs(dd-0.65);
     a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
@@ -672,15 +672,15 @@ void main(){
     float prowGlow=prowMask*(0.3+0.2*sin(p.y*18.0+t*2.0))*0.25;
 
     // 12. Quad engines + trails
-    float eP=0.65+0.35*sin(t*5.0);
+    float eP=0.65+0.35*sin(t*4.0);
     float dE1=length(p-vec2(-0.50,0.14)); float dE2=length(p-vec2(-0.50,-0.14));
     float dE3=length(p-vec2(-0.50,0.05)); float dE4=length(p-vec2(-0.50,-0.05));
     float eng=exp(-min(min(dE1,dE2),min(dE3,dE4))*9.0)*eP;
     float trail=0.0;
     if(p.x<-0.50){float dy=min(min(abs(p.y-0.14),abs(p.y+0.14)),min(abs(p.y-0.05),abs(p.y+0.05)));
-      trail=exp(-dy*14.0)*exp((p.x+0.50)*2.5)*eP*0.4;}
+      trail=exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.25;}
 
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.55+trail;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.35+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
@@ -742,7 +742,7 @@ void main(){
     float dCh=sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.52,0.13),0.05);
     float reactor=exp(-18.0*max(length(p-vec2(0.08,0.0))-0.10,0.0))
                   *(0.72+0.28*sin(t*2.4))*(1.0-smoothstep(0.0,aa,dCh))*hf;
-    float engP=0.70+0.30*sin(t*9.0+p.y*4.0);
+    float engP=0.70+0.30*sin(t*7.0+p.y*4.0);
     float eR=0.07; float eF=24.0; float pF=150.0; float pD=10.0;
     float e1=length(p-vec2(-0.80,0.18))-eR; float e2=length(p-vec2(-0.80,0.38))-eR;
     float e3=length(p-vec2(-0.80,-0.18))-eR; float e4=length(p-vec2(-0.80,-0.38))-eR;
@@ -751,7 +751,7 @@ void main(){
       exp(-pF*(p.y-0.18)*(p.y-0.18))+exp(-pF*(p.y-0.38)*(p.y-0.38))+
       exp(-pF*(p.y+0.18)*(p.y+0.18))+exp(-pF*(p.y+0.38)*(p.y+0.38)));
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(-0.85,-0.35,p.x);
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.70;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.60;
     a=1.2*tanh(a/1.2); }
   else if(sh==25){ vec2 p=vU*0.55; float t=vA+uTime;
     // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
@@ -816,16 +816,16 @@ void main(){
     float dFocus=exp(-length(p-vec2(0.46,0.0))*10.0)*(0.5+0.5*sin(t*2.5+1.57));
 
     // 12. Twin engines + trails
-    float eP=0.65+0.35*sin(t*4.0);
+    float eP=0.65+0.35*sin(t*5.0);
     float dE1=length(p-vec2(-0.40,0.15)); float dE2=length(p-vec2(-0.40,-0.15));
     float eng=exp(-min(dE1,dE2)*9.0)*eP;
     float trail=0.0;
     if(p.x<-0.40){
       float dy=min(abs(p.y-0.15),abs(p.y+0.15));
-      trail=exp(-dy*12.0)*exp((p.x+0.40)*2.0)*eP*0.4;
+      trail=exp(-dy*12.0)*exp((p.x+0.40)*2.2)*eP*0.35;
     }
 
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.60+trail;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==26){ vec2 p=vU*0.54; float t=vA+uTime;
     // Prism Shield: compact hull behind massive front shield, swept fins
@@ -886,15 +886,15 @@ void main(){
     float core=exp(-length(p-vec2(-0.12,0.0))*14.0)*(0.6+0.4*sin(t*5.0));
 
     // 11. Engine + trail
-    float eP=0.65+0.35*sin(t*7.0);
+    float eP=0.65+0.35*sin(t*6.0);
     float eng=exp(-length(p-vec2(-0.52,0.0))*8.0)*eP;
     float trail=0.0;
     if(p.x<-0.52){
       float dy=abs(p.y);
-      trail=exp(-dy*14.0)*exp((p.x+0.52)*2.5)*eP*0.5;
+      trail=exp(-dy*14.0)*exp((p.x+0.52)*2.5)*eP*0.4;
     }
 
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.55+trail;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
   else if(sh==27){ float hd=hexDist(vU);
     float edge=abs(hd-0.70);

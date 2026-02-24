@@ -1,5 +1,5 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
-import { color } from '../colors.ts';
+import { effectColor } from '../colors.ts';
 import {
   BASTION_MAX_TETHERS,
   BASTION_SHIELD_RADIUS,
@@ -114,7 +114,7 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
     o.reflectFieldHp = 0;
     o.reflectFieldCooldown = REFLECT_FIELD_COOLDOWN;
   }
-  const c: Color3 = color(o.type, o.team);
+  const c: Color3 = effectColor(o.type, o.team);
   reflectProjectile(rng, o.x, o.y, p, o.team, c);
   return true;
 }

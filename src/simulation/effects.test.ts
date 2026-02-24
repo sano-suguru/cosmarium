@@ -309,12 +309,12 @@ describe('boostBurst', () => {
     state.rng = () => 0.5;
     const idx = spawnAt(0, 0, 100, 100);
     boostBurst(unit(idx), rng);
-    // getTrailColor(0, 0) = [0.1, 0.6, 0.35]
-    // bright variant: [0.55, 0.8, 0.675]
+    // trailColor(0, 0) = [0.157, 0.650, 0.294]
+    // bright variant: trail + (1-trail)*0.5
     const p = particle(0);
-    expect(p.r).toBeCloseTo(0.55, 2);
-    expect(p.g).toBeCloseTo(0.8, 2);
-    expect(p.b).toBeCloseTo(0.675, 2);
+    expect(p.r).toBeCloseTo(0.579, 2);
+    expect(p.g).toBeCloseTo(0.825, 2);
+    expect(p.b).toBeCloseTo(0.647, 2);
   });
 });
 

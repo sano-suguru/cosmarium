@@ -1280,9 +1280,9 @@ describe('combat — DRONE SWARM', () => {
     combat(unit(drone), drone, 0.016, 0, rng);
     const p = projectile(0);
     expect(p.size).toBeCloseTo(2.05);
-    expect(p.r).toBeCloseTo(0.2);
-    expect(p.g).toBeCloseTo(1);
-    expect(p.b).toBeCloseTo(0.55);
+    expect(p.r).toBeCloseTo(0.242, 2);
+    expect(p.g).toBeCloseTo(1.0, 2);
+    expect(p.b).toBeCloseTo(0.452, 2);
   });
 
   it('味方 6体: プロジェクタイル size 拡大 + 白寄りの色', () => {
@@ -1300,9 +1300,9 @@ describe('combat — DRONE SWARM', () => {
     // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725
     expect(p.size).toBeCloseTo(2.9725);
     // wb=(1.9-1)*0.4=0.36
-    expect(p.r).toBeCloseTo(0.2 + 0.8 * 0.36);
-    expect(p.g).toBeCloseTo(1 + 0 * 0.36);
-    expect(p.b).toBeCloseTo(0.55 + 0.45 * 0.36);
+    expect(p.r).toBeCloseTo(0.242 + (1 - 0.242) * 0.36, 2);
+    expect(p.g).toBeCloseTo(1.0 + (1 - 1.0) * 0.36, 2);
+    expect(p.b).toBeCloseTo(0.452 + (1 - 0.452) * 0.36, 2);
   });
 });
 

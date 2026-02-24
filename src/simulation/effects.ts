@@ -1,4 +1,4 @@
-import { color, trailColor } from '../colors.ts';
+import { effectColor, trailColor } from '../colors.ts';
 import { POOL_UNITS, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
@@ -72,7 +72,7 @@ function updateKillerVet(killer: UnitIndex) {
 
 export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex, rng: () => number) {
   const size = unitType(type).size;
-  const c = color(type, team);
+  const c = effectColor(type, team);
 
   spawnExplosionDebris(x, y, size, c, rng);
   spawnExplosionFlash(x, y, size, rng);

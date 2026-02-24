@@ -1,4 +1,4 @@
-import { color } from '../colors.ts';
+import { effectColor } from '../colors.ts';
 import {
   BASTION_ABSORB_RATIO,
   BASTION_SELF_ABSORB_RATIO,
@@ -605,7 +605,7 @@ function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => numb
   const attacker = unit(attackerUi);
   if (!attacker.alive) return true;
 
-  const c = color(n.type, n.team);
+  const c = effectColor(n.type, n.team);
 
   addBeam(n.x, n.y, attacker.x, attacker.y, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.08, 3);
   spawnParticle(n.x, n.y, 0, 0, 0.15, 12, c[0], c[1], c[2], SH_EXPLOSION_RING);
@@ -1473,7 +1473,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   if (u.stun > 0) return;
   u.cooldown -= dt;
   u.abilityCooldown -= dt;
-  const c = color(u.type, u.team);
+  const c = effectColor(u.type, u.team);
   const vd = 1 + u.vet * 0.2;
   _ctx.u = u;
   _ctx.ui = ui;
