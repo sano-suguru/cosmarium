@@ -52,6 +52,12 @@ export function resetPools() {
     u.blinkCount = 0;
     u.blinkPhase = 0;
     u.hitFlash = 0;
+    u.energy = 0;
+    u.maxEnergy = 0;
+    u.shieldSourceUnit = NO_UNIT;
+    u.shieldCooldown = 0;
+    u.reflectFieldHp = 0;
+    u.reflectFieldCooldown = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = particle(i);

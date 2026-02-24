@@ -32,6 +32,12 @@ export interface Unit {
   hitFlash: number;
   blinkCount: number;
   blinkPhase: number;
+  energy: number;
+  maxEnergy: number;
+  shieldSourceUnit: UnitIndex;
+  shieldCooldown: number;
+  reflectFieldHp: number;
+  reflectFieldCooldown: number;
 }
 
 export interface Particle {
@@ -110,6 +116,10 @@ export interface UnitType {
   cooldownResetOnKill?: number;
   /** HP比率がこの値を下回ると退避行動を開始 (0-1, 省略時は退避なし) */
   retreatHpRatio?: number;
+  shields?: boolean;
+  maxEnergy?: number;
+  energyRegen?: number;
+  shieldCooldown?: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */
@@ -127,7 +137,8 @@ export type DemoFlag =
   | 'rams'
   | 'sweep'
   | 'beam'
-  | 'broadside';
+  | 'broadside'
+  | 'shields';
 
 export interface Beam {
   x1: number;

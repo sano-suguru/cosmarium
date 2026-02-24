@@ -172,6 +172,12 @@ for (let i = 0; i < POOL_UNITS; i++) {
     hitFlash: 0,
     blinkCount: 0,
     blinkPhase: 0,
+    energy: 0,
+    maxEnergy: 0,
+    shieldSourceUnit: NO_UNIT,
+    shieldCooldown: 0,
+    reflectFieldHp: 0,
+    reflectFieldCooldown: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {
