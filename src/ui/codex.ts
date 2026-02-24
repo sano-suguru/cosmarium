@@ -20,6 +20,7 @@ import {
 } from './dom-ids.ts';
 
 const BEAM_FRIG_TYPE = unitTypeIndex('Beam Frig.');
+const CRUISER_TYPE = unitTypeIndex('Cruiser');
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 export const demoRng: () => number = Math.random;
@@ -168,16 +169,12 @@ function demoReflector(mi: UnitIndex) {
   for (let i = 0; i < 2; i++) {
     spawnUnit(0, 1, -40, (i === 0 ? -1 : 1) * 30, demoRng);
   }
-  for (let i = 0; i < 2; i++) {
-    spawnUnit(1, 1, -120, (i === 0 ? -1 : 1) * 40, demoRng);
-  }
-  for (let i = 0; i < 2; i++) {
-    const bi = spawnUnit(1, BEAM_FRIG_TYPE, 200 + demoRng() * 40, 60 + i * 40, demoRng);
-    if (bi !== NO_UNIT) unit(bi).target = mi;
-  }
-  for (let i = 0; i < 2; i++) {
-    spawnUnit(1, 0, (i === 0 ? -1 : 1) * 50, -100 - demoRng() * 50, demoRng);
-  }
+  const fi = spawnUnit(1, 1, -120, 0, demoRng);
+  if (fi !== NO_UNIT) unit(fi).target = mi;
+  const bi1 = spawnUnit(1, BEAM_FRIG_TYPE, 200 + demoRng() * 40, 60, demoRng);
+  if (bi1 !== NO_UNIT) unit(bi1).target = mi;
+  const bi2 = spawnUnit(1, CRUISER_TYPE, 200 + demoRng() * 40, 100, demoRng);
+  if (bi2 !== NO_UNIT) unit(bi2).target = mi;
 }
 
 function demoCarrier() {

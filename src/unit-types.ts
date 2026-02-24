@@ -145,8 +145,7 @@ export const TYPES: UnitType[] = [
     shieldCooldown: 3,
     boost: { multiplier: 1.5, duration: 0.3, cooldown: 3.5, triggerRange: 150 },
     retreatHpRatio: 0.35,
-    description:
-      'シールドHPを消費して敵弾・ビームを反射し、周囲の味方にも反射フィールドを展開する防衛艦。複数配備で途切れない防壁を形成。',
+    description: '攻撃を反射し、周囲の味方にも反射フィールドを展開する防衛艦。',
     attackDesc: 'シールド反射＋味方反射フィールド',
   },
   {

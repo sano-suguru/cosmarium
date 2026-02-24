@@ -597,13 +597,10 @@ function handleChain(ctx: CombatContext): void {
   }
 }
 
-function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): boolean {
-  const nt = unitType(n.type);
-  if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
-  consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
-
+/** 反射ビームの共通ダメージ処理（beam描画・パーティクル・ダメージ・kill判定） */
+function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): void {
   const attacker = unit(attackerUi);
-  if (!attacker.alive) return true;
+  if (!attacker.alive) return;
 
   const c = effectColor(n.type, n.team);
 
@@ -635,6 +632,26 @@ function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => numb
     killUnit(attackerUi);
     explosion(x, y, team, type, ni, rng);
   }
+}
+
+function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): boolean {
+  const nt = unitType(n.type);
+  if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
+  consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
+  reflectBeamDamage(n, ni, baseDmg, rng, attackerUi);
+  return true;
+}
+
+function tryReflectFieldBeam(
+  n: Unit,
+  ni: UnitIndex,
+  baseDmg: number,
+  rng: () => number,
+  attackerUi: UnitIndex,
+): boolean {
+  if (n.reflectFieldHp <= 0) return false;
+  n.reflectFieldHp = Math.max(0, n.reflectFieldHp - baseDmg);
+  reflectBeamDamage(n, ni, baseDmg, rng, attackerUi);
   return true;
 }
 
@@ -683,6 +700,7 @@ export function applyTetherAbsorb(
 /** ビームダメージの反射/吸収/軽減を適用。反射成功時は -1 を返す（ダメージスキップ）*/
 function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerUi: UnitIndex): number {
   if (tryReflectBeam(n, ni, baseDmg, rng, killerUi)) return -1;
+  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerUi)) return -1;
   let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerUi, rng);
   dmg = absorbByBastionShield(n, dmg);
   return dmg;
