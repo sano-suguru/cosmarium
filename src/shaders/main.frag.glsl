@@ -1,47 +1,48 @@
 #version 300 es
 precision mediump float;
 #include includes/sdf.glsl;
+#include includes/shape-count.glsl;
 in vec4 vC; in vec2 vU; in float vSh,vA;
 uniform float uTime;
 out vec4 fragColor;
-// Per-unit rendering parameters indexed by shape ID (0-26)
-// Non-unit shapes (3,4,10,12,14,17-23) have default values
-const float RIM_THRESH[27]=float[27](
+// Per-unit rendering parameters indexed by shape ID (0..NUM_SHAPES-1)
+// Non-unit shapes (3,4,10,12,14,17-23,27) have default values
+const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.015,0.015,0.028,0.020,0.020, // 0-4  sh0=Drone,sh1=Fighter,sh2=Bomber,sh3=N/A,sh4=N/A
   0.025,0.028,0.030,0.012,0.035, // 5-9  sh5=BeamFrig,sh6=Launcher,sh7=Carrier,sh8=Sniper,sh9=Lancer
   0.020,0.022,0.020,0.015,0.020, // 10-14 sh11=Disruptor
   0.022,0.028,0.020,0.020,0.020, // 15-19
-  0.020,0.020,0.020,0.020,0.028, // 20-24 sh24=Flagship
-  0.025,0.038                    // 25-26 sh25=Healer,sh26=Reflector
+  0.020,0.020,0.020,0.020,0.028, // 20-24 sh20=Bastion,sh24=Flagship
+  0.025,0.038,0.020              // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
 );
-const float RIM_WEIGHT[27]=float[27](
+const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.33,0.45,0.42,0.38,0.38, // 0-4
   0.43,0.52,0.48,0.40,0.55, // 5-9
   0.38,0.42,0.38,0.35,0.38, // 10-14 sh11=Disruptor
   0.40,0.50,0.38,0.38,0.38, // 15-19
-  0.38,0.38,0.38,0.38,0.55, // 20-24 sh24=Flagship
-  0.35,0.52                  // 25-26 sh25=Healer,sh26=Reflector
+  0.50,0.38,0.38,0.38,0.55, // 20-24 sh20=Bastion,sh24=Flagship
+  0.35,0.52,0.38             // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
 );
-const float HF_WEIGHT[27]=float[27](
+const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.52,0.55,0.52,0.48,0.48, // 0-4
   0.50,0.58,0.50,0.55,0.55, // 5-9
   0.48,0.43,0.48,0.42,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.48,0.52,0.48,0.48,0.48, // 15-19 sh15=Arcer,sh16=Cruiser
-  0.48,0.48,0.48,0.48,0.52, // 20-24 sh24=Flagship
-  0.48,0.45                  // 25-26 sh25=Healer,sh26=Reflector
+  0.50,0.48,0.48,0.48,0.52, // 20-24 sh20=Bastion,sh24=Flagship
+  0.48,0.45,0.48             // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
 );
-const float FWIDTH_MULT[27]=float[27](
+const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   1.8,1.8,1.3,1.5,1.5, // 0-4
   1.4,1.3,1.20,2.0,1.15, // 5-9
   1.5,1.6,1.5,1.7,1.5, // 10-14 sh11=Disruptor
   1.5,1.20,1.5,1.5,1.5, // 15-19
-  1.5,1.5,1.5,1.5,1.15,// 20-24 sh24=Flagship
-  1.8,1.2               // 25-26 sh25=Healer,sh26=Reflector
+  1.3,1.5,1.5,1.5,1.15,// 20-24 sh20=Bastion,sh24=Flagship
+  1.8,1.2,1.5            // 25-27 sh25=Healer,sh26=Reflector,sh27=ReflectField
 );
 void main(){
   float d=length(vU), a=0.0;
   int sh=int(vSh+0.5);
-  sh=clamp(sh,0,26);
+  sh=clamp(sh,0,NUM_SHAPES-1);
   if(sh==0){ vec2 p=vU*0.66; float t=vA+uTime;
     // Drone: Small insect-like triangular body, micro-wings with flutter
     // 1. Compact triangular fuselage
@@ -597,8 +598,90 @@ void main(){
     a=1.2*tanh(a/1.2); }
   else if(sh==17){ float dd=manDist(vU); float ring=abs(dd-0.65);
     a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
-  else if(sh==20){ float dd=hexDist(vU);
-    a=smoothstep(1.0,0.75,dd)+exp(-dd*1.5)*0.6+exp(-d*1.2)*0.4; }
+  else if(sh==20){ vec2 p=vU*0.62; float t=vA+uTime;
+    // Bastion: Type-10 Defender-style armored block — inverted trapezoid, angular fins, quad engines
+
+    // 1. Main hull — inverted trapezoid (rear wide 0.26, front narrow 0.18)
+    float dHull=sdTrapezoid(p.yx,0.26,0.18,0.38);
+
+    // 2. Front armor plate (blunt angular wedge)
+    float dProw=sdRoundedBox(p-vec2(0.36,0.0),vec2(0.10,0.20),0.02);
+
+    // 3. Rear angle fins (Type-10 stabilizers — diagonal outward from stern)
+    float dFinL=sdCapsule(p,vec2(-0.36,0.26),vec2(-0.48,0.36),0.025);
+    float dFinR=sdCapsule(p,vec2(-0.36,-0.26),vec2(-0.48,-0.36),0.025);
+    float dFins=min(dFinL,dFinR);
+
+    // 4. Rear engine block (wide, spans hull rear width)
+    float dEngine=sdRoundedBox(p-vec2(-0.40,0.0),vec2(0.08,0.26),0.02);
+
+    // 5. Side armor skirts (flush extensions along hull flanks)
+    float dSkirtL=sdRoundedBox(p-vec2(-0.02,0.28),vec2(0.28,0.04),0.01);
+    float dSkirtR=sdRoundedBox(p-vec2(-0.02,-0.28),vec2(0.28,0.04),0.01);
+    float dSkirts=min(dSkirtL,dSkirtR);
+
+    // Union with tight smin for angular look
+    float dBody=smin(dHull,dProw,0.03);
+    dBody=smin(dBody,dFins,0.025);
+    dBody=smin(dBody,dEngine,0.03);
+    dBody=smin(dBody,dSkirts,0.025);
+
+    // 6. Armor panel grooves — grid (1 horizontal + 2 vertical)
+    float dGH=sdRoundedBox(p-vec2(-0.02,0.0),vec2(0.34,0.020),0.004);
+    float dGV1=sdRoundedBox(p-vec2(0.12,0.0),vec2(0.018,0.22),0.004);
+    float dGV2=sdRoundedBox(p-vec2(-0.16,0.0),vec2(0.018,0.22),0.004);
+    dBody=max(dBody,-dGH+0.008);
+    dBody=max(dBody,-min(dGV1,dGV2)+0.008);
+
+    // Diagonal panel cuts at ±25deg (faceted armor, same technique as Reflector sh26)
+    float cs25=0.906; float sn25=0.423;
+    vec2 pr1=vec2(p.x*cs25-p.y*sn25,p.x*sn25+p.y*cs25);
+    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.04,0.0),vec2(0.26,0.010),0.004));
+    vec2 pr2=vec2(p.x*cs25+p.y*sn25,-p.x*sn25+p.y*cs25);
+    dBody=max(dBody,-sdRoundedBox(pr2-vec2(0.04,0.0),vec2(0.26,0.010),0.004));
+
+    // 7. Engine nozzle cutouts (4 thrusters at Y = ±0.14, ±0.05)
+    float dN1=sdRoundedBox(p-vec2(-0.49,0.14),vec2(0.02,0.035),0.008);
+    float dN2=sdRoundedBox(p-vec2(-0.49,-0.14),vec2(0.02,0.035),0.008);
+    float dN3=sdRoundedBox(p-vec2(-0.49,0.05),vec2(0.02,0.035),0.008);
+    float dN4=sdRoundedBox(p-vec2(-0.49,-0.05),vec2(0.02,0.035),0.008);
+    dBody=max(dBody,-min(min(dN1,dN2),min(dN3,dN4)));
+
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+
+    // 8. Tether nodes (4, embedded in skirts, phase-staggered)
+    float n0=exp(-length(p-vec2(0.14,0.30))*16.0)*(0.4+0.3*sin(t*3.0));
+    float n1=exp(-length(p-vec2(0.14,-0.30))*16.0)*(0.4+0.3*sin(t*3.0+1.57));
+    float n2=exp(-length(p-vec2(-0.18,0.30))*16.0)*(0.4+0.3*sin(t*3.0+3.14));
+    float n3=exp(-length(p-vec2(-0.18,-0.30))*16.0)*(0.4+0.3*sin(t*3.0+4.71));
+    float nodes=(n0+n1+n2+n3)*0.50;
+
+    // 9. Armor groove glow (horizontal + vertical energy flow)
+    float plateGlowH=(1.0-smoothstep(0.0,aa*3.0,abs(dGH)))
+                     *(0.3+0.7*(0.5+0.5*sin(p.x*8.0-t*4.0)))*0.45;
+    float plateGlowV=(1.0-smoothstep(0.0,aa*3.0,min(abs(dGV1),abs(dGV2))))
+                     *(0.3+0.7*(0.5+0.5*sin(p.y*8.0+t*3.0)))*0.35;
+
+    // 10. Reactor core (central, subdued pulse)
+    float core=exp(-length(p-vec2(-0.04,0.0))*12.0)*(0.4+0.4*sin(t*2.5));
+
+    // 11. Front armor glow (vertical stripe pattern — distinct from Healer cross)
+    float prowMask=smoothstep(0.06,0.0,dProw)*hf;
+    float prowGlow=prowMask*(0.3+0.2*sin(p.y*18.0+t*2.0))*0.25;
+
+    // 12. Quad engines + trails
+    float eP=0.65+0.35*sin(t*5.0);
+    float dE1=length(p-vec2(-0.50,0.14)); float dE2=length(p-vec2(-0.50,-0.14));
+    float dE3=length(p-vec2(-0.50,0.05)); float dE4=length(p-vec2(-0.50,-0.05));
+    float eng=exp(-min(min(dE1,dE2),min(dE3,dE4))*9.0)*eP;
+    float trail=0.0;
+    if(p.x<-0.50){float dy=min(min(abs(p.y-0.14),abs(p.y+0.14)),min(abs(p.y-0.05),abs(p.y+0.05)));
+      trail=exp(-dy*14.0)*exp((p.x+0.50)*2.5)*eP*0.4;}
+
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.55+trail;
+    a=1.2*tanh(a/1.2); }
   else if(sh==21){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
   else if(sh==22){ float od=octDist(vU);
@@ -813,6 +896,43 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
+  else if(sh==27){ float hd=hexDist(vU);
+    float edge=abs(hd-0.70);
+    // Bright core ring + soft neon glow halo
+    a=smoothstep(0.06,0.005,edge)*0.85+exp(-edge*12.0)*0.45;
+    float t=vA*3.5+uTime;
+    // Prismatic angular rainbow on ring — cosine palette
+    float ang=atan(vU.y,vU.x);
+    vec3 prism=0.55+0.45*cos(ang+t*0.8+vec3(0.0,2.094,4.189));
+    vec3 col=mix(vC.rgb,prism,exp(-edge*8.0)*0.5);
+    // 6 hex vertices — spectrally colored prism nodes
+    vec2 v0=vec2(0.70,0.0);       vec2 v1=vec2(0.35,0.606);
+    vec2 v2=vec2(-0.35,0.606);    vec2 v3=vec2(-0.70,0.0);
+    vec2 v4=vec2(-0.35,-0.606);   vec2 v5=vec2(0.35,-0.606);
+    float n0=exp(-length(vU-v0)*16.0)*(0.4+0.6*(0.5+0.5*sin(t)));
+    float n1=exp(-length(vU-v1)*16.0)*(0.4+0.6*(0.5+0.5*sin(t+1.047)));
+    float n2=exp(-length(vU-v2)*16.0)*(0.4+0.6*(0.5+0.5*sin(t+2.094)));
+    float n3=exp(-length(vU-v3)*16.0)*(0.4+0.6*(0.5+0.5*sin(t+3.142)));
+    float n4=exp(-length(vU-v4)*16.0)*(0.4+0.6*(0.5+0.5*sin(t+4.189)));
+    float n5=exp(-length(vU-v5)*16.0)*(0.4+0.6*(0.5+0.5*sin(t+5.236)));
+    a+=n0+n1+n2+n3+n4+n5;
+    // Each node emits its own spectral hue
+    vec3 nc=n0*vec3(1.0,0.35,0.4)+n1*vec3(1.0,0.85,0.3)
+           +n2*vec3(0.35,1.0,0.4)+n3*vec3(0.3,0.9,1.0)
+           +n4*vec3(0.45,0.35,1.0)+n5*vec3(0.9,0.35,1.0);
+    float nSum=n0+n1+n2+n3+n4+n5;
+    col=mix(col,nc/max(nSum,0.001),clamp(nSum*0.55,0.0,0.65));
+    // Prismatic interference ripple
+    float rd=length(vU);
+    float ripple=sin(rd*18.0-uTime*4.0+hd*8.0)*0.5+0.5;
+    float innerMask=smoothstep(0.70,0.25,hd);
+    a+=ripple*innerMask*0.25;
+    // Ripple chromatic shift
+    vec3 ripC=0.55+0.45*cos(rd*10.0-uTime*3.0+vec3(0.0,2.094,4.189));
+    col=mix(col,ripC,innerMask*ripple*0.25);
+    // Soft inner ambient glow
+    a+=exp(-hd*2.8)*0.18;
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
 }

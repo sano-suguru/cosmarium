@@ -10,8 +10,9 @@
 
 | ファイル | 役割 |
 |---------|------|
-| main.frag.glsl | shape ID別SDF描画。#include sdf.glsl。最大ファイル |
+| main.frag.glsl | shape ID別SDF描画。#include sdf.glsl, shape-count.glsl。最大ファイル |
 | includes/sdf.glsl | hexDist, octDist, manDist |
+| includes/shape-count.glsl | `#define NUM_SHAPES 28` — 4配列サイズ+clampの一元管理 |
 | main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
 | bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
 | composite.frag.glsl | vignette + Reinhardトーンマップ。uS,uB |
@@ -49,13 +50,16 @@
 | 24 | Flagship Dreadnought | Flagship |
 | 25 | Medical Frigate | Healer |
 | 26 | Prism Shield | Reflector |
+| 27 | Reflect Field | Reflector味方フィールド |
 
 ## 新Shape追加手順
 
-1. `main.frag.glsl` — 最後の`else if`の前に`else if(sh==次のID)`を追加
-2. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `octDist`, `manDist`）
-3. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
-4. 描画確認はブラウザのみ
+1. `includes/shape-count.glsl` の `NUM_SHAPES` を +1
+2. `main.frag.glsl` — 4配列（RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT）に要素を追加
+3. `main.frag.glsl` — 最後の`else if`の前に`else if(sh==次のID)`を追加
+4. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `octDist`, `manDist`）
+5. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
+6. 描画確認はブラウザのみ
 
 > `minimap.frag.glsl`は変更不要 — SDFを使わず色をそのまま出力するため。
 
