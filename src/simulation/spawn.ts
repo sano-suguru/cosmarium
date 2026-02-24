@@ -62,6 +62,12 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.hitFlash = 0;
       u.blinkCount = 0;
       u.blinkPhase = 0;
+      u.energy = t.maxEnergy ?? 0;
+      u.maxEnergy = t.maxEnergy ?? 0;
+      u.shieldSourceUnit = NO_UNIT;
+      u.shieldCooldown = 0;
+      u.reflectFieldHp = 0;
+      u.reflectFieldCooldown = 0;
       incUnits();
       return i as UnitIndex;
     }

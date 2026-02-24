@@ -10,6 +10,10 @@ import { spawnUnit } from './spawn.ts';
 // for conditional spawns. Ranges overlap intentionally so multiple types
 // can spawn in the same wave. Low-count gates (cnt<50/40) ensure rare
 // powerful units appear only when the team is losing.
+// Known overlaps:
+//   BASTION (0.45-0.55) × BOMBER (<0.5)     → r∈[0.45,0.5) で同時出現
+//   BASTION (0.45-0.55) × REFLECTOR (0.35-0.5) → r∈[0.45,0.5) で同時出現
+//   LAUNCHER (0.3-0.45)  × REFLECTOR (0.35-0.5) → r∈[0.35,0.45) で同時出現
 
 interface ReinforcementEntry {
   readonly type: number;
@@ -32,6 +36,7 @@ const DISRUPTOR = unitTypeIndex('Disruptor');
 const BEAM_FRIG = unitTypeIndex('Beam Frig.');
 const TELEPORTER = unitTypeIndex('Teleporter');
 const ARCER = unitTypeIndex('Arcer');
+const BASTION = unitTypeIndex('Bastion');
 
 const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
@@ -47,6 +52,7 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BEAM_FRIG, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
   { type: TELEPORTER, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
   { type: ARCER, spread: 60, condition: (r) => r > 0.95 }, // 5%
+  { type: BASTION, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
 ];
 
 function countAlive(team: Team): number {
