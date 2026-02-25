@@ -5,7 +5,7 @@ import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
-import { chainLightning, killUnitWithExplosion } from './effects.ts';
+import { chainLightning, destroyUnit } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, killerFrom, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
@@ -226,10 +226,10 @@ function handleRam(ctx: CombatContext) {
       const uKiller = killerFrom(ui);
       const oKiller = killerFrom(oi);
       if (o.hp <= 0) {
-        killUnitWithExplosion(oi, uKiller, ui, ctx.rng);
+        destroyUnit(oi, uKiller, ui, ctx.rng);
       }
       if (u.hp <= 0) {
-        killUnitWithExplosion(ui, oKiller, oi, ctx.rng);
+        destroyUnit(ui, oKiller, oi, ctx.rng);
         return;
       }
     }
@@ -425,7 +425,7 @@ function handleEmp(ctx: CombatContext) {
       oo.hp -= t.damage;
       oo.hitFlash = 1;
       if (oo.hp <= 0) {
-        killUnitWithExplosion(oi, ctx.killer, ctx.ui, ctx.rng);
+        destroyUnit(oi, ctx.killer, ctx.ui, ctx.rng);
       }
     }
   }
@@ -632,7 +632,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   }
 
   if (attacker.hp <= 0) {
-    killUnitWithExplosion(killer.index, killerFrom(ni), ni, rng);
+    destroyUnit(killer.index, killerFrom(ni), ni, rng);
   }
 }
 
@@ -678,7 +678,7 @@ export function applyTetherAbsorb(
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
       if (src.hp <= 0) {
-        killUnitWithExplosion(n.shieldSourceUnit, killer, killer?.index ?? NO_UNIT, rng);
+        destroyUnit(n.shieldSourceUnit, killer, killer?.index ?? NO_UNIT, rng);
         n.shieldSourceUnit = NO_UNIT;
       }
       return dmg * (1 - BASTION_ABSORB_RATIO);
@@ -718,7 +718,7 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: Unit, dmg: number) 
     SH_CIRCLE,
   );
   if (n.hp <= 0) {
-    killUnitWithExplosion(ni, ctx.killer, ctx.ui, ctx.rng);
+    destroyUnit(ni, ctx.killer, ctx.ui, ctx.rng);
   }
 }
 
@@ -963,7 +963,7 @@ function handleFocusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
-      killUnitWithExplosion(u.target, ctx.killer, ui, ctx.rng);
+      destroyUnit(u.target, ctx.killer, ui, ctx.rng);
       u.beamOn = 0;
     }
   }

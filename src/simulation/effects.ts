@@ -98,12 +98,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
  * kill前の座標・チーム・タイプを安全に退避して explosion に渡す。
  * killUnit/explosion 以外の後続処理（applyOnKillEffects 等）は呼び出し元で行うこと。
  */
-export function killUnitWithExplosion(
-  i: UnitIndex,
-  killer: Killer | undefined,
-  killerIndex: UnitIndex,
-  rng: () => number,
-): void {
+export function destroyUnit(i: UnitIndex, killer: Killer | undefined, killerIndex: UnitIndex, rng: () => number): void {
   const snap = killUnit(i, killer);
   if (snap) {
     explosion(snap.x, snap.y, snap.team, snap.type, killerIndex, rng);
@@ -266,7 +261,7 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
     if (o.hp <= 0) {
-      killUnitWithExplosion(hop.targetIndex, sourceKiller, sourceKiller.index, rng);
+      destroyUnit(hop.targetIndex, sourceKiller, sourceKiller.index, rng);
     }
   }
 }
@@ -308,7 +303,7 @@ function applyChainHit(
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
-    killUnitWithExplosion(bi, sourceKiller, sourceKiller.index, rng);
+    destroyUnit(bi, sourceKiller, sourceKiller.index, rng);
   }
   return { hx, hy };
 }

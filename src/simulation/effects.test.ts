@@ -23,8 +23,8 @@ import {
   boostTrail,
   CHAIN_DAMAGE_DECAY,
   chainLightning,
+  destroyUnit,
   explosion,
-  killUnitWithExplosion,
   trail,
   updateChains,
 } from './effects.ts';
@@ -420,7 +420,7 @@ describe('killUnitWithExplosion', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unit(idx).alive).toBe(true);
     expect(poolCounts.particles).toBe(0);
-    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, undefined, NO_UNIT, rng);
     expect(unit(idx).alive).toBe(false);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
@@ -429,10 +429,10 @@ describe('killUnitWithExplosion', () => {
     const idx = spawnAt(0, 1, 100, 200);
     buildHash();
     // まず kill してから dead ユニットに対して呼ぶ
-    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, undefined, NO_UNIT, rng);
     const particlesAfterFirst = poolCounts.particles;
     // 2 回目: dead ユニットに対して呼ぶ → explosion がスキップされる
-    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, undefined, NO_UNIT, rng);
     expect(poolCounts.particles).toBe(particlesAfterFirst); // 追加なし
   });
 });

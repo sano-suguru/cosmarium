@@ -19,7 +19,7 @@ import type { Color3, ParticleIndex, Projectile, ProjectileIndex, Unit, UnitInde
 import { NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, combat, reflectProjectile, resetReflected } from './combat.ts';
-import { boostBurst, boostTrail, flagshipTrail, killUnitWithExplosion, trail, updateChains } from './effects.ts';
+import { boostBurst, boostTrail, destroyUnit, flagshipTrail, trail, updateChains } from './effects.ts';
 import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
@@ -74,7 +74,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       o.hitFlash = 1;
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
-        killUnitWithExplosion(oi, pKiller, p.sourceUnit, rng);
+        destroyUnit(oi, pKiller, p.sourceUnit, rng);
         applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileAoe);
       }
     }
@@ -100,7 +100,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
 
 function handleProjectileKill(p: Projectile, oi: UnitIndex, rng: () => number) {
   const src = p.sourceUnit !== NO_UNIT ? unit(p.sourceUnit) : undefined;
-  killUnitWithExplosion(oi, src?.alive ? killerFrom(p.sourceUnit) : undefined, p.sourceUnit, rng);
+  destroyUnit(oi, src?.alive ? killerFrom(p.sourceUnit) : undefined, p.sourceUnit, rng);
   applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileDirect);
 }
 
