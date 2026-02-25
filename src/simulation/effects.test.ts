@@ -4,10 +4,12 @@ import { beams } from '../beams.ts';
 import { trailColor } from '../colors.ts';
 import { particle, poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import type { Team } from '../types.ts';
+import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
+import type { Killer } from './spawn.ts';
+import { killerFrom, onKillUnit } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -22,9 +24,12 @@ import {
   CHAIN_DAMAGE_DECAY,
   chainLightning,
   explosion,
+  killUnitWithExplosion,
   trail,
   updateChains,
 } from './effects.ts';
+
+const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
 
 afterEach(() => {
   resetPools();
@@ -117,7 +122,7 @@ describe('trail', () => {
 describe('chainLightning', () => {
   it('ターゲットなし → 何もしない', () => {
     buildHash();
-    chainLightning(0, 0, 0, 10, 5, [1, 1, 1], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 1, 1], DUMMY_KILLER, rng);
     expect(beams).toHaveLength(0);
     expect(poolCounts.particles).toBe(0);
   });
@@ -127,7 +132,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(enemy).hp;
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
     expect(beams).toHaveLength(1);
     // ch=0: damage * (1 - 0*CHAIN_DAMAGE_DECAY) = 4
     expect(unit(enemy).hp).toBe(hpBefore - 4);
@@ -140,7 +145,7 @@ describe('chainLightning', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp1Before = unit(e1).hp;
     const hp2Before = unit(e2).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     // ch=0: 10 * (1 - 0*CHAIN_DAMAGE_DECAY) = 10
     expect(unit(e1).hp).toBeCloseTo(hp1Before - 10);
     updateChains(0.06, rng);
@@ -155,7 +160,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(enemy).hp;
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
     // 1体しかいないので1回だけダメージ
     expect(unit(enemy).hp).toBe(hpBefore - 4);
     expect(beams).toHaveLength(1);
@@ -165,7 +170,7 @@ describe('chainLightning', () => {
     const enemy = spawnAt(1, 0, 50, 0); // type 0 (Drone), hp=3
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], rng); // damage=100 > hp=3
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], DUMMY_KILLER, rng); // damage=100 > hp=3
     expect(unit(enemy).alive).toBe(false);
   });
 
@@ -174,7 +179,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(ally).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     expect(unit(ally).hp).toBe(hpBefore);
     expect(beams).toHaveLength(0);
   });
@@ -188,7 +193,7 @@ describe('chainLightning', () => {
     const hp1Before = unit(e1).hp;
     const hp2Before = unit(e2).hp;
     const hp3Before = unit(e3).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     expect(unit(e1).hp).toBeCloseTo(hp1Before - 10);
     expect(unit(e2).hp).toBe(hp2Before);
     expect(unit(e3).hp).toBe(hp3Before);
@@ -207,7 +212,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 250, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     expect(beams).toHaveLength(1);
     updateChains(0.06, rng);
     expect(beams).toHaveLength(2);
@@ -226,7 +231,7 @@ describe('chainLightning', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp2Before = unit(e2).hp;
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     unit(e2).alive = false;
     updateChains(0.06, rng);
     expect(unit(e2).hp).toBe(hp2Before);
@@ -239,7 +244,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     updateChains(0.2, rng);
     updateChains(0.2, rng);
     updateChains(0.2, rng);
@@ -252,7 +257,7 @@ describe('chainLightning', () => {
   it('ターゲット0体で pendingChains にエントリなし', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     updateChains(0.1, rng);
     expect(beams).toHaveLength(0);
   });
@@ -261,7 +266,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 50, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     expect(beams[0]?.lightning).toBe(true);
   });
 
@@ -270,7 +275,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
     unit(e1).x = 999;
     unit(e1).y = 888;
     updateChains(0.06, rng);
@@ -283,7 +288,7 @@ describe('chainLightning', () => {
     spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
     const snapshotX = unit(e1).x;
     const snapshotY = unit(e1).y;
     unit(e1).alive = false;
@@ -367,5 +372,67 @@ describe('boostTrail', () => {
     const p = particle(0);
     // life = 0.08 + rng() * 0.12 = 0.08 (rng=0)
     expect(p.life).toBeLessThanOrEqual(0.3);
+  });
+});
+
+describe('chainLightning — KillEvent 伝播', () => {
+  it('即時ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
+    const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killerFrom(attacker), rng);
+    expect(unit(enemy).alive).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.killerTeam).toBe(0);
+    expect(events[0]?.killerType).toBe(14);
+  });
+
+  it('遅延ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
+    spawnAt(1, 1, 50, 0); // 即時ホップ対象 (Fighter hp=10, 生存)
+    const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killerFrom(attacker), rng);
+    updateChains(0.06, rng);
+    expect(unit(enemy2).alive).toBe(false);
+    const killEvents = events.filter((e) => e.killerTeam !== undefined);
+    expect(killEvents.length).toBeGreaterThanOrEqual(1);
+    const lastKill = killEvents[killEvents.length - 1];
+    expect(lastKill?.killerTeam).toBe(0);
+    expect(lastKill?.killerType).toBe(14);
+  });
+});
+
+describe('killUnitWithExplosion', () => {
+  it('alive ユニットをkillしてexplosionパーティクルを生成する', () => {
+    const idx = spawnAt(0, 1, 100, 200);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    expect(unit(idx).alive).toBe(true);
+    expect(poolCounts.particles).toBe(0);
+    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    expect(unit(idx).alive).toBe(false);
+    expect(poolCounts.particles).toBeGreaterThan(0);
+  });
+
+  it('dead ユニットに対して explosion をスキップする（パーティクル 0 個）', () => {
+    const idx = spawnAt(0, 1, 100, 200);
+    buildHash();
+    // まず kill してから dead ユニットに対して呼ぶ
+    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    const particlesAfterFirst = poolCounts.particles;
+    // 2 回目: dead ユニットに対して呼ぶ → explosion がスキップされる
+    killUnitWithExplosion(idx, undefined, NO_UNIT, rng);
+    expect(poolCounts.particles).toBe(particlesAfterFirst); // 追加なし
   });
 });

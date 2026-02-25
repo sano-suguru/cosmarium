@@ -7,6 +7,7 @@ import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import type { Killer } from './spawn.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
 function spawnExplosionDebris(x: number, y: number, size: number, c: Color3, rng: () => number) {
@@ -92,6 +93,23 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   updateKillerVet(killer);
 }
 
+/**
+ * killUnit + explosion を原子的に実行する。
+ * kill前の座標・チーム・タイプを安全に退避して explosion に渡す。
+ * killUnit/explosion 以外の後続処理（applyOnKillEffects 等）は呼び出し元で行うこと。
+ */
+export function killUnitWithExplosion(
+  i: UnitIndex,
+  killer: Killer | undefined,
+  killerIndex: UnitIndex,
+  rng: () => number,
+): void {
+  const snap = killUnit(i, killer);
+  if (snap) {
+    explosion(snap.x, snap.y, snap.team, snap.type, killerIndex, rng);
+  }
+}
+
 export function trail(u: Unit, rng: () => number) {
   const t = unitType(u.type),
     c = trailColor(u.type, u.team);
@@ -154,6 +172,7 @@ interface ChainHop {
 interface PendingChain {
   hops: ChainHop[];
   team: Team;
+  sourceKiller: Killer;
   elapsed: number;
   nextHop: number;
 }
@@ -171,6 +190,7 @@ export function snapshotChains() {
   return pendingChains.map((pc) => ({
     hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
     team: pc.team,
+    sourceKiller: { ...pc.sourceKiller },
     elapsed: pc.elapsed,
     nextHop: pc.nextHop,
   }));
@@ -182,6 +202,7 @@ export function restoreChains(snapshot: ReturnType<typeof snapshotChains>) {
     pendingChains.push({
       hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
       team: pc.team,
+      sourceKiller: { ...pc.sourceKiller },
       elapsed: pc.elapsed,
       nextHop: pc.nextHop,
     });
@@ -197,7 +218,7 @@ function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): bool
       pc.nextHop = pc.hops.length;
       break;
     }
-    fireChainHop(hop, rng);
+    fireChainHop(hop, pc.sourceKiller, rng);
     pc.nextHop += 1;
   }
   return pc.nextHop >= pc.hops.length;
@@ -232,7 +253,7 @@ function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Co
   }
 }
 
-function fireChainHop(hop: ChainHop, rng: () => number) {
+function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
   const from = hop.fromIndex !== NO_UNIT ? unit(hop.fromIndex) : undefined;
   const fx = from?.alive ? from.x : hop.fromX;
   const fy = from?.alive ? from.y : hop.fromY;
@@ -249,8 +270,8 @@ function fireChainHop(hop: ChainHop, rng: () => number) {
         hy = o.y,
         hTeam = o.team,
         hType = o.type;
-      killUnit(hop.targetIndex);
-      explosion(hx, hy, hTeam, hType, NO_UNIT, rng);
+      killUnit(hop.targetIndex, sourceKiller);
+      explosion(hx, hy, hTeam, hType, sourceKiller.index, rng);
     }
   }
 }
@@ -280,6 +301,7 @@ function applyChainHit(
   damage: number,
   ch: number,
   col: Color3,
+  sourceKiller: Killer,
   rng: () => number,
 ): { hx: number; hy: number } {
   const o = unit(bi);
@@ -294,8 +316,8 @@ function applyChainHit(
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
-    killUnit(bi);
-    explosion(hx, hy, hTeam, hType, NO_UNIT, rng);
+    killUnit(bi, sourceKiller);
+    explosion(hx, hy, hTeam, hType, sourceKiller.index, rng);
   }
   return { hx, hy };
 }
@@ -307,6 +329,7 @@ export function chainLightning(
   damage: number,
   max: number,
   col: Color3,
+  sourceKiller: Killer,
   rng: () => number,
 ) {
   let cx = sx,
@@ -319,7 +342,7 @@ export function chainLightning(
     if (bi === NO_UNIT) break;
     hit.add(bi);
     if (ch === 0) {
-      const pos = applyChainHit(cx, cy, bi, damage, ch, col, rng);
+      const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng);
       cx = pos.hx;
       cy = pos.hy;
       // killUnit後にスロットが再利用されると後続ホップで無関係なユニットにスナップするため、
@@ -343,7 +366,7 @@ export function chainLightning(
     prevTarget = bi;
   }
   if (hops.length > 0) {
-    pendingChains.push({ hops, team, elapsed: 0, nextHop: 0 });
+    pendingChains.push({ hops, team, sourceKiller, elapsed: 0, nextHop: 0 });
   }
 }
 
