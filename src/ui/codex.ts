@@ -245,8 +245,8 @@ function demoCarpetBomber(mi: UnitIndex) {
 }
 
 function demoHomingLauncher(mi: UnitIndex) {
-  for (let i = 0; i < 5; i++) {
-    const ei = spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (i - 2) * 60, demoRng);
+  for (let i = 0; i < 3; i++) {
+    const ei = spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (i - 1) * 60, demoRng);
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }

@@ -42,7 +42,7 @@ const AMP_RADIUS = 120;
 const AMP_MAX_TETHERS = 4;
 const AMP_TETHER_BEAM_LIFE = 0.7;
 
-function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
+function steerHomingProjectile(p: Projectile, dt: number) {
   const tg = unit(p.target);
   if (tg.alive) {
     let ca = Math.atan2(p.vy, p.vx);
@@ -54,9 +54,6 @@ function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
     const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     p.vx = Math.cos(ca) * sp;
     p.vy = Math.sin(ca) * sp;
-  }
-  if (rng() < 1 - 0.5 ** (dt * REF_FPS)) {
-    spawnParticle(p.x, p.y, (rng() - 0.5) * 18, (rng() - 0.5) * 18, 0.12, 1.8, 0.4, 0.4, 0.4, SH_CIRCLE);
   }
 }
 
@@ -161,7 +158,28 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
 }
 
 function projectileTrail(p: Projectile, dt: number, rng: () => number) {
-  if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
+  if (p.homing) {
+    const prob = 1 - 0.35 ** (dt * REF_FPS);
+    if (rng() < prob) {
+      // Engine smoke
+      spawnParticle(p.x, p.y, (rng() - 0.5) * 12, (rng() - 0.5) * 12, 0.3, 3.0, 0.5, 0.5, 0.5, SH_CIRCLE);
+    }
+    if (rng() < prob) {
+      // Colored glow trail
+      spawnParticle(
+        p.x,
+        p.y,
+        (rng() - 0.5) * 8,
+        (rng() - 0.5) * 8,
+        0.15,
+        p.size * 1.2,
+        Math.min(1, p.r * 1.4),
+        Math.min(1, p.g * 1.4),
+        Math.min(1, p.b * 1.4),
+        SH_CIRCLE,
+      );
+    }
+  } else if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
     spawnParticle(
       p.x,
       p.y,
@@ -183,7 +201,7 @@ function updateProjectiles(dt: number, rng: () => number) {
     if (!p.alive) continue;
     rem--;
 
-    if (p.homing && p.target !== NO_UNIT) steerHomingProjectile(p, dt, rng);
+    if (p.homing && p.target !== NO_UNIT) steerHomingProjectile(p, dt);
 
     p.x += p.vx * dt;
     p.y += p.vy * dt;
