@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { POOL_UNITS, REFLECT_BEAM_DAMAGE_MULT, REFLECT_FIELD_MAX_HP } from '../constants.ts';
+import { ORPHAN_TETHER_BEAM_MULT, POOL_UNITS, REFLECT_BEAM_DAMAGE_MULT, REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { decUnits, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
@@ -17,7 +17,18 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { _resetSweepHits, aimAt, combat, demoFlag, resetReflected } from './combat.ts';
+import {
+  _resetSweepHits,
+  aimAt,
+  BEAM_DECAY_RATE,
+  BURST_INTERVAL,
+  combat,
+  demoFlag,
+  HEALER_AMOUNT,
+  HEALER_COOLDOWN,
+  resetReflected,
+  SWEEP_DURATION,
+} from './combat.ts';
 
 afterEach(() => {
   resetPools();
@@ -56,18 +67,17 @@ describe('combat — 共通', () => {
 
 describe('combat — LANCER', () => {
   it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass)', () => {
-    const lancer = spawnAt(0, 9, 0, 0); // Lancer (mass=12)
-    const enemy = spawnAt(1, 1, 5, 0); // Fighter (mass=2, size=7)
+    const lancerType = unitType(9);
+    const fighterType = unitType(1);
+    const lancer = spawnAt(0, 9, 0, 0);
+    const enemy = spawnAt(1, 1, 5, 0);
     buildHash();
     const lancerHpBefore = unit(lancer).hp;
     const enemyHpBefore = unit(enemy).hp;
     combat(unit(lancer), lancer, 0.016, 0, rng);
-    // Lancer (size=12) + Fighter (size=7) = 19, distance = 5 < 19 → 衝突
-    // vet=0: vd = 1 + 0*0.2 = 1
-    // enemy damage: ceil(12 * 3 * 1) = 36
-    expect(unit(enemy).hp).toBe(enemyHpBefore - 36);
-    // self damage: ceil(Fighter.mass) = ceil(2) = 2
-    expect(unit(lancer).hp).toBe(lancerHpBefore - 2);
+    // size合計 > distance=5 → 衝突, vet=0 → vd=1
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 3 * 1));
+    expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass));
   });
 
   it('衝突でノックバック発生', () => {
@@ -102,34 +112,34 @@ describe('combat — LANCER', () => {
 });
 
 describe('combat — HEALER', () => {
-  it('味方HP回復 (hp+3, 上限maxHp)', () => {
-    const healer = spawnAt(0, 5, 0, 0); // Healer
-    const ally = spawnAt(0, 1, 50, 0); // Fighter (hp=10, maxHp=10)
-    unit(healer).abilityCooldown = 0; // クールダウン切れ
-    unit(ally).hp = 5; // ダメージ受けた状態
-    buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
-    expect(unit(ally).hp).toBe(8); // 5 + 3
-  });
-
-  it('hp上限 (maxHp) を超えない', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
-    unit(healer).abilityCooldown = 0;
-    unit(ally).hp = 9; // maxHp=10, hp=9 → +3 → clamp to 10
-    buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
-    expect(unit(ally).hp).toBe(10);
-  });
-
-  it('abilityCooldown=0.35 にリセットされる', () => {
+  it('味方HP回復 (hp+HEALER_AMOUNT, 上限maxHp)', () => {
     const healer = spawnAt(0, 5, 0, 0);
     const ally = spawnAt(0, 1, 50, 0);
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
     combat(unit(healer), healer, 0.016, 0, rng);
-    expect(unit(healer).abilityCooldown).toBeCloseTo(0.35);
+    expect(unit(ally).hp).toBe(5 + HEALER_AMOUNT);
+  });
+
+  it('hp上限 (maxHp) を超えない', () => {
+    const healer = spawnAt(0, 5, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(healer).abilityCooldown = 0;
+    unit(ally).hp = 9;
+    buildHash();
+    combat(unit(healer), healer, 0.016, 0, rng);
+    expect(unit(ally).hp).toBe(10);
+  });
+
+  it('abilityCooldown=HEALER_COOLDOWN にリセットされる', () => {
+    const healer = spawnAt(0, 5, 0, 0);
+    const ally = spawnAt(0, 1, 50, 0);
+    unit(healer).abilityCooldown = 0;
+    unit(ally).hp = 5;
+    buildHash();
+    combat(unit(healer), healer, 0.016, 0, rng);
+    expect(unit(healer).abilityCooldown).toBeCloseTo(HEALER_COOLDOWN);
   });
 
   it('自身は回復しない', () => {
@@ -232,7 +242,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 10, 1, 2, 1, 0, 0);
     combat(unit(reflector), reflector, 0.016, 0, rng);
     expect(unit(reflector).energy).toBe(0);
-    expect(unit(reflector).shieldCooldown).toBe(3); // UnitType.shieldCooldown
+    expect(unit(reflector).shieldCooldown).toBe(unitType(6).shieldCooldown);
   });
 
   it('shieldCooldown中は反射スキップ', () => {
@@ -330,7 +340,8 @@ describe('combat — CARRIER', () => {
 
 describe('combat — DISRUPTOR', () => {
   it('範囲内の敵にstun=1.5 + ダメージ', () => {
-    const disruptor = spawnAt(0, 11, 0, 0); // Disruptor (rng=200, damage=2)
+    const disruptorType = unitType(11);
+    const disruptor = spawnAt(0, 11, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = enemy;
@@ -338,7 +349,7 @@ describe('combat — DISRUPTOR', () => {
     const hpBefore = unit(enemy).hp;
     combat(unit(disruptor), disruptor, 0.016, 0, rng);
     expect(unit(enemy).stun).toBe(1.5);
-    expect(unit(enemy).hp).toBe(hpBefore - 2); // damage=2
+    expect(unit(enemy).hp).toBe(hpBefore - disruptorType.damage);
   });
 
   it('tgt<0 → 即return', () => {
@@ -678,8 +689,7 @@ describe('combat — NORMAL FIRE', () => {
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
     expect(poolCounts.projectiles).toBe(1);
-    // Fighter はバースト中なので中間クールダウン (0.07)
-    expect(unit(fighter).cooldown).toBeCloseTo(0.07);
+    expect(unit(fighter).cooldown).toBeCloseTo(BURST_INTERVAL);
   });
 
   it('射程外 → プロジェクタイルなし', () => {
@@ -700,8 +710,8 @@ describe('combat — NORMAL FIRE', () => {
     unit(fighter).vet = 1;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    // Fighter damage=2, vet=1 → 2 * 1.2 = 2.4
-    expect(projectile(0).damage).toBeCloseTo(2.4);
+    const fighterType = unitType(1);
+    expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.2);
   });
 
   it('vet=2: damage×1.4', () => {
@@ -712,8 +722,8 @@ describe('combat — NORMAL FIRE', () => {
     unit(fighter).vet = 2;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    // Fighter damage=2, vet=2 → 2 * 1.4 = 2.8
-    expect(projectile(0).damage).toBeCloseTo(2.8);
+    const fighterType = unitType(1);
+    expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.4);
   });
 
   it('homing: Launcher → 3発ホーミングミサイル (homing burst)', () => {
@@ -737,21 +747,23 @@ describe('combat — NORMAL FIRE', () => {
     expect(unit(launcher).burstCount).toBe(0);
     expect(projectile(1).homing).toBe(true);
     expect(projectile(2).homing).toBe(true);
-    expect(unit(launcher).cooldown).toBeCloseTo(2.8, 1);
+    expect(unit(launcher).cooldown).toBeCloseTo(unitType(10).fireRate, 1);
   });
 
   it('aoe: AOEプロジェクタイル生成', () => {
-    const bomber = spawnAt(0, 2, 0, 0); // Bomber (aoe=42)
+    const bomberType = unitType(2);
+    const bomber = spawnAt(0, 2, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(bomber).cooldown = 0;
     unit(bomber).target = enemy;
     buildHash();
     combat(unit(bomber), bomber, 0.016, 0, rng);
     expect(poolCounts.projectiles).toBe(1);
-    expect(projectile(0).aoe).toBe(42);
+    expect(projectile(0).aoe).toBe(bomberType.aoe);
   });
 
   it('carpet: Bomber → 4発AOEプロジェクタイル (carpet bomb)', () => {
+    const bomberType = unitType(2);
     const bomber = spawnAt(0, 2, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(bomber).cooldown = 0;
@@ -760,7 +772,7 @@ describe('combat — NORMAL FIRE', () => {
 
     combat(unit(bomber), bomber, 0.016, 0, rng);
     expect(poolCounts.projectiles).toBe(1);
-    expect(projectile(0).aoe).toBe(42);
+    expect(projectile(0).aoe).toBe(bomberType.aoe);
     expect(unit(bomber).burstCount).toBe(3);
 
     unit(bomber).cooldown = 0;
@@ -774,7 +786,7 @@ describe('combat — NORMAL FIRE', () => {
     combat(unit(bomber), bomber, 0.016, 0, rng);
     expect(poolCounts.projectiles).toBe(4);
     expect(unit(bomber).burstCount).toBe(0);
-    expect(unit(bomber).cooldown).toBeCloseTo(2.8, 1);
+    expect(unit(bomber).cooldown).toBeCloseTo(bomberType.fireRate, 1);
   });
 
   it('broadside: Flagship → チャージ→メイン3発→側面2発', () => {
@@ -888,9 +900,10 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).beamOn = 0.5;
     unit(cruiser).sweepPhase = 0;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    const dt = 0.1;
+    combat(unit(cruiser), cruiser, dt, 0, rng);
     expect(unit(cruiser).sweepPhase).toBe(0);
-    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - dt * BEAM_DECAY_RATE);
     expect(beams.length).toBe(0);
   });
 
@@ -907,7 +920,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     expect(unit(cruiser).beamOn).toBe(1);
   });
 
-  it('sweepPhase進行: += dt / SWEEP_DURATION(0.8)', () => {
+  it('sweepPhase進行: += dt / SWEEP_DURATION', () => {
     const cruiser = spawnAt(0, 3, 0, 0);
     const enemy = spawnAt(1, 1, 200, 0);
     unit(cruiser).target = enemy;
@@ -916,9 +929,9 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).sweepPhase = 0.2;
     unit(cruiser).sweepBaseAngle = 0;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    // 0.2 + 0.1/0.8 = 0.325
-    expect(unit(cruiser).sweepPhase).toBeCloseTo(0.325);
+    const dt = 0.1;
+    combat(unit(cruiser), cruiser, dt, 0, rng);
+    expect(unit(cruiser).sweepPhase).toBeCloseTo(0.2 + dt / SWEEP_DURATION);
   });
 
   it('スイープ完了 → CDリセット (sweepPhase=0, cooldown=1.5)', () => {
@@ -930,10 +943,10 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).sweepPhase = 0.9;
     unit(cruiser).sweepBaseAngle = 0;
     buildHash();
-    // dt=0.1 → 0.9 + 0.1/0.8 = 1.025 → clamped to 1 → complete
+    // 0.9 + 0.1/SWEEP_DURATION > 1 → 完了
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
     expect(unit(cruiser).sweepPhase).toBe(0);
-    expect(unit(cruiser).cooldown).toBeCloseTo(1.5);
+    expect(unit(cruiser).cooldown).toBeCloseTo(unitType(3).fireRate);
   });
 
   it('sweep-through命中: arc中心付近の敵にdamage=8', () => {
@@ -946,9 +959,10 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).sweepBaseAngle = 0;
     unit(cruiser).angle = 0;
     buildHash();
+    const cruiserType = unitType(3);
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    expect(unit(enemy).hp).toBe(hpBefore - 8);
+    expect(unit(enemy).hp).toBe(hpBefore - cruiserType.damage);
   });
 
   it('arc外ミス: 全スイープ実行しても遠方の敵は無傷', () => {
@@ -969,6 +983,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('Bastion死亡済み参照: 孤児テザー軽減がビームに適用される', () => {
+    const cruiserType = unitType(3);
     const cruiser = spawnAt(0, 3, 0, 0);
     const bastion = spawnAt(1, 15, 0, 200);
     const enemy = spawnAt(1, 1, 200, 0);
@@ -986,13 +1001,12 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     buildHash();
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    // 孤児テザー軽減: 8 * 0.8 = 6.4（Bastion生存時60%より弱い20%軽減）
-    expect(unit(enemy).hp).toBeCloseTo(hpBefore - 8 * 0.8);
-    // 参照がクリアされる
+    expect(unit(enemy).hp).toBeCloseTo(hpBefore - cruiserType.damage * ORPHAN_TETHER_BEAM_MULT);
     expect(unit(enemy).shieldSourceUnit).toBe(NO_UNIT);
   });
 
-  it('孤児テザー（sourceUnit未設定）: 8 * 0.8 = 6.4', () => {
+  it('孤児テザー（sourceUnit未設定）: 軽減ダメージ適用', () => {
+    const cruiserType = unitType(3);
     const cruiser = spawnAt(0, 3, 0, 0);
     const enemy = spawnAt(1, 1, 200, 0);
     unit(cruiser).target = enemy;
@@ -1005,7 +1019,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     buildHash();
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    expect(unit(enemy).hp).toBeCloseTo(hpBefore - 8 * 0.8);
+    expect(unit(enemy).hp).toBeCloseTo(hpBefore - cruiserType.damage * ORPHAN_TETHER_BEAM_MULT);
   });
 
   it('敵kill: hp<=0 → killUnit', () => {
@@ -1028,8 +1042,9 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).sweepPhase = 0.3;
     unit(cruiser).target = NO_UNIT;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    const dt = 0.1;
+    combat(unit(cruiser), cruiser, dt, 0, rng);
+    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - dt * BEAM_DECAY_RATE);
     expect(unit(cruiser).sweepPhase).toBe(0);
     expect(beams.length).toBe(0);
   });
@@ -1085,8 +1100,9 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).beamOn = 0.5;
     unit(cruiser).sweepPhase = 0.3;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
-    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - 0.1 * 3);
+    const dt = 0.1;
+    combat(unit(cruiser), cruiser, dt, 0, rng);
+    expect(unit(cruiser).beamOn).toBeCloseTo(0.5 - dt * BEAM_DECAY_RATE);
     expect(unit(cruiser).sweepPhase).toBe(0);
   });
 });

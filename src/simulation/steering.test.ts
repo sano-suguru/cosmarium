@@ -500,12 +500,23 @@ describe('steer — accel/drag physics', () => {
 });
 
 describe('steer — boost mechanism', () => {
+  /** boost設定を持つ mockType を作り unitType を差し替える（特定IDのみオーバーライド）。
+   *  spy は afterEach の vi.restoreAllMocks() でリストアされる前提。 */
+  async function mockBoostType(base: number, boost: NonNullable<UnitType['boost']>) {
+    const { boost: _, ...rest } = unitType(base);
+    const mock: UnitType = { ...rest, boost };
+    const mod = await import('../unit-types.ts');
+    vi.spyOn(mod, 'unitType').mockImplementation((id) => {
+      if (id === base) return mock;
+      const t = mod.TYPES[id];
+      if (!t) throw new Error(`Unknown type id: ${id}`);
+      return t;
+    });
+    return mock;
+  }
+
   it('boost trigger: Unit with boost config triggers when target within triggerRange', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u2 = spawnAt(1, 0, 150, 0);
@@ -518,11 +529,7 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost velocity: speed set to spd * multiplier toward target on trigger', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.5, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.5, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u2 = spawnAt(1, 0, 150, 0);
@@ -541,11 +548,7 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost cooldown: boostCooldown set when boostTimer expires', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u = unit(u1);
@@ -559,11 +562,7 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun interrupts active boost and sets cooldown', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u = unit(u1);
@@ -578,11 +577,7 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun: cooldown ticks down during stun', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u = unit(u1);
@@ -611,11 +606,7 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun: cannot re-activate boost while stun cooldown remains', async () => {
-    const mockType = {
-      ...unitType(0),
-      boost: { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 },
-    };
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockReturnValue(mockType);
+    await mockBoostType(0, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
     const u1 = spawnAt(0, 0, 0, 0);
     const u = unit(u1);

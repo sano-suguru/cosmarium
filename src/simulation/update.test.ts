@@ -4,6 +4,8 @@ import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
 import {
   BASTION_ABSORB_RATIO,
   BASTION_SELF_ABSORB_RATIO,
+  MAX_STEPS_PER_FRAME,
+  ORPHAN_TETHER_PROJECTILE_MULT,
   POOL_UNITS,
   REF_FPS,
   REFLECT_FIELD_GRANT_INTERVAL,
@@ -31,10 +33,7 @@ vi.mock('../ui/game-control.ts', () => ({
 
 vi.mock('./spatial-hash.ts', async (importOriginal) => {
   const actual = (await importOriginal()) as typeof import('./spatial-hash.ts');
-  return {
-    ...actual,
-    buildHash: vi.fn(actual.buildHash),
-  };
+  return { ...actual, buildHash: vi.fn(actual.buildHash) };
 });
 
 import { addShake } from '../input/camera.ts';
@@ -59,7 +58,7 @@ afterEach(() => {
 // 0. buildHash call count (sub-stepping verification)
 // ============================================================
 describe('buildHash call count — sub-stepping検証', () => {
-  it('rawDt <= 1/REF_FPS (0.0333...): buildHash は1回だけ呼ばれる', () => {
+  it('rawDt <= 1/REF_FPS: buildHash は1回だけ呼ばれる', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
     update(0.02, 0, rng, gameLoopState());
@@ -70,7 +69,6 @@ describe('buildHash call count — sub-stepping検証', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
     update(0.066, 0, rng, gameLoopState());
-    // maxStep = 1/30 ≈ 0.0333, steps = ceil(0.066/0.0333) = 2
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(2);
   });
 
@@ -78,18 +76,16 @@ describe('buildHash call count — sub-stepping検証', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
     update(0.12, 0, rng, gameLoopState());
-    // maxStep ≈ 0.0333, steps = ceil(0.12/0.0333) = 4
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(4);
   });
 
-  it('MAX_STEPS_PER_FRAME (8) を超える rawDt: ステップ数がキャップされる', () => {
+  it('MAX_STEPS_PER_FRAME を超える rawDt: ステップ数がキャップされる', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
     const maxStep = 1 / REF_FPS;
     const excessiveDt = maxStep * 15; // 15ステップ分の dt
     update(excessiveDt, 0, rng, gameLoopState());
-    // min(ceil(15), 8) = 8
-    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(8);
+    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(MAX_STEPS_PER_FRAME);
   });
 });
 
@@ -475,9 +471,7 @@ describe('projectile pass', () => {
     const hpBefore = unit(target).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
     update(0.016, 0, rng, gameLoopState());
-    // 孤児テザー軽減: dmg * 0.7 = 7（Bastion生存時60%より弱い30%軽減）
-    expect(unit(target).hp).toBe(hpBefore - 10 * 0.7);
-    // 参照がクリアされる
+    expect(unit(target).hp).toBe(hpBefore - 10 * ORPHAN_TETHER_PROJECTILE_MULT);
     expect(unit(target).shieldSourceUnit).toBe(NO_UNIT);
   });
 

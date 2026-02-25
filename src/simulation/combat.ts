@@ -117,8 +117,11 @@ export function aimAt(
   return _aim;
 }
 
-const SWEEP_DURATION = 0.8;
-const BURST_INTERVAL = 0.07;
+export const SWEEP_DURATION = 0.8;
+export const BURST_INTERVAL = 0.07;
+export const BEAM_DECAY_RATE = 3;
+export const HEALER_AMOUNT = 3;
+export const HEALER_COOLDOWN = 0.35;
 const HALF_ARC = 0.524; // ±30°
 const RAILGUN_SHAPE = 8;
 const RAILGUN_SPEED = 900;
@@ -233,14 +236,14 @@ function handleRam(ctx: CombatContext) {
 
 function handleHealer(ctx: CombatContext) {
   const { u, ui } = ctx;
-  u.abilityCooldown = 0.35;
+  u.abilityCooldown = HEALER_COOLDOWN;
   const nn = getNeighbors(u.x, u.y, 160);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === ui) continue;
     if (o.hp < o.maxHp) {
-      o.hp = Math.min(o.maxHp, o.hp + 3);
+      o.hp = Math.min(o.maxHp, o.hp + HEALER_AMOUNT);
       addBeam(u.x, u.y, o.x, o.y, 0.2, 1, 0.5, 0.12, 2.5);
     }
   }
@@ -855,7 +858,7 @@ function handleSweepBeam(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
 
   if (u.target === NO_UNIT) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
     sweepHitMap.delete(ctx.ui);
     return;
@@ -863,7 +866,7 @@ function handleSweepBeam(ctx: CombatContext) {
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
     sweepHitMap.delete(ctx.ui);
     return;
@@ -872,14 +875,14 @@ function handleSweepBeam(ctx: CombatContext) {
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= t.range) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
     sweepHitMap.delete(ctx.ui);
     return;
   }
 
   if (u.sweepPhase === 0 && u.cooldown > 0) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     return;
   }
 
@@ -927,7 +930,7 @@ function handleSweepBeam(ctx: CombatContext) {
 function handleFocusBeam(ctx: CombatContext) {
   const { u, ui, c, t, dt, vd } = ctx;
   if (u.target === NO_UNIT) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     return;
   }
   const o = unit(u.target);
@@ -940,7 +943,7 @@ function handleFocusBeam(ctx: CombatContext) {
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= t.range) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     return;
   }
 
@@ -1303,7 +1306,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= t.range) {
-    u.beamOn = Math.max(0, u.beamOn - dt * 3);
+    u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
   }

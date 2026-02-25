@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
+import { trailColor } from '../colors.ts';
 import { particle, poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
+import type { Team } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
+import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -32,9 +35,9 @@ describe('explosion', () => {
 
   it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // type 3 (Cruiser) は size=15
+    const cruiserType = unitType(3);
     explosion(0, 0, 0, 3, NO_UNIT, rng);
-    expect(addShake).toHaveBeenCalledWith(15 * 0.8, 0, 0);
+    expect(addShake).toHaveBeenCalledWith(cruiserType.size * 0.8, 0, 0);
   });
 
   it('小型ユニット (size<14) → addShake が呼ばれない', () => {
@@ -309,12 +312,13 @@ describe('boostBurst', () => {
     state.rng = () => 0.5;
     const idx = spawnAt(0, 0, 100, 100);
     boostBurst(unit(idx), rng);
-    // trailColor(0, 0) = [0.157, 0.650, 0.294]
-    // bright variant: trail + (1-trail)*0.5
+    const team: Team = 0;
+    const tc = trailColor(0, team);
+    const bright = [tc[0] + (1 - tc[0]) * 0.5, tc[1] + (1 - tc[1]) * 0.5, tc[2] + (1 - tc[2]) * 0.5] as const;
     const p = particle(0);
-    expect(p.r).toBeCloseTo(0.579, 2);
-    expect(p.g).toBeCloseTo(0.825, 2);
-    expect(p.b).toBeCloseTo(0.647, 2);
+    expect(p.r).toBeCloseTo(bright[0], 2);
+    expect(p.g).toBeCloseTo(bright[1], 2);
+    expect(p.b).toBeCloseTo(bright[2], 2);
   });
 });
 

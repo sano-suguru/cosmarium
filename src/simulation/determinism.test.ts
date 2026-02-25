@@ -18,14 +18,6 @@ vi.mock('../ui/game-control.ts', () => ({
   initUI: vi.fn(),
 }));
 
-vi.mock('./spawn.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./spawn.ts')>();
-  return {
-    ...actual,
-    spawnParticle: vi.fn(),
-  };
-});
-
 afterEach(() => {
   resetPools();
   resetState();
