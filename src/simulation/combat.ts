@@ -1364,21 +1364,46 @@ function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
     0.6,
     ctx.ui,
   );
-  addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.1, 1.5);
-  for (let i = 0; i < 4; i++) {
-    const a2 = ang + (ctx.rng() - 0.5) * 0.4;
+  // Main beam: thick, tapered, longer life
+  addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.25, 3.0, true);
+  // Sub-beam: thinner trailing beam
+  addBeam(
+    u.x,
+    u.y,
+    u.x + Math.cos(ang) * t.range,
+    u.y + Math.sin(ang) * t.range,
+    c[0] * 0.5 + 0.5,
+    c[1] * 0.5 + 0.5,
+    c[2] * 0.5 + 0.5,
+    0.15,
+    1.5,
+    true,
+  );
+  const mx = u.x + Math.cos(ang) * t.size * 1.5;
+  const my = u.y + Math.sin(ang) * t.size * 1.5;
+  // Muzzle flash: 6 particles, faster + longer lived
+  for (let i = 0; i < 6; i++) {
+    const a2 = ang + (ctx.rng() - 0.5) * 0.5;
+    const spd = 180 + ctx.rng() * 80;
     spawnParticle(
-      u.x + Math.cos(ang) * t.size * 1.5,
-      u.y + Math.sin(ang) * t.size * 1.5,
-      Math.cos(a2) * 160,
-      Math.sin(a2) * 160,
-      0.08,
-      2.5,
+      mx,
+      my,
+      Math.cos(a2) * spd,
+      Math.sin(a2) * spd,
+      0.1 + ctx.rng() * 0.05,
+      2.5 + ctx.rng(),
       1,
       1,
       0.8,
       SH_CIRCLE,
     );
+  }
+  // Lateral recoil particles perpendicular to fire direction
+  const perpX = -Math.sin(ang);
+  const perpY = Math.cos(ang);
+  for (let side = -1; side <= 1; side += 2) {
+    const lSpd = 60 + ctx.rng() * 40;
+    spawnParticle(mx, my, perpX * side * lSpd, perpY * side * lSpd, 0.08, 2, 0.8, 0.8, 1, SH_CIRCLE);
   }
 }
 

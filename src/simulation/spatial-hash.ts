@@ -3,7 +3,7 @@ import { unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 
 const CELL_SIZE = 100;
-export const NEIGHBOR_BUFFER_SIZE = 350;
+export const NEIGHBOR_BUFFER_SIZE = 600;
 
 const hashMap = new Map<number, UnitIndex[]>();
 const neighborBuffer: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);

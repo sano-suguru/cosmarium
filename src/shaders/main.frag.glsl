@@ -602,6 +602,17 @@ void main(){
     a=1.2*tanh(a/1.2); }
   else if(sh==17){ float dd=manDist(vU); float ring=abs(dd-0.65);
     a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
+  else if(sh==18){ vec2 p=vU; float t=uTime;
+    // Railgun bolt: asymmetric spindle with hot core, tip flare, wake trail
+    float nx=p.x*1.8; float ny=p.y*3.5;
+    float nose=sqrt(nx*nx+ny*ny)-0.45+max(0.0,-p.x)*0.3;
+    float body=smoothstep(0.0,0.06,nose);
+    float core=exp(-abs(p.y)*18.0)*exp(-max(0.0,p.x-0.2)*3.0)*0.9;
+    float tip=exp(-length(p-vec2(0.42,0.0))*14.0)*(0.7+0.3*sin(t*12.0));
+    float wake=0.0;
+    if(p.x<-0.1){ wake=exp(-abs(p.y)*8.0)*exp((p.x+0.1)*2.5)*0.5*(0.7+0.3*sin(t*8.0+p.x*6.0)); }
+    a=(1.0-body)+core+tip+wake;
+    a=clamp(a,0.0,1.5); }
   else if(sh==20){ vec2 p=vU*0.62; float t=vA+uTime;
     // Bastion: Type-10 Defender-style armored block — inverted trapezoid, angular fins, quad engines
 

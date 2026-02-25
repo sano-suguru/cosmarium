@@ -133,6 +133,16 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   if (o.hp <= 0) handleProjectileKill(p, oi, o, rng);
 }
 
+function piercingHitFx(p: Projectile, rng: () => number) {
+  const pAng = Math.atan2(p.vy, p.vx);
+  for (let k = 0; k < 5; k++) {
+    const sA = pAng + (rng() - 0.5) * 1.75;
+    const sSpd = 80 + rng() * 120;
+    spawnParticle(p.x, p.y, Math.cos(sA) * sSpd, Math.sin(sA) * sSpd, 0.06 + rng() * 0.04, 1.5, 1, 1, 0.7, SH_CIRCLE);
+  }
+  spawnParticle(p.x, p.y, 0, 0, 0.12, 6, p.r, p.g, p.b, SH_EXPLOSION_RING);
+}
+
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
   const nn = getNeighbors(p.x, p.y, 30);
   for (let j = 0; j < nn; j++) {
@@ -146,6 +156,7 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
     if (p.piercing > 0) {
       p.damage *= p.piercing;
       p.lastHitUnit = oi;
+      piercingHitFx(p, rng);
       return true;
     }
     if (p.aoe > 0) {
@@ -155,6 +166,42 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
     return true;
   }
   return false;
+}
+
+function railgunTrail(p: Projectile, dt: number, rng: () => number) {
+  // Core trail: bright, backward-flowing
+  if (rng() < 1 - 0.15 ** (dt * REF_FPS)) {
+    const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    const nx = sp > 0 ? p.vx / sp : 0;
+    const ny = sp > 0 ? p.vy / sp : 0;
+    spawnParticle(
+      p.x,
+      p.y,
+      -nx * 60 + (rng() - 0.5) * 15,
+      -ny * 60 + (rng() - 0.5) * 15,
+      0.12,
+      p.size,
+      Math.min(1, p.r * 1.5),
+      Math.min(1, p.g * 1.5),
+      Math.min(1, p.b * 1.5),
+      SH_CIRCLE,
+    );
+  }
+  // Outer glow: dimmer, wider spread
+  if (rng() < 1 - 0.5 ** (dt * REF_FPS)) {
+    spawnParticle(
+      p.x,
+      p.y,
+      (rng() - 0.5) * 30,
+      (rng() - 0.5) * 30,
+      0.08,
+      p.size * 2,
+      p.r * 0.4,
+      p.g * 0.4,
+      p.b * 0.4,
+      SH_CIRCLE,
+    );
+  }
 }
 
 function projectileTrail(p: Projectile, dt: number, rng: () => number) {
@@ -179,6 +226,8 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
         SH_CIRCLE,
       );
     }
+  } else if (p.piercing > 0) {
+    railgunTrail(p, dt, rng);
   } else if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
     spawnParticle(
       p.x,

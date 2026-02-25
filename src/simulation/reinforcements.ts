@@ -88,7 +88,7 @@ export interface ReinforcementState {
 }
 
 export const REINFORCE_INTERVAL = 2.5;
-export const REINFORCE_UNIT_CAP = 130;
+export const REINFORCE_UNIT_CAP = 250;
 
 export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
   rs.reinforcementTimer += dt;

@@ -1,4 +1,4 @@
-export const POOL_UNITS = 800;
+export const POOL_UNITS = 1600;
 export const POOL_PARTICLES = 45000;
 export const POOL_PROJECTILES = 6000;
 export const POOL_TRACKING_BEAMS = 200;
@@ -11,6 +11,7 @@ export const REF_FPS = 30;
 export const SH_CIRCLE = 3;
 export const SH_DIAMOND = 4;
 export const SH_EXPLOSION_RING = 10;
+export const SH_RAILGUN = 18;
 
 export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;
