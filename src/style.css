@@ -16,6 +16,7 @@ canvas#c {
   position: fixed;
   top: 0;
   left: 0;
+  touch-action: none;
 }
 
 #menu {
@@ -375,4 +376,116 @@ canvas#c {
   border-radius: 3px;
   width: 160px;
   height: 160px;
+  touch-action: none;
+}
+
+/* 操作ガイドの表示切替 */
+.touch-controls {
+  display: none;
+}
+
+/* --- モバイル向けレスポンシブ --- */
+@media (max-width: 768px), (pointer: coarse) {
+  /* タイトル */
+  #menu h1 {
+    font-size: 28px;
+    letter-spacing: 6px;
+  }
+  #menu .sub {
+    font-size: 10px;
+    margin-bottom: 24px;
+  }
+
+  /* メニューボタン: タッチターゲット拡大 */
+  .mbtn {
+    min-width: 0;
+    width: 85vw;
+    max-width: 400px;
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+
+  /* HUD */
+  #hud {
+    font-size: 10px;
+    padding: 6px 8px;
+    max-width: 55vw;
+  }
+
+  /* 操作ガイド: デスクトップ→タッチ切替 */
+  .desktop-controls {
+    display: none;
+  }
+  .touch-controls {
+    display: inline;
+  }
+
+  /* ゲームUI ボタン: タッチターゲット最小44px */
+  #codexBtn,
+  #autoFollowBtn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  #autoFollowBtn {
+    right: auto;
+    left: 12px;
+    top: auto;
+    bottom: 70px;
+  }
+  #codexBtn {
+    right: 12px;
+    top: auto;
+    bottom: 70px;
+  }
+
+  /* 速度ボタン拡大 */
+  .sbtn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  #speed {
+    bottom: 36px;
+  }
+
+  /* ミニマップ縮小 */
+  #minimap {
+    width: 100px;
+    height: 100px;
+    bottom: 8px;
+    right: 8px;
+  }
+
+  /* Codex: モバイルレイアウト */
+  #codexSide {
+    width: 100%;
+    height: 40%;
+    bottom: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  }
+  #codexInfo {
+    left: 0;
+    top: 40%;
+  }
+  #codexPanel {
+    height: auto;
+    min-height: 120px;
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #codexPanel .cpName {
+    font-size: 16px;
+  }
+  #codexClose {
+    top: 8px;
+    right: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  #codexHint {
+    bottom: auto;
+    top: 4px;
+    font-size: 9px;
+  }
 }

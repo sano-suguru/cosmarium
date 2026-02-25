@@ -31,7 +31,40 @@ export function addShake(v: number, x: number, y: number) {
   cam.shake = Math.min(cam.shake, 60);
 }
 
+/** アクティブなポインタを追跡（マルチタッチ対応） */
+const pointers = new Map<number, { x: number; y: number }>();
+
+/** ピンチ開始時の2点間距離 */
+let pinchStartDist = 0;
+/** ピンチ開始時のズームレベル */
+let pinchStartZoom = 0;
+/** ピンチ開始時の中点（CSS px） */
+let pinchStartMid = { x: 0, y: 0 };
+/** ピンチ開始時のカメラ位置 */
+let pinchCameraStart = { x: 0, y: 0 };
+
+function pointerDist(): number {
+  const pts = [...pointers.values()];
+  if (pts.length < 2) return 0;
+  const [a, b] = pts;
+  if (!a || !b) return 0;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function pointerMid(): { x: number; y: number } {
+  const pts = [...pointers.values()];
+  if (pts.length < 2) return { x: 0, y: 0 };
+  const [a, b] = pts;
+  if (!a || !b) return { x: 0, y: 0 };
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
 export function initCamera() {
+  // touch-action: none をJSで設定（CSSと二重保険）
+  canvas.style.touchAction = 'none';
+
   canvas.addEventListener(
     'wheel',
     (e) => {
@@ -52,27 +85,80 @@ export function initCamera() {
     { passive: false },
   );
 
-  canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0 && !state.codexOpen) {
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.codexOpen) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    canvas.setPointerCapture(e.pointerId);
+
+    if (pointers.size === 1 && e.button === 0) {
+      // 1本指: ドラッグ開始
       setAutoFollow(false);
       dragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
       cameraStart = { x: cam.targetX, y: cam.targetY };
+    } else if (pointers.size === 2) {
+      // 2本指: ピンチ開始（ドラッグ解除）
+      dragging = false;
+      setAutoFollow(false);
+      pinchStartDist = pointerDist();
+      pinchStartZoom = cam.targetZ;
+      pinchStartMid = pointerMid();
+      pinchCameraStart = { x: cam.targetX, y: cam.targetY };
     }
   });
-  canvas.addEventListener('mousemove', (e) => {
-    if (dragging) {
+
+  canvas.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    p.x = e.clientX;
+    p.y = e.clientY;
+
+    if (pointers.size === 2 && pinchStartDist > 0) {
+      // ピンチズーム + パン
+      const dpr = viewport.dpr;
+      const W = viewport.W / dpr,
+        H = viewport.H / dpr;
+      const dist = pointerDist();
+      const scale = dist / pinchStartDist;
+      let nz = pinchStartZoom * scale;
+      nz = Math.max(0.05, Math.min(8, nz));
+
+      // ピンチ中心を基準にズーム（ワールド座標を保持）
+      const wx = pinchCameraStart.x + ((pinchStartMid.x - W / 2) * dpr) / pinchStartZoom;
+      const wy = pinchCameraStart.y - ((pinchStartMid.y - H / 2) * dpr) / pinchStartZoom;
+      const mid = pointerMid();
+      cam.targetX = wx - ((mid.x - W / 2) * dpr) / nz;
+      cam.targetY = wy + ((mid.y - H / 2) * dpr) / nz;
+      cam.targetZ = nz;
+    } else if (dragging && pointers.size === 1) {
+      // 1本指ドラッグ
       const dpr = viewport.dpr;
       cam.targetX = cameraStart.x - ((e.clientX - dragStart.x) * dpr) / cam.targetZ;
       cam.targetY = cameraStart.y + ((e.clientY - dragStart.y) * dpr) / cam.targetZ;
     }
   });
-  canvas.addEventListener('mouseup', () => {
-    dragging = false;
-  });
-  canvas.addEventListener('mouseleave', () => {
-    dragging = false;
-  });
+
+  const endPointer = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) {
+      pinchStartDist = 0;
+    }
+    if (pointers.size === 0) {
+      dragging = false;
+    } else if (pointers.size === 1) {
+      // ピンチ解除後、残った1本指でドラッグ継続できるようリセット
+      dragging = true;
+      const remaining = pointers.values().next().value;
+      if (remaining) {
+        dragStart = { x: remaining.x, y: remaining.y };
+        cameraStart = { x: cam.targetX, y: cam.targetY };
+      }
+    }
+  };
+
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('pointerleave', endPointer);
 
   addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space' && state.gameState === 'play' && !state.codexOpen) {
