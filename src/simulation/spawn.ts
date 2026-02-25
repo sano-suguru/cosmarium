@@ -107,10 +107,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
   return NO_UNIT;
 }
 
-/**
- * ユニットをkillし、kill前の位置・チーム・タイプのスナップショットを返す。
- * 既に dead のユニットの場合は undefined を返す。
- */
+/** 既に dead なら undefined を返す。kill前スナップショットは戻り値で取得。 */
 export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | undefined {
   const u = unit(i);
   if (u.alive) {

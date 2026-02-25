@@ -93,11 +93,7 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   updateKillerVet(killer);
 }
 
-/**
- * killUnit + explosion を原子的に実行する。
- * kill前の座標・チーム・タイプを安全に退避して explosion に渡す。
- * killUnit/explosion 以外の後続処理（applyOnKillEffects 等）は呼び出し元で行うこと。
- */
+/** killUnit/explosion 以外の後続処理（applyOnKillEffects 等）は呼び出し元で行うこと。 */
 export function destroyUnit(i: UnitIndex, killer: Killer | undefined, killerIndex: UnitIndex, rng: () => number): void {
   const snap = killUnit(i, killer);
   if (snap) {
@@ -331,8 +327,7 @@ export function chainLightning(
       const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng);
       cx = pos.hx;
       cy = pos.hy;
-      // killUnit後にスロットが再利用されると後続ホップで無関係なユニットにスナップするため、
-      // 死亡時はNO_UNITにしてフォールバック座標を使わせる
+      // kill後スロット再利用で後続ホップが誤スナップするのを防止
       prevTarget = unit(bi).alive ? bi : NO_UNIT;
       continue;
     }
