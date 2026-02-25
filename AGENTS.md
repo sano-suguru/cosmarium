@@ -81,7 +81,17 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 
 ### 調査と実装を分離する
 
-調査（ファイル読み、依存関係の把握）と実装は別フェーズ。調査をサブタスクに委譲した場合、結果が返るまで同じ調査を自分で始めない。全ファイルを読んでから実装を始めるのではなく、必要な箇所だけ読む。
+調査（ファイル読み、依存関係の把握）と実装は別フェーズ。全ファイルを読んでから実装を始めるのではなく、必要な箇所だけ読む。
+
+#### サブタスク委譲時の排他ルール（重要）
+
+調査をサブタスク（explore/librarian等）に委譲した場合:
+
+1. **同じ対象を自分で調査しない**。「直接ツールでも並行して確認する」は禁止。サブタスクと同じファイル・同じパターンをRead/Grepで重複調査するとコンテキストを浪費する
+2. **結果を回収してから判断する**。background_outputで結果を取得し、不足があれば追加の直接ツール呼び出しで補完する
+3. **待機中に別の作業を進める**のは可。ただし「別の作業」＝委譲した調査と重複しない独立タスク（todo整理、型定義の下書き等）
+
+「Parallelize EVERYTHING」は**異なる対象**の並行処理に適用する。同じ対象の重複調査には適用しない。
 
 ### 計画が必要なタスク
 
@@ -109,4 +119,4 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 - ブランドindex: プールループでは`i as UnitIndex`（ParticleIndex/ProjectileIndex）にキャスト必要
 - 入力はPointer Events統一（mouse/touch両対応）。canvas/minimapに`touch-action: none`設定済み。ピンチズームは`activePointers` Mapで2本指追跡
 
-simulation固有のgotchas（`neighborBuffer`共有バッファ、`killUnitWithExplosion()`使用推奨、`beams`のswap-and-pop等）は`src/simulation/AGENTS.md`参照。シェーダ固有（GLSLランタイムコンパイル、`vite-plugin-glsl`の`#include`展開等）は`src/shaders/AGENTS.md`参照。
+simulation固有のgotchas（`neighborBuffer`共有バッファ、`destroyUnit()`使用推奨、`beams`のswap-and-pop等）は`src/simulation/AGENTS.md`参照。シェーダ固有（GLSLランタイムコンパイル、`vite-plugin-glsl`の`#include`展開等）は`src/shaders/AGENTS.md`参照。

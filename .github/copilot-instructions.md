@@ -140,7 +140,7 @@ For **3+ files spanning multiple modules**, create a plan before implementing.
 | `codexOpen` impact | Affects 4 layers: skip non-demo unit steer/combat, lock camera, disable input, skip HUD. See main loop. |
 | GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
 | Pool mutation | Never directly assign `poolCounts`. Use `killUnit()`, `killParticle()`, `killProjectile()` only. |
-| Data before kill | Save unit/particle/projectile values to locals **before** calling `kill()`. Kill reuses slot immediately. |
+| Data before kill | `killUnit()` returns a snapshot (safe). For particle/projectile, save values to locals **before** calling `kill()` — kill reuses slot immediately. Use `destroyUnit()` for unit kill + explosion combo. |
 | Team helper | Use `enemyTeam()` from types.ts, not `1 - team`. Returns `Team` type, not `number`. |
 | Branded indices | Pool loops need cast: `i as UnitIndex` (also ParticleIndex, ProjectileIndex). |
 
