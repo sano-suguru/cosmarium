@@ -207,13 +207,14 @@ describe('killUnit', () => {
     expect(second).toBeUndefined();
   });
 
-  it('返り値は再利用オブジェクトで、2回 kill すると同一参照', () => {
+  it('返り値は独立オブジェクトで、2回 kill しても互いに影響しない', () => {
     spawnUnit(0, 1, 10, 20, testRng);
     spawnUnit(1, 2, 30, 40, testRng);
     const snap1 = killUnit(0 as UnitIndex);
     const snap2 = killUnit(1 as UnitIndex);
-    expect(snap1).toBe(snap2); // 同一オブジェクト参照
-    expect(snap2?.x).toBe(30); // 2回目で上書き
+    expect(snap1).not.toBe(snap2);
+    expect(snap1?.x).toBe(10);
+    expect(snap2?.x).toBe(30);
   });
 });
 
