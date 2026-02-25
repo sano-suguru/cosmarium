@@ -1,9 +1,9 @@
 import { color } from '../colors.ts';
-import { MINIMAP_MAX, POOL_UNITS, WORLD_SIZE } from '../constants.ts';
+import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
 import { cam, setAutoFollow } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import { unitType } from '../unit-types.ts';
-import { minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
+import { MINIMAP_MAX, minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
@@ -85,15 +85,15 @@ export function drawMinimap() {
 
   drawViewport(S, W, H, dpr);
 
-  const mmR = mmDiv.getBoundingClientRect();
-  const mmBW = (mmR.width - mmDiv.clientWidth) * 0.5;
-  const mmX = ((mmR.left + mmBW) * dpr) | 0;
-  const mmY = ((H / dpr - mmR.bottom + mmBW) * dpr) | 0;
-  const mmSW = (mmDiv.clientWidth * dpr) | 0;
-  const mmSH = (mmDiv.clientHeight * dpr) | 0;
+  const rc = mmDiv.getBoundingClientRect();
+  const bw = (rc.width - mmDiv.clientWidth) * 0.5;
+  const mx = ((rc.left + bw) * dpr) | 0;
+  const my = ((H / dpr - rc.bottom + bw) * dpr) | 0;
+  const mw = (mmDiv.clientWidth * dpr) | 0;
+  const mh = (mmDiv.clientHeight * dpr) | 0;
   gl.enable(gl.SCISSOR_TEST);
-  gl.scissor(mmX, mmY, mmSW, mmSH);
-  gl.viewport(mmX, mmY, mmSW, mmSH);
+  gl.scissor(mx, my, mw, mh);
+  gl.viewport(mx, my, mw, mh);
 
   gl.useProgram(minimapProgram);
   gl.enable(gl.BLEND);

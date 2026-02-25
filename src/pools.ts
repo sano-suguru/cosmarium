@@ -7,7 +7,6 @@ const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
 const projectilePool: Projectile[] = [];
 
-/* ---------- particle free stack (LIFO) ---------- */
 if (POOL_PARTICLES > 0xffff) throw new RangeError('POOL_PARTICLES exceeds Uint16Array range (65535)');
 const _particleFree = new Uint16Array(POOL_PARTICLES);
 const _particleInFree = new Uint8Array(POOL_PARTICLES);

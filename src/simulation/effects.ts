@@ -1,3 +1,4 @@
+import { swapRemove } from '../array-utils.ts';
 import { effectColor, trailColor } from '../colors.ts';
 import { POOL_UNITS, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
@@ -159,6 +160,8 @@ interface PendingChain {
 
 const pendingChains: PendingChain[] = [];
 const CHAIN_HOP_DELAY = 0.06;
+const CHAIN_SEARCH_RANGE = 200;
+export const CHAIN_DAMAGE_DECAY = 0.12;
 
 export function resetChains() {
   pendingChains.length = 0;
@@ -205,9 +208,7 @@ export function updateChains(dt: number, rng: () => number) {
     const pc = pendingChains[i];
     if (pc === undefined) continue;
     if (advanceChainHops(pc, dt, rng)) {
-      const last = pendingChains[pendingChains.length - 1];
-      if (last !== undefined) pendingChains[i] = last;
-      pendingChains.pop();
+      swapRemove(pendingChains, i);
     }
   }
 }
@@ -255,8 +256,8 @@ function fireChainHop(hop: ChainHop, rng: () => number) {
 }
 
 function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex>): UnitIndex {
-  const nn = getNeighbors(cx, cy, 200);
-  let bd = 200,
+  const nn = getNeighbors(cx, cy, CHAIN_SEARCH_RANGE);
+  let bd = CHAIN_SEARCH_RANGE,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
@@ -288,7 +289,7 @@ function applyChainHit(
     hTeam = o.team,
     hType = o.type;
   emitChainVisual(cx, cy, hx, hy, col, rng);
-  const dd = damage * (1 - ch * 0.12);
+  const dd = damage * (1 - ch * CHAIN_DAMAGE_DECAY);
   o.hp -= dd;
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
@@ -334,7 +335,7 @@ export function chainLightning(
       toX: o.x,
       toY: o.y,
       targetIndex: bi,
-      damage: damage * (1 - ch * 0.12),
+      damage: damage * (1 - ch * CHAIN_DAMAGE_DECAY),
       col: [col[0], col[1], col[2]],
     });
     cx = o.x;

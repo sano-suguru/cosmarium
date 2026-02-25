@@ -1,7 +1,10 @@
-import { MAX_INSTANCES, MINIMAP_MAX, STRIDE_BYTES } from '../constants.ts';
 import { mainLocations, minimapLocations } from './shaders.ts';
 import { required } from './utils.ts';
 import { gl } from './webgl-setup.ts';
+
+const STRIDE_BYTES = 36;
+export const MINIMAP_MAX = 1200;
+export const MAX_INSTANCES = 100000;
 
 let quadBuffer: WebGLBuffer;
 export let instanceData: Float32Array;

@@ -1,6 +1,9 @@
-import { CELL_SIZE, NEIGHBOR_BUFFER_SIZE, POOL_UNITS } from '../constants.ts';
+import { POOL_UNITS } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
+
+const CELL_SIZE = 100;
+export const NEIGHBOR_BUFFER_SIZE = 350;
 
 const hashMap = new Map<number, UnitIndex[]>();
 const neighborBuffer: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);
@@ -39,7 +42,6 @@ export function buildHash() {
   }
 }
 
-/** Collect units from a single hash cell into neighborBuffer */
 function collectCellNeighbors(key: number, count: number): number {
   const a = hashMap.get(key);
   if (!a) return count;

@@ -85,11 +85,14 @@ export interface ReinforcementState {
   reinforcementTimer: number;
 }
 
+export const REINFORCE_INTERVAL = 2.5;
+export const REINFORCE_UNIT_CAP = 130;
+
 export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
   rs.reinforcementTimer += dt;
-  if (rs.reinforcementTimer < 2.5) return;
+  if (rs.reinforcementTimer < REINFORCE_INTERVAL) return;
   rs.reinforcementTimer = 0;
-  const lim = 130;
+  const lim = REINFORCE_UNIT_CAP;
   for (const team of TEAMS) {
     const cnt = countAlive(team);
     if (cnt < lim) spawnWave(team, cnt, rng);

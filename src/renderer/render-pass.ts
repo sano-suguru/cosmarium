@@ -1,10 +1,9 @@
-import { WRAP_PERIOD } from '../constants.ts';
 import { cam } from '../input/camera.ts';
 import { state } from '../state.ts';
 import type { FBO } from '../types.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
 import { fbos } from './fbo.ts';
-import { renderScene } from './render-scene.ts';
+import { renderScene, WRAP_PERIOD } from './render-scene.ts';
 import {
   bloomLocations,
   bloomProgram,

@@ -1,25 +1,19 @@
 import { effectColor } from '../colors.ts';
-import {
-  BASTION_ABSORB_RATIO,
-  BASTION_SELF_ABSORB_RATIO,
-  NEIGHBOR_BUFFER_SIZE,
-  ORPHAN_TETHER_BEAM_MULT,
-  POOL_PROJECTILES,
-  REF_FPS,
-  REFLECT_BEAM_DAMAGE_MULT,
-  SH_CIRCLE,
-  SH_DIAMOND,
-  SH_DIAMOND_RING,
-  SH_EXPLOSION_RING,
-} from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { chainLightning, explosion } from './effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+
+export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
+export const BASTION_ABSORB_RATIO = 0.4;
+export const BASTION_SELF_ABSORB_RATIO = 0.3;
+export const ORPHAN_TETHER_BEAM_MULT = 0.8;
+const SH_DIAMOND_RING = 17;
 
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
 
@@ -107,7 +101,7 @@ export function aimAt(
   const leadAng = Math.atan2(py, px);
   const leadDist = Math.sqrt(px * px + py * py);
 
-  // accuracy でブレンド（角度は最短弧で補間）
+  // ±π境界を超えると逆方向に回るため最短弧で補間
   let angleDiff = leadAng - directAng;
   if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
   if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
@@ -138,7 +132,6 @@ const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
 const _sweepSnapshot = new Int32Array(NEIGHBOR_BUFFER_SIZE);
 let _sweepSnapshotCount = 0;
 
-/** getNeighbors 結果を _sweepSnapshot にコピー */
 function snapshotNeighbors(x: number, y: number, r: number): number {
   const nn = getNeighbors(x, y, r);
   for (let k = 0; k < nn; k++) _sweepSnapshot[k] = getNeighborAt(k);
@@ -600,7 +593,7 @@ function handleChain(ctx: CombatContext): void {
   }
 }
 
-/** 反射ビームの共通ダメージ処理（beam描画・パーティクル・ダメージ・kill判定） */
+/** Reflector反射とBastionシールド反射の共通処理を集約（重複排除） */
 function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): void {
   const attacker = unit(attackerUi);
   if (!attacker.alive) return;
@@ -658,7 +651,6 @@ function tryReflectFieldBeam(
   return true;
 }
 
-/** Bastion 自身のシールドエネルギーでダメージを部分吸収する */
 export function absorbByBastionShield(u: Unit, dmg: number): number {
   const t = unitType(u.type);
   if (!t.shields || u.energy <= 0) return dmg;
@@ -1311,10 +1303,9 @@ function handleFlagshipBarrage(ctx: CombatContext) {
     return;
   }
 
-  // cooldown wait
   if (u.beamOn === 0 && u.cooldown > 0) return;
 
-  // Charge phase: lock angle, build up
+  // State: IDLE → CHARGING（角度ロック、エネルギー蓄積開始）
   if (u.beamOn === 0) {
     const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, FLAGSHIP_MAIN_GUN_SPEED, t.leadAccuracy);
     u.sweepBaseAngle = aim.ang;
@@ -1337,7 +1328,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
     return;
   }
 
-  // Broadside phase: fire perpendicular shots after short delay
+  // State: BROADSIDE（チャージ完了後、cooldown経過で側面射撃）
   if (u.broadsidePhase === BROADSIDE_PHASE_FIRE && u.cooldown <= 0) {
     flagshipFireBroadside(ctx, u.sweepBaseAngle);
     u.cooldown = t.fireRate;

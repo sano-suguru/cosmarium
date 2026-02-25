@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { MAX_INSTANCES } from '../constants.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
 
+// vi.mock ホイスティングにより buffers.ts の実値を参照できないためリテラル指定
+// ⚠ MAX_INSTANCES は buffers.ts の値と一致させること
 vi.mock('./buffers.ts', () => ({
-  instanceData: new Float32Array(MAX_INSTANCES * 9),
+  MAX_INSTANCES: 100_000,
+  instanceData: new Float32Array(100_000 * 9),
   writeSlots: (...args: unknown[]) => mockWriteSlots(...args),
 }));
 
@@ -15,7 +17,12 @@ vi.mock('../ui/dev-overlay.ts', () => ({
   devWarn: vi.fn(),
 }));
 
+import { MAX_INSTANCES } from './buffers.ts';
 import { renderScene } from './render-scene.ts';
+
+it('mock の MAX_INSTANCES が実値と一致する', () => {
+  expect(MAX_INSTANCES).toBe(100_000);
+});
 
 afterEach(() => {
   resetPools();

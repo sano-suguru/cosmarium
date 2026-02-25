@@ -1,23 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
-import {
-  BASTION_ABSORB_RATIO,
-  BASTION_SELF_ABSORB_RATIO,
-  MAX_STEPS_PER_FRAME,
-  ORPHAN_TETHER_PROJECTILE_MULT,
-  POOL_UNITS,
-  REF_FPS,
-  REFLECT_FIELD_GRANT_INTERVAL,
-  REFLECT_FIELD_MAX_HP,
-  SH_CIRCLE,
-  SHIELD_LINGER,
-  TETHER_BEAM_LIFE,
-} from '../constants.ts';
+import { POOL_UNITS, REF_FPS, REFLECT_FIELD_MAX_HP, SH_CIRCLE } from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
+import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO } from './combat.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import {
+  MAX_STEPS_PER_FRAME,
+  ORPHAN_TETHER_PROJECTILE_MULT,
+  REFLECT_FIELD_GRANT_INTERVAL,
+  SHIELD_LINGER,
+  TETHER_BEAM_LIFE,
+} from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),

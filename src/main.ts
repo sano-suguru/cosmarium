@@ -1,6 +1,6 @@
 import './style.css';
 
-import { BASE_SPEED, REF_FPS } from './constants.ts';
+import { REF_FPS } from './constants.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { initBuffers } from './renderer/buffers.ts';
 import { createFBOs } from './renderer/fbo.ts';
@@ -14,6 +14,8 @@ import { rng, state } from './state.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
+
+const BASE_SPEED = 0.55;
 
 // Init order matters: WebGL context → shader compile → FBOs → vertex buffers
 initWebGL();

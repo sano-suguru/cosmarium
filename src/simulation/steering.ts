@@ -17,6 +17,26 @@ const _engageForce: SteerForce = { x: 0, y: 0 };
 const _retreatForce: SteerForce = { x: 0, y: 0 };
 const _healForce: SteerForce = { x: 0, y: 0 };
 
+const SEPARATION_SCALE = 200;
+const SEPARATION_WEIGHT = 3;
+const ALIGNMENT_WEIGHT = 0.5;
+const COHESION_WEIGHT = 0.01;
+
+const COHESION_RANGE = 150;
+const ALIGNMENT_RANGE = 120;
+
+const GLOBAL_TARGET_PROB = 0.012;
+const NEIGHBOR_RANGE = 200;
+
+const VET_SPEED_BONUS = 0.12;
+export const STUN_DRAG_BASE = 0.93;
+const RETREAT_SPEED_SCALE = 2.5;
+
+export const BOUNDARY_MARGIN = 0.8;
+const BOUNDARY_FORCE = 120;
+
+const HEALER_FOLLOW_WEIGHT = 0.05;
+
 const VET_TARGET_WEIGHT = 0.3;
 
 function targetScore(ux: number, uy: number, o: Unit, massWeight: number): number {
@@ -26,7 +46,7 @@ function targetScore(ux: number, uy: number, o: Unit, massWeight: number): numbe
   return d2 / (vf * vf * mf * mf);
 }
 
-// 近傍から最近接敵を検索（ベテランほど見かけ距離が短くなる、massWeight>0で重い敵優先）
+// targetScore(): vet差で見かけ距離を縮小し、massWeight>0で重い敵にバイアス
 function findNearestLocalEnemy(u: Unit, nn: number, range: number, massWeight: number): UnitIndex {
   const limit = range * 3;
   let bs = limit * limit,
@@ -44,7 +64,7 @@ function findNearestLocalEnemy(u: Unit, nn: number, range: number, massWeight: n
   return bi;
 }
 
-// 全ユニットから最近接敵を検索（ベテランほど見かけ距離が短くなる、massWeight>0で重い敵優先）
+// findNearestLocalEnemy の全体スキャン版（スコアリングは同一）
 function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
@@ -68,7 +88,7 @@ function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => n
   const localTarget = findNearestLocalEnemy(u, nn, range, massWeight);
   if (localTarget !== NO_UNIT) return localTarget;
 
-  if (rng() < 1 - (1 - 0.012) ** (dt * REF_FPS)) {
+  if (rng() < 1 - (1 - GLOBAL_TARGET_PROB) ** (dt * REF_FPS)) {
     return findNearestGlobalEnemy(u, massWeight);
   }
   return NO_UNIT;
@@ -77,7 +97,6 @@ function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => n
 // Boids accumulator — computeBoidsForce がリセットし accumulateBoidsNeighbor が累積
 const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
 
-// 近傍単体の Boids 力を _boids に集約
 function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   const dx = u.x - o.x,
     dy = u.y - o.y;
@@ -87,16 +106,16 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
 
   if (d < sd) {
     const massScale = Math.sqrt(unitType(o.type).mass / uMass);
-    _boids.sx += (dx / d / d2) * 200 * massScale;
-    _boids.sy += (dy / d / d2) * 200 * massScale;
+    _boids.sx += (dx / d / d2) * SEPARATION_SCALE * massScale;
+    _boids.sy += (dy / d / d2) * SEPARATION_SCALE * massScale;
   }
   if (o.team === u.team) {
-    if (d < 150) {
+    if (d < COHESION_RANGE) {
       _boids.chx += o.x;
       _boids.chy += o.y;
       _boids.cc++;
     }
-    if (o.type === u.type && d < 120) {
+    if (o.type === u.type && d < ALIGNMENT_RANGE) {
       _boids.ax += o.vx;
       _boids.ay += o.vy;
       _boids.ac++;
@@ -122,15 +141,15 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
     accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
 
-  let fx = _boids.sx * 3,
-    fy = _boids.sy * 3;
+  let fx = _boids.sx * SEPARATION_WEIGHT,
+    fy = _boids.sy * SEPARATION_WEIGHT;
   if (_boids.ac > 0) {
-    fx += (_boids.ax / _boids.ac - u.vx) * 0.5;
-    fy += (_boids.ay / _boids.ac - u.vy) * 0.5;
+    fx += (_boids.ax / _boids.ac - u.vx) * ALIGNMENT_WEIGHT;
+    fy += (_boids.ay / _boids.ac - u.vy) * ALIGNMENT_WEIGHT;
   }
   if (_boids.cc > 0) {
-    fx += (_boids.chx / _boids.cc - u.x) * 0.01;
-    fy += (_boids.chy / _boids.cc - u.y) * 0.01;
+    fx += (_boids.chx / _boids.cc - u.x) * COHESION_WEIGHT;
+    fy += (_boids.chy / _boids.cc - u.y) * COHESION_WEIGHT;
   }
   _boidsForce.x = fx;
   _boidsForce.y = fy;
@@ -198,7 +217,7 @@ function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number):
     rx = (rx / mag) * s;
     ry = (ry / mag) * s;
   }
-  const scale = urgency * t.speed * 2.5;
+  const scale = urgency * t.speed * RETREAT_SPEED_SCALE;
   _retreatForce.x = rx * scale;
   _retreatForce.y = ry * scale;
   return _retreatForce;
@@ -218,8 +237,8 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   }
   if (bi !== NO_UNIT) {
     const o = unit(bi);
-    _healForce.x = (o.x - u.x) * 0.05;
-    _healForce.y = (o.y - u.y) * 0.05;
+    _healForce.x = (o.x - u.x) * HEALER_FOLLOW_WEIGHT;
+    _healForce.y = (o.y - u.y) * HEALER_FOLLOW_WEIGHT;
     return _healForce;
   }
   _healForce.x = 0;
@@ -287,7 +306,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.stun > 0) {
     u.stun -= dt;
     tickBoostDuringStun(u, dt);
-    const stunDrag = (0.93 ** invSqrtMass(u.type)) ** (dt * REF_FPS);
+    const stunDrag = (STUN_DRAG_BASE ** invSqrtMass(u.type)) ** (dt * REF_FPS);
     u.vx *= stunDrag;
     u.vy *= stunDrag;
     u.x += u.vx * dt;
@@ -295,7 +314,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
     return;
   }
   const t = unitType(u.type);
-  const nn = getNeighbors(u.x, u.y, 200);
+  const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
 
   const boids = computeBoidsForce(u, nn, t);
   let fx = boids.x,
@@ -325,11 +344,11 @@ export function steer(u: Unit, dt: number, rng: () => number) {
     fy += heal.y;
   }
 
-  const m = WORLD_SIZE * 0.8;
-  if (u.x < -m) fx += 120;
-  if (u.x > m) fx -= 120;
-  if (u.y < -m) fy += 120;
-  if (u.y > m) fy -= 120;
+  const m = WORLD_SIZE * BOUNDARY_MARGIN;
+  if (u.x < -m) fx += BOUNDARY_FORCE;
+  if (u.x > m) fx -= BOUNDARY_FORCE;
+  if (u.y < -m) fy += BOUNDARY_FORCE;
+  if (u.y > m) fy -= BOUNDARY_FORCE;
 
   const da = Math.atan2(fy, fx);
   let ad = da - u.angle;
@@ -337,7 +356,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   if (ad < -PI) ad += TAU;
   u.angle += ad * t.turnRate * dt;
 
-  const spd = t.speed * (1 + u.vet * 0.12);
+  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS);
 
   const boostVel = t.boost ? handleBoost(u, t.boost, tgt, spd, dt) : null;
   const response = dt * t.accel;

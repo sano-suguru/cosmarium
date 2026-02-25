@@ -1,18 +1,10 @@
 import type { Color3, Team } from './types.ts';
 
-// ── Team base colors ────────────────────────────────────────────────
-// Single base hue per team. Unit categories are differentiated via
-// hue-shift / luminance / saturation modifiers below.
 const TEAM_BASE: readonly [Color3, Color3] = [
   [0.15, 0.85, 1.0], // Team 0 — cyan
   [1.0, 0.35, 0.2], // Team 1 — vermilion
 ];
 
-// ── Per-unit-type modifiers ─────────────────────────────────────────
-// [hueShift, luminanceMult, saturationMult]
-//  hueShift     : HSL hue shift (turns, -0.5 .. +0.5)
-//  luminanceMult: >1 brighter, <1 darker
-//  saturationMult: >1 more vivid, <1 closer to white/grey
 interface UnitColorMod {
   readonly hue: number; // -0.5 .. +0.5  colour lean (HSL turns)
   readonly lum: number; // 0.6 .. 1.4    brightness
@@ -21,13 +13,7 @@ interface UnitColorMod {
   readonly effectSat?: number;
 }
 
-// Index = unit type id (same order as TYPES in unit-types.ts)
-// Categories:
-//   小型攻撃  (Drone, Fighter, Teleporter) — warm lean
-//   重火力    (Bomber, Cruiser, Flagship, Lancer) — strong warm
-//   支援      (Healer, Reflector, Bastion) — cool lean
-//   射撃/特殊 (Sniper, Launcher, Disruptor, Scorcher, Arcer) — mixed
-//   母艦      (Carrier) — unique deep purple
+// 順序は TYPES (unit-types.ts) と一致
 const UNIT_MODS: readonly UnitColorMod[] = [
   // 0  Drone       — 小型攻撃: warm lean, vivid
   { hue: -0.08, lum: 1.08, sat: 1.15, effectHue: -0.15, effectSat: 1.35 },
@@ -62,8 +48,6 @@ const UNIT_MODS: readonly UnitColorMod[] = [
   // 15 Bastion     — 支援: cool steel, desaturated
   { hue: 0.06, lum: 1.0, sat: 0.55, effectHue: 0.13, effectSat: 1.05 },
 ];
-
-// ── Colour generation ───────────────────────────────────────────────
 
 interface HslMod {
   readonly hue: number;

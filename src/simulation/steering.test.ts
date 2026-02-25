@@ -7,7 +7,7 @@ import type { UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
-import { steer } from './steering.ts';
+import { BOUNDARY_MARGIN, STUN_DRAG_BASE, steer } from './steering.ts';
 
 afterEach(() => {
   resetPools();
@@ -28,7 +28,7 @@ describe('steer — スタン', () => {
     steer(u, 0.016, rng);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
     const mass = unitType(1).mass;
-    const expectedDrag = (0.93 ** (1 / Math.sqrt(mass))) ** (0.016 * 30);
+    const expectedDrag = (STUN_DRAG_BASE ** (1 / Math.sqrt(mass))) ** (0.016 * 30);
     expect(u.vx).toBeCloseTo(100 * expectedDrag);
     expect(u.vy).toBeCloseTo(50 * expectedDrag);
     expect(u.x).toBeGreaterThan(xBefore);
@@ -227,8 +227,9 @@ describe('steer — ヒーラー追従', () => {
 });
 
 describe('steer — ワールド境界', () => {
-  it('|x| > WORLD_SIZE*0.8 → 内向き力', () => {
-    const idx = spawnAt(0, 1, WORLD_SIZE * 0.85, 0);
+  it('|x| > WORLD_SIZE*BOUNDARY_MARGIN → 内向き力', () => {
+    const outsideX = WORLD_SIZE * (BOUNDARY_MARGIN + 0.05);
+    const idx = spawnAt(0, 1, outsideX, 0);
     const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
@@ -236,19 +237,20 @@ describe('steer — ワールド境界', () => {
     buildHash();
     for (let i = 0; i < 30; i++) steer(u, 0.033, rng);
     // 境界の外側にいるので内側（左方向）に力
-    expect(u.x).toBeLessThan(WORLD_SIZE * 0.85);
+    expect(u.x).toBeLessThan(outsideX);
   });
 
-  it('|y| > WORLD_SIZE*0.8 → 内向き力', () => {
-    const idx = spawnAt(0, 1, 0, -WORLD_SIZE * 0.85);
+  it('|y| > WORLD_SIZE*BOUNDARY_MARGIN → 内向き力', () => {
+    const outsideY = WORLD_SIZE * (BOUNDARY_MARGIN + 0.05);
+    const idx = spawnAt(0, 1, 0, -outsideY);
     const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
     u.target = NO_UNIT;
     buildHash();
     for (let i = 0; i < 30; i++) steer(u, 0.033, rng);
-    // y < -WORLD_SIZE*0.8 なので上方向（yが増える方向）に力
-    expect(u.y).toBeGreaterThan(-WORLD_SIZE * 0.85);
+    // y < -WORLD_SIZE*BOUNDARY_MARGIN なので上方向（yが増える方向）に力
+    expect(u.y).toBeGreaterThan(-outsideY);
   });
 });
 

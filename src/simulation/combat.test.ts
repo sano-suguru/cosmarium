@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { ORPHAN_TETHER_BEAM_MULT, POOL_UNITS, REFLECT_BEAM_DAMAGE_MULT, REFLECT_FIELD_MAX_HP } from '../constants.ts';
+import { POOL_UNITS, REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { decUnits, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
+import { ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
 import { killProjectile, spawnProjectile } from './spawn.ts';
 import { updateSwarmN } from './update.ts';

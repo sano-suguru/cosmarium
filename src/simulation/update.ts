@@ -1,25 +1,16 @@
+import { swapRemove } from '../array-utils.ts';
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { effectColor } from '../colors.ts';
 import {
-  BASTION_MAX_TETHERS,
-  BASTION_SHIELD_RADIUS,
-  HIT_FLASH_DURATION,
-  MAX_STEPS_PER_FRAME,
-  ORPHAN_TETHER_PROJECTILE_MULT,
   PI,
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
   REF_FPS,
-  REFLECT_FIELD_GRANT_INTERVAL,
   REFLECT_FIELD_MAX_HP,
-  REFLECT_FIELD_RADIUS,
   SH_CIRCLE,
   SH_EXPLOSION_RING,
-  SHIELD_LINGER,
-  SWARM_RADIUS_SQ,
   TAU,
-  TETHER_BEAM_LIFE,
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
@@ -34,6 +25,17 @@ import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addTrackingBeam, killParticle, killProjectile, killUnit, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
+
+export const SHIELD_LINGER = 2;
+export const TETHER_BEAM_LIFE = 0.7;
+const SWARM_RADIUS_SQ = 80 * 80;
+const HIT_FLASH_DURATION = 0.08;
+export const MAX_STEPS_PER_FRAME = 8;
+export const REFLECT_FIELD_GRANT_INTERVAL = 1;
+const REFLECT_FIELD_RADIUS = 100;
+const BASTION_SHIELD_RADIUS = 120;
+const BASTION_MAX_TETHERS = 4;
+export const ORPHAN_TETHER_PROJECTILE_MULT = 0.7;
 
 function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
   const tg = unit(p.target);
@@ -171,10 +173,10 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
 }
 
 function updateProjectiles(dt: number, rng: () => number) {
-  for (let i = 0, prem = poolCounts.projectiles; i < POOL_PROJECTILES && prem > 0; i++) {
+  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) continue;
-    prem--;
+    rem--;
 
     if (p.homing && p.target !== NO_UNIT) steerHomingProjectile(p, dt, rng);
 
@@ -215,9 +217,7 @@ function updateBeams(dt: number) {
     const bm = getBeam(i);
     bm.life -= dt;
     if (bm.life <= 0) {
-      const last = beams[beams.length - 1];
-      if (last !== undefined) beams[i] = last;
-      beams.pop();
+      swapRemove(beams, i);
     } else {
       i++;
     }
@@ -231,9 +231,7 @@ function updateTrackingBeams(dt: number) {
     const src = unit(tb.srcUnit);
     const tgt = unit(tb.tgtUnit);
     if (tb.life <= 0 || !src.alive || !tgt.alive || src.team !== tgt.team) {
-      const last = trackingBeams[trackingBeams.length - 1];
-      if (last !== undefined) trackingBeams[i] = last;
-      trackingBeams.pop();
+      swapRemove(trackingBeams, i);
       continue;
     }
     tb.x1 = src.x;
@@ -258,10 +256,10 @@ function countSwarmAllies(u: Unit): number {
 }
 
 export function updateSwarmN() {
-  for (let i = 0, urem3 = poolCounts.units; i < POOL_UNITS && urem3 > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
-    urem3--;
+    rem--;
     if (!unitType(u.type).swarm) {
       u.swarmN = 0;
       continue;
@@ -278,10 +276,10 @@ function emitTrail(u: Unit, rng: () => number) {
 }
 
 function updateUnits(dt: number, now: number, rng: () => number) {
-  for (let i = 0, urem = poolCounts.units; i < POOL_UNITS && urem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
-    urem--;
+    rem--;
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
     steer(u, dt, rng);
@@ -344,7 +342,6 @@ function decayShieldTimers(dt: number) {
   }
 }
 
-/** Reflector が味方に反射フィールドを一括付与する */
 function applyReflectorAllyField(u: Unit, i: number, dt: number) {
   if (u.maxEnergy <= 0) return;
   if (u.fieldGrantCooldown > 0) {
@@ -367,7 +364,6 @@ function applyReflectorAllyField(u: Unit, i: number, dt: number) {
   }
 }
 
-/** 既存テザービームの life をリフレッシュする */
 function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
   for (let i = 0; i < trackingBeams.length; i++) {
     const tb = getTrackingBeam(i);
@@ -384,7 +380,7 @@ function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
 const _tetherOi = new Int32Array(BASTION_MAX_TETHERS);
 const _tetherDist = new Float64Array(BASTION_MAX_TETHERS);
 
-/** ソート済みバッファに (oi, d) を挿入ソートで配置 */
+/** 固定サイズ (BASTION_MAX_TETHERS=4) のため挿入ソートで十分 */
 function tetherBubbleInsert(start: number, oi: number, d: number) {
   let p = start;
   while (p > 0 && (_tetherDist[p - 1] ?? 0) > d) {
@@ -396,7 +392,6 @@ function tetherBubbleInsert(start: number, oi: number, d: number) {
   _tetherDist[p] = d;
 }
 
-/** Bastion が味方にテザーを繋ぐ */
 function tetherNearbyAllies(u: Unit, i: number) {
   const nn = getNeighbors(u.x, u.y, BASTION_SHIELD_RADIUS);
   let count = 0;
@@ -427,10 +422,10 @@ function tetherNearbyAllies(u: Unit, i: number) {
 
 function applyShieldsAndFields(dt: number) {
   decayShieldTimers(dt);
-  for (let i = 0, urem2 = poolCounts.units; i < POOL_UNITS && urem2 > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
-    urem2--;
+    rem--;
     const t = unitType(u.type);
     if (t.reflects) applyReflectorAllyField(u, i, dt);
     if (t.shields) tetherNearbyAllies(u, i);

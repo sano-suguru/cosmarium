@@ -1,8 +1,9 @@
-import { BLINK_KILL_CD } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
+
+const BLINK_KILL_CD = 0.8;
 
 export const KILL_CONTEXT = {
   ProjectileDirect: 0,

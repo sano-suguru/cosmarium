@@ -16,7 +16,15 @@ vi.mock('../input/camera.ts', () => ({
 }));
 
 import { addShake } from '../input/camera.ts';
-import { boostBurst, boostTrail, chainLightning, explosion, trail, updateChains } from './effects.ts';
+import {
+  boostBurst,
+  boostTrail,
+  CHAIN_DAMAGE_DECAY,
+  chainLightning,
+  explosion,
+  trail,
+  updateChains,
+} from './effects.ts';
 
 afterEach(() => {
   resetPools();
@@ -121,7 +129,7 @@ describe('chainLightning', () => {
     const hpBefore = unit(enemy).hp;
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0], rng);
     expect(beams).toHaveLength(1);
-    // ch=0: damage * (1 - 0*0.12) = 4
+    // ch=0: damage * (1 - 0*CHAIN_DAMAGE_DECAY) = 4
     expect(unit(enemy).hp).toBe(hpBefore - 4);
   });
 
@@ -133,11 +141,11 @@ describe('chainLightning', () => {
     const hp1Before = unit(e1).hp;
     const hp2Before = unit(e2).hp;
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
-    // ch=0: 10 * (1 - 0*0.12) = 10
+    // ch=0: 10 * (1 - 0*CHAIN_DAMAGE_DECAY) = 10
     expect(unit(e1).hp).toBeCloseTo(hp1Before - 10);
     updateChains(0.06, rng);
-    // ch=1: 10 * (1 - 1*0.12) = 8.8
-    expect(unit(e2).hp).toBeCloseTo(hp2Before - 8.8);
+    // ch=1: 10 * (1 - 1*CHAIN_DAMAGE_DECAY) = 8.8
+    expect(unit(e2).hp).toBeCloseTo(hp2Before - 10 * (1 - CHAIN_DAMAGE_DECAY));
     expect(beams).toHaveLength(2);
   });
 
@@ -185,10 +193,10 @@ describe('chainLightning', () => {
     expect(unit(e2).hp).toBe(hp2Before);
     expect(unit(e3).hp).toBe(hp3Before);
     updateChains(0.06, rng);
-    expect(unit(e2).hp).toBeCloseTo(hp2Before - 8.8);
+    expect(unit(e2).hp).toBeCloseTo(hp2Before - 10 * (1 - 1 * CHAIN_DAMAGE_DECAY));
     expect(unit(e3).hp).toBe(hp3Before);
     updateChains(0.06, rng);
-    expect(unit(e3).hp).toBeCloseTo(hp3Before - 7.6);
+    expect(unit(e3).hp).toBeCloseTo(hp3Before - 10 * (1 - 2 * CHAIN_DAMAGE_DECAY));
   });
 
   it('ビーム数の段階的増加', () => {

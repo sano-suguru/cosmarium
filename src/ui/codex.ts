@@ -52,7 +52,6 @@ let elCodexList: HTMLElement | null = null;
 let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
 
-// --- Snapshot ---
 interface PoolSnapshot {
   units: Array<{ index: number; data: Unit }>;
   particles: Array<{ index: number; data: Particle }>;
@@ -363,7 +362,6 @@ export function updateCodexDemo(dt: number) {
   }
 }
 
-/** 1フレーム1回呼び出し。デモ中のカメラtargetを更新 */
 export function syncDemoCamera(): void {
   const bounds = computeDemoBounds();
   updateDemoCamera(bounds);

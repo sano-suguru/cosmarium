@@ -1,29 +1,30 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { color } from '../colors.ts';
 import {
-  MAX_INSTANCES,
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
   REFLECT_FIELD_MAX_HP,
-  SH_BAR,
-  SH_BEAM,
   SH_CIRCLE,
   SH_DIAMOND,
   SH_EXPLOSION_RING,
-  SH_HOMING,
-  SH_LIGHTNING,
-  SH_OCT_SHIELD,
-  SH_REFLECT_FIELD,
   TAU,
   WORLD_SIZE,
-  WRAP_PERIOD,
 } from '../constants.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { Beam, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
-import { instanceData, writeSlots } from './buffers.ts';
+import { instanceData, MAX_INSTANCES, writeSlots } from './buffers.ts';
+
+const SH_BEAM = 12;
+const SH_HOMING = 14;
+const SH_BAR = 21;
+const SH_OCT_SHIELD = 22;
+const SH_LIGHTNING = 23;
+const SH_REFLECT_FIELD = 27;
+// TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
+export const WRAP_PERIOD = TAU * 10000;
 
 const _writer = { idx: 0, overflowWarned: false };
 
@@ -318,7 +319,7 @@ function renderProjectiles() {
     if (pr.homing) shape = SH_HOMING;
     else if (pr.aoe > 0) shape = SH_CIRCLE;
     else shape = SH_DIAMOND;
-    writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, /*a*/ 1, Math.atan2(pr.vy, pr.vx), shape);
+    writeInstance(pr.x, pr.y, pr.size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 }
 
