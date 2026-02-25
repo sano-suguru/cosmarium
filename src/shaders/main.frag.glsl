@@ -14,7 +14,7 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.040,0.022,0.020,0.020,0.020, // 15-19 sh15=Arcer
   0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
   0.028,0.030,0.020,             // 25-27 sh25=Healer,sh26=Reflector
-  0.025                          // 28    sh28=Amplifier
+  0.028                          // 28    sh28=Amplifier
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.72,0.55,0.38,0.38, // 0-4
@@ -23,7 +23,7 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.75,0.45,0.38,0.38,0.38, // 15-19 sh15=Arcer
   0.25,0.38,0.38,0.38,0.50, // 20-24 sh20=Bastion,sh24=Flagship
   0.28,0.30,0.38,            // 25-27 sh25=Healer,sh26=Reflector
-  0.40                        // 28    sh28=Amplifier
+  0.45                        // 28    sh28=Amplifier
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.70,0.50,0.48,0.48, // 0-4
@@ -32,7 +32,7 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.35,0.30,0.48,0.48,0.48, // 15-19 sh15=Arcer
   0.22,0.48,0.48,0.48,0.32, // 20-24 sh20=Bastion,sh24=Flagship
   0.35,0.40,0.48,            // 25-27 sh25=Healer,sh26=Reflector
-  0.35                        // 28    sh28=Amplifier
+  0.38                        // 28    sh28=Amplifier
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   2.4,2.2,1.4,1.5,1.5, // 0-4
@@ -41,7 +41,7 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   0.9,1.1,1.5,1.5,1.5, // 15-19 sh15=Arcer
   0.85,1.5,1.5,1.5,1.1,// 20-24 sh20=Bastion,sh24=Flagship
   2.2,2.5,1.5,           // 25-27 sh25=Healer,sh26=Reflector
-  1.4                     // 28    sh28=Amplifier
+  1.3                     // 28    sh28=Amplifier
 );
 void main(){
   float d=length(vU), a=0.0;
@@ -937,38 +937,71 @@ void main(){
     // Soft inner ambient glow
     a+=exp(-hd*2.8)*0.18;
     fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
-  // ── sh28: Amplifier — パラボラアンテナ支援艦 ──
-  else if(sh==28){
-    float ca=cos(vA), sa=sin(vA);
-    vec2 r=vec2(vU.x*ca+vU.y*sa, -vU.x*sa+vU.y*ca);
-    // parabolic dish (concave forward)
-    float dish=sdArc(r-vec2(0.35,0.0), vec2(0.866,0.5), 0.55, 0.06);
-    // compact body hull
-    float body=sdRoundedBox(r-vec2(-0.15,0.0), vec2(0.28,0.22), 0.08);
-    // support struts connecting dish to body
-    float strut1=sdCapsule(r, vec2(0.0,0.15), vec2(0.30,0.30), 0.025);
-    float strut2=sdCapsule(r, vec2(0.0,-0.15), vec2(0.30,-0.30), 0.025);
-    // stabilizer fins
-    float fin1=sdCapsule(r, vec2(-0.35,0.22), vec2(-0.42,0.38), 0.02);
-    float fin2=sdCapsule(r, vec2(-0.35,-0.22), vec2(-0.42,-0.38), 0.02);
-    float hull=min(min(dish,body),min(min(strut1,strut2),min(fin1,fin2)));
-    a=smoothstep(0.04,0.0,hull);
-    // focal point glow (pulsating)
-    float focalD=length(r-vec2(0.08,0.0));
-    float pulse=0.5+0.5*sin(uTime*6.0);
-    a+=exp(-focalD*14.0)*(0.4+0.3*pulse);
-    // energy flow on dish surface
-    float dishFlow=smoothstep(0.08,0.0,dish);
-    float wave=sin(r.y*22.0-uTime*8.0)*0.5+0.5;
-    a+=dishFlow*wave*0.25;
-    // engine glow
-    float eng=exp(-length(r-vec2(-0.42,0.0))*10.0)*0.3;
-    a+=eng;
+  // ── sh28: Amplifier — 前進翼・増幅戦闘艦 ──
+  else if(sh==28){ vec2 p=vU*0.58; float t=vA+uTime;
+    // 1. Wedge hull (trapezoid: wide stern → sharp bow)
+    float dHull=sdTrapezoid(p.yx-vec2(0.0,0.04),0.24,0.03,0.46);
+    // 2. Large forward-swept main wings (shoulder → front-outward)
+    float dWingM=sdCapsule(p,vec2(-0.08,0.12),vec2(0.28,0.42),0.045);
+    float dWingMR=sdCapsule(p,vec2(-0.08,-0.12),vec2(0.28,-0.42),0.045);
+    // 3. Secondary forward-swept wings (inner, shorter)
+    float dWingS=sdCapsule(p,vec2(-0.14,0.10),vec2(0.16,0.30),0.030);
+    float dWingSR=sdCapsule(p,vec2(-0.14,-0.10),vec2(0.16,-0.30),0.030);
+    float dWings=min(min(dWingM,dWingMR),min(dWingS,dWingSR));
+    // 4. Aggressive wing tips (forward-swept triangular ends)
+    float dTipL=sdTriangle(p,vec2(0.24,0.40),vec2(0.36,0.50),vec2(0.22,0.46));
+    float dTipR=sdTriangle(p,vec2(0.24,-0.40),vec2(0.36,-0.50),vec2(0.22,-0.46));
+    dWings=min(dWings,min(dTipL,dTipR));
+    // 5. Bow spike (amplifier focal point)
+    float dSpike=sdCapsule(p,vec2(0.38,0.0),vec2(0.56,0.0),0.018);
+    float dBody=smin(dHull,dWings,0.05);
+    dBody=smin(dBody,dSpike,0.03);
+    // 6. Panel grooves — horizontal centre line
+    float dGH=sdRoundedBox(p,vec2(0.36,0.012),0.003);
+    dBody=max(dBody,-dGH+0.008);
+    // 7. Wing conduit grooves (energy conduits along wings)
+    float dCondL=sdCapsule(p,vec2(-0.10,0.13),vec2(0.24,0.38),0.008);
+    float dCondR=sdCapsule(p,vec2(-0.10,-0.13),vec2(0.24,-0.38),0.008);
+    dBody=max(dBody,-min(dCondL,dCondR)+0.006);
+    // 8. Diagonal armor cuts at ±20deg
+    float cs20=0.940; float sn20=0.342;
+    vec2 pr1=vec2(p.x*cs20-p.y*sn20,p.x*sn20+p.y*cs20);
+    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.02,0.0),vec2(0.28,0.008),0.003));
+    vec2 pr2=vec2(p.x*cs20+p.y*sn20,-p.x*sn20+p.y*cs20);
+    dBody=max(dBody,-sdRoundedBox(pr2-vec2(0.02,0.0),vec2(0.28,0.008),0.003));
+    // 9. Engine nozzle cutouts (twin)
+    float dN1=sdRoundedBox(p-vec2(-0.48,0.10),vec2(0.02,0.032),0.008);
+    float dN2=sdRoundedBox(p-vec2(-0.48,-0.10),vec2(0.02,0.032),0.008);
+    dBody=max(dBody,-min(dN1,dN2));
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+    // 10. EM concentric rings (3-ring pulse from hull centre)
+    float rd=length(p-vec2(0.04,0.0));
+    float ring1=exp(-pow(rd-mod(t*0.8,1.2),2.0)*80.0)*0.35;
+    float ring2=exp(-pow(rd-mod(t*0.8+0.4,1.2),2.0)*80.0)*0.28;
+    float ring3=exp(-pow(rd-mod(t*0.8+0.8,1.2),2.0)*80.0)*0.20;
+    float rings=(ring1+ring2+ring3)*smoothstep(0.7,0.2,rd);
+    // 11. Bow focal point glow
+    float focalD=length(p-vec2(0.56,0.0));
+    float focalGlow=exp(-focalD*14.0)*(0.5+0.4*sin(t*6.0));
+    // 12. Wing conduit energy flow
+    float condMaskL=1.0-smoothstep(0.0,aa*3.0,abs(dCondL));
+    float condMaskR=1.0-smoothstep(0.0,aa*3.0,abs(dCondR));
+    float condFlow=(condMaskL+condMaskR)*(0.3+0.7*(0.5+0.5*sin(p.x*12.0-t*6.0)))*0.35;
+    // 13. Twin engines + exhaust trail
+    float eP=0.65+0.35*sin(t*8.0);
+    float eL=exp(-length(p-vec2(-0.50,0.10))*10.0);
+    float eR=exp(-length(p-vec2(-0.50,-0.10))*10.0);
+    float eng=(eL+eR)*eP;
+    float dy=min(abs(p.y-0.10),abs(p.y+0.10));
+    float trail=step(p.x,-0.50)*exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.30;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+focalGlow*0.50+condFlow+eng*0.45+trail;
     vec3 col=vC.rgb;
-    // orange tint on dish
-    col=mix(col,vec3(1.0,0.65,0.2),dishFlow*0.35);
-    // focal bright white
-    col=mix(col,vec3(1.0,0.9,0.7),exp(-focalD*10.0)*0.5);
+    col=mix(col,vec3(0.7,0.95,1.0),(condMaskL+condMaskR)*0.30);
+    col=mix(col,vec3(1.0,0.95,0.85),exp(-focalD*10.0)*0.45);
+    col=mix(col,vec3(1.0,0.75,0.4),rings*0.30);
+    a=1.2*tanh(a/1.2);
     fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
