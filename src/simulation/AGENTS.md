@@ -51,5 +51,5 @@ sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で�
 - `beams`/`trackingBeams`は動的配列でswap-and-pop削除→順序不定
 - `explosion()`のkiller引数: `NO_UNIT`=不明、有効indexならvet/kills加算
 - `getNeighbors()`は`buildHash()`後のみ有効。途中のユニット追加は反映されない
-- `killUnit()` 前に参照する値はローカル変数に退避すること — kill でスロット即時再利用、データ破壊の可能性あり
+- `killUnit()` + `explosion()` のペアは必ず `killUnitWithExplosion()` でまとめること — 内部でスナップショットを取るため手動退避不要。`killUnit()` 単体使用時は kill 前に値を退避すること
 - `on-kill-effects.ts`: `KILL_CONTEXT`で攻撃種別を分類。`ProjectileDirect`のみcooldownリセット適用

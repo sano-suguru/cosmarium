@@ -5,9 +5,10 @@ import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
-import { chainLightning, explosion } from './effects.ts';
+import { chainLightning, killUnitWithExplosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
-import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import type { Killer } from './spawn.ts';
+import { addBeam, killerFrom, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 export const AMP_RANGE_MULT = 1.25;
 const AMP_ACCURACY_MULT = 1.4;
@@ -152,11 +153,12 @@ export function resetReflected() {
   reflectedThisFrame.clear();
 }
 
-onKillUnit((i) => sweepHitMap.delete(i));
+onKillUnit((e) => sweepHitMap.delete(e.victim));
 
 interface CombatContext {
   u: Unit;
   ui: UnitIndex;
+  killer: Killer;
   dt: number;
   c: Color3;
   vd: number;
@@ -170,6 +172,7 @@ interface CombatContext {
 const _ctx: CombatContext = {
   u: unit(0 as UnitIndex),
   ui: 0 as UnitIndex,
+  killer: { index: 0 as UnitIndex, team: 0, type: 0 },
   dt: 0,
   c: [0, 0, 0],
   vd: 0,
@@ -220,13 +223,13 @@ function handleRam(ctx: CombatContext) {
           SH_CIRCLE,
         );
       }
+      const uKiller = killerFrom(ui);
+      const oKiller = killerFrom(oi);
       if (o.hp <= 0) {
-        killUnit(oi);
-        explosion(o.x, o.y, o.team, o.type, ui, ctx.rng);
+        killUnitWithExplosion(oi, uKiller, ui, ctx.rng);
       }
       if (u.hp <= 0) {
-        killUnit(ui);
-        explosion(u.x, u.y, u.team, u.type, NO_UNIT, ctx.rng);
+        killUnitWithExplosion(ui, oKiller, oi, ctx.rng);
         return;
       }
     }
@@ -422,8 +425,7 @@ function handleEmp(ctx: CombatContext) {
       oo.hp -= t.damage;
       oo.hitFlash = 1;
       if (oo.hp <= 0) {
-        killUnit(oi);
-        explosion(oo.x, oo.y, oo.team, oo.type, ctx.ui, ctx.rng);
+        killUnitWithExplosion(oi, ctx.killer, ctx.ui, ctx.rng);
       }
     }
   }
@@ -594,14 +596,14 @@ function handleChain(ctx: CombatContext): void {
   if (d < 0) return;
   if (d < ctx.range) {
     u.cooldown = t.fireRate;
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.rng);
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.killer, ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }
 
 /** Reflector反射とBastionシールド反射の共通処理を集約（重複排除） */
-function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): void {
-  const attacker = unit(attackerUi);
+function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): void {
+  const attacker = unit(killer.index);
   if (!attacker.alive) return;
 
   const c = effectColor(n.type, n.team);
@@ -612,7 +614,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   const reflectDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
   attacker.hp -= reflectDmg;
   attacker.hitFlash = 1;
-  knockback(attackerUi, n.x, n.y, reflectDmg * 5);
+  knockback(killer.index, n.x, n.y, reflectDmg * 5);
 
   for (let j = 0; j < 4; j++) {
     spawnParticle(
@@ -630,30 +632,22 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   }
 
   if (attacker.hp <= 0) {
-    const { x, y, team, type } = attacker;
-    killUnit(attackerUi);
-    explosion(x, y, team, type, ni, rng);
+    killUnitWithExplosion(killer.index, killerFrom(ni), ni, rng);
   }
 }
 
-function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, attackerUi: UnitIndex): boolean {
+function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): boolean {
   const nt = unitType(n.type);
   if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
   consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
-  reflectBeamDamage(n, ni, baseDmg, rng, attackerUi);
+  reflectBeamDamage(n, ni, baseDmg, rng, killer);
   return true;
 }
 
-function tryReflectFieldBeam(
-  n: Unit,
-  ni: UnitIndex,
-  baseDmg: number,
-  rng: () => number,
-  attackerUi: UnitIndex,
-): boolean {
+function tryReflectFieldBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): boolean {
   if (n.reflectFieldHp <= 0) return false;
   n.reflectFieldHp = Math.max(0, n.reflectFieldHp - baseDmg);
-  reflectBeamDamage(n, ni, baseDmg, rng, attackerUi);
+  reflectBeamDamage(n, ni, baseDmg, rng, killer);
   return true;
 }
 
@@ -674,7 +668,7 @@ export function applyTetherAbsorb(
   n: Unit,
   dmg: number,
   orphanMult: number,
-  killerUi: UnitIndex,
+  killer: Killer | undefined,
   rng: () => number,
 ): number {
   if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
@@ -684,9 +678,7 @@ export function applyTetherAbsorb(
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
       if (src.hp <= 0) {
-        const { x, y, team, type } = src;
-        killUnit(n.shieldSourceUnit);
-        explosion(x, y, team, type, killerUi, rng);
+        killUnitWithExplosion(n.shieldSourceUnit, killer, killer?.index ?? NO_UNIT, rng);
         n.shieldSourceUnit = NO_UNIT;
       }
       return dmg * (1 - BASTION_ABSORB_RATIO);
@@ -699,10 +691,10 @@ export function applyTetherAbsorb(
 }
 
 /** ビームダメージの反射/吸収/軽減を適用。反射成功時は -1 を返す（ダメージスキップ）*/
-function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerUi: UnitIndex): number {
-  if (tryReflectBeam(n, ni, baseDmg, rng, killerUi)) return -1;
-  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerUi)) return -1;
-  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerUi, rng);
+function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): number {
+  if (tryReflectBeam(n, ni, baseDmg, rng, killer)) return -1;
+  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killer)) return -1;
+  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killer, rng);
   dmg = absorbByBastionShield(n, dmg);
   return dmg;
 }
@@ -726,9 +718,7 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: Unit, dmg: number) 
     SH_CIRCLE,
   );
   if (n.hp <= 0) {
-    const { x, y, team, type } = n;
-    killUnit(ni);
-    explosion(x, y, team, type, ctx.ui, ctx.rng);
+    killUnitWithExplosion(ni, ctx.killer, ctx.ui, ctx.rng);
   }
 }
 
@@ -763,9 +753,8 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     if (relEnemy < lo || relEnemy > hi) continue;
     if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
     sweepHitMap.get(ctx.ui)?.add(ni);
-    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui);
+    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.killer);
     if (dmg < 0) continue;
-    // 反射ダメージでattacker(u)が死亡した場合、sweep中断
     if (!u.alive) return;
     applySweepHit(ctx, ni, n, dmg);
   }
@@ -949,8 +938,7 @@ function handleFocusBeam(ctx: CombatContext) {
 
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
-    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui);
-    // 反射で自身(attacker)が死亡した場合、ビーム描画をスキップ
+    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ctx.killer);
     if (!u.alive) return;
     if (dmg >= 0) {
       o.hp -= dmg;
@@ -975,9 +963,7 @@ function handleFocusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
-      const { x, y, team, type } = o;
-      killUnit(u.target);
-      explosion(x, y, team, type, ui, ctx.rng);
+      killUnitWithExplosion(u.target, ctx.killer, ui, ctx.rng);
       u.beamOn = 0;
     }
   }
@@ -1564,6 +1550,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   const vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.u = u;
   _ctx.ui = ui;
+  _ctx.killer = killerFrom(ui);
   _ctx.dt = dt;
   _ctx.c = c;
   _ctx.vd = vd;

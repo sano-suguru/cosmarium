@@ -9,7 +9,7 @@ import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { AMP_DAMAGE_MULT, AMP_RANGE_MULT, ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
-import { killProjectile, spawnProjectile } from './spawn.ts';
+import { killProjectile, onKillUnit, spawnProjectile } from './spawn.ts';
 import { updateSwarmN } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -1912,5 +1912,64 @@ describe('combat — AMPLIFIER buff effects', () => {
 
   it('demoFlag は amplifies を返す', () => {
     expect(demoFlag(unitType(AMPLIFIER_TYPE))).toBe('amplifies');
+  });
+});
+
+// ============================================================
+// KillEvent 伝播テスト
+// ============================================================
+describe('combat — KillEvent 伝播', () => {
+  it('handleRam: 敵kill時の KillEvent に攻撃者情報が含まれる', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const lancer = spawnAt(0, 9, 0, 0);
+    const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3)
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    expect(unit(enemy).alive).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.killerTeam).toBe(0);
+    expect(events[0]?.killerType).toBe(9);
+  });
+
+  it('handleRam: 相打ち時に双方の KillEvent が正しい killer 情報を持つ', () => {
+    const events: { victimTeam: number; killerTeam: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
+    });
+    const lancer = spawnAt(0, 9, 0, 0);
+    unit(lancer).hp = 1; // 自傷で死亡
+    const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, mass=1)
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    // Drone は Lancer の衝突ダメージで死亡、Lancer は自傷 ceil(Drone.mass)=1 で死亡
+    expect(unit(enemy).alive).toBe(false);
+    expect(unit(lancer).alive).toBe(false);
+    expect(events).toHaveLength(2);
+    const enemyKill = events.find((e) => e.victimTeam === 1);
+    const lancerKill = events.find((e) => e.victimTeam === 0);
+    expect(enemyKill?.killerTeam).toBe(0); // lancer が killer
+    expect(lancerKill?.killerTeam).toBe(1); // drone が killer
+  });
+
+  it('handleFocusBeam: 敵kill時の KillEvent に射撃元情報が含まれる', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const scorcher = spawnAt(0, 12, 0, 0);
+    const enemy = spawnAt(1, 0, 100, 0); // Drone hp=3
+    unit(enemy).hp = 0.1; // 最小HPでkill確定
+    unit(scorcher).target = enemy;
+    unit(scorcher).cooldown = 0;
+    unit(scorcher).beamOn = 2.0;
+    buildHash();
+    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    expect(unit(enemy).alive).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.killerTeam).toBe(0);
+    expect(events[0]?.killerType).toBe(12);
   });
 });

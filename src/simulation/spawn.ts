@@ -23,7 +23,7 @@ export interface Killer {
   type: number;
 }
 
-export interface KilledUnitSnapshot {
+interface KilledUnitSnapshot {
   readonly x: number;
   readonly y: number;
   readonly team: Team;

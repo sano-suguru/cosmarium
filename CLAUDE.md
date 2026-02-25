@@ -115,6 +115,16 @@ src/
 - Pool loop index requires branded type cast: `i as UnitIndex` (also `ParticleIndex`, `ProjectileIndex`)
 - `u.target` is `UnitIndex` — `NO_UNIT` (-1) means no target; always check `.alive` on target
 
+## Serena (MCP)
+
+コード解析・編集にはSerenaのLSPツールをGrep/Globより優先すること：
+- シンボル定義の検索・参照追跡 → `find_symbol`, `find_referencing_symbols`
+- ファイル構造の把握 → `get_symbols_overview`（ファイル全読みを避ける）
+- リネーム → `rename_symbol`（全参照を自動更新）
+- コード編集 → `replace_symbol_body`, `insert_after_symbol`, `insert_before_symbol`
+
+Grep/Globを使う場面: 文字列リテラル検索、ファイル名パターン検索、非コードファイル（GLSL、JSON、MD）の検索
+
 ## Key Performance Patterns
 
 - **Object pooling**: Pre-allocated arrays; `.alive` flag controls active state. Spawn scans for first dead slot

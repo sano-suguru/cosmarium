@@ -266,12 +266,7 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
     if (o.hp <= 0) {
-      const hx = o.x,
-        hy = o.y,
-        hTeam = o.team,
-        hType = o.type;
-      killUnit(hop.targetIndex, sourceKiller);
-      explosion(hx, hy, hTeam, hType, sourceKiller.index, rng);
+      killUnitWithExplosion(hop.targetIndex, sourceKiller, sourceKiller.index, rng);
     }
   }
 }
@@ -305,19 +300,15 @@ function applyChainHit(
   rng: () => number,
 ): { hx: number; hy: number } {
   const o = unit(bi);
-  // kill 前に退避 — killUnit でスロットが再利用されると値が壊れる
   const hx = o.x,
-    hy = o.y,
-    hTeam = o.team,
-    hType = o.type;
+    hy = o.y;
   emitChainVisual(cx, cy, hx, hy, col, rng);
   const dd = damage * (1 - ch * CHAIN_DAMAGE_DECAY);
   o.hp -= dd;
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
-    killUnit(bi, sourceKiller);
-    explosion(hx, hy, hTeam, hType, sourceKiller.index, rng);
+    killUnitWithExplosion(bi, sourceKiller, sourceKiller.index, rng);
   }
   return { hx, hy };
 }

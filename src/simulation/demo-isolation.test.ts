@@ -4,9 +4,11 @@ import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex.ts';
 import { chainLightning, resetChains, snapshotChains, updateChains } from './effects.ts';
 import { buildHash } from './spatial-hash.ts';
+import type { Killer } from './spawn.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -19,6 +21,8 @@ afterEach(() => {
   resetPools();
   resetState();
 });
+
+const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
 
 // ---------------------------------------------------------------------------
 // snapshotPools → clearAllPools → restorePools ラウンドトリップ
@@ -272,7 +276,7 @@ describe('pendingChains snapshot & restore', () => {
     spawnAt(1, 1, 150, 0);
     buildHash();
 
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
 
     // ch=0は即時発火、ch>=1がpendingChainsに入る
     const beforeSnapshot = snapshotChains();
@@ -296,7 +300,7 @@ describe('pendingChains snapshot & restore', () => {
     spawnAt(1, 1, 100, 0);
     buildHash();
 
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
     const snapshot = snapshotPools();
 
     // pendingChainsを進行させて消費

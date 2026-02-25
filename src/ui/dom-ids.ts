@@ -20,3 +20,4 @@ export const DOM_ID_BTN_START = 'btnStart';
 export const DOM_ID_CODEX_CLOSE = 'codexClose';
 export const DOM_ID_CODEX_MENU_BTN = 'codexMenuBtn';
 export const DOM_ID_AUTO_FOLLOW_BTN = 'autoFollowBtn';
+export const DOM_ID_KILL_FEED = 'killFeed';

@@ -7,7 +7,7 @@ import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO } from './combat.ts';
-import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam, onKillUnit, spawnParticle, spawnProjectile } from './spawn.ts';
 import {
   MAX_STEPS_PER_FRAME,
   ORPHAN_TETHER_PROJECTILE_MULT,
@@ -948,5 +948,45 @@ describe('Amplifier tether', () => {
     unit(ally).trailTimer = 99;
     update(0.5, 0, rng, gameLoopState());
     expect(unit(ally).ampBoostTimer).toBeCloseTo(0.5, 1);
+  });
+});
+
+// ============================================================
+// KillEvent 伝播テスト
+// ============================================================
+describe('KillEvent 伝播', () => {
+  it('projectile kill: KillEvent に sourceUnit 情報が含まれる', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const attacker = spawnAt(0, 1, 0, 200); // Fighter
+    unit(attacker).trailTimer = 99;
+    const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
+    unit(enemy).trailTimer = 99;
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, attacker);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).alive).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.killerTeam).toBe(0);
+    expect(events[0]?.killerType).toBe(1);
+  });
+
+  it('AOE kill: KillEvent に sourceUnit 情報が含まれる', () => {
+    const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
+    const attacker = spawnAt(0, 2, 0, 200); // Bomber
+    unit(attacker).trailTimer = 99;
+    const enemy = spawnAt(1, 0, 30, 0); // Drone hp=3
+    unit(enemy).trailTimer = 99;
+    // 寿命切れで爆発する AOE 弾
+    spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, false, 70, undefined, 0, attacker);
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).alive).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.killerTeam).toBe(0);
+    expect(events[0]?.killerType).toBe(2);
   });
 });

@@ -9,11 +9,13 @@ import { renderFrame } from './renderer/render-pass.ts';
 import { initShaders } from './renderer/shaders.ts';
 import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
+import { onKillUnit } from './simulation/spawn.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
+import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
 const BASE_SPEED = 0.55;
 
@@ -30,8 +32,15 @@ addEventListener('resize', () => {
 
 initUI();
 initHUD();
+initKillFeed();
 initCamera();
 initMinimap();
+
+onKillUnit((e) => {
+  if (state.codexOpen || state.gameState !== 'play') return;
+  const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
+  addKillFeedEntry(e.victimTeam, e.victimType, ki);
+});
 
 let lastTime = 0,
   frameCount = 0,
