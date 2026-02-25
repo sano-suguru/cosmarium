@@ -17,11 +17,44 @@ import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitInde
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 
-type KillUnitHook = (i: UnitIndex) => void;
+export interface Killer {
+  index: UnitIndex;
+  team: Team;
+  type: number;
+}
+
+export interface KilledUnitSnapshot {
+  readonly x: number;
+  readonly y: number;
+  readonly team: Team;
+  readonly type: number;
+}
+
+const _snapshot: { x: number; y: number; team: Team; type: number } = { x: 0, y: 0, team: 0 as Team, type: 0 };
+
+export function killerFrom(i: UnitIndex): Killer {
+  const u = unit(i);
+  return { index: i, team: u.team, type: u.type };
+}
+
+type KillEvent = {
+  victim: UnitIndex;
+  victimTeam: Team;
+  victimType: number;
+} & (
+  | { killer: UnitIndex; killerTeam: Team; killerType: number }
+  | { killer: typeof NO_UNIT; killerTeam?: undefined; killerType?: undefined }
+);
+
+type KillUnitHook = (e: KillEvent) => void;
 const killUnitHooks: KillUnitHook[] = [];
 
 export function onKillUnit(hook: KillUnitHook) {
   killUnitHooks.push(hook);
+}
+
+export function clearKillUnitHooks() {
+  killUnitHooks.length = 0;
 }
 
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
@@ -76,13 +109,29 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
   return NO_UNIT;
 }
 
-export function killUnit(i: UnitIndex) {
+/**
+ * ユニットをkillし、kill前の位置・チーム・タイプのスナップショットを返す。
+ * 返り値はモジュールレベルの再利用オブジェクト — 次の killUnit 呼び出しで上書きされる。
+ * 即座に消費すること（変数に保持して後で参照しないこと）。
+ * 既に dead のユニットの場合は undefined を返す。
+ */
+export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | undefined {
   const u = unit(i);
   if (u.alive) {
+    _snapshot.x = u.x;
+    _snapshot.y = u.y;
+    _snapshot.team = u.team;
+    _snapshot.type = u.type;
+    const base = { victim: i, victimTeam: u.team, victimType: u.type };
+    const e: KillEvent = killer
+      ? { ...base, killer: killer.index, killerTeam: killer.team, killerType: killer.type }
+      : { ...base, killer: NO_UNIT };
     u.alive = false;
     decUnits();
-    for (const hook of killUnitHooks) hook(i);
+    for (const hook of killUnitHooks) hook(e);
+    return _snapshot;
   }
+  return undefined;
 }
 
 export function killParticle(i: ParticleIndex) {

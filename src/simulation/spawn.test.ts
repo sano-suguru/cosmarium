@@ -4,9 +4,19 @@ import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
-import { addBeam, killParticle, killProjectile, killUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import {
+  addBeam,
+  killerFrom,
+  killParticle,
+  killProjectile,
+  killUnit,
+  onKillUnit,
+  spawnParticle,
+  spawnProjectile,
+  spawnUnit,
+} from './spawn.ts';
 
 const testRng = () => 0.5;
 
@@ -136,6 +146,75 @@ describe('killUnit', () => {
     killUnit(0 as UnitIndex);
     expect(poolCounts.units).toBe(0);
   });
+
+  it('フックに killer 引数が伝播される', () => {
+    const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
+    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(1, 1, 100, 100, testRng);
+    killUnit(0 as UnitIndex, killerFrom(1 as UnitIndex));
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.victim).toBe(0);
+    expect(calls[0]?.killer).toBe(1);
+  });
+
+  it('相打ち: killerFrom で事前キャプチャした情報が正しく伝播される', () => {
+    const calls: { victimTeam: number; killerTeam: number | undefined }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
+    });
+    spawnUnit(0, 0, 0, 0, testRng); // index 0, team 0
+    spawnUnit(1, 1, 100, 100, testRng); // index 1, team 1
+    // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
+    const killer0 = killerFrom(0 as UnitIndex);
+    const killer1 = killerFrom(1 as UnitIndex);
+    killUnit(0 as UnitIndex, killer1);
+    killUnit(1 as UnitIndex, killer0);
+    expect(calls).toHaveLength(2);
+    // 2回目: victim=team1, killer=team0（killerFrom で事前キャプチャ済み）
+    expect(calls[1]?.victimTeam).toBe(1);
+    expect(calls[1]?.killerTeam).toBe(0);
+  });
+
+  it('killer 省略時は NO_UNIT がフックに渡される', () => {
+    const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
+    spawnUnit(0, 0, 0, 0, testRng);
+    killUnit(0 as UnitIndex);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.killer).toBe(NO_UNIT);
+  });
+
+  it('alive ユニットの KilledUnitSnapshot を正しく返す', () => {
+    spawnUnit(1, 2, 100, 200, testRng);
+    const snap = killUnit(0 as UnitIndex);
+    expect(snap).toBeDefined();
+    expect(snap?.x).toBe(100);
+    expect(snap?.y).toBe(200);
+    expect(snap?.team).toBe(1);
+    expect(snap?.type).toBe(2);
+  });
+
+  it('二重 kill は undefined を返す', () => {
+    spawnUnit(0, 1, 50, 60, testRng);
+    const first = killUnit(0 as UnitIndex);
+    const second = killUnit(0 as UnitIndex);
+    expect(first).toBeDefined();
+    expect(second).toBeUndefined();
+  });
+
+  it('返り値は再利用オブジェクトで、2回 kill すると同一参照', () => {
+    spawnUnit(0, 1, 10, 20, testRng);
+    spawnUnit(1, 2, 30, 40, testRng);
+    const snap1 = killUnit(0 as UnitIndex);
+    const snap2 = killUnit(1 as UnitIndex);
+    expect(snap1).toBe(snap2); // 同一オブジェクト参照
+    expect(snap2?.x).toBe(30); // 2回目で上書き
+  });
 });
 
 describe('killParticle', () => {
@@ -169,6 +248,16 @@ describe('killProjectile', () => {
     killProjectile(0 as ProjectileIndex);
     killProjectile(0 as ProjectileIndex);
     expect(poolCounts.projectiles).toBe(0);
+  });
+});
+
+describe('killerFrom', () => {
+  it('alive ユニットの team/type を返す', () => {
+    const idx = spawnUnit(1, 3, 100, 200, testRng);
+    const k = killerFrom(idx);
+    expect(k.index).toBe(idx);
+    expect(k.team).toBe(1);
+    expect(k.type).toBe(3);
   });
 });
 
