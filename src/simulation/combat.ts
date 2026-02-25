@@ -9,6 +9,10 @@ import { chainLightning, explosion } from './effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import { addBeam, killUnit, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
+export const AMP_RANGE_MULT = 1.25;
+const AMP_ACCURACY_MULT = 1.4;
+export const AMP_DAMAGE_MULT = 1.2;
+
 export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
 export const BASTION_ABSORB_RATIO = 0.4;
 export const BASTION_SELF_ABSORB_RATIO = 0.3;
@@ -157,6 +161,7 @@ interface CombatContext {
   c: Color3;
   vd: number;
   t: UnitType;
+  range: number;
   rng: () => number;
 }
 
@@ -169,6 +174,7 @@ const _ctx: CombatContext = {
   c: [0, 0, 0],
   vd: 0,
   t: unitType(0),
+  range: 0,
   rng: () => {
     throw new Error('CombatContext.rng called before combat() initialization');
   },
@@ -586,7 +592,7 @@ function handleChain(ctx: CombatContext): void {
   const { u, c, t, vd } = ctx;
   const d = tgtDistOrClear(u);
   if (d < 0) return;
-  if (d < t.range) {
+  if (d < ctx.range) {
     u.cooldown = t.fireRate;
     chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
@@ -866,7 +872,7 @@ function handleSweepBeam(ctx: CombatContext) {
   const dx = o.x - u.x,
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d >= t.range) {
+  if (d >= ctx.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
     sweepHitMap.delete(ctx.ui);
@@ -934,7 +940,7 @@ function handleFocusBeam(ctx: CombatContext) {
   const dx = o.x - u.x,
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d >= t.range) {
+  if (d >= ctx.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     return;
   }
@@ -1297,7 +1303,7 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   const dx = o.x - u.x,
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d >= t.range) {
+  if (d >= ctx.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
     return;
@@ -1398,7 +1404,7 @@ function spawnMuzzleFlash(ctx: CombatContext, ang: number) {
 }
 
 function fireNormal(ctx: CombatContext) {
-  const { u, t } = ctx;
+  const { u } = ctx;
   if (u.target === NO_UNIT) {
     u.burstCount = 0;
     return;
@@ -1413,7 +1419,7 @@ function fireNormal(ctx: CombatContext) {
   const dx = o.x - u.x,
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d >= t.range) {
+  if (d >= ctx.range) {
     u.burstCount = 0;
     return;
   }
@@ -1433,7 +1439,8 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   else if (t.shape === RAILGUN_SHAPE) sp = RAILGUN_SPEED;
   else sp = 480 + t.damage * 12;
 
-  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, t.leadAccuracy);
+  const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc));
 
   if (t.carpet) {
     fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
@@ -1480,19 +1487,63 @@ function handleShielder(ctx: CombatContext) {
   }
 }
 
+function handleAmplifier(ctx: CombatContext) {
+  const { u, c, dt } = ctx;
+  if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
+    const a = ctx.rng() * Math.PI * 2;
+    const r = u.mass * 3.5;
+    spawnParticle(
+      u.x + Math.cos(a) * r,
+      u.y + Math.sin(a) * r,
+      Math.cos(a) * 25,
+      Math.sin(a) * 25,
+      0.5,
+      4,
+      c[0] * 0.8,
+      c[1] * 0.5,
+      c[2] * 0.2,
+      SH_DIAMOND,
+    );
+  }
+}
+
+/** Exclusive-fire dispatch: returns true if a handler consumed the frame */
+function dispatchExclusiveFire(ctx: CombatContext): boolean {
+  const { t, u } = ctx;
+  if (t.chain && u.cooldown <= 0) {
+    handleChain(ctx);
+    return true;
+  }
+  if (t.sweep) {
+    handleSweepBeam(ctx);
+    return true;
+  }
+  if (t.broadside) {
+    handleFlagshipBarrage(ctx);
+    return true;
+  }
+  if (t.beam) {
+    handleFocusBeam(ctx);
+    return true;
+  }
+  return false;
+}
+
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = unitType(u.type);
   if (u.stun > 0) return;
   u.cooldown -= dt;
   u.abilityCooldown -= dt;
   const c = effectColor(u.type, u.team);
-  const vd = 1 + u.vet * 0.2;
+  const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
+  const vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.u = u;
   _ctx.ui = ui;
   _ctx.dt = dt;
   _ctx.c = c;
   _ctx.vd = vd;
   _ctx.t = t;
+  _ctx.range = u.ampBoostTimer > 0 ? t.range * AMP_RANGE_MULT : t.range;
   _ctx.rng = rng;
 
   if (t.rams) {
@@ -1505,6 +1556,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     return;
   }
   if (t.shields) handleShielder(_ctx);
+  if (t.amplifies) handleAmplifier(_ctx);
   if (t.spawns) handleCarrier(_ctx);
   if (t.emp && u.abilityCooldown <= 0) {
     handleEmp(_ctx);
@@ -1512,23 +1564,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   }
   // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
   if (t.teleports) handleTeleporter(_ctx);
-  if (t.chain && u.cooldown <= 0) {
-    handleChain(_ctx);
-    return;
-  }
-  if (t.sweep) {
-    handleSweepBeam(_ctx);
-    return;
-  }
-  if (t.broadside) {
-    handleFlagshipBarrage(_ctx);
-    return;
-  }
-  if (t.beam) {
-    handleFocusBeam(_ctx);
-    return;
-  }
-  fireNormal(_ctx);
+  if (!dispatchExclusiveFire(_ctx)) fireNormal(_ctx);
 }
 
 const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
@@ -1536,6 +1572,7 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'heals',
   'reflects',
   'shields',
+  'amplifies',
   'spawns',
   'emp',
   'teleports',

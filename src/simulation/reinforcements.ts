@@ -37,6 +37,7 @@ const SCORCHER = unitTypeIndex('Scorcher');
 const TELEPORTER = unitTypeIndex('Teleporter');
 const ARCER = unitTypeIndex('Arcer');
 const BASTION = unitTypeIndex('Bastion');
+const AMPLIFIER = unitTypeIndex('Amplifier');
 
 const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
@@ -53,6 +54,7 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: TELEPORTER, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
   { type: ARCER, spread: 60, condition: (r) => r > 0.95 }, // 5%
   { type: BASTION, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
+  { type: AMPLIFIER, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
 ];
 
 function countAlive(team: Team): number {

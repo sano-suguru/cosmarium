@@ -7,7 +7,7 @@ import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
-import { ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
+import { AMP_DAMAGE_MULT, AMP_RANGE_MULT, ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
 import { killProjectile, spawnProjectile } from './spawn.ts';
 import { updateSwarmN } from './update.ts';
@@ -1842,5 +1842,75 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
       combat(unit(cruiser), cruiser, 0.1, 0, rng);
     }).not.toThrow();
     expect(unit(cruiser).alive).toBe(false);
+  });
+});
+
+// ============================================================
+// Amplifier buff effects
+// ============================================================
+describe('combat — AMPLIFIER buff effects', () => {
+  const AMPLIFIER_TYPE = 16; // Amplifier index
+  const FIGHTER_TYPE_C = 1;
+
+  it('ampBoostTimer > 0 のユニットの射程が AMP_RANGE_MULT 倍に拡張', () => {
+    const t = unitType(FIGHTER_TYPE_C);
+    const baseRange = t.range;
+    const extendedRange = baseRange * AMP_RANGE_MULT;
+
+    // 基本射程外、バフ射程内に敵を配置
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, baseRange + 5, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).ampBoostTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+
+    // バフにより射程が拡張されるので射撃が発生
+    expect(baseRange + 5).toBeLessThan(extendedRange);
+    // cooldownがリセットされていれば射撃が発生した証拠
+    expect(unit(fighter).cooldown).toBeGreaterThan(0);
+  });
+
+  it('ampBoostTimer = 0 では射程拡張なし', () => {
+    const t = unitType(FIGHTER_TYPE_C);
+    const baseRange = t.range;
+
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, baseRange + 5, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).ampBoostTimer = 0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+
+    // 射程外なので射撃せず、cooldownは0以下のまま
+    expect(unit(fighter).cooldown).toBeLessThanOrEqual(0);
+  });
+
+  it('ampBoostTimer > 0 のユニットが AMP_DAMAGE_MULT 倍のダメージを与える', () => {
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, 100, 0);
+    unit(fighter).cooldown = 0;
+    unit(fighter).target = enemy;
+    unit(fighter).ampBoostTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    expect(projectile(0).damage).toBeCloseTo(unitType(FIGHTER_TYPE_C).damage * AMP_DAMAGE_MULT);
+  });
+
+  it('Amplifier は非排他で通常射撃にフォールスルーする', () => {
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, 100, 0);
+    unit(amp).target = enemy;
+    unit(amp).cooldown = 0;
+    buildHash();
+    combat(unit(amp), amp, 0.016, 0, rng);
+    // Amplifierは通常射撃にフォールスルーするのでcooldownがfireRate以上にリセットされる
+    expect(unit(amp).cooldown).toBeGreaterThan(0);
+  });
+
+  it('demoFlag は amplifies を返す', () => {
+    expect(demoFlag(unitType(AMPLIFIER_TYPE))).toBe('amplifies');
   });
 });

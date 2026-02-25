@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
-  it('要素数が16', () => {
-    expect(TYPES).toHaveLength(16);
+  it('要素数が17', () => {
+    expect(TYPES).toHaveLength(17);
   });
 
   it('全タイプに必須プロパティが存在する', () => {

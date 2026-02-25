@@ -41,6 +41,7 @@ const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
   beam: () => demoFocusBeam(),
   broadside: (mi) => demoFlagship(mi),
   shields: () => demoBastion(),
+  amplifies: () => demoAmplifier(),
 };
 
 let elCodex: HTMLElement | null = null;
@@ -259,6 +260,19 @@ function demoBastion() {
     if (ai !== NO_UNIT) unit(ai).hp = 5;
   }
   for (let i = 0; i < 4; i++) {
+    spawnUnit(1, 0, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
+  }
+}
+
+function demoAmplifier() {
+  const FIGHTER_TYPE = unitTypeIndex('Fighter');
+  const DRONE_TYPE = unitTypeIndex('Drone');
+  const fi1 = spawnUnit(0, FIGHTER_TYPE, -60, -40, demoRng);
+  if (fi1 !== NO_UNIT) unit(fi1).hp = 5;
+  const fi2 = spawnUnit(0, FIGHTER_TYPE, -60, 40, demoRng);
+  if (fi2 !== NO_UNIT) unit(fi2).hp = 7;
+  spawnUnit(0, DRONE_TYPE, -40, 0, demoRng);
+  for (let i = 0; i < 3; i++) {
     spawnUnit(1, 0, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }

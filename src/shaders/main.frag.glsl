@@ -13,7 +13,8 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.020,0.060,0.020,0.008,0.020, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.040,0.022,0.020,0.020,0.020, // 15-19 sh15=Arcer
   0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
-  0.028,0.030,0.020              // 25-27 sh25=Healer,sh26=Reflector
+  0.028,0.030,0.020,             // 25-27 sh25=Healer,sh26=Reflector
+  0.025                          // 28    sh28=Amplifier
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.72,0.55,0.38,0.38, // 0-4
@@ -21,7 +22,8 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.38,0.70,0.38,0.18,0.38, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.75,0.45,0.38,0.38,0.38, // 15-19 sh15=Arcer
   0.25,0.38,0.38,0.38,0.50, // 20-24 sh20=Bastion,sh24=Flagship
-  0.28,0.30,0.38             // 25-27 sh25=Healer,sh26=Reflector
+  0.28,0.30,0.38,            // 25-27 sh25=Healer,sh26=Reflector
+  0.40                        // 28    sh28=Amplifier
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.70,0.50,0.48,0.48, // 0-4
@@ -29,7 +31,8 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.48,0.25,0.48,0.70,0.48, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.35,0.30,0.48,0.48,0.48, // 15-19 sh15=Arcer
   0.22,0.48,0.48,0.48,0.32, // 20-24 sh20=Bastion,sh24=Flagship
-  0.35,0.40,0.48             // 25-27 sh25=Healer,sh26=Reflector
+  0.35,0.40,0.48,            // 25-27 sh25=Healer,sh26=Reflector
+  0.35                        // 28    sh28=Amplifier
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   2.4,2.2,1.4,1.5,1.5, // 0-4
@@ -37,7 +40,8 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   1.5,2.5,1.5,2.8,1.5, // 10-14 sh11=Disruptor,sh13=Teleporter
   0.9,1.1,1.5,1.5,1.5, // 15-19 sh15=Arcer
   0.85,1.5,1.5,1.5,1.1,// 20-24 sh20=Bastion,sh24=Flagship
-  2.2,2.5,1.5            // 25-27 sh25=Healer,sh26=Reflector
+  2.2,2.5,1.5,           // 25-27 sh25=Healer,sh26=Reflector
+  1.4                     // 28    sh28=Amplifier
 );
 void main(){
   float d=length(vU), a=0.0;
@@ -932,6 +936,39 @@ void main(){
     col=mix(col,ripC,innerMask*ripple*0.25);
     // Soft inner ambient glow
     a+=exp(-hd*2.8)*0.18;
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+  // ── sh28: Amplifier — パラボラアンテナ支援艦 ──
+  else if(sh==28){
+    float ca=cos(vA), sa=sin(vA);
+    vec2 r=vec2(vU.x*ca+vU.y*sa, -vU.x*sa+vU.y*ca);
+    // parabolic dish (concave forward)
+    float dish=sdArc(r-vec2(0.35,0.0), vec2(0.866,0.5), 0.55, 0.06);
+    // compact body hull
+    float body=sdRoundedBox(r-vec2(-0.15,0.0), vec2(0.28,0.22), 0.08);
+    // support struts connecting dish to body
+    float strut1=sdCapsule(r, vec2(0.0,0.15), vec2(0.30,0.30), 0.025);
+    float strut2=sdCapsule(r, vec2(0.0,-0.15), vec2(0.30,-0.30), 0.025);
+    // stabilizer fins
+    float fin1=sdCapsule(r, vec2(-0.35,0.22), vec2(-0.42,0.38), 0.02);
+    float fin2=sdCapsule(r, vec2(-0.35,-0.22), vec2(-0.42,-0.38), 0.02);
+    float hull=min(min(dish,body),min(min(strut1,strut2),min(fin1,fin2)));
+    a=smoothstep(0.04,0.0,hull);
+    // focal point glow (pulsating)
+    float focalD=length(r-vec2(0.08,0.0));
+    float pulse=0.5+0.5*sin(uTime*6.0);
+    a+=exp(-focalD*14.0)*(0.4+0.3*pulse);
+    // energy flow on dish surface
+    float dishFlow=smoothstep(0.08,0.0,dish);
+    float wave=sin(r.y*22.0-uTime*8.0)*0.5+0.5;
+    a+=dishFlow*wave*0.25;
+    // engine glow
+    float eng=exp(-length(r-vec2(-0.42,0.0))*10.0)*0.3;
+    a+=eng;
+    vec3 col=vC.rgb;
+    // orange tint on dish
+    col=mix(col,vec3(1.0,0.65,0.2),dishFlow*0.35);
+    // focal bright white
+    col=mix(col,vec3(1.0,0.9,0.7),exp(-focalD*10.0)*0.5);
     fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));

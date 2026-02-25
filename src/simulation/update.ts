@@ -2,6 +2,7 @@ import { swapRemove } from '../array-utils.ts';
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { effectColor } from '../colors.ts';
 import {
+  AMP_BOOST_LINGER,
   PI,
   POOL_PARTICLES,
   POOL_PROJECTILES,
@@ -36,6 +37,10 @@ const REFLECT_FIELD_RADIUS = 100;
 const BASTION_SHIELD_RADIUS = 120;
 const BASTION_MAX_TETHERS = 4;
 export const ORPHAN_TETHER_PROJECTILE_MULT = 0.7;
+
+const AMP_RADIUS = 120;
+const AMP_MAX_TETHERS = 4;
+const AMP_TETHER_BEAM_LIFE = 0.7;
 
 function steerHomingProjectile(p: Projectile, dt: number, rng: () => number) {
   const tg = unit(p.target);
@@ -420,8 +425,61 @@ function tetherNearbyAllies(u: Unit, i: number) {
   }
 }
 
+// amplifyNearbyAllies 用ソート済みバッファ — tetherNearbyAllies とは独立。
+const _ampOi = new Int32Array(AMP_MAX_TETHERS);
+const _ampDist = new Float64Array(AMP_MAX_TETHERS);
+
+function ampBubbleInsert(start: number, oi: number, d: number) {
+  let p = start;
+  while (p > 0 && (_ampDist[p - 1] ?? 0) > d) {
+    _ampOi[p] = _ampOi[p - 1] ?? 0;
+    _ampDist[p] = _ampDist[p - 1] ?? 0;
+    p--;
+  }
+  _ampOi[p] = oi;
+  _ampDist[p] = d;
+}
+
+function amplifyNearbyAllies(u: Unit, i: number) {
+  const nn = getNeighbors(u.x, u.y, AMP_RADIUS);
+  let count = 0;
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j);
+    const o = unit(oi);
+    if (!o.alive || o.team !== u.team || oi === i) continue;
+    if (unitType(o.type).amplifies) continue;
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    const d = dx * dx + dy * dy;
+    if (count < AMP_MAX_TETHERS) {
+      ampBubbleInsert(count, oi, d);
+      count++;
+    } else if (d < (_ampDist[count - 1] ?? 0)) {
+      ampBubbleInsert(count - 1, oi, d);
+    }
+  }
+  for (let j = 0; j < count; j++) {
+    const oi = (_ampOi[j] ?? 0) as UnitIndex;
+    const o = unit(oi);
+    if (!refreshTetherBeam(i as UnitIndex, oi)) {
+      addTrackingBeam(i as UnitIndex, oi, 1.0, 0.6, 0.15, AMP_TETHER_BEAM_LIFE, 1.5);
+    }
+    o.ampBoostTimer = AMP_BOOST_LINGER;
+  }
+}
+
+function decayAmpTimers(dt: number) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.ampBoostTimer > 0) u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
+  }
+}
+
 function applyShieldsAndFields(dt: number) {
   decayShieldTimers(dt);
+  decayAmpTimers(dt);
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
@@ -429,6 +487,7 @@ function applyShieldsAndFields(dt: number) {
     const t = unitType(u.type);
     if (t.reflects) applyReflectorAllyField(u, i, dt);
     if (t.shields) tetherNearbyAllies(u, i);
+    if (t.amplifies) amplifyNearbyAllies(u, i);
   }
 }
 

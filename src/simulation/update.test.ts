@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
-import { POOL_UNITS, REF_FPS, REFLECT_FIELD_MAX_HP, SH_CIRCLE } from '../constants.ts';
+import { AMP_BOOST_LINGER, POOL_UNITS, REF_FPS, REFLECT_FIELD_MAX_HP, SH_CIRCLE } from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
+import { unitTypeIndex } from '../unit-types.ts';
 import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO } from './combat.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 import {
@@ -897,5 +898,55 @@ describe('reflectFieldHp 反射', () => {
       update(0.016, 0, rng, gameLoopState());
     }
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
+  });
+});
+
+// ============================================================
+// Amplifier tether
+// ============================================================
+const AMPLIFIER_TYPE = unitTypeIndex('Amplifier');
+const FIGHTER_TYPE_IDX = unitTypeIndex('Fighter');
+
+describe('Amplifier tether', () => {
+  it('範囲内の味方に ampBoostTimer が付与されテザービームが生成される', () => {
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
+    unit(amp).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).ampBoostTimer).toBe(AMP_BOOST_LINGER);
+    expect(trackingBeams.length).toBeGreaterThanOrEqual(1);
+    const tb = getTrackingBeam(trackingBeams.length - 1);
+    // 橙系テザービーム色
+    expect(tb.r).toBeCloseTo(1.0, 1);
+    expect(tb.g).toBeCloseTo(0.6, 1);
+    expect(tb.b).toBeCloseTo(0.15, 1);
+  });
+
+  it('範囲外の味方にはバフが付与されない', () => {
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    unit(amp).trailTimer = 99;
+    const farAlly = spawnAt(0, FIGHTER_TYPE_IDX, 500, 0);
+    unit(farAlly).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(farAlly).ampBoostTimer).toBe(0);
+  });
+
+  it('Amplifier同士はバフしない', () => {
+    const amp1 = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    const amp2 = spawnAt(0, AMPLIFIER_TYPE, 50, 0);
+    unit(amp1).trailTimer = 99;
+    unit(amp2).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(amp2).ampBoostTimer).toBe(0);
+    expect(unit(amp1).ampBoostTimer).toBe(0);
+  });
+
+  it('ampBoostTimer が毎フレーム減衰する', () => {
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 0, 0);
+    unit(ally).ampBoostTimer = 1.0;
+    unit(ally).trailTimer = 99;
+    update(0.5, 0, rng, gameLoopState());
+    expect(unit(ally).ampBoostTimer).toBeCloseTo(0.5, 1);
   });
 });

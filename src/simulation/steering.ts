@@ -3,6 +3,7 @@ import { poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
+import { AMP_RANGE_MULT } from './combat.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 interface SteerForce {
@@ -301,16 +302,37 @@ function tickBoostDuringStun(u: Unit, dt: number) {
   }
 }
 
+function steerStunned(u: Unit, dt: number) {
+  u.stun -= dt;
+  tickBoostDuringStun(u, dt);
+  const stunDrag = (STUN_DRAG_BASE ** invSqrtMass(u.type)) ** (dt * REF_FPS);
+  u.vx *= stunDrag;
+  u.vy *= stunDrag;
+  u.x += u.vx * dt;
+  u.y += u.vy * dt;
+}
+
+function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
+  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS);
+  const boostVel = t.boost ? handleBoost(u, t.boost, tgt, spd, dt) : null;
+  const response = dt * t.accel;
+  u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
+  u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
+  if (boostVel) {
+    u.vx = boostVel.vx;
+    u.vy = boostVel.vy;
+  }
+  const moveDrag = (1 - Math.min(1, t.drag / REF_FPS)) ** (dt * REF_FPS);
+  u.vx *= moveDrag;
+  u.vy *= moveDrag;
+  u.x += u.vx * dt;
+  u.y += u.vy * dt;
+}
+
 export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) return;
   if (u.stun > 0) {
-    u.stun -= dt;
-    tickBoostDuringStun(u, dt);
-    const stunDrag = (STUN_DRAG_BASE ** invSqrtMass(u.type)) ** (dt * REF_FPS);
-    u.vx *= stunDrag;
-    u.vy *= stunDrag;
-    u.x += u.vx * dt;
-    u.y += u.vy * dt;
+    steerStunned(u, dt);
     return;
   }
   const t = unitType(u.type);
@@ -320,7 +342,8 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const tgt = findTarget(u, nn, t.range, dt, rng, t.massWeight ?? 0);
+  const ampRange = u.ampBoostTimer > 0 ? AMP_RANGE_MULT : 1;
+  const tgt = findTarget(u, nn, t.range * ampRange, dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
   // retreat urgency を先行計算 — engage力のアッテネーションに使用
@@ -338,7 +361,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   fx += retreat.x;
   fy += retreat.y;
 
-  if (t.heals) {
+  if (t.heals || t.amplifies) {
     const heal = computeHealerFollow(u, nn);
     fx += heal.x;
     fy += heal.y;
@@ -356,19 +379,5 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   if (ad < -PI) ad += TAU;
   u.angle += ad * t.turnRate * dt;
 
-  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS);
-
-  const boostVel = t.boost ? handleBoost(u, t.boost, tgt, spd, dt) : null;
-  const response = dt * t.accel;
-  u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
-  u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
-  if (boostVel) {
-    u.vx = boostVel.vx;
-    u.vy = boostVel.vy;
-  }
-  const moveDrag = (1 - Math.min(1, t.drag / REF_FPS)) ** (dt * REF_FPS);
-  u.vx *= moveDrag;
-  u.vy *= moveDrag;
-  u.x += u.vx * dt;
-  u.y += u.vy * dt;
+  applyVelocity(u, t, tgt, dt);
 }

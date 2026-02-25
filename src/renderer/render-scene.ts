@@ -1,6 +1,7 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { color } from '../colors.ts';
 import {
+  AMP_BOOST_LINGER,
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
@@ -149,6 +150,10 @@ function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
       const baseAlpha = energyRatio * 0.2;
       writeInstance(u.x, u.y, ut.size * 1.6 * rs, 0.7, 0.5, 1.0, baseAlpha, (now * 1.2) % TAU, SH_REFLECT_FIELD);
     }
+  }
+  if (u.ampBoostTimer > 0 && !ut.amplifies) {
+    const ampAlpha = 0.08 + (u.ampBoostTimer / AMP_BOOST_LINGER) * 0.07;
+    writeInstance(u.x, u.y, ut.size * 1.7 * rs, 1.0, 0.6, 0.15, ampAlpha, (now * 0.3) % TAU, SH_EXPLOSION_RING);
   }
 }
 

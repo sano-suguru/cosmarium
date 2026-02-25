@@ -339,6 +339,27 @@ export const TYPES: UnitType[] = [
     description: 'テザービームで味方のダメージを肩代わりしつつ、自身もエネルギーシールドで被弾を軽減する装甲支援艦。',
     attackDesc: 'ダメージ吸収テザー＋自身シールド＋通常射撃',
   },
+  {
+    name: 'Amplifier',
+    size: 12,
+    hp: 22,
+    speed: 95,
+    turnRate: 2.5,
+    fireRate: 1.4,
+    range: 180,
+    damage: 2,
+    shape: 28,
+    trailInterval: 0.5,
+    mass: 4,
+    accel: 5.0,
+    drag: 1.8,
+    leadAccuracy: 0.35,
+    amplifies: true,
+    boost: { multiplier: 1.4, duration: 0.3, cooldown: 3.5, triggerRange: 180 },
+    retreatHpRatio: 0.35,
+    description: 'テザービームで味方の射撃性能を底上げする電磁増幅支援艦。',
+    attackDesc: '射撃バフテザー＋通常射撃',
+  },
 ];
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));

@@ -47,6 +47,8 @@ const UNIT_MODS: readonly UnitColorMod[] = [
   { hue: -0.15, lum: 1.1, sat: 1.1, effectHue: -0.25, effectSat: 1.3 },
   // 15 Bastion     — 支援: cool steel, desaturated
   { hue: 0.06, lum: 1.0, sat: 0.55, effectHue: 0.13, effectSat: 1.05 },
+  // 16 Amplifier   — 支援: warm orange, moderate saturation
+  { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
 ];
 
 interface HslMod {

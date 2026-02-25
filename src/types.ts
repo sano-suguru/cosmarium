@@ -38,6 +38,7 @@ export interface Unit {
   shieldCooldown: number;
   reflectFieldHp: number;
   fieldGrantCooldown: number;
+  ampBoostTimer: number;
 }
 
 export interface Particle {
@@ -117,6 +118,7 @@ export interface UnitType {
   /** HP比率がこの値を下回ると退避行動を開始 (0-1, 省略時は退避なし) */
   retreatHpRatio?: number;
   shields?: boolean;
+  amplifies?: boolean;
   maxEnergy?: number;
   energyRegen?: number;
   shieldCooldown?: number;
@@ -138,7 +140,8 @@ export type DemoFlag =
   | 'sweep'
   | 'beam'
   | 'broadside'
-  | 'shields';
+  | 'shields'
+  | 'amplifies';
 
 export interface Beam {
   x1: number;
