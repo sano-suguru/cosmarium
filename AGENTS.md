@@ -32,7 +32,7 @@ src/
 ├── renderer/            # WebGL2レンダリング（詳細: renderer/AGENTS.md）
 ├── shaders/             # GLSLソース（詳細: shaders/AGENTS.md）
 ├── ui/                  # Codex/HUD/メニュー（詳細: ui/AGENTS.md）
-└── input/camera.ts      # カメラ状態 + マウス/キー入力ハンドリング
+└── input/camera.ts      # カメラ状態 + Pointer Events/キー入力ハンドリング
 ```
 
 ## 依存ルール（dependency-cruiser）
@@ -107,5 +107,6 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 - Codexの`snapshotPools()`/`restorePools()`はshallow copy。Object.assignで書き戻し
 - `1 - team`ではなく `.team !== u.team` で比較する（`1 - team`は`number`型になり`Team`型にならない）
 - ブランドindex: プールループでは`i as UnitIndex`（ParticleIndex/ProjectileIndex）にキャスト必要
+- 入力はPointer Events統一（mouse/touch両対応）。canvas/minimapに`touch-action: none`設定済み。ピンチズームは`activePointers` Mapで2本指追跡
 
 simulation固有のgotchas（`neighborBuffer`共有バッファ、`killUnit()`前の値退避、`beams`のswap-and-pop等）は`src/simulation/AGENTS.md`参照。シェーダ固有（GLSLランタイムコンパイル、`vite-plugin-glsl`の`#include`展開等）は`src/shaders/AGENTS.md`参照。

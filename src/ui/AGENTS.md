@@ -43,16 +43,18 @@ Codexは**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUni
 
 | イベント | ファイル | 備考 |
 |---------|---------|------|
-| wheel/mousedown/mousemove/mouseup | input/camera.ts | codexOpen時は無効化 |
+| wheel | input/camera.ts | デスクトップホイールズーム。codexOpen時は無効化 |
+| pointerdown/pointermove/pointerup/pointercancel | input/camera.ts | パン+ピンチズーム。mouse/touch両対応 |
 | keydown(Space) | input/camera.ts | カメラリセット |
 | keydown(Tab/Esc) | game-control.ts | codex toggle |
 | keydown(±/1-3) | game-control.ts | 速度変更 |
 | click(ボタン) | game-control.ts | メニュー操作 |
+| pointerdown | renderer/minimap.ts | ミニマップジャンプ。mouse/touch両対応 |
 
 ## Critical Gotchas
 
 - DOM要素IDは`dom-ids.ts`で定数化済み。新規追加時はここに追加
 - `updateHUD`は毎フレームO(`POOL_UNITS`)でプール走査。DOMノードは`initHUD()`でキャッシュ済み
 - `codex.ts` → `game-control.ts` の逆方向importは循環依存になるため禁止（game-control.ts にNOTEコメントあり）
-- タッチ入力（touchstart/pointer*）は未実装。現在はマウス+キーボードのみ
+- Pointer Events統一済み（mouse/touch両対応）。CSSメディアクエリで操作ガイド・レイアウトをタッチデバイス向けに出し分け
 - Codexデモ中のRNG: main.tsが`demoRng`（`Math.random`ベース）を注入。意図的に非決定論的

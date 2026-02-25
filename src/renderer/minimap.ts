@@ -32,7 +32,7 @@ export function initMinimap() {
     throw new Error('initMinimap: missing DOM element: minimap');
   }
   const div = mmDiv;
-  div.addEventListener('mousedown', (e) => {
+  div.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
     setAutoFollow(false);
     const rect = div.getBoundingClientRect();

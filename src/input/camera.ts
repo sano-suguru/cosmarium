@@ -7,6 +7,39 @@ let dragging = false,
   dragStart = { x: 0, y: 0 },
   cameraStart = { x: 0, y: 0 };
 
+const activePointers = new Map<number, { x: number; y: number }>();
+let pinchStartDist = 0;
+let pinchStartZoom = 0;
+let pinchStartCenterX = 0;
+let pinchStartCenterY = 0;
+let pinchStartCamX = 0;
+let pinchStartCamY = 0;
+
+/**
+ * screen座標の焦点を保ったままズーム変更。wheel / pinch 両方から使用。
+ * ピンチ時は baseCamX/Y/fromScreenX/Y にピンチ開始時点の値を渡し、
+ * toScreenX/Y に現在の指中心を渡すことで焦点移動にも対応する。
+ */
+function applyZoom(
+  fromScreenX: number,
+  fromScreenY: number,
+  oldZoom: number,
+  newZoom: number,
+  baseCamX = cam.targetX,
+  baseCamY = cam.targetY,
+  toScreenX = fromScreenX,
+  toScreenY = fromScreenY,
+): void {
+  const dpr = viewport.dpr;
+  const W = viewport.W / dpr;
+  const H = viewport.H / dpr;
+  const wx = baseCamX + ((fromScreenX - W / 2) * dpr) / oldZoom;
+  const wy = baseCamY - ((fromScreenY - H / 2) * dpr) / oldZoom;
+  cam.targetX = wx - ((toScreenX - W / 2) * dpr) / newZoom;
+  cam.targetY = wy + ((toScreenY - H / 2) * dpr) / newZoom;
+  cam.targetZ = newZoom;
+}
+
 export function addShake(v: number, x: number, y: number) {
   const halfW = viewport.W / (2 * cam.z);
   const halfH = viewport.H / (2 * cam.z);
@@ -38,41 +71,86 @@ export function initCamera() {
       e.preventDefault();
       if (state.codexOpen) return;
       setAutoFollow(false);
-      const dpr = viewport.dpr;
-      const W = viewport.W / dpr,
-        H = viewport.H / dpr;
-      const wx = cam.targetX + ((e.clientX - W / 2) * dpr) / cam.targetZ;
-      const wy = cam.targetY - ((e.clientY - H / 2) * dpr) / cam.targetZ;
-      let nz = cam.targetZ * (e.deltaY > 0 ? 0.9 : 1.1);
-      nz = Math.max(0.05, Math.min(8, nz));
-      cam.targetX = wx - ((e.clientX - W / 2) * dpr) / nz;
-      cam.targetY = wy + ((e.clientY - H / 2) * dpr) / nz;
-      cam.targetZ = nz;
+      const nz = Math.max(0.05, Math.min(8, cam.targetZ * (e.deltaY > 0 ? 0.9 : 1.1)));
+      applyZoom(e.clientX, e.clientY, cam.targetZ, nz);
     },
     { passive: false },
   );
 
-  canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0 && !state.codexOpen) {
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.codexOpen) return;
+    if (activePointers.size >= 2) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 1 && e.button === 0) {
       setAutoFollow(false);
       dragging = true;
       dragStart = { x: e.clientX, y: e.clientY };
       cameraStart = { x: cam.targetX, y: cam.targetY };
+      canvas.setPointerCapture(e.pointerId);
+    } else if (activePointers.size === 2) {
+      dragging = false;
+      setAutoFollow(false);
+      const pts = [...activePointers.values()];
+      const p0 = pts[0];
+      const p1 = pts[1];
+      if (!p0 || !p1) return;
+      pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      pinchStartZoom = cam.targetZ;
+      pinchStartCamX = cam.targetX;
+      pinchStartCamY = cam.targetY;
+      pinchStartCenterX = (p0.x + p1.x) / 2;
+      pinchStartCenterY = (p0.y + p1.y) / 2;
     }
   });
-  canvas.addEventListener('mousemove', (e) => {
-    if (dragging) {
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2 && pinchStartDist > 0) {
+      const pts = [...activePointers.values()];
+      const p0 = pts[0];
+      const p1 = pts[1];
+      if (!p0 || !p1) return;
+      const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      const nz = Math.max(0.05, Math.min(8, pinchStartZoom * (dist / pinchStartDist)));
+      applyZoom(
+        pinchStartCenterX,
+        pinchStartCenterY,
+        pinchStartZoom,
+        nz,
+        pinchStartCamX,
+        pinchStartCamY,
+        (p0.x + p1.x) / 2,
+        (p0.y + p1.y) / 2,
+      );
+    } else if (dragging) {
       const dpr = viewport.dpr;
       cam.targetX = cameraStart.x - ((e.clientX - dragStart.x) * dpr) / cam.targetZ;
       cam.targetY = cameraStart.y + ((e.clientY - dragStart.y) * dpr) / cam.targetZ;
     }
   });
-  canvas.addEventListener('mouseup', () => {
-    dragging = false;
-  });
-  canvas.addEventListener('mouseleave', () => {
-    dragging = false;
-  });
+
+  function handlePointerEnd(e: PointerEvent) {
+    activePointers.delete(e.pointerId);
+    if (activePointers.size < 2) {
+      pinchStartDist = 0;
+    }
+    if (activePointers.size === 0) {
+      dragging = false;
+    } else if (activePointers.size === 1) {
+      const remaining = [...activePointers.values()][0];
+      if (remaining) {
+        dragging = true;
+        dragStart = { x: remaining.x, y: remaining.y };
+        cameraStart = { x: cam.targetX, y: cam.targetY };
+      }
+    }
+  }
+
+  canvas.addEventListener('pointerup', handlePointerEnd);
+  canvas.addEventListener('pointercancel', handlePointerEnd);
 
   addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space' && state.gameState === 'play' && !state.codexOpen) {
