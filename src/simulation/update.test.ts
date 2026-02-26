@@ -6,15 +6,9 @@ import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
-import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO } from './combat.ts';
+import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO, ORPHAN_TETHER_PROJECTILE_MULT } from './combat.ts';
 import { addBeam, onKillUnit, spawnParticle, spawnProjectile } from './spawn.ts';
-import {
-  MAX_STEPS_PER_FRAME,
-  ORPHAN_TETHER_PROJECTILE_MULT,
-  REFLECT_FIELD_GRANT_INTERVAL,
-  SHIELD_LINGER,
-  TETHER_BEAM_LIFE,
-} from './update.ts';
+import { MAX_STEPS_PER_FRAME, REFLECT_FIELD_GRANT_INTERVAL, SHIELD_LINGER, TETHER_BEAM_LIFE } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -531,46 +525,103 @@ describe('projectile pass', () => {
 });
 
 // ============================================================
-// 5b. 貫通プロジェクタイル + キルCD短縮
+// 5b. Railgun hitscan
 // ============================================================
-describe('piercing projectile', () => {
-  it('貫通弾は最初のヒット後も alive', () => {
-    const enemy = spawnAt(1, 1, 5, 0);
+const SNIPER_TYPE = unitTypeIndex('Sniper');
+
+describe('railgun hitscan', () => {
+  it('射線上の敵にダメージが入る', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    unit(sniper).angle = 0; // 右方向
+    // 射程600以内・正面に配置
+    const enemy = spawnAt(1, 0, 200, 0);
     unit(enemy).trailTimer = 99;
-    // piercing=0.6, sourceUnit=undefined
-    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
+    const hpBefore = unit(enemy).hp;
     update(0.016, 0, rng, gameLoopState());
-    expect(projectile(0).alive).toBe(true);
+    expect(unit(enemy).hp).toBeLessThan(hpBefore);
   });
 
-  it('貫通後にダメージが piercing 倍に減衰', () => {
-    const enemy = spawnAt(1, 1, 5, 0);
-    unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 10, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
+  it('複数の敵を貫通しダメージ 0.6 倍に減衰', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    unit(sniper).angle = 0;
+    // 射線上に2体の敵を配置
+    const enemy1 = spawnAt(1, 0, 150, 0);
+    unit(enemy1).trailTimer = 99;
+    unit(enemy1).hp = 200; // 死なないように
+    unit(enemy1).maxHp = 200;
+    const enemy2 = spawnAt(1, 0, 300, 0);
+    unit(enemy2).trailTimer = 99;
+    unit(enemy2).hp = 200;
+    unit(enemy2).maxHp = 200;
     update(0.016, 0, rng, gameLoopState());
-    expect(projectile(0).damage).toBeCloseTo(6); // 10 * 0.6
+    const dmg1 = 200 - unit(enemy1).hp;
+    const dmg2 = 200 - unit(enemy2).hp;
+    expect(dmg1).toBeGreaterThan(0);
+    expect(dmg2).toBeGreaterThan(0);
+    expect(dmg2).toBeCloseTo(dmg1 * 0.6, 0);
   });
 
-  it('lastHitUnit と同じ敵には再ヒットしない', () => {
-    const enemy = spawnAt(1, 1, 5, 0);
+  it('reflectFieldHp でブロック', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    unit(sniper).angle = 0;
+    const enemy = spawnAt(1, 0, 200, 0);
     unit(enemy).trailTimer = 99;
-    unit(enemy).hp = 100; // 死なないように
-    spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0, false, 0, undefined, 0.6);
-    // 1フレーム目: ヒット
+    unit(enemy).reflectFieldHp = 100;
+    const hpBefore = unit(enemy).hp;
     update(0.016, 0, rng, gameLoopState());
-    const hpAfterFirst = unit(enemy).hp;
-    expect(hpAfterFirst).toBe(95); // 100 - 5
-    // 弾が動かない(vx=0) → 2フレーム目: 同じ敵の近傍にいるが lastHitUnit でスキップ
-    update(0.016, 0, rng, gameLoopState());
-    expect(unit(enemy).hp).toBe(95); // 再ヒットしない
+    // フィールドが減衰しHP変化なし
+    expect(unit(enemy).reflectFieldHp).toBeLessThan(100);
+    expect(unit(enemy).hp).toBe(hpBefore);
   });
 
-  it('非貫通弾（piercing=0）は最初のヒットで消滅（従来通り）', () => {
-    const enemy = spawnAt(1, 1, 5, 0);
+  it('キル時に cooldownResetOnKill が適用される', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    unit(sniper).angle = 0;
+    // HP低い敵を配置（確実にキル）
+    const enemy = spawnAt(1, 0, 200, 0);
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
+    unit(enemy).hp = 1;
     update(0.016, 0, rng, gameLoopState());
-    expect(projectile(0).alive).toBe(false);
+    expect(unit(enemy).alive).toBe(false);
+    // cooldownResetOnKill=0.8
+    expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
+  });
+
+  it('移動中の敵にもヒットスキャンが命中する', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    // 敵は (200,0) で vy=200 の高速移動中
+    const enemy = spawnAt(1, 0, 200, 0);
+    unit(enemy).trailTimer = 99;
+    unit(enemy).vy = 200;
+    unit(enemy).hp = 200;
+    unit(enemy).maxHp = 200;
+    const hpBefore = unit(enemy).hp;
+    update(0.016, 0, rng, gameLoopState());
+    // 直射角度 = atan2(0, 200) = 0 → 射線は敵の現在位置を通る → ヒット
+    expect(unit(enemy).hp).toBeLessThan(hpBefore);
+  });
+
+  it('射線外の敵にはダメージが入らない', () => {
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    unit(sniper).trailTimer = 99;
+    unit(sniper).cooldown = 0;
+    unit(sniper).angle = 0; // 右方向
+    // 射程外（range=600を超える位置）に配置
+    const enemy = spawnAt(1, 0, 800, 0);
+    unit(enemy).trailTimer = 99;
+    const hpBefore = unit(enemy).hp;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).hp).toBe(hpBefore);
   });
 });
 
@@ -581,7 +632,7 @@ describe('キル時クールダウン短縮', () => {
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     // sourceUnit=sniper の弾を生成
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(unit(sniper).kills).toBe(1);
@@ -593,7 +644,7 @@ describe('キル時クールダウン短縮', () => {
     unit(sniper).cooldown = 2.5; // 射撃直後のクールダウン
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, sniper);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
     update(0.016, 0, rng, gameLoopState());
     // combat() で cooldown 2.5→2.484, 次に detectProjectileHit で min(2.484, 0.8)=0.8
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
@@ -964,7 +1015,7 @@ describe('KillEvent 伝播', () => {
     unit(attacker).trailTimer = 99;
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, 0, attacker);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, attacker);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
@@ -982,7 +1033,7 @@ describe('KillEvent 伝播', () => {
     const enemy = spawnAt(1, 0, 30, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     // 寿命切れで爆発する AOE 弾
-    spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, false, 70, undefined, 0, attacker);
+    spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, false, 70, undefined, attacker);
     update(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
