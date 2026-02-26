@@ -5,10 +5,10 @@ import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
-import { chainLightning, destroyUnit } from './effects.ts';
+import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
+import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
-import type { Killer } from './spawn.ts';
-import { addBeam, killerFrom, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import { addBeam, captureKiller, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 export const AMP_RANGE_MULT = 1.25;
 const AMP_ACCURACY_MULT = 1.4;
@@ -158,7 +158,6 @@ onKillUnit((e) => sweepHitMap.delete(e.victim));
 interface CombatContext {
   u: Unit;
   ui: UnitIndex;
-  killer: Killer;
   dt: number;
   c: Color3;
   vd: number;
@@ -172,7 +171,6 @@ interface CombatContext {
 const _ctx: CombatContext = {
   u: unit(0 as UnitIndex),
   ui: 0 as UnitIndex,
-  killer: { index: 0 as UnitIndex, team: 0, type: 0 },
   dt: 0,
   c: [0, 0, 0],
   vd: 0,
@@ -199,39 +197,34 @@ function handleRam(ctx: CombatContext) {
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
+    const oType = unitType(o.type);
     if (!o.alive || o.team === u.team) continue;
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < t.size + unitType(o.type).size) {
-      o.hp -= Math.ceil(u.mass * 3 * vd);
-      o.hitFlash = 1;
-      knockback(oi, u.x, u.y, u.mass * 55);
-      u.hp -= Math.ceil(unitType(o.type).mass);
-      for (let k = 0; k < 10; k++) {
-        const a = ctx.rng() * 6.283;
-        spawnParticle(
-          (u.x + o.x) / 2,
-          (u.y + o.y) / 2,
-          Math.cos(a) * (80 + ctx.rng() * 160),
-          Math.sin(a) * (80 + ctx.rng() * 160),
-          0.15,
-          2 + ctx.rng() * 2,
-          1,
-          0.9,
-          0.4,
-          SH_CIRCLE,
-        );
-      }
-      const uKiller = killerFrom(ui);
-      const oKiller = killerFrom(oi);
-      if (o.hp <= 0) {
-        destroyUnit(oi, uKiller, ui, ctx.rng);
-      }
-      if (u.hp <= 0) {
-        destroyUnit(ui, oKiller, oi, ctx.rng);
-        return;
-      }
+    if (d >= t.size + oType.size) continue;
+    o.hp -= Math.ceil(u.mass * 3 * vd);
+    o.hitFlash = 1;
+    knockback(oi, u.x, u.y, u.mass * 55);
+    u.hp -= Math.ceil(oType.mass);
+    for (let k = 0; k < 10; k++) {
+      const a = ctx.rng() * 6.283;
+      spawnParticle(
+        (u.x + o.x) / 2,
+        (u.y + o.y) / 2,
+        Math.cos(a) * (80 + ctx.rng() * 160),
+        Math.sin(a) * (80 + ctx.rng() * 160),
+        0.15,
+        2 + ctx.rng() * 2,
+        1,
+        0.9,
+        0.4,
+        SH_CIRCLE,
+      );
+    }
+    if (o.hp <= 0 || u.hp <= 0) {
+      destroyMutualKill(ui, oi, u.hp <= 0, o.hp <= 0, ctx.rng, KILL_CONTEXT.Ram);
+      if (u.hp <= 0) return;
     }
   }
 }
@@ -425,7 +418,7 @@ function handleEmp(ctx: CombatContext) {
       oo.hp -= t.damage;
       oo.hitFlash = 1;
       if (oo.hp <= 0) {
-        destroyUnit(oi, ctx.killer, ctx.ui, ctx.rng);
+        destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.Beam);
       }
     }
   }
@@ -596,14 +589,14 @@ function handleChain(ctx: CombatContext): void {
   if (d < 0) return;
   if (d < ctx.range) {
     u.cooldown = t.fireRate;
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, ctx.killer, ctx.rng);
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, captureKiller(ctx.ui), ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }
 
 /** Reflector反射とBastionシールド反射の共通処理を集約（重複排除） */
-function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): void {
-  const attacker = unit(killer.index);
+function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): void {
+  const attacker = unit(killerIndex);
   if (!attacker.alive) return;
 
   const c = effectColor(n.type, n.team);
@@ -614,7 +607,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   const reflectDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
   attacker.hp -= reflectDmg;
   attacker.hitFlash = 1;
-  knockback(killer.index, n.x, n.y, reflectDmg * 5);
+  knockback(killerIndex, n.x, n.y, reflectDmg * 5);
 
   for (let j = 0; j < 4; j++) {
     spawnParticle(
@@ -632,22 +625,28 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   }
 
   if (attacker.hp <= 0) {
-    destroyUnit(killer.index, killerFrom(ni), ni, rng);
+    destroyUnit(killerIndex, ni, rng, KILL_CONTEXT.Beam);
   }
 }
 
-function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): boolean {
+function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): boolean {
   const nt = unitType(n.type);
   if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
   consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
-  reflectBeamDamage(n, ni, baseDmg, rng, killer);
+  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
   return true;
 }
 
-function tryReflectFieldBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): boolean {
+function tryReflectFieldBeam(
+  n: Unit,
+  ni: UnitIndex,
+  baseDmg: number,
+  rng: () => number,
+  killerIndex: UnitIndex,
+): boolean {
   if (n.reflectFieldHp <= 0) return false;
   n.reflectFieldHp = Math.max(0, n.reflectFieldHp - baseDmg);
-  reflectBeamDamage(n, ni, baseDmg, rng, killer);
+  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
   return true;
 }
 
@@ -668,7 +667,7 @@ export function applyTetherAbsorb(
   n: Unit,
   dmg: number,
   orphanMult: number,
-  killer: Killer | undefined,
+  killerIndex: UnitIndex,
   rng: () => number,
 ): number {
   if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
@@ -678,7 +677,7 @@ export function applyTetherAbsorb(
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
       if (src.hp <= 0) {
-        destroyUnit(n.shieldSourceUnit, killer, killer?.index ?? NO_UNIT, rng);
+        destroyUnit(n.shieldSourceUnit, killerIndex, rng, KILL_CONTEXT.Beam);
         n.shieldSourceUnit = NO_UNIT;
       }
       return dmg * (1 - BASTION_ABSORB_RATIO);
@@ -691,10 +690,10 @@ export function applyTetherAbsorb(
 }
 
 /** ビームダメージの反射/吸収/軽減を適用。反射成功時は -1 を返す（ダメージスキップ）*/
-function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killer: Killer): number {
-  if (tryReflectBeam(n, ni, baseDmg, rng, killer)) return -1;
-  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killer)) return -1;
-  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killer, rng);
+function applyBeamDefenses(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): number {
+  if (tryReflectBeam(n, ni, baseDmg, rng, killerIndex)) return -1;
+  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerIndex)) return -1;
+  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerIndex, rng);
   dmg = absorbByBastionShield(n, dmg);
   return dmg;
 }
@@ -718,7 +717,7 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: Unit, dmg: number) 
     SH_CIRCLE,
   );
   if (n.hp <= 0) {
-    destroyUnit(ni, ctx.killer, ctx.ui, ctx.rng);
+    destroyUnit(ni, ctx.ui, ctx.rng, KILL_CONTEXT.SweepBeam);
   }
 }
 
@@ -753,7 +752,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
     if (relEnemy < lo || relEnemy > hi) continue;
     if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
     sweepHitMap.get(ctx.ui)?.add(ni);
-    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.killer);
+    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui);
     if (dmg < 0) continue;
     if (!u.alive) return;
     applySweepHit(ctx, ni, n, dmg);
@@ -938,7 +937,7 @@ function handleFocusBeam(ctx: CombatContext) {
 
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
-    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ctx.killer);
+    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui);
     if (!u.alive) return;
     if (dmg >= 0) {
       o.hp -= dmg;
@@ -963,7 +962,7 @@ function handleFocusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
-      destroyUnit(u.target, ctx.killer, ui, ctx.rng);
+      destroyUnit(u.target, ui, ctx.rng, KILL_CONTEXT.Beam);
       u.beamOn = 0;
     }
   }
@@ -1550,7 +1549,6 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   const vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.u = u;
   _ctx.ui = ui;
-  _ctx.killer = killerFrom(ui);
   _ctx.dt = dt;
   _ctx.c = c;
   _ctx.vd = vd;
