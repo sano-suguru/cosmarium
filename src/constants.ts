@@ -14,3 +14,4 @@ export const SH_EXPLOSION_RING = 10;
 
 export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;
+export const SCRAMBLE_LINGER = 2;

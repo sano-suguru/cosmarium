@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
-import { AMP_BOOST_LINGER, POOL_UNITS, REF_FPS, REFLECT_FIELD_MAX_HP, SH_CIRCLE } from '../constants.ts';
+import {
+  AMP_BOOST_LINGER,
+  POOL_UNITS,
+  REF_FPS,
+  REFLECT_FIELD_MAX_HP,
+  SCRAMBLE_LINGER,
+  SH_CIRCLE,
+} from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
@@ -1039,5 +1046,47 @@ describe('KillEvent 伝播', () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
     expect(events[0]?.killerType).toBe(2);
+  });
+});
+
+// ============================================================
+// Scrambler debuff
+// ============================================================
+const SCRAMBLER_TYPE = unitTypeIndex('Scrambler');
+
+describe('Scrambler debuff', () => {
+  it('範囲内の敵に scrambleTimer が付与される', () => {
+    const scr = spawnAt(0, SCRAMBLER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 80, 0);
+    unit(scr).trailTimer = 99;
+    unit(enemy).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).scrambleTimer).toBe(SCRAMBLE_LINGER);
+  });
+
+  it('範囲外の敵にはデバフが付与されない', () => {
+    const scr = spawnAt(0, SCRAMBLER_TYPE, 0, 0);
+    unit(scr).trailTimer = 99;
+    const farEnemy = spawnAt(1, FIGHTER_TYPE_IDX, 500, 0);
+    unit(farEnemy).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(farEnemy).scrambleTimer).toBe(0);
+  });
+
+  it('味方にはデバフが付与されない', () => {
+    const scr = spawnAt(0, SCRAMBLER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
+    unit(scr).trailTimer = 99;
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).scrambleTimer).toBe(0);
+  });
+
+  it('scrambleTimer が毎フレーム減衰する', () => {
+    const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 0, 0);
+    unit(enemy).scrambleTimer = 1.0;
+    unit(enemy).trailTimer = 99;
+    update(0.5, 0, rng, gameLoopState());
+    expect(unit(enemy).scrambleTimer).toBeCloseTo(0.5, 1);
   });
 });

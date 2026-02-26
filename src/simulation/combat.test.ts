@@ -6,7 +6,7 @@ import { decUnits, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { AMP_DAMAGE_MULT, AMP_RANGE_MULT, ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
 import { killProjectile, onKillUnit, spawnProjectile } from './spawn.ts';
@@ -2013,5 +2013,66 @@ describe('combat — KillEvent 伝播', () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
     expect(events[0]?.killerType).toBe(12);
+  });
+});
+
+// ============================================================
+// Scrambler debuff effects
+// ============================================================
+describe('combat — SCRAMBLER debuff effects', () => {
+  const FIGHTER_TYPE_C = 1;
+
+  it('scrambleTimer > 0 のユニットの射程が SCRAMBLE_RANGE_MULT 倍に縮小', () => {
+    const t = unitType(FIGHTER_TYPE_C);
+    const baseRange = t.range;
+    // baseRange * 0.8 > baseRange * SCRAMBLE_RANGE_MULT(0.75) なので射程外
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, baseRange * 0.8, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).scrambleTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // デバフ射程 = 170 * 0.75 = 127.5, 距離 = 136 → 射程外なので発射しない
+    expect(unit(fighter).cooldown).toBeLessThanOrEqual(0);
+  });
+
+  it('scrambleTimer = 0 では射程縮小なし', () => {
+    const t = unitType(FIGHTER_TYPE_C);
+    const baseRange = t.range;
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, baseRange * 0.8, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).scrambleTimer = 0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // 通常射程 = 170, 距離 = 136 → 射程内なので発射
+    expect(unit(fighter).cooldown).toBeGreaterThan(0);
+  });
+
+  it('Scrambler は排他で通常射撃しない', () => {
+    const scrType = unitTypeIndex('Scrambler');
+    const scr = spawnAt(0, scrType, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, 100, 0);
+    unit(scr).target = enemy;
+    unit(scr).cooldown = -1;
+    buildHash();
+    combat(unit(scr), scr, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(0);
+  });
+
+  it('ampバフとscrambleデバフの乗算合成（射程）', () => {
+    // amp射程 = 170 * 1.25 = 212.5, scramble射程 = 212.5 * 0.75 = 159.375
+    const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_C, 155, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).ampBoostTimer = 1.0;
+    unit(fighter).scrambleTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // 距離155 < 159.375 → 射程内で発射される
+    expect(unit(fighter).cooldown).toBeGreaterThan(0);
   });
 });

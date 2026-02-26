@@ -14,6 +14,10 @@ export const AMP_RANGE_MULT = 1.25;
 const AMP_ACCURACY_MULT = 1.4;
 export const AMP_DAMAGE_MULT = 1.2;
 
+const SCRAMBLE_RANGE_MULT = 0.75;
+const SCRAMBLE_ACCURACY_MULT = 0.5;
+const SCRAMBLE_COOLDOWN_MULT = 1.5;
+
 export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
 export const BASTION_ABSORB_RATIO = 0.4;
 export const BASTION_SELF_ABSORB_RATIO = 0.3;
@@ -1588,7 +1592,8 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   else if (t.aoe) sp = AOE_PROJ_SPEED;
   else sp = 480 + t.damage * 12;
   const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
-  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc));
+  const scrAcc = u.scrambleTimer > 0 ? SCRAMBLE_ACCURACY_MULT : 1;
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc * scrAcc));
   if (t.carpet) {
     fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
     return;
@@ -1649,6 +1654,31 @@ function handleAmplifier(ctx: CombatContext) {
   }
 }
 
+function handleScrambler(ctx: CombatContext) {
+  const { u, dt } = ctx;
+  // 定期的な赤紫の拡大リング
+  if (ctx.rng() < 1 - 0.7 ** (dt * REF_FPS)) {
+    spawnParticle(u.x, u.y, 0, 0, 0.6, u.mass * 6, 0.8, 0.2, 0.6, SH_EXPLOSION_RING);
+  }
+  // ノイズ粒子
+  if (ctx.rng() < 1 - 0.5 ** (dt * REF_FPS)) {
+    const a = ctx.rng() * Math.PI * 2;
+    const r = ctx.rng() * 80;
+    spawnParticle(
+      u.x + Math.cos(a) * r,
+      u.y + Math.sin(a) * r,
+      (ctx.rng() - 0.5) * 30,
+      (ctx.rng() - 0.5) * 30,
+      0.3,
+      2.5,
+      0.7,
+      0.15,
+      0.5,
+      SH_DIAMOND,
+    );
+  }
+}
+
 /** @returns true if an exclusive handler fired */
 function tryExclusiveFire(ctx: CombatContext): boolean {
   const { t, u } = ctx;
@@ -1671,10 +1701,16 @@ function tryExclusiveFire(ctx: CombatContext): boolean {
   return false;
 }
 
+export function effectiveRange(u: Unit, t: UnitType): number {
+  const amp = u.ampBoostTimer > 0 ? AMP_RANGE_MULT : 1;
+  const scr = u.scrambleTimer > 0 ? SCRAMBLE_RANGE_MULT : 1;
+  return t.range * amp * scr;
+}
+
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = unitType(u.type);
   if (u.stun > 0) return;
-  u.cooldown -= dt;
+  u.cooldown -= dt / (u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1);
   u.abilityCooldown -= dt;
   const c = effectColor(u.type, u.team);
   const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
@@ -1685,7 +1721,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   _ctx.c = c;
   _ctx.vd = vd;
   _ctx.t = t;
-  _ctx.range = u.ampBoostTimer > 0 ? t.range * AMP_RANGE_MULT : t.range;
+  _ctx.range = effectiveRange(u, t);
   _ctx.rng = rng;
 
   if (t.rams) {
@@ -1699,6 +1735,10 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   }
   if (t.shields) handleShielder(_ctx);
   if (t.amplifies) handleAmplifier(_ctx);
+  if (t.scrambles) {
+    handleScrambler(_ctx);
+    return;
+  }
   if (t.spawns) handleCarrier(_ctx);
   if (t.emp && u.abilityCooldown <= 0) {
     handleEmp(_ctx);
@@ -1715,6 +1755,7 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'reflects',
   'shields',
   'amplifies',
+  'scrambles',
   'spawns',
   'emp',
   'teleports',

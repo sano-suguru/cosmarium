@@ -366,6 +366,27 @@ export const TYPES: UnitType[] = [
     description: 'テザービームで味方の射撃性能を底上げする電磁増幅支援艦。',
     attackDesc: '射撃バフテザー＋通常射撃',
   },
+  {
+    name: 'Scrambler',
+    size: 11,
+    hp: 20,
+    speed: 100,
+    turnRate: 2.5,
+    fireRate: 999,
+    range: 150,
+    damage: 0,
+    shape: 29,
+    trailInterval: 0.5,
+    mass: 4,
+    accel: 5.0,
+    drag: 1.8,
+    leadAccuracy: 0,
+    scrambles: true,
+    boost: { multiplier: 1.4, duration: 0.3, cooldown: 3.5, triggerRange: 150 },
+    retreatHpRatio: 0.4,
+    description: '電子妨害フィールドで周囲の敵機の戦闘能力を低下させる電子戦支援艦。',
+    attackDesc: '電子妨害フィールド（敵射程・精度・射撃速度低下）',
+  },
 ];
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));

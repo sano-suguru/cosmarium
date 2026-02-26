@@ -3,7 +3,7 @@ import { poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
-import { AMP_RANGE_MULT } from './combat.ts';
+import { effectiveRange } from './combat.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 interface SteerForce {
@@ -357,8 +357,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const ampRange = u.ampBoostTimer > 0 ? AMP_RANGE_MULT : 1;
-  const tgt = findTarget(u, nn, t.range * ampRange, dt, rng, t.massWeight ?? 0);
+  const tgt = findTarget(u, nn, effectiveRange(u, t), dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
   const hpRatio = u.maxHp > 0 ? u.hp / u.maxHp : 0;
@@ -375,7 +374,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   fx += retreat.x;
   fy += retreat.y;
 
-  if (t.heals || t.amplifies) {
+  if (t.heals || t.amplifies || t.scrambles) {
     const heal = computeHealerFollow(u, nn);
     fx += heal.x;
     fy += heal.y;

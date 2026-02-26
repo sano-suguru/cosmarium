@@ -6,6 +6,7 @@ import {
   POOL_PROJECTILES,
   POOL_UNITS,
   REFLECT_FIELD_MAX_HP,
+  SCRAMBLE_LINGER,
   SH_CIRCLE,
   SH_DIAMOND,
   SH_EXPLOSION_RING,
@@ -24,6 +25,7 @@ const SH_BAR = 21;
 const SH_OCT_SHIELD = 22;
 const SH_LIGHTNING = 23;
 const SH_REFLECT_FIELD = 27;
+const SH_DIAMOND_RING = 17;
 const VET_TINT_FACTOR = 0.15;
 // TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
 export const WRAP_PERIOD = TAU * 10000;
@@ -155,6 +157,11 @@ function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
   if (u.ampBoostTimer > 0 && !ut.amplifies) {
     const ampAlpha = 0.08 + (u.ampBoostTimer / AMP_BOOST_LINGER) * 0.07;
     writeInstance(u.x, u.y, ut.size * 1.7 * rs, 1.0, 0.6, 0.15, ampAlpha, (now * 0.3) % TAU, SH_EXPLOSION_RING);
+  }
+  if (u.scrambleTimer > 0 && !ut.scrambles) {
+    const blink = Math.sin(now * 6) * 0.5 + 0.5;
+    const scrAlpha = (0.06 + (u.scrambleTimer / SCRAMBLE_LINGER) * 0.06) * (0.5 + blink * 0.5);
+    writeInstance(u.x, u.y, ut.size * 1.6 * rs, 0.9, 0.15, 0.2, scrAlpha, (now * 1.5) % TAU, SH_DIAMOND_RING);
   }
 }
 

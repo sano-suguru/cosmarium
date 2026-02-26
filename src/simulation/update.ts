@@ -9,6 +9,7 @@ import {
   POOL_UNITS,
   REF_FPS,
   REFLECT_FIELD_MAX_HP,
+  SCRAMBLE_LINGER,
   SH_CIRCLE,
   SH_EXPLOSION_RING,
   TAU,
@@ -46,6 +47,7 @@ const BASTION_MAX_TETHERS = 4;
 const AMP_RADIUS = 120;
 const AMP_MAX_TETHERS = 4;
 const AMP_TETHER_BEAM_LIFE = 0.7;
+const SCRAMBLE_RADIUS = 130;
 
 function steerHomingProjectile(p: Projectile, dt: number) {
   const tg = unit(p.target);
@@ -504,9 +506,33 @@ function decayAmpTimers(dt: number) {
   }
 }
 
+function scrambleNearbyEnemies(u: Unit, i: number) {
+  const nn = getNeighbors(u.x, u.y, SCRAMBLE_RADIUS);
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j);
+    const o = unit(oi);
+    if (!o.alive || o.team === u.team || oi === i) continue;
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    if (dx * dx + dy * dy < SCRAMBLE_RADIUS * SCRAMBLE_RADIUS) {
+      o.scrambleTimer = SCRAMBLE_LINGER;
+    }
+  }
+}
+
+function decayScrambleTimers(dt: number) {
+  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) continue;
+    rem--;
+    if (u.scrambleTimer > 0) u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
+  }
+}
+
 function applyShieldsAndFields(dt: number) {
   decayShieldTimers(dt);
   decayAmpTimers(dt);
+  decayScrambleTimers(dt);
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
@@ -515,6 +541,7 @@ function applyShieldsAndFields(dt: number) {
     if (t.reflects) applyReflectorAllyField(u, i, dt);
     if (t.shields) tetherNearbyAllies(u, i);
     if (t.amplifies) amplifyNearbyAllies(u, i);
+    if (t.scrambles) scrambleNearbyEnemies(u, i);
   }
 }
 
