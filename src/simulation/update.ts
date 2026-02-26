@@ -1,4 +1,3 @@
-import { swapRemove } from '../array-utils.ts';
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { effectColor } from '../colors.ts';
 import {
@@ -15,6 +14,7 @@ import {
 } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
+import { swapRemove } from '../swap-remove.ts';
 import type { Color3, ParticleIndex, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
@@ -100,7 +100,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   addShake(3, p.x, p.y);
 }
 
-function handleProjectileKill(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
+function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
   destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
 }
 
@@ -145,7 +145,7 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   hitSparkFx(p, rng);
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);
-  if (o.hp <= 0) handleProjectileKill(oi, p.sourceUnit, rng);
+  if (o.hp <= 0) killByProjectile(oi, p.sourceUnit, rng);
 }
 
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {

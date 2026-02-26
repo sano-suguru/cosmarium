@@ -1,8 +1,8 @@
-import { swapRemove } from '../array-utils.ts';
 import { effectColor, trailColor } from '../colors.ts';
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
+import { swapRemove } from '../swap-remove.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';

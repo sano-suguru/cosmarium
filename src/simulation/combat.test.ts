@@ -1961,7 +1961,7 @@ describe('combat — AMPLIFIER buff effects', () => {
 // KillEvent 伝播テスト
 // ============================================================
 describe('combat — KillEvent 伝播', () => {
-  it('handleRam: 敵kill時の KillEvent に攻撃者情報が含まれる', () => {
+  it('ramTarget: 敵kill時の KillEvent に攻撃者情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
@@ -1976,7 +1976,7 @@ describe('combat — KillEvent 伝播', () => {
     expect(events[0]?.killerType).toBe(9);
   });
 
-  it('handleRam: 相打ち時に双方の KillEvent が正しい killer 情報を持つ', () => {
+  it('ramTarget: 相打ち時に双方の KillEvent が正しい killer 情報を持つ', () => {
     const events: { victimTeam: number; killerTeam: number | undefined }[] = [];
     onKillUnit((e) => {
       events.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
@@ -1996,7 +1996,7 @@ describe('combat — KillEvent 伝播', () => {
     expect(lancerKill?.killerTeam).toBe(1); // drone が killer
   });
 
-  it('handleFocusBeam: 敵kill時の KillEvent に射撃元情報が含まれる', () => {
+  it('focusBeam: 敵kill時の KillEvent に射撃元情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });

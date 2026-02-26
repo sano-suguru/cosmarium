@@ -18,7 +18,7 @@ const CROSSHAIR_SVG = `<svg ${SVG_ATTRS}><circle cx="12" cy="12" r="10"/><line x
 // Lucide Skull
 const SKULL_SVG = `<svg ${SVG_ATTRS}><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg>`;
 
-interface KillerInfo {
+interface KillerTag {
   team: Team;
   type: number;
 }
@@ -26,7 +26,7 @@ interface KillerInfo {
 interface QueuedEntry {
   victimTeam: Team;
   victimType: number;
-  killer: KillerInfo | null;
+  killer: KillerTag | null;
 }
 let container: HTMLDivElement | null = null;
 const queue: QueuedEntry[] = [];
@@ -61,7 +61,7 @@ function createIconSpan(svgHtml: string): HTMLSpanElement {
   return span;
 }
 
-function showEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
+function showEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
   if (!container) return;
   const entry = document.createElement('div');
   Object.assign(entry.style, {
@@ -110,9 +110,9 @@ function drainQueue() {
     drainTimer = 0;
     return;
   }
-  const item = queue.shift();
-  if (item) {
-    showEntry(item.victimTeam, item.victimType, item.killer);
+  const queued = queue.shift();
+  if (queued) {
+    showEntry(queued.victimTeam, queued.victimType, queued.killer);
     lastShowTime = performance.now();
   }
   if (queue.length > 0) {
@@ -131,7 +131,7 @@ export function clearKillFeed() {
   lastShowTime = 0;
   if (container) container.textContent = '';
 }
-export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
+export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
   if (!container) return;
   if (drainTimer === 0) {
     const now = performance.now();

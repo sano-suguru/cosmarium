@@ -4,17 +4,17 @@ import { poolCounts, unit } from '../pools.ts';
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;
 
-type CellData = { t0: number; t1: number; sx: number; sy: number; count: number };
+type HotspotCell = { t0: number; t1: number; sx: number; sy: number; count: number };
 
 let _hotspot: { x: number; y: number; radius: number } | null = null;
 let frameCounter = 0;
 
-const _cellPool: CellData[] = [];
+const _cellPool: HotspotCell[] = [];
 let _cellPoolIdx = 0;
 
-function acquireCell(): CellData {
+function acquireCell(): HotspotCell {
   if (_cellPoolIdx < _cellPool.length) {
-    const c = _cellPool[_cellPoolIdx++] as CellData;
+    const c = _cellPool[_cellPoolIdx++] as HotspotCell;
     c.t0 = 0;
     c.t1 = 0;
     c.sx = 0;
@@ -22,13 +22,13 @@ function acquireCell(): CellData {
     c.count = 0;
     return c;
   }
-  const c: CellData = { t0: 0, t1: 0, sx: 0, sy: 0, count: 0 };
+  const c: HotspotCell = { t0: 0, t1: 0, sx: 0, sy: 0, count: 0 };
   _cellPool.push(c);
   _cellPoolIdx++;
   return c;
 }
 
-const _cells = new Map<number, CellData>();
+const _cells = new Map<number, HotspotCell>();
 
 function cellKey(x: number, y: number): number {
   const gx = Math.floor(x / HOTSPOT_CELL_SIZE);
@@ -36,7 +36,7 @@ function cellKey(x: number, y: number): number {
   return gx * 100003 + gy;
 }
 
-function buildCellMap(): Map<number, CellData> {
+function buildCellMap(): Map<number, HotspotCell> {
   _cells.clear();
   _cellPoolIdx = 0;
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
@@ -58,9 +58,9 @@ function buildCellMap(): Map<number, CellData> {
   return _cells;
 }
 
-function pickBestCell(cells: Map<number, CellData>): { key: number; cell: CellData } | null {
+function pickBestCell(cells: Map<number, HotspotCell>): { key: number; cell: HotspotCell } | null {
   let bestKey: number | null = null;
-  let bestCell: CellData | null = null;
+  let bestCell: HotspotCell | null = null;
   let bestScore = 0;
   for (const [key, cell] of cells) {
     const sum = cell.t0 + cell.t1;

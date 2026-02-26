@@ -49,7 +49,7 @@ function startGame() {
   initUnits(rng);
 }
 
-function handleCodexToggle() {
+function onCodexToggle() {
   toggleCodex();
   if (state.gameState === 'menu') {
     if (elMenu) elMenu.style.display = state.codexOpen ? 'none' : 'flex';
@@ -62,7 +62,7 @@ function handleCodexToggle() {
   }
 }
 
-function handlePlayKeydown(e: KeyboardEvent) {
+function onPlayKeydown(e: KeyboardEvent) {
   if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
     stepSpd(-1);
     e.preventDefault();
@@ -142,13 +142,13 @@ export function initUI() {
   });
 
   elCodexBtn?.addEventListener('click', () => {
-    handleCodexToggle();
+    onCodexToggle();
   });
   elCodexClose?.addEventListener('click', () => {
-    handleCodexToggle();
+    onCodexToggle();
   });
   elCodexMenuBtn?.addEventListener('click', () => {
-    handleCodexToggle();
+    onCodexToggle();
   });
 
   for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
@@ -160,10 +160,10 @@ export function initUI() {
   addEventListener('keydown', (e: KeyboardEvent) => {
     if ((e.code === 'Tab' || e.code === 'Escape') && (state.gameState === 'play' || state.gameState === 'menu')) {
       e.preventDefault();
-      handleCodexToggle();
+      onCodexToggle();
     }
     if (state.gameState === 'play') {
-      handlePlayKeydown(e);
+      onPlayKeydown(e);
     }
   });
 

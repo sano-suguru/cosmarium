@@ -249,10 +249,10 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   return _healForce;
 }
 
-// 再利用ブースト速度バッファ — handleBoost が上書きして返却する
+// 再利用ブースト速度バッファ — tickBoost が上書きして返却する
 const _boostVel = { vx: 0, vy: 0 };
 
-function handleBoost(
+function tickBoost(
   u: Unit,
   boost: NonNullable<UnitType['boost']>,
   tgt: number,
@@ -325,10 +325,10 @@ function steerStunned(u: Unit, dt: number) {
 
 function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
   const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS);
-  const boostVel = t.boost ? handleBoost(u, t.boost, tgt, spd, dt) : null;
-  const response = dt * t.accel;
-  u.vx += (Math.cos(u.angle) * spd - u.vx) * response;
-  u.vy += (Math.sin(u.angle) * spd - u.vy) * response;
+  const boostVel = t.boost ? tickBoost(u, t.boost, tgt, spd, dt) : null;
+  const accelLerp = dt * t.accel;
+  u.vx += (Math.cos(u.angle) * spd - u.vx) * accelLerp;
+  u.vy += (Math.sin(u.angle) * spd - u.vy) * accelLerp;
   if (boostVel) {
     u.vx = boostVel.vx;
     u.vy = boostVel.vy;

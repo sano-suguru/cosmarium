@@ -56,9 +56,9 @@ let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
 
 interface PoolSnapshot {
-  units: Array<{ index: number; data: Unit }>;
-  particles: Array<{ index: number; data: Particle }>;
-  projectiles: Array<{ index: number; data: Projectile }>;
+  units: Array<{ index: number; copy: Unit }>;
+  particles: Array<{ index: number; copy: Particle }>;
+  projectiles: Array<{ index: number; copy: Projectile }>;
   beams: Beam[];
   trackingBeams: TrackingBeam[];
   pendingChains: ReturnType<typeof snapshotChains>;
@@ -72,17 +72,17 @@ export function snapshotPools(): PoolSnapshot {
   const units: PoolSnapshot['units'] = [];
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
-    if (u.alive) units.push({ index: i, data: { ...u } });
+    if (u.alive) units.push({ index: i, copy: { ...u } });
   }
   const particles: PoolSnapshot['particles'] = [];
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = particle(i);
-    if (p.alive) particles.push({ index: i, data: { ...p } });
+    if (p.alive) particles.push({ index: i, copy: { ...p } });
   }
   const projectiles: PoolSnapshot['projectiles'] = [];
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = projectile(i);
-    if (p.alive) projectiles.push({ index: i, data: { ...p } });
+    if (p.alive) projectiles.push({ index: i, copy: { ...p } });
   }
   return {
     units,
@@ -102,9 +102,9 @@ export function snapshotPools(): PoolSnapshot {
 export function restorePools(snapshot: PoolSnapshot) {
   clearAllPools();
   restoreChains(snapshot.pendingChains);
-  for (const entry of snapshot.units) Object.assign(unit(entry.index), entry.data);
-  for (const entry of snapshot.particles) Object.assign(particle(entry.index), entry.data);
-  for (const entry of snapshot.projectiles) Object.assign(projectile(entry.index), entry.data);
+  for (const entry of snapshot.units) Object.assign(unit(entry.index), entry.copy);
+  for (const entry of snapshot.particles) Object.assign(particle(entry.index), entry.copy);
+  for (const entry of snapshot.projectiles) Object.assign(projectile(entry.index), entry.copy);
   for (const b of snapshot.beams) beams.push(b);
   for (const tb of snapshot.trackingBeams) trackingBeams.push(tb);
   setPoolCounts(snapshot.counts.units, snapshot.counts.particles, snapshot.counts.projectiles);
@@ -394,15 +394,15 @@ function updateCodexPanel() {
   elCodexName.style.color = col;
   elCodexDesc.textContent = t.description;
 
-  const mkBar = (label: string, val: number, max: number, color: string): DocumentFragment => {
+  const mkBar = (label: string, current: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
     const lbl = document.createElement('div');
-    lbl.textContent = `${label}: ${val}`;
+    lbl.textContent = `${label}: ${current}`;
     frag.appendChild(lbl);
     const barOuter = document.createElement('div');
     barOuter.className = 'cpBar';
     const barInner = document.createElement('div');
-    barInner.style.width = `${(val / max) * 100}%`;
+    barInner.style.width = `${(current / max) * 100}%`;
     barInner.style.background = color;
     barOuter.appendChild(barInner);
     frag.appendChild(barOuter);
@@ -441,33 +441,33 @@ function buildCodexUI() {
   const list = elCodexList;
   list.textContent = '';
   TYPES.forEach((t, i) => {
-    const item = document.createElement('div');
-    item.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
+    const entry = document.createElement('div');
+    entry.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
     const c = color(i, 0);
     const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
     const dot = document.createElement('div');
     dot.className = 'ciDot';
     dot.style.background = rgb;
     dot.style.boxShadow = `0 0 6px ${rgb}`;
-    item.appendChild(dot);
-    const info = document.createElement('div');
+    entry.appendChild(dot);
+    const labelGroup = document.createElement('div');
     const nameDiv = document.createElement('div');
     nameDiv.className = 'ciName';
     nameDiv.style.color = rgb;
     nameDiv.textContent = t.name;
-    info.appendChild(nameDiv);
+    labelGroup.appendChild(nameDiv);
     const typeDiv = document.createElement('div');
     typeDiv.className = 'ciType';
     typeDiv.textContent = t.attackDesc;
-    info.appendChild(typeDiv);
-    item.appendChild(info);
-    item.onclick = ((idx: number) => () => {
+    labelGroup.appendChild(typeDiv);
+    entry.appendChild(labelGroup);
+    entry.onclick = ((idx: number) => () => {
       state.codexSelected = idx;
       buildCodexUI();
       setupCodexDemo(idx);
       updateCodexPanel();
     })(i);
-    list.appendChild(item);
+    list.appendChild(entry);
   });
 }
 

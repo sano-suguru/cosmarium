@@ -6,7 +6,7 @@ import minimapFragSrc from '../shaders/minimap.frag.glsl';
 import minimapVertSrc from '../shaders/minimap.vert.glsl';
 import quadVertSrc from '../shaders/quad.vert.glsl';
 import { devError, devWarn } from '../ui/dev-overlay.ts';
-import { required } from './utils.ts';
+import { required } from './assert.ts';
 import { gl } from './webgl-setup.ts';
 
 export let mainProgram: WebGLProgram;

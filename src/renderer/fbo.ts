@@ -1,6 +1,6 @@
 import type { FBO } from '../types.ts';
 import { devError } from '../ui/dev-overlay.ts';
-import { required } from './utils.ts';
+import { required } from './assert.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
 export const fbos: { scene: FBO | null; bloom1: FBO | null; bloom2: FBO | null } = {

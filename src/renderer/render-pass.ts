@@ -1,6 +1,7 @@
 import { cam } from '../input/camera.ts';
 import { state } from '../state.ts';
 import type { FBO } from '../types.ts';
+import { required } from './assert.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
 import { fbos } from './fbo.ts';
 import { renderScene, WRAP_PERIOD } from './render-scene.ts';
@@ -12,7 +13,6 @@ import {
   mainLocations,
   mainProgram,
 } from './shaders.ts';
-import { required } from './utils.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
 function drawQuad() {

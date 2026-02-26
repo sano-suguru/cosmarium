@@ -192,7 +192,7 @@ function tgtDistOrClear(u: Unit): number {
   return Math.sqrt((o.x - u.x) * (o.x - u.x) + (o.y - u.y) * (o.y - u.y));
 }
 
-function handleRam(ctx: CombatContext) {
+function ramTarget(ctx: CombatContext) {
   const { u, ui, t, vd } = ctx;
   const nn = getNeighbors(u.x, u.y, t.size * 2);
   for (let i = 0; i < nn; i++) {
@@ -237,7 +237,7 @@ function handleRam(ctx: CombatContext) {
   }
 }
 
-function handleHealer(ctx: CombatContext) {
+function healAllies(ctx: CombatContext) {
   const { u, ui } = ctx;
   u.abilityCooldown = HEALER_COOLDOWN;
   const nn = getNeighbors(u.x, u.y, 160);
@@ -334,7 +334,7 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number,
   }
 }
 
-function handleReflector(ctx: CombatContext) {
+function reflectProjectiles(ctx: CombatContext) {
   const { u, c, t, vd } = ctx;
   const fireRange = t.range;
   const reflectR = t.size * REFLECT_RADIUS_MULT;
@@ -384,7 +384,7 @@ function handleReflector(ctx: CombatContext) {
   }
 }
 
-function handleCarrier(ctx: CombatContext) {
+function launchDrones(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
   u.spawnCooldown -= dt;
   if (u.spawnCooldown <= 0) {
@@ -411,7 +411,7 @@ function handleCarrier(ctx: CombatContext) {
   }
 }
 
-function handleEmp(ctx: CombatContext) {
+function dischargeEmp(ctx: CombatContext) {
   const { u, t } = ctx;
   const d = tgtDistOrClear(u);
   if (d < 0 || d >= t.range) return;
@@ -551,7 +551,7 @@ function blinkArrive(ctx: CombatContext) {
   u.cooldown = Math.max(u.cooldown, BLINK_GAP + 0.05);
 }
 
-function handleTeleporter(ctx: CombatContext) {
+function teleport(ctx: CombatContext) {
   const { u, dt } = ctx;
   u.teleportTimer -= dt;
   if (u.teleportTimer > 0) return;
@@ -590,7 +590,7 @@ function handleTeleporter(ctx: CombatContext) {
   }
 }
 
-function handleChain(ctx: CombatContext): void {
+function castChain(ctx: CombatContext): void {
   const { u, c, t, vd } = ctx;
   const d = tgtDistOrClear(u);
   if (d < 0) return;
@@ -849,7 +849,7 @@ function sweepGlowRing(ctx: CombatContext, x: number, y: number, c: Color3, dt: 
   }
 }
 
-function handleSweepBeam(ctx: CombatContext) {
+function sweepBeam(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
 
   if (u.target === NO_UNIT) {
@@ -922,7 +922,7 @@ function handleSweepBeam(ctx: CombatContext) {
   }
 }
 
-function handleFocusBeam(ctx: CombatContext) {
+function focusBeam(ctx: CombatContext) {
   const { u, ui, c, t, dt, vd } = ctx;
   if (u.target === NO_UNIT) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
@@ -1336,7 +1336,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
  *   sweepBaseAngle: locked target angle at charge start
  *   broadsidePhase: phase (BROADSIDE_PHASE_CHARGE=0, BROADSIDE_PHASE_FIRE=-1)
  */
-function handleFlagshipBarrage(ctx: CombatContext) {
+function flagshipBarrage(ctx: CombatContext) {
   const { u, t, dt } = ctx;
 
   if (u.target === NO_UNIT) {
@@ -1609,7 +1609,7 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   }
 }
 
-function handleShielder(ctx: CombatContext) {
+function shieldAllies(ctx: CombatContext) {
   const { u, c, dt } = ctx;
   if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
     const a = ctx.rng() * Math.PI * 2;
@@ -1629,7 +1629,7 @@ function handleShielder(ctx: CombatContext) {
   }
 }
 
-function handleAmplifier(ctx: CombatContext) {
+function amplifyAllies(ctx: CombatContext) {
   const { u, c, dt } = ctx;
   if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
     const a = ctx.rng() * Math.PI * 2;
@@ -1649,23 +1649,23 @@ function handleAmplifier(ctx: CombatContext) {
   }
 }
 
-/** @returns true if an exclusive handler fired */
+/** @returns true if an exclusive ability fired */
 function tryExclusiveFire(ctx: CombatContext): boolean {
   const { t, u } = ctx;
   if (t.chain && u.cooldown <= 0) {
-    handleChain(ctx);
+    castChain(ctx);
     return true;
   }
   if (t.sweep) {
-    handleSweepBeam(ctx);
+    sweepBeam(ctx);
     return true;
   }
   if (t.broadside) {
-    handleFlagshipBarrage(ctx);
+    flagshipBarrage(ctx);
     return true;
   }
   if (t.beam) {
-    handleFocusBeam(ctx);
+    focusBeam(ctx);
     return true;
   }
   return false;
@@ -1689,23 +1689,23 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   _ctx.rng = rng;
 
   if (t.rams) {
-    handleRam(_ctx);
+    ramTarget(_ctx);
     return;
   }
-  if (t.heals && u.abilityCooldown <= 0) handleHealer(_ctx);
+  if (t.heals && u.abilityCooldown <= 0) healAllies(_ctx);
   if (t.reflects) {
-    handleReflector(_ctx);
+    reflectProjectiles(_ctx);
     return;
   }
-  if (t.shields) handleShielder(_ctx);
-  if (t.amplifies) handleAmplifier(_ctx);
-  if (t.spawns) handleCarrier(_ctx);
+  if (t.shields) shieldAllies(_ctx);
+  if (t.amplifies) amplifyAllies(_ctx);
+  if (t.spawns) launchDrones(_ctx);
   if (t.emp && u.abilityCooldown <= 0) {
-    handleEmp(_ctx);
+    dischargeEmp(_ctx);
     return;
   }
   // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
-  if (t.teleports) handleTeleporter(_ctx);
+  if (t.teleports) teleport(_ctx);
   if (!tryExclusiveFire(_ctx)) fireNormal(_ctx);
 }
 

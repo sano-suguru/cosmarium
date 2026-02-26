@@ -1,5 +1,5 @@
+import { required } from './assert.ts';
 import { mainLocations, minimapLocations } from './shaders.ts';
-import { required } from './utils.ts';
 import { gl } from './webgl-setup.ts';
 
 const STRIDE_BYTES = 36;
