@@ -49,7 +49,7 @@ sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で�
 - `killUnit()`はプールindex引数。Unit参照ではない
 - `u.target`はプールindex。-1=なし（`NO_UNIT`）。ターゲットの`.alive`必ずチェック
 - `beams`/`trackingBeams`は動的配列でswap-and-pop削除→順序不定
-- `explosion()`のkiller引数: `NO_UNIT`=不明、有効indexならvet/kills加算
+- `explosion()`は純粋な視覚エフェクト関数（パーティクル生成のみ）。vet/kills加算は`destroyUnit()`が`Killer`スナップショットで処理
 - `getNeighbors()`は`buildHash()`後のみ有効。途中のユニット追加は反映されない
 - `killUnit()` + `explosion()` のペアは必ず `destroyUnit()` でまとめること — 内部でスナップショットを取るため手動退避不要。`killUnit()` 単体使用時は kill 前に値を退避すること
 - `on-kill-effects.ts`: `KILL_CONTEXT`で攻撃種別を分類。`ProjectileDirect`のみcooldownリセット適用
