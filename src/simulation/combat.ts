@@ -18,6 +18,7 @@ export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
 export const BASTION_ABSORB_RATIO = 0.4;
 export const BASTION_SELF_ABSORB_RATIO = 0.3;
 export const ORPHAN_TETHER_BEAM_MULT = 0.8;
+export const ORPHAN_TETHER_PROJECTILE_MULT = 0.7;
 const SH_DIAMOND_RING = 17;
 
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
@@ -123,7 +124,6 @@ export const HEALER_AMOUNT = 3;
 export const HEALER_COOLDOWN = 0.35;
 const HALF_ARC = 0.524; // ±30°
 const RAILGUN_SHAPE = 8;
-const RAILGUN_SPEED = 900;
 const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
@@ -538,7 +538,6 @@ function blinkArrive(ctx: CombatContext) {
           false,
           0,
           undefined,
-          0,
           ctx.ui,
         );
       }
@@ -1337,45 +1336,114 @@ function handleFlagshipBarrage(ctx: CombatContext) {
   }
 }
 
-function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
+const RAILGUN_SAMPLE_STEP = 100;
+const RAILGUN_PIERCE_MULT = 0.6;
+
+interface RayHit {
+  oi: UnitIndex;
+  dist: number;
+}
+
+// GC回避: collectRayHits() のモジュールレベルシングルトン
+const _rayHitSeen = new Set<UnitIndex>();
+const _rayHits: RayHit[] = [];
+function _rayHitCmp(a: RayHit, b: RayHit): number {
+  return a.dist - b.dist;
+}
+
+function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: number, teamFilter: number): RayHit[] {
+  const steps = Math.ceil(range / RAILGUN_SAMPLE_STEP);
+  _rayHitSeen.clear();
+  for (let s = 0; s <= steps; s++) {
+    const d = Math.min(s * RAILGUN_SAMPLE_STEP, range);
+    const nn = getNeighbors(ox + dx * d, oy + dy * d, RAILGUN_SAMPLE_STEP);
+    for (let j = 0; j < nn; j++) {
+      const oi = getNeighborAt(j);
+      const o = unit(oi);
+      if (o.alive && o.team !== teamFilter) _rayHitSeen.add(oi);
+    }
+  }
+  _rayHits.length = 0;
+  for (const oi of _rayHitSeen) {
+    const o = unit(oi);
+    const tox = o.x - ox;
+    const toy = o.y - oy;
+    const proj = tox * dx + toy * dy;
+    if (proj < 0 || proj > range) continue;
+    const perpDistSq = tox * tox + toy * toy - proj * proj;
+    const hitSize = unitType(o.type).size;
+    if (perpDistSq < hitSize * hitSize) _rayHits.push({ oi, dist: proj });
+  }
+  _rayHits.sort(_rayHitCmp);
+  return _rayHits;
+}
+
+function railgunHitFx(x: number, y: number, ang: number, c: Color3, rng: () => number) {
+  for (let k = 0; k < 5; k++) {
+    const sA = ang + (rng() - 0.5) * 1.75;
+    const sSpd = 80 + rng() * 120;
+    spawnParticle(x, y, Math.cos(sA) * sSpd, Math.sin(sA) * sSpd, 0.06 + rng() * 0.04, 1.5, 1, 1, 0.7, SH_CIRCLE);
+  }
+  spawnParticle(x, y, 0, 0, 0.12, 6, c[0], c[1], c[2], SH_EXPLOSION_RING);
+}
+
+function applyRailgunHits(
+  ctx: CombatContext,
+  hits: RayHit[],
+  baseDmg: number,
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  ang: number,
+): number {
+  let dmg = baseDmg;
+  let endDist = ctx.t.range;
+  for (const hit of hits) {
+    const oi = hit.oi;
+    const o = unit(oi);
+    if (!o.alive) continue;
+
+    if (o.reflectFieldHp > 0) {
+      o.reflectFieldHp = Math.max(0, o.reflectFieldHp - dmg);
+      const fc = effectColor(o.type, o.team);
+      railgunHitFx(o.x, o.y, ang, fc, ctx.rng);
+      return hit.dist;
+    }
+
+    let actualDmg = applyTetherAbsorb(o, dmg, ORPHAN_TETHER_PROJECTILE_MULT, ctx.ui, ctx.rng);
+    actualDmg = absorbByBastionShield(o, actualDmg);
+    o.hp -= actualDmg;
+    o.hitFlash = 1;
+    knockback(oi, ox + dx * hit.dist, oy + dy * hit.dist, dmg * 12);
+    if (o.hp <= 0) destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.ProjectileDirect);
+
+    railgunHitFx(o.x, o.y, ang, ctx.c, ctx.rng);
+    endDist = hit.dist;
+    dmg *= RAILGUN_PIERCE_MULT;
+  }
+  return endDist;
+}
+
+function fireRailgun(ctx: CombatContext, ang: number) {
   const { u, c, t, vd } = ctx;
   u.cooldown = t.fireRate;
-  spawnProjectile(
-    u.x + Math.cos(ang) * t.size,
-    u.y + Math.sin(ang) * t.size,
-    Math.cos(ang) * sp,
-    Math.sin(ang) * sp,
-    t.range / sp + 0.05,
-    t.damage * vd,
-    u.team,
-    3,
-    c[0] * 0.5 + 0.5,
-    c[1] * 0.5 + 0.5,
-    c[2] * 0.5 + 0.5,
-    false,
-    0,
-    undefined,
-    0.6,
-    ctx.ui,
-  );
-  // Main beam: thick, tapered, longer life
-  addBeam(u.x, u.y, u.x + Math.cos(ang) * t.range, u.y + Math.sin(ang) * t.range, c[0], c[1], c[2], 0.25, 3.0, true);
-  // Sub-beam: thinner trailing beam
-  addBeam(
-    u.x,
-    u.y,
-    u.x + Math.cos(ang) * t.range,
-    u.y + Math.sin(ang) * t.range,
-    c[0] * 0.5 + 0.5,
-    c[1] * 0.5 + 0.5,
-    c[2] * 0.5 + 0.5,
-    0.15,
-    1.5,
-    true,
-  );
-  const mx = u.x + Math.cos(ang) * t.size * 1.5;
-  const my = u.y + Math.sin(ang) * t.size * 1.5;
-  // Muzzle flash: 6 particles, faster + longer lived
+
+  const dx = Math.cos(ang);
+  const dy = Math.sin(ang);
+  const ox = u.x + dx * t.size;
+  const oy = u.y + dy * t.size;
+
+  const hits = collectRayHits(ox, oy, dx, dy, t.range, u.team);
+  const beamEndDist = applyRailgunHits(ctx, hits, t.damage * vd, ox, oy, dx, dy, ang);
+
+  const bx = ox + dx * beamEndDist;
+  const by = oy + dy * beamEndDist;
+  addBeam(u.x, u.y, bx, by, c[0], c[1], c[2], 0.25, 3.0, true);
+  addBeam(u.x, u.y, bx, by, c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5, 0.15, 1.5, true);
+
+  const mx = u.x + dx * t.size * 1.5;
+  const my = u.y + dy * t.size * 1.5;
   for (let i = 0; i < 6; i++) {
     const a2 = ang + (ctx.rng() - 0.5) * 0.5;
     const spd = 180 + ctx.rng() * 80;
@@ -1392,9 +1460,8 @@ function fireRailgun(ctx: CombatContext, ang: number, sp: number) {
       SH_CIRCLE,
     );
   }
-  // Lateral recoil particles perpendicular to fire direction
-  const perpX = -Math.sin(ang);
-  const perpY = Math.cos(ang);
+  const perpX = -dy;
+  const perpY = dx;
   for (let side = -1; side <= 1; side += 2) {
     const lSpd = 60 + ctx.rng() * 40;
     spawnParticle(mx, my, perpX * side * lSpd, perpY * side * lSpd, 0.08, 2, 0.8, 0.8, 1, SH_CIRCLE);
@@ -1450,36 +1517,34 @@ function fireNormal(ctx: CombatContext) {
 function dispatchFire(ctx: CombatContext, o: Unit) {
   const { u, t } = ctx;
 
+  // ── ヒットスキャン: 偏差射撃不要なので aimAt 前に早期 return ──
+  if (t.shape === RAILGUN_SHAPE) {
+    const directAng = Math.atan2(o.y - u.y, o.x - u.x);
+    fireRailgun(ctx, directAng);
+    return;
+  }
   // ── 弾速: 各fire関数と1:1対応。分岐追加時はここだけ更新すればよい ──
   let sp: number;
   if (t.carpet) sp = AOE_PROJ_SPEED;
   else if (t.homing) sp = HOMING_SPEED;
   else if (t.aoe) sp = AOE_PROJ_SPEED;
-  else if (t.shape === RAILGUN_SHAPE) sp = RAILGUN_SPEED;
   else sp = 480 + t.damage * 12;
-
   const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
   const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc));
-
   if (t.carpet) {
     fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
     return;
   }
-
   if (t.homing) {
     fireHomingBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
-
   if (t.burst) {
     fireBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
-
   if (t.aoe) {
     fireAoe(ctx, aim.ang, aim.dist, sp);
-  } else if (t.shape === RAILGUN_SHAPE) {
-    fireRailgun(ctx, aim.ang, sp);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
     fireBurst(ctx, aim.ang, aim.dist, sp, dmgMul);

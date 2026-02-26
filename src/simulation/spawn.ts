@@ -200,7 +200,6 @@ export function spawnProjectile(
   homing?: boolean,
   aoe?: number,
   target?: UnitIndex,
-  piercing?: number,
   sourceUnit?: UnitIndex,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
@@ -221,8 +220,6 @@ export function spawnProjectile(
       p.homing = homing ?? false;
       p.aoe = aoe ?? 0;
       p.target = target ?? NO_UNIT;
-      p.piercing = piercing ?? 0;
-      p.lastHitUnit = NO_UNIT;
       p.sourceUnit = sourceUnit ?? NO_UNIT;
       incProjectiles();
       return i as ProjectileIndex;
