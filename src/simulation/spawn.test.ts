@@ -8,7 +8,7 @@ import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import {
   addBeam,
-  killerFrom,
+  captureKiller,
   killParticle,
   killProjectile,
   killUnit,
@@ -154,7 +154,7 @@ describe('killUnit', () => {
     });
     spawnUnit(0, 0, 0, 0, testRng);
     spawnUnit(1, 1, 100, 100, testRng);
-    killUnit(0 as UnitIndex, killerFrom(1 as UnitIndex));
+    killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex));
     expect(calls).toHaveLength(1);
     expect(calls[0]?.victim).toBe(0);
     expect(calls[0]?.killer).toBe(1);
@@ -168,8 +168,8 @@ describe('killUnit', () => {
     spawnUnit(0, 0, 0, 0, testRng); // index 0, team 0
     spawnUnit(1, 1, 100, 100, testRng); // index 1, team 1
     // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
-    const killer0 = killerFrom(0 as UnitIndex);
-    const killer1 = killerFrom(1 as UnitIndex);
+    const killer0 = captureKiller(0 as UnitIndex);
+    const killer1 = captureKiller(1 as UnitIndex);
     killUnit(0 as UnitIndex, killer1);
     killUnit(1 as UnitIndex, killer0);
     expect(calls).toHaveLength(2);
@@ -252,10 +252,10 @@ describe('killProjectile', () => {
   });
 });
 
-describe('killerFrom', () => {
+describe('captureKiller', () => {
   it('alive ユニットの team/type を返す', () => {
     const idx = spawnUnit(1, 3, 100, 200, testRng);
-    const k = killerFrom(idx);
+    const k = captureKiller(idx);
     expect(k.index).toBe(idx);
     expect(k.team).toBe(1);
     expect(k.type).toBe(3);
