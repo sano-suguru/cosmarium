@@ -73,6 +73,6 @@ export function knockback(ti: UnitIndex, fx: number, fy: number, force: number) 
     dy = u.y - fy;
   const d = Math.sqrt(dx * dx + dy * dy) || 1;
   const f = force / u.mass;
-  u.vx += (dx / d) * f;
-  u.vy += (dy / d) * f;
+  u.kbVx += (dx / d) * f;
+  u.kbVy += (dy / d) * f;
 }

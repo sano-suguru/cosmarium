@@ -77,44 +77,44 @@ describe('getNeighborAt — エラーパス', () => {
 describe('knockback', () => {
   it('X軸方向にノックバックする', () => {
     const idx = spawnAt(0, 1, 100, 0);
-    unit(idx).vx = 0;
-    unit(idx).vy = 0;
+    unit(idx).kbVx = 0;
+    unit(idx).kbVy = 0;
     knockback(idx, 0, 0, 50);
-    expect(unit(idx).vx).toBeGreaterThan(0);
-    expect(unit(idx).vy).toBeCloseTo(0);
+    expect(unit(idx).kbVx).toBeGreaterThan(0);
+    expect(unit(idx).kbVy).toBeCloseTo(0);
   });
 
   it('斜め方向にノックバックする', () => {
     const idx = spawnAt(0, 1, 100, 100);
-    unit(idx).vx = 0;
-    unit(idx).vy = 0;
+    unit(idx).kbVx = 0;
+    unit(idx).kbVy = 0;
     knockback(idx, 0, 0, 50);
-    expect(unit(idx).vx).toBeGreaterThan(0);
-    expect(unit(idx).vy).toBeGreaterThan(0);
-    expect(unit(idx).vx).toBeCloseTo(unit(idx).vy);
+    expect(unit(idx).kbVx).toBeGreaterThan(0);
+    expect(unit(idx).kbVy).toBeGreaterThan(0);
+    expect(unit(idx).kbVx).toBeCloseTo(unit(idx).kbVy);
   });
 
   it('既存速度に加算される', () => {
     const idx = spawnAt(0, 1, 100, 0);
-    unit(idx).vx = 10;
-    unit(idx).vy = 5;
+    unit(idx).kbVx = 10;
+    unit(idx).kbVy = 5;
     knockback(idx, 0, 0, 50);
-    expect(unit(idx).vx).toBeGreaterThan(10);
-    expect(unit(idx).vy).toBeCloseTo(5);
+    expect(unit(idx).kbVx).toBeGreaterThan(10);
+    expect(unit(idx).kbVy).toBeCloseTo(5);
   });
 
   it('mass が大きいほどノックバックが小さい', () => {
     const i1 = spawnAt(0, 1, 100, 0);
-    unit(i1).vx = 0;
+    unit(i1).kbVx = 0;
     unit(i1).mass = 1;
     knockback(i1, 0, 0, 50);
-    const lightKB = unit(i1).vx;
+    const lightKB = unit(i1).kbVx;
 
     const i2 = spawnAt(1, 1, 100, 0);
-    unit(i2).vx = 0;
+    unit(i2).kbVx = 0;
     unit(i2).mass = 10;
     knockback(i2, 0, 0, 50);
-    const heavyKB = unit(i2).vx;
+    const heavyKB = unit(i2).kbVx;
 
     expect(lightKB).toBeGreaterThan(heavyKB);
   });

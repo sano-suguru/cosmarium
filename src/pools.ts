@@ -169,6 +169,8 @@ for (let i = 0; i < POOL_UNITS; i++) {
     broadsidePhase: 0,
     swarmN: 0,
     hitFlash: 0,
+    kbVx: 0,
+    kbVy: 0,
     blinkCount: 0,
     blinkPhase: 0,
     energy: 0,

@@ -30,6 +30,8 @@ export interface Unit {
   boostTimer: number;
   boostCooldown: number;
   hitFlash: number;
+  kbVx: number;
+  kbVy: number;
   blinkCount: number;
   blinkPhase: number;
   energy: number;

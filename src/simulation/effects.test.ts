@@ -62,15 +62,15 @@ describe('explosion', () => {
     expect(addShake).not.toHaveBeenCalled();
   });
 
-  it('近くのユニットにノックバック適用 (vx/vy変化)', () => {
+  it('近くのユニットにノックバック適用 (kbVx/kbVy変化)', () => {
     const idx = spawnAt(0, 1, 30, 0);
-    unit(idx).vx = 0;
-    unit(idx).vy = 0;
+    unit(idx).kbVx = 0;
+    unit(idx).kbVy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 0, 0, rng);
-    // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
-    expect(unit(idx).vx).toBeGreaterThan(0);
+    // ノックバックでkbVxが正方向に変化（ユニットは爆発の右側）
+    expect(unit(idx).kbVx).toBeGreaterThan(0);
   });
 
   it('killer有効 → kills++ される（destroyUnit経由）', () => {

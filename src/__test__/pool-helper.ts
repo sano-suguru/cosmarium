@@ -53,6 +53,8 @@ export function resetPools() {
     u.blinkCount = 0;
     u.blinkPhase = 0;
     u.hitFlash = 0;
+    u.kbVx = 0;
+    u.kbVy = 0;
     u.energy = 0;
     u.maxEnergy = 0;
     u.shieldSourceUnit = NO_UNIT;

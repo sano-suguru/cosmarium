@@ -31,6 +31,8 @@ const NEIGHBOR_RANGE = 200;
 
 const VET_SPEED_BONUS = 0.12;
 export const STUN_DRAG_BASE = 0.93;
+const KB_DRAG_BASE = 0.88;
+const KB_EPSILON = 0.01;
 const RETREAT_SPEED_SCALE = 2.5;
 
 export const BOUNDARY_MARGIN = 0.8;
@@ -289,6 +291,14 @@ function handleBoost(
   return null;
 }
 
+function applyKnockbackDrag(u: Unit, dt: number) {
+  const kbDrag = KB_DRAG_BASE ** (dt * REF_FPS);
+  u.kbVx *= kbDrag;
+  u.kbVy *= kbDrag;
+  if (Math.abs(u.kbVx) < KB_EPSILON) u.kbVx = 0;
+  if (Math.abs(u.kbVy) < KB_EPSILON) u.kbVy = 0;
+}
+
 function tickBoostDuringStun(u: Unit, dt: number) {
   if (u.boostTimer <= 0 && u.boostCooldown <= 0) return;
   const bt = unitType(u.type).boost;
@@ -308,8 +318,9 @@ function steerStunned(u: Unit, dt: number) {
   const stunDrag = (STUN_DRAG_BASE ** invSqrtMass(u.type)) ** (dt * REF_FPS);
   u.vx *= stunDrag;
   u.vy *= stunDrag;
-  u.x += u.vx * dt;
-  u.y += u.vy * dt;
+  applyKnockbackDrag(u, dt);
+  u.x += (u.vx + u.kbVx) * dt;
+  u.y += (u.vy + u.kbVy) * dt;
 }
 
 function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
@@ -325,12 +336,16 @@ function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
   const moveDrag = (1 - Math.min(1, t.drag / REF_FPS)) ** (dt * REF_FPS);
   u.vx *= moveDrag;
   u.vy *= moveDrag;
-  u.x += u.vx * dt;
-  u.y += u.vy * dt;
+  applyKnockbackDrag(u, dt);
+  u.x += (u.vx + u.kbVx) * dt;
+  u.y += (u.vy + u.kbVy) * dt;
 }
 
 export function steer(u: Unit, dt: number, rng: () => number) {
-  if (u.blinkPhase === 1) return;
+  if (u.blinkPhase === 1) {
+    applyKnockbackDrag(u, dt);
+    return;
+  }
   if (u.stun > 0) {
     steerStunned(u, dt);
     return;

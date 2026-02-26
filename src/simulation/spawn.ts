@@ -80,6 +80,8 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.y = y;
       u.vx = 0;
       u.vy = 0;
+      u.kbVx = 0;
+      u.kbVy = 0;
       u.angle = rng() * 6.283;
       u.hp = t.hp;
       u.maxHp = t.hp;

@@ -84,12 +84,12 @@ describe('combat — LANCER', () => {
   it('衝突でノックバック発生', () => {
     const lancer = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 1, 5, 0);
-    unit(enemy).vx = 0;
-    unit(enemy).vy = 0;
+    unit(enemy).kbVx = 0;
+    unit(enemy).kbVy = 0;
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
-    // ノックバックで敵のvxが変化
-    expect(unit(enemy).vx).not.toBe(0);
+    // ノックバックで敵のkbVxが変化
+    expect(unit(enemy).kbVx).not.toBe(0);
   });
 
   it('敵HP<=0 → killUnit + explosion', () => {
@@ -597,15 +597,15 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     const tpU = unit(tp);
     unit(nearby).x = tpU.x + 30;
     unit(nearby).y = tpU.y;
-    unit(nearby).vx = 0;
-    unit(nearby).vy = 0;
+    unit(nearby).kbVx = 0;
+    unit(nearby).kbVy = 0;
     unit(nearby).stun = 0;
     // hashを再構築して到着
     buildHash();
     unit(tp).teleportTimer = 0;
     combat(unit(tp), tp, 0.016, 0, rng);
     expect(unit(nearby).stun).toBeGreaterThanOrEqual(0.25);
-    expect(unit(nearby).vx).not.toBe(0);
+    expect(unit(nearby).kbVx).not.toBe(0);
   });
 
   it('着地衝撃: 味方にはノックバック/スタンがかからない', () => {
