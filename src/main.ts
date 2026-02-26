@@ -9,7 +9,7 @@ import { renderFrame } from './renderer/render-pass.ts';
 import { initShaders } from './renderer/shaders.ts';
 import { initWebGL, resize } from './renderer/webgl-setup.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
-import { onKillUnit } from './simulation/spawn.ts';
+import { onKillUnitPermanent } from './simulation/spawn.ts';
 import { update } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
@@ -36,7 +36,7 @@ initKillFeed();
 initCamera();
 initMinimap();
 
-onKillUnit((e) => {
+onKillUnitPermanent((e) => {
   if (state.codexOpen || state.gameState !== 'play') return;
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);

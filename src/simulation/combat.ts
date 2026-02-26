@@ -8,7 +8,7 @@ import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
-import { addBeam, captureKiller, onKillUnit, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import { addBeam, captureKiller, onKillUnitPermanent, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
 export const AMP_RANGE_MULT = 1.25;
 const AMP_ACCURACY_MULT = 1.4;
@@ -153,7 +153,7 @@ export function resetReflected() {
   reflectedThisFrame.clear();
 }
 
-onKillUnit((e) => sweepHitMap.delete(e.victim));
+onKillUnitPermanent((e) => sweepHitMap.delete(e.victim));
 
 interface CombatContext {
   u: Unit;

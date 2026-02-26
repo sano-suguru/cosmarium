@@ -56,6 +56,11 @@ export function onKillUnit(hook: KillUnitHook): Unsubscribe {
   };
 }
 
+/** 永続フック登録。モジュール/アプリ初期化時に使用（unsubscribe不要） */
+export function onKillUnitPermanent(hook: KillUnitHook): void {
+  killUnitHooks.push(hook);
+}
+
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
