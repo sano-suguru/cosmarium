@@ -63,6 +63,7 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
   }
 }
 
+/** alive ガード: dead slot はゲーム状態として扱わない（spawnUnit で kills/vet は 0 初期化されるため加算しても無意味） */
 function updateKillerVet(killer: UnitIndex) {
   if (killer !== NO_UNIT && killer < POOL_UNITS) {
     const ku = unit(killer);
@@ -105,8 +106,12 @@ export function destroyUnit(
   let killerIndex: UnitIndex;
   if (typeof killer === 'number') {
     killerIndex = killer;
-    const ku = killer !== NO_UNIT ? unit(killer) : undefined;
-    resolved = ku?.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
+    if (killer === NO_UNIT) {
+      resolved = undefined;
+    } else {
+      const ku = unit(killer);
+      resolved = ku.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
+    }
   } else {
     resolved = killer;
     killerIndex = killer.index;
