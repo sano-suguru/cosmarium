@@ -24,6 +24,7 @@ import {
   boostTrail,
   CHAIN_DAMAGE_DECAY,
   chainLightning,
+  destroyMutualKill,
   destroyUnit,
   explosion,
   trail,
@@ -446,5 +447,59 @@ describe('killUnitWithExplosion', () => {
     // 2 回目: dead ユニットに対して呼ぶ → explosion がスキップされる
     destroyUnit(idx, NO_UNIT, rng, KILL_CONTEXT.ProjectileDirect);
     expect(poolCounts.particles).toBe(particlesAfterFirst); // 追加なし
+  });
+});
+
+describe('destroyMutualKill', () => {
+  it('相打ち時に両方のkillerのkillsが加算される', () => {
+    const a = spawnAt(0, 1, 0, 0);
+    const b = spawnAt(1, 1, 100, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect);
+    // aがbをkill → aのkills++、bがaをkill → bのkills++
+    expect(unit(a).kills).toBe(1);
+    expect(unit(b).kills).toBe(1);
+  });
+
+  it('相打ち時に両方のkillerのvetが対称に昇格する', () => {
+    const a = spawnAt(0, 1, 0, 0);
+    const b = spawnAt(1, 1, 100, 0);
+    unit(a).kills = 2; // あと1killでvet=1
+    unit(b).kills = 2;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect);
+    expect(unit(a).kills).toBe(3);
+    expect(unit(a).vet).toBe(1);
+    expect(unit(b).kills).toBe(3);
+    expect(unit(b).vet).toBe(1);
+  });
+
+  it('片方のみHP枯渇 → 枯渇側のみkill、killer側のみvet加算', () => {
+    const a = spawnAt(0, 1, 0, 0);
+    const b = spawnAt(1, 1, 100, 0);
+    unit(a).kills = 7;
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    // bのみHP枯渇 → aがbをkill
+    destroyMutualKill(a, b, false, true, rng, KILL_CONTEXT.ProjectileDirect);
+    expect(unit(b).alive).toBe(false);
+    expect(unit(a).alive).toBe(true);
+    expect(unit(a).kills).toBe(8);
+    expect(unit(a).vet).toBe(2);
+    // bはkillしていないのでkills変化なし
+    expect(unit(b).kills).toBe(0);
+  });
+
+  it('両方死亡後もexplosionパーティクルが生成される', () => {
+    spawnAt(0, 1, 0, 0);
+    spawnAt(1, 1, 100, 0);
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const before = poolCounts.particles;
+    destroyMutualKill(0 as UnitIndex, 1 as UnitIndex, true, true, rng, KILL_CONTEXT.ProjectileDirect);
+    // 両方のexplosionでパーティクルが生成される
+    expect(poolCounts.particles).toBeGreaterThan(before);
   });
 });

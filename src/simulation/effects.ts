@@ -76,6 +76,20 @@ function updateKillerVet(killer: Killer) {
   }
 }
 
+/**
+ * 相打ち用vet加算。相打ちでは kill → vet の順序ではなく
+ * 全 kill 完了後に vet を加算するため、killer のスロットは既に dead。
+ * alive チェックをスキップし team/type 一致のみでスロット再利用を判定する。
+ */
+function updateKillerVetMutual(killer: Killer) {
+  const ku = unit(killer.index);
+  if (ku.team === killer.team && ku.type === killer.type) {
+    ku.kills++;
+    if (ku.kills >= 3) ku.vet = 1;
+    if (ku.kills >= 8) ku.vet = 2;
+  }
+}
+
 export function explosion(x: number, y: number, team: Team, type: number, rng: () => number) {
   const size = unitType(type).size;
   const c = effectColor(type, team);
@@ -133,11 +147,26 @@ export function destroyMutualKill(
 ): void {
   const killerA: Killer = { index: a, team: unit(a).team, type: unit(a).type };
   const killerB: Killer = { index: b, team: unit(b).team, type: unit(b).type };
-  if (bHpDepleted) {
-    destroyUnit(b, killerA, rng, killContext);
+  // Phase 1: kill (両方のスナップショット取得後にkill)
+  let snapB: ReturnType<typeof killUnit>;
+  let snapA: ReturnType<typeof killUnit>;
+  if (bHpDepleted) snapB = killUnit(b, killerA);
+  if (aHpDepleted) snapA = killUnit(a, killerB);
+
+  // Phase 2: 視覚エフェクト
+  if (snapB) explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
+  if (snapA) explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
+
+  // Phase 3: vet加算 + on-kill効果
+  // 相打ちではkillerのスロットが相手のkillで dead になっているが、
+  // これはスロット再利用ではなく正当なkill→ aliveチェックをバイパスして加算する
+  if (snapB) {
+    updateKillerVetMutual(killerA);
+    applyOnKillEffects(killerA.index, killerA.team, killContext);
   }
-  if (aHpDepleted) {
-    destroyUnit(a, killerB, rng, killContext);
+  if (snapA) {
+    updateKillerVetMutual(killerB);
+    applyOnKillEffects(killerB.index, killerB.team, killContext);
   }
 }
 
