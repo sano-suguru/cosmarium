@@ -20,11 +20,11 @@ import { NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, combat, reflectProjectile, resetReflected } from './combat.ts';
 import { boostBurst, boostTrail, destroyUnit, flagshipTrail, trail, updateChains } from './effects.ts';
-import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
+import { KILL_CONTEXT } from './on-kill-effects.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
-import { addTrackingBeam, killerFrom, killParticle, killProjectile, spawnParticle } from './spawn.ts';
+import { addTrackingBeam, killParticle, killProjectile, spawnParticle } from './spawn.ts';
 import { steer } from './steering.ts';
 
 export const SHIELD_LINGER = 2;
@@ -58,8 +58,6 @@ function steerHomingProjectile(p: Projectile, dt: number) {
 }
 
 function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
-  const src = p.sourceUnit !== NO_UNIT ? unit(p.sourceUnit) : undefined;
-  const pKiller = src?.alive ? killerFrom(p.sourceUnit) : undefined;
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
@@ -74,8 +72,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       o.hitFlash = 1;
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
-        destroyUnit(oi, pKiller, p.sourceUnit, rng);
-        applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileAoe);
+        destroyUnit(oi, p.sourceUnit, rng, KILL_CONTEXT.ProjectileAoe);
       }
     }
   }
@@ -98,10 +95,8 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   addShake(3, p.x, p.y);
 }
 
-function handleProjectileKill(p: Projectile, oi: UnitIndex, rng: () => number) {
-  const src = p.sourceUnit !== NO_UNIT ? unit(p.sourceUnit) : undefined;
-  destroyUnit(oi, src?.alive ? killerFrom(p.sourceUnit) : undefined, p.sourceUnit, rng);
-  applyOnKillEffects(p.sourceUnit, p.team, KILL_CONTEXT.ProjectileDirect);
+function handleProjectileKill(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
+  destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
 }
 
 function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
@@ -117,15 +112,13 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
 
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
   if (tryReflectField(p, o, rng)) return;
-  const src = p.sourceUnit !== NO_UNIT ? unit(p.sourceUnit) : undefined;
-  const pKiller = src?.alive ? killerFrom(p.sourceUnit) : undefined;
-  let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, pKiller, rng);
+  let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
   dmg = absorbByBastionShield(o, dmg);
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
   spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
-  if (o.hp <= 0) handleProjectileKill(p, oi, rng);
+  if (o.hp <= 0) handleProjectileKill(oi, p.sourceUnit, rng);
 }
 
 function piercingHitFx(p: Projectile, rng: () => number) {
