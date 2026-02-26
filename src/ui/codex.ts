@@ -476,6 +476,7 @@ export function toggleCodex() {
     closeCodex();
     clearKillFeed();
   } else {
+    clearKillFeed();
     cameraSnapshotBeforeCodex = snapshotCamera();
     poolSnapshot = snapshotPools();
     // setupCodexDemo() → clearCurrentDemo() が初回クリアを担当

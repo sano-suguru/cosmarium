@@ -222,9 +222,16 @@ function handleRam(ctx: CombatContext) {
         SH_CIRCLE,
       );
     }
-    if (o.hp <= 0 || u.hp <= 0) {
-      destroyMutualKill(ui, oi, u.hp <= 0, o.hp <= 0, ctx.rng, KILL_CONTEXT.Ram);
-      if (u.hp <= 0) return;
+    if (o.hp <= 0 && u.hp <= 0) {
+      destroyMutualKill(ui, oi, true, true, ctx.rng, KILL_CONTEXT.Ram);
+      return;
+    }
+    if (o.hp <= 0) {
+      destroyUnit(oi, ui, ctx.rng, KILL_CONTEXT.Ram);
+    }
+    if (u.hp <= 0) {
+      destroyUnit(ui, oi, ctx.rng, KILL_CONTEXT.Ram);
+      return;
     }
   }
 }

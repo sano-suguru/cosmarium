@@ -31,6 +31,7 @@ interface QueuedEntry {
 let container: HTMLDivElement | null = null;
 const queue: QueuedEntry[] = [];
 let drainTimer = 0;
+let lastShowTime = 0;
 
 export function initKillFeed() {
   const el = document.createElement('div');
@@ -112,6 +113,7 @@ function drainQueue() {
   const item = queue.shift();
   if (item) {
     showEntry(item.victimTeam, item.victimType, item.killer);
+    lastShowTime = performance.now();
   }
   if (queue.length > 0) {
     drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
@@ -126,14 +128,23 @@ export function clearKillFeed() {
     drainTimer = 0;
   }
   queue.length = 0;
+  lastShowTime = 0;
   if (container) container.textContent = '';
 }
 export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
   if (!container) return;
-
   if (drainTimer === 0) {
-    showEntry(victimTeam, victimType, killer);
-    drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
+    const now = performance.now();
+    const elapsed = now - lastShowTime;
+    if (elapsed >= INTERVAL_MS) {
+      showEntry(victimTeam, victimType, killer);
+      lastShowTime = now;
+      drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
+      return;
+    }
+    // Too soon since last show — queue and wait for remaining time
+    queue.push({ victimTeam, victimType, killer });
+    drainTimer = window.setTimeout(drainQueue, INTERVAL_MS - elapsed);
     return;
   }
 
