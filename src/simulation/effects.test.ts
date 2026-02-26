@@ -7,9 +7,10 @@ import { rng, state } from '../state.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
+import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
-import { killerFrom, onKillUnit } from './spawn.ts';
+import { captureKiller, onKillUnit } from './spawn.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -385,7 +386,7 @@ describe('chainLightning — KillEvent 伝播', () => {
     const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killerFrom(attacker), rng);
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], captureKiller(attacker), rng);
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -402,7 +403,7 @@ describe('chainLightning — KillEvent 伝播', () => {
     const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killerFrom(attacker), rng);
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], captureKiller(attacker), rng);
     updateChains(0.06, rng);
     expect(unit(enemy2).alive).toBe(false);
     const killEvents = events.filter((e) => e.killerTeam !== undefined);
@@ -420,7 +421,7 @@ describe('killUnitWithExplosion', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unit(idx).alive).toBe(true);
     expect(poolCounts.particles).toBe(0);
-    destroyUnit(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, NO_UNIT, rng, KILL_CONTEXT.ProjectileDirect);
     expect(unit(idx).alive).toBe(false);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
@@ -429,10 +430,10 @@ describe('killUnitWithExplosion', () => {
     const idx = spawnAt(0, 1, 100, 200);
     buildHash();
     // まず kill してから dead ユニットに対して呼ぶ
-    destroyUnit(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, NO_UNIT, rng, KILL_CONTEXT.ProjectileDirect);
     const particlesAfterFirst = poolCounts.particles;
     // 2 回目: dead ユニットに対して呼ぶ → explosion がスキップされる
-    destroyUnit(idx, undefined, NO_UNIT, rng);
+    destroyUnit(idx, NO_UNIT, rng, KILL_CONTEXT.ProjectileDirect);
     expect(poolCounts.particles).toBe(particlesAfterFirst); // 追加なし
   });
 });

@@ -6,6 +6,8 @@ import { unit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
+import type { KillContext } from './on-kill-effects.ts';
+import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
@@ -93,11 +95,46 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   updateKillerVet(killer);
 }
 
-/** killUnit/explosion 以外の後続処理（applyOnKillEffects 等）は呼び出し元で行うこと。 */
-export function destroyUnit(i: UnitIndex, killer: Killer | undefined, killerIndex: UnitIndex, rng: () => number): void {
-  const snap = killUnit(i, killer);
+export function destroyUnit(
+  i: UnitIndex,
+  killer: UnitIndex | Killer,
+  rng: () => number,
+  killContext: KillContext,
+): void {
+  let resolved: Killer | undefined;
+  let killerIndex: UnitIndex;
+  if (typeof killer === 'number') {
+    killerIndex = killer;
+    const ku = killer !== NO_UNIT ? unit(killer) : undefined;
+    resolved = ku?.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
+  } else {
+    resolved = killer;
+    killerIndex = killer.index;
+  }
+  const snap = killUnit(i, resolved);
   if (snap) {
     explosion(snap.x, snap.y, snap.team, snap.type, killerIndex, rng);
+    if (resolved) {
+      applyOnKillEffects(killerIndex, resolved.team, killContext);
+    }
+  }
+}
+
+export function destroyMutualKill(
+  a: UnitIndex,
+  b: UnitIndex,
+  aHpDepleted: boolean,
+  bHpDepleted: boolean,
+  rng: () => number,
+  killContext: KillContext,
+): void {
+  const killerA: Killer = { index: a, team: unit(a).team, type: unit(a).type };
+  const killerB: Killer = { index: b, team: unit(b).team, type: unit(b).type };
+  if (bHpDepleted) {
+    destroyUnit(b, killerA, rng, killContext);
+  }
+  if (aHpDepleted) {
+    destroyUnit(a, killerB, rng, killContext);
   }
 }
 
@@ -257,7 +294,7 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
     if (o.hp <= 0) {
-      destroyUnit(hop.targetIndex, sourceKiller, sourceKiller.index, rng);
+      destroyUnit(hop.targetIndex, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
     }
   }
 }
@@ -299,7 +336,7 @@ function applyChainHit(
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
   if (o.hp <= 0) {
-    destroyUnit(bi, sourceKiller, sourceKiller.index, rng);
+    destroyUnit(bi, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
   }
   return { hx, hy };
 }
@@ -327,7 +364,6 @@ export function chainLightning(
       const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng);
       cx = pos.hx;
       cy = pos.hy;
-      // kill後スロット再利用で後続ホップが誤スナップするのを防止
       prevTarget = unit(bi).alive ? bi : NO_UNIT;
       continue;
     }

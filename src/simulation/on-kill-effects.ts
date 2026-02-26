@@ -14,7 +14,7 @@ export const KILL_CONTEXT = {
   SweepBeam: 5,
 } as const;
 
-type KillContext = (typeof KILL_CONTEXT)[keyof typeof KILL_CONTEXT];
+export type KillContext = (typeof KILL_CONTEXT)[keyof typeof KILL_CONTEXT];
 
 function shouldApplyCooldownReset(ctx: KillContext): boolean {
   switch (ctx) {
