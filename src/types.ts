@@ -72,8 +72,6 @@ export interface Projectile {
   homing: boolean;
   aoe: number;
   target: UnitIndex;
-  piercing: number;
-  lastHitUnit: UnitIndex;
   sourceUnit: UnitIndex;
 }
 
