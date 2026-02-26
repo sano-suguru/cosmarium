@@ -1,6 +1,6 @@
 import { swapRemove } from '../array-utils.ts';
 import { effectColor, trailColor } from '../colors.ts';
-import { POOL_UNITS, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
+import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
@@ -63,19 +63,20 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
   }
 }
 
-/** alive ガード: dead slot はゲーム状態として扱わない（spawnUnit で kills/vet は 0 初期化されるため加算しても無意味） */
-function updateKillerVet(killer: UnitIndex) {
-  if (killer !== NO_UNIT && killer < POOL_UNITS) {
-    const ku = unit(killer);
-    if (ku.alive) {
-      ku.kills++;
-      if (ku.kills >= 3) ku.vet = 1;
-      if (ku.kills >= 8) ku.vet = 2;
-    }
+/**
+ * killer のスナップショット (team/type) とプールスロットの現在値を照合し、
+ * スロット再利用でない場合のみ kills/vet を加算する。
+ */
+function updateKillerVet(killer: Killer) {
+  const ku = unit(killer.index);
+  if (ku.alive && ku.team === killer.team && ku.type === killer.type) {
+    ku.kills++;
+    if (ku.kills >= 3) ku.vet = 1;
+    if (ku.kills >= 8) ku.vet = 2;
   }
 }
 
-export function explosion(x: number, y: number, team: Team, type: number, killer: UnitIndex, rng: () => number) {
+export function explosion(x: number, y: number, team: Team, type: number, rng: () => number) {
   const size = unitType(type).size;
   const c = effectColor(type, team);
 
@@ -93,7 +94,6 @@ export function explosion(x: number, y: number, team: Team, type: number, killer
   if (size >= 14) addShake(size * 0.8, x, y);
 
   applyKnockbackToNeighbors(x, y, size);
-  updateKillerVet(killer);
 }
 
 export function destroyUnit(
@@ -103,9 +103,7 @@ export function destroyUnit(
   killContext: KillContext,
 ): void {
   let resolved: Killer | undefined;
-  let killerIndex: UnitIndex;
   if (typeof killer === 'number') {
-    killerIndex = killer;
     if (killer === NO_UNIT) {
       resolved = undefined;
     } else {
@@ -113,14 +111,14 @@ export function destroyUnit(
       resolved = ku.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
     }
   } else {
-    resolved = killer;
-    killerIndex = killer.index;
+    resolved = killer.index === NO_UNIT ? undefined : killer;
   }
   const snap = killUnit(i, resolved);
   if (snap) {
-    explosion(snap.x, snap.y, snap.team, snap.type, killerIndex, rng);
+    explosion(snap.x, snap.y, snap.team, snap.type, rng);
     if (resolved) {
-      applyOnKillEffects(killerIndex, resolved.team, killContext);
+      updateKillerVet(resolved);
+      applyOnKillEffects(resolved.index, resolved.team, killContext);
     }
   }
 }

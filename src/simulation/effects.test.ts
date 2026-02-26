@@ -47,21 +47,21 @@ afterEach(() => {
 describe('explosion', () => {
   it('パーティクルが生成される', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, NO_UNIT, rng);
+    explosion(0, 0, 0, 0, rng);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 
   it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const cruiserType = unitType(3);
-    explosion(0, 0, 0, 3, NO_UNIT, rng);
+    explosion(0, 0, 0, 3, rng);
     expect(addShake).toHaveBeenCalledWith(cruiserType.size * 0.8, 0, 0);
   });
 
   it('小型ユニット (size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 0 (Drone) は size=4
-    explosion(0, 0, 0, 0, NO_UNIT, rng);
+    explosion(0, 0, 0, 0, rng);
     expect(addShake).not.toHaveBeenCalled();
   });
 
@@ -71,36 +71,39 @@ describe('explosion', () => {
     unit(idx).vy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, NO_UNIT, rng);
+    explosion(0, 0, 0, 0, rng);
     // ノックバックでvxが正方向に変化（ユニットは爆発の右側）
     expect(unit(idx).vx).toBeGreaterThan(0);
   });
 
-  it('killer有効 → kills++ される', () => {
+  it('killer有効 → kills++ される（destroyUnit経由）', () => {
     const killer = spawnAt(0, 1, 100, 100);
+    const victim = spawnAt(1, 0, 0, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unit(killer).kills).toBe(0);
-    explosion(0, 0, 1, 0, killer, rng);
+    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect);
     expect(unit(killer).kills).toBe(1);
   });
 
-  it('kills >= 3 → vet=1', () => {
+  it('kills >= 3 → vet=1（destroyUnit経由）', () => {
     const killer = spawnAt(0, 1, 100, 100);
+    const victim = spawnAt(1, 0, 0, 0);
     unit(killer).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 1, 0, killer, rng);
+    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect);
     expect(unit(killer).kills).toBe(3);
     expect(unit(killer).vet).toBe(1);
   });
 
-  it('kills >= 8 → vet=2', () => {
+  it('kills >= 8 → vet=2（destroyUnit経由）', () => {
     const killer = spawnAt(0, 1, 100, 100);
+    const victim = spawnAt(1, 0, 0, 0);
     unit(killer).kills = 7;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 1, 0, killer, rng);
+    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect);
     expect(unit(killer).kills).toBe(8);
     expect(unit(killer).vet).toBe(2);
   });
@@ -109,7 +112,7 @@ describe('explosion', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // killer=-1 でエラーが起きないことを確認
-    explosion(0, 0, 0, 0, NO_UNIT, rng);
+    explosion(0, 0, 0, 0, rng);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 });
