@@ -11,7 +11,6 @@ export const REF_FPS = 30;
 export const SH_CIRCLE = 3;
 export const SH_DIAMOND = 4;
 export const SH_EXPLOSION_RING = 10;
-export const SH_RAILGUN = 18;
 
 export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;

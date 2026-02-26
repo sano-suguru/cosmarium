@@ -9,7 +9,6 @@ import {
   SH_CIRCLE,
   SH_DIAMOND,
   SH_EXPLOSION_RING,
-  SH_RAILGUN,
   TAU,
   WORLD_SIZE,
 } from '../constants.ts';
@@ -322,12 +321,9 @@ function renderProjectiles() {
     if (!pr.alive) continue;
     rem--;
     let shape: number;
-    let size = pr.size;
+    const size = pr.size;
     if (pr.homing) shape = SH_HOMING;
-    else if (pr.piercing > 0) {
-      shape = SH_RAILGUN;
-      size *= 1.5;
-    } else if (pr.aoe > 0) shape = SH_CIRCLE;
+    else if (pr.aoe > 0) shape = SH_CIRCLE;
     else shape = SH_DIAMOND;
     writeInstance(pr.x, pr.y, size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
