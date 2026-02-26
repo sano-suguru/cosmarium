@@ -139,7 +139,6 @@ export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: K
     if (elapsed >= INTERVAL_MS) {
       showEntry(victimTeam, victimType, killer);
       lastShowTime = now;
-      drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
       return;
     }
     // Too soon since last show — queue and wait for remaining time

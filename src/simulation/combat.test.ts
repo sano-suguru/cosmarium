@@ -31,11 +31,7 @@ import {
   SWEEP_DURATION,
 } from './combat.ts';
 
-const unsubs: (() => void)[] = [];
-
 afterEach(() => {
-  for (const fn of unsubs) fn();
-  unsubs.length = 0;
   resetPools();
   resetState();
   _resetSweepHits();
@@ -1925,11 +1921,9 @@ describe('combat — AMPLIFIER buff effects', () => {
 describe('combat — KillEvent 伝播', () => {
   it('handleRam: 敵kill時の KillEvent に攻撃者情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-      }),
-    );
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
     const lancer = spawnAt(0, 9, 0, 0);
     const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3)
     buildHash();
@@ -1942,11 +1936,9 @@ describe('combat — KillEvent 伝播', () => {
 
   it('handleRam: 相打ち時に双方の KillEvent が正しい killer 情報を持つ', () => {
     const events: { victimTeam: number; killerTeam: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        events.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
-      }),
-    );
+    onKillUnit((e) => {
+      events.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
+    });
     const lancer = spawnAt(0, 9, 0, 0);
     unit(lancer).hp = 1; // 自傷で死亡
     const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, mass=1)
@@ -1964,11 +1956,9 @@ describe('combat — KillEvent 伝播', () => {
 
   it('handleFocusBeam: 敵kill時の KillEvent に射撃元情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-      }),
-    );
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
     const scorcher = spawnAt(0, 12, 0, 0);
     const enemy = spawnAt(1, 0, 100, 0); // Drone hp=3
     unit(enemy).hp = 0.1; // 最小HPでkill確定
