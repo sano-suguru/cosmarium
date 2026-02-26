@@ -115,7 +115,6 @@ vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`
 ## Critical Gotchas
 
 - Codexの`snapshotPools()`/`restorePools()`はshallow copy。Object.assignで書き戻し
-- `1 - team`ではなく `.team !== u.team` で比較する（`1 - team`は`number`型になり`Team`型にならない）
 - ブランドindex: プールループでは`i as UnitIndex`（ParticleIndex/ProjectileIndex）にキャスト必要
 - 入力はPointer Events統一（mouse/touch両対応）。canvas/minimapに`touch-action: none`設定済み。ピンチズームは`activePointers` Mapで2本指追跡
 

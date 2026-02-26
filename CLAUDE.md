@@ -109,9 +109,8 @@ src/
   - `noFallthroughCasesInSwitch` — switch文のフォールスルー禁止
   - `noUnusedLocals` / `noUnusedParameters` — 未使用変数・引数はエラー
 
-**Anti-patterns to avoid**:
+**型安全メモ**:
 - `1 - team` は `number` を返し `Team` 型にならない → `.team !== u.team` で比較すること
-- Never mutate `poolCounts` directly → use spawn/kill functions
 - Pool loop index requires branded type cast: `i as UnitIndex` (also `ParticleIndex`, `ProjectileIndex`)
 - `u.target` is `UnitIndex` — `NO_UNIT` (-1) means no target; always check `.alive` on target
 

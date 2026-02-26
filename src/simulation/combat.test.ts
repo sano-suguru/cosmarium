@@ -819,18 +819,21 @@ describe('combat — NORMAL FIRE', () => {
     expect(unit(flagship).broadsidePhase).toBe(0);
   });
 
-  it('sniper: Sniper (shape=8) → レールガン + tracerビーム', () => {
+  it('sniper: Sniper (shape=8) → ヒットスキャン + tracerビーム', () => {
     const sniper = spawnAt(0, 8, 0, 0); // Sniper (shape=8, rng=600)
     const enemy = spawnAt(1, 1, 300, 0);
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
     combat(unit(sniper), sniper, 0.016, 0, rng);
-    expect(poolCounts.projectiles).toBe(1);
+    // ヒットスキャンなのでプロジェクタイルは生成されない
+    expect(poolCounts.projectiles).toBe(0);
     // tracerビームが追加される
     expect(beams.length).toBeGreaterThan(0);
     // マズルフラッシュパーティクル
     expect(poolCounts.particles).toBeGreaterThan(0);
+    // 敵にダメージが入る
+    expect(unit(enemy).hp).toBeLessThan(unit(enemy).maxHp);
   });
 
   it('dead target → tgt=-1 に設定して return', () => {
@@ -1520,17 +1523,17 @@ describe('combat — 偏差射撃統合', () => {
     expect(Math.abs(p.vy)).toBeLessThan(1);
   });
 
-  it('Sniper: 移動目標への偏差が大きい (leadAccuracy=0.95)', () => {
+  it('Sniper: ヒットスキャンで射線上の敵に即着弾', () => {
     const sniper = spawnAt(0, 8, 0, 0);
     const enemy = spawnAt(1, 1, 300, 0);
-    unit(enemy).vy = 150;
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
     combat(unit(sniper), sniper, 0.016, 0, rng);
-    const p = projectile(0);
-    // 弾のvy成分が正（上方向にリード）
-    expect(p.vy).toBeGreaterThan(0);
+    // ヒットスキャンなのでプロジェクタイルは生成されない
+    expect(poolCounts.projectiles).toBe(0);
+    // 敵にダメージが入る
+    expect(unit(enemy).hp).toBeLessThan(unit(enemy).maxHp);
   });
 
   it('Reflector: 弱射撃にも偏差が適用される (leadAccuracy=0.15)', () => {
