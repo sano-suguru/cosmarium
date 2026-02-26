@@ -115,6 +115,26 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
   return true;
 }
 
+function hitSparkFx(p: Projectile, rng: () => number) {
+  const pAng = Math.atan2(p.vy, p.vx);
+  for (let k = 0; k < 2; k++) {
+    const sA = pAng + (rng() - 0.5) * 1.4;
+    const sSpd = 60 + rng() * 100;
+    spawnParticle(
+      p.x,
+      p.y,
+      Math.cos(sA) * sSpd,
+      Math.sin(sA) * sSpd,
+      0.05 + rng() * 0.03,
+      1.5 + rng(),
+      1,
+      1,
+      0.7,
+      SH_CIRCLE,
+    );
+  }
+}
+
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
   if (tryReflectField(p, o, rng)) return;
   let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
@@ -122,7 +142,9 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
-  spawnParticle(p.x, p.y, (rng() - 0.5) * 70, (rng() - 0.5) * 70, 0.06, 2, 1, 1, 0.7, SH_CIRCLE);
+  hitSparkFx(p, rng);
+  spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
+  spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);
   if (o.hp <= 0) handleProjectileKill(oi, p.sourceUnit, rng);
 }
 
