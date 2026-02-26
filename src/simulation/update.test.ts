@@ -43,7 +43,11 @@ function gameLoopState() {
   return makeGameLoopState(mockUpdateCodexDemo);
 }
 
+const unsubs: (() => void)[] = [];
+
 afterEach(() => {
+  for (const fn of unsubs) fn();
+  unsubs.length = 0;
   resetPools();
   resetState();
   mockUpdateCodexDemo.mockReset();
@@ -957,9 +961,11 @@ describe('Amplifier tether', () => {
 describe('KillEvent 伝播', () => {
   it('projectile kill: KillEvent に sourceUnit 情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    onKillUnit((e) => {
-      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-    });
+    unsubs.push(
+      onKillUnit((e) => {
+        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+      }),
+    );
     const attacker = spawnAt(0, 1, 0, 200); // Fighter
     unit(attacker).trailTimer = 99;
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
@@ -974,9 +980,11 @@ describe('KillEvent 伝播', () => {
 
   it('AOE kill: KillEvent に sourceUnit 情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    onKillUnit((e) => {
-      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-    });
+    unsubs.push(
+      onKillUnit((e) => {
+        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+      }),
+    );
     const attacker = spawnAt(0, 2, 0, 200); // Bomber
     unit(attacker).trailTimer = 99;
     const enemy = spawnAt(1, 0, 30, 0); // Drone hp=3

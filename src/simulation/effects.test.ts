@@ -32,7 +32,11 @@ import {
 
 const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
 
+const unsubs: (() => void)[] = [];
+
 afterEach(() => {
+  for (const fn of unsubs) fn();
+  unsubs.length = 0;
   resetPools();
   resetState();
   // vi.mock() ファクトリで作成した vi.fn() の呼び出し履歴は restoreAllMocks ではクリアされないため必要
@@ -379,9 +383,11 @@ describe('boostTrail', () => {
 describe('chainLightning — KillEvent 伝播', () => {
   it('即時ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    onKillUnit((e) => {
-      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-    });
+    unsubs.push(
+      onKillUnit((e) => {
+        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+      }),
+    );
     const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
     const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
     buildHash();
@@ -395,9 +401,11 @@ describe('chainLightning — KillEvent 伝播', () => {
 
   it('遅延ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    onKillUnit((e) => {
-      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-    });
+    unsubs.push(
+      onKillUnit((e) => {
+        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+      }),
+    );
     const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
     spawnAt(1, 1, 50, 0); // 即時ホップ対象 (Fighter hp=10, 生存)
     const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
