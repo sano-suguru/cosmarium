@@ -6,7 +6,8 @@ import { DOM_ID_KILL_FEED } from './dom-ids.ts';
 const MAX_ENTRIES = 6;
 const FADE_DELAY_MS = 3_000;
 const FADE_DURATION_MS = 400;
-const THROTTLE_MS = 100;
+const INTERVAL_MS = 100;
+const QUEUE_MAX = MAX_ENTRIES * 2;
 
 const SVG_ATTRS =
   'xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"';
@@ -22,8 +23,14 @@ interface KillerInfo {
   type: number;
 }
 
+interface QueuedEntry {
+  victimTeam: Team;
+  victimType: number;
+  killer: KillerInfo | null;
+}
 let container: HTMLDivElement | null = null;
-let lastAddTime = 0;
+const queue: QueuedEntry[] = [];
+let drainTimer = 0;
 
 export function initKillFeed() {
   const el = document.createElement('div');
@@ -53,13 +60,8 @@ function createIconSpan(svgHtml: string): HTMLSpanElement {
   return span;
 }
 
-export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
+function showEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
   if (!container) return;
-
-  const now = performance.now();
-  if (now - lastAddTime < THROTTLE_MS) return;
-  lastAddTime = now;
-
   const entry = document.createElement('div');
   Object.assign(entry.style, {
     background: 'rgba(0, 5, 15, 0.7)',
@@ -69,11 +71,9 @@ export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: K
     opacity: '1',
     whiteSpace: 'nowrap',
   } satisfies Partial<CSSStyleDeclaration>);
-
   const victimName = unitType(victimType).name;
   const vc = color(victimType, victimTeam);
   const victimColor = `rgb(${(vc[0] * 255) | 0},${(vc[1] * 255) | 0},${(vc[2] * 255) | 0})`;
-
   if (killer) {
     const killerName = unitType(killer.type).name;
     const kc = color(killer.type, killer.team);
@@ -90,7 +90,6 @@ export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: K
   }
 
   container.appendChild(entry);
-
   while (container.children.length > MAX_ENTRIES) {
     const oldest = container.children[0];
     if (oldest) container.removeChild(oldest);
@@ -103,4 +102,39 @@ export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: K
       entry.remove();
     }, FADE_DURATION_MS);
   }, FADE_DELAY_MS);
+}
+
+function drainQueue() {
+  const item = queue.shift();
+  if (item) {
+    showEntry(item.victimTeam, item.victimType, item.killer);
+  }
+  if (queue.length > 0) {
+    drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
+  } else {
+    drainTimer = 0;
+  }
+}
+
+export function clearKillFeed() {
+  if (drainTimer !== 0) {
+    clearTimeout(drainTimer);
+    drainTimer = 0;
+  }
+  queue.length = 0;
+  if (container) container.textContent = '';
+}
+export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerInfo | null) {
+  if (!container) return;
+
+  if (drainTimer === 0) {
+    showEntry(victimTeam, victimType, killer);
+    drainTimer = window.setTimeout(drainQueue, INTERVAL_MS);
+    return;
+  }
+
+  queue.push({ victimTeam, victimType, killer });
+  while (queue.length > QUEUE_MAX) {
+    queue.shift();
+  }
 }

@@ -19,6 +19,8 @@ import {
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
 
+import { clearKillFeed } from './kill-feed.ts';
+
 const SCORCHER_TYPE = unitTypeIndex('Scorcher');
 const CRUISER_TYPE = unitTypeIndex('Cruiser');
 
@@ -472,6 +474,7 @@ function buildCodexUI() {
 export function toggleCodex() {
   if (state.codexOpen) {
     closeCodex();
+    clearKillFeed();
   } else {
     cameraSnapshotBeforeCodex = snapshotCamera();
     poolSnapshot = snapshotPools();
