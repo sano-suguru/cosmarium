@@ -62,7 +62,7 @@ float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   return -sqrt(d.x) * sign(d.y);
 }
 
-// sdArc — signed distance to arc (used by Bomber sh==2)
+// sdArc — signed distance to arc (used by Carrier sh==7)
 float sdArc(in vec2 p, in vec2 sc, in float ra, in float rb) {
   // sc is the sin/cos of the arc's aperture (half-angle)
   p.x = abs(p.x);

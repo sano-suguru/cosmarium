@@ -47,134 +47,193 @@ void main(){
   float d=length(vU), a=0.0;
   int sh=int(vSh+0.5);
   sh=clamp(sh,0,NUM_SHAPES-1);
-  if(sh==0){ vec2 p=vU*0.66; float t=vA+uTime;
-    // Drone: Small insect-like triangular body, micro-wings with flutter
-    // 1. Compact triangular fuselage
-    float dFuse=sdRoundedBox(p-vec2(0.05,0.0),vec2(0.22,0.12),0.06);
-    // 2. Forward nose taper
-    float noseCut=p.x*0.7-0.18;
-    dFuse=max(dFuse,abs(p.y)-max(0.14-noseCut,0.0));
-    // 3. Micro-wings with flutter animation
-    float flutter=sin(t*12.0+p.x*4.0)*0.03;
-    float dWingL=sdCapsule(p,vec2(-0.02,0.10),vec2(-0.18,0.32+flutter),0.04);
-    float dWingR=sdCapsule(p,vec2(-0.02,-0.10),vec2(-0.18,-0.32-flutter),0.04);
-    float dWings=min(dWingL,dWingR);
-    // 4. Tail fin
-    float dTail=sdCapsule(p,vec2(-0.18,0.0),vec2(-0.30,0.0),0.03);
-    // Union
-    float dBody=smin(dFuse,dWings,0.06);
-    dBody=smin(dBody,dTail,0.04);
+  if(sh==0){ vec2 p=vU*0.74; float t=vA+uTime;
+    // Drone: SF UCAV — angular stealth drone with energy glow
+    // 1. Fuselage (angular, faceted)
+    float dFuse=sdRoundedBox(p-vec2(0.02,0.0),vec2(0.36,0.07),0.015);
+    // 2. Forward sensor pod (sharper)
+    float dCam=sdRoundedBox(p-vec2(0.34,0.0),vec2(0.05,0.035),0.01);
+    // Y-axis mirror fold — all wing/tail geometry is symmetric
+    vec2 pm=vec2(p.x,abs(p.y));
+    // 3. Main wings (cranked arrow — inner swept back, tips forward-angled)
+    float dW=sdCapsule(pm, vec2(0.10,0.0), vec2(-0.12,0.48), 0.04);
+    // Cranked wingtips (forward kick — gives SF angular silhouette)
+    float dTip=sdCapsule(pm, vec2(-0.12,0.48), vec2(0.02,0.58), 0.025);
+    float dWings=min(dW,dTip);
+    // 4. V-Tail (compact, angular)
+    float dTail=sdCapsule(pm,vec2(-0.26,0.0),vec2(-0.42,0.18),0.022);
+    // 5. Union
+    float dBody=smin(dFuse,dCam,0.02);
+    dBody=smin(dBody,dWings,0.04);
+    dBody=smin(dBody,dTail,0.025);
+    // 6. Dorsal engine ridge
+    float dRidge=sdRoundedBox(p-vec2(-0.14,0.0),vec2(0.16,0.04),0.02);
+    dBody=smin(dBody,dRidge,0.03);
+    // 7. Panel grooves (fuselage seams — angular detail)
+    float dSeam=sdCapsule(p,vec2(0.20,0.0),vec2(-0.20,0.0),0.003);
+    dBody=max(dBody,-dSeam+0.005);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 5. Engine glow (tiny, rear)
-    float pulse=0.5+0.5*sin(t*18.0);
-    float eng=exp(-length(p-vec2(-0.30,0.0))*12.0)*pulse;
-    // 6. Wing-tip lights (alternating blink)
-    float tipL=exp(-length(p-vec2(-0.18,0.32+flutter))*18.0)*(0.5+0.5*sin(t*8.0));
-    float tipR=exp(-length(p-vec2(-0.18,-0.32-flutter))*18.0)*(0.5+0.5*sin(t*8.0+3.14));
-    // 7. Trail
-    float trail=0.0;
-    if(p.x<-0.30){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.30)*3.8)*pulse*0.3;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.85+(tipL+tipR)*0.55+trail;
-    a=1.2*tanh(a/1.2); }
-  else if(sh==1){ vec2 p=vU*0.70; float t=vA+uTime;
-    // Fighter: X-wing style, forward-swept wings, gun mounts
-    // 1. Sleek central fuselage
-    float dFuse=sdRoundedBox(p-vec2(0.08,0.0),vec2(0.38,0.08),0.04);
-    // 2. Forward-swept wings (4 wings, X-pattern)
-    float dW1=sdCapsule(p,vec2(0.05,0.08),vec2(0.28,0.38),0.04);
-    float dW2=sdCapsule(p,vec2(0.05,-0.08),vec2(0.28,-0.38),0.04);
-    float dW3=sdCapsule(p,vec2(-0.10,0.08),vec2(-0.28,0.32),0.035);
-    float dW4=sdCapsule(p,vec2(-0.10,-0.08),vec2(-0.28,-0.32),0.035);
-    float dWings=min(min(dW1,dW2),min(dW3,dW4));
-    float dTipU=sdTriangle(p,vec2(0.24,0.34),vec2(0.32,0.42),vec2(0.20,0.42));
-    float dTipD=sdTriangle(p,vec2(0.24,-0.34),vec2(0.32,-0.42),vec2(0.20,-0.42));
-    dWings=min(dWings,min(dTipU,dTipD));
-    // 3. Cockpit bump
-    float dCock=sdRoundedBox(p-vec2(0.28,0.0),vec2(0.08,0.05),0.03);
-    // Union
-    float dBody=smin(dFuse,dWings,0.06);
-    dBody=smin(dBody,dCock,0.04);
-    // 4. Gun channels (wing tips, engraved)
-    float dGun1=sdRoundedBox(p-vec2(0.30,0.36),vec2(0.10,0.015),0.005);
-    float dGun2=sdRoundedBox(p-vec2(0.30,-0.36),vec2(0.10,0.015),0.005);
-    dBody=max(dBody,-min(dGun1,dGun2));
-    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
-    float hf=1.0-smoothstep(0.0,aa,dBody);
-    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
-    // 5. Quad engines (rear of each wing root)
-    float pulse=0.6+0.4*sin(t*16.0);
-    float eUp=exp(-length(p-vec2(-0.34,0.12))*10.0);
-    float eDn=exp(-length(p-vec2(-0.34,-0.12))*10.0);
-    float eng=(eUp+eDn)*pulse;
-    // 6. Gun muzzle flash (subtle, fast pulse)
-    float mFlash=(exp(-length(p-vec2(0.42,0.36))*16.0)+exp(-length(p-vec2(0.42,-0.36))*16.0))
-                 *(0.3+0.7*step(0.85,sin(t*18.0)));
-    // 7. Trail
-    float trail=0.0;
-    if(p.x<-0.34){float dy=min(abs(p.y-0.12),abs(p.y+0.12));
-      trail=exp(-dy*20.0)*exp((p.x+0.34)*3.5)*pulse*0.35;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.90+mFlash*0.30+trail;
-    a=1.2*tanh(a/1.2); }
-  else if(sh==2){
-    vec2 p=vU*0.82; float t=vA+uTime;
-    // Heavy Bomber: Wide fuselage, thick wings, cargo bay
-    
-    // 1. Wings (Back): Wide sweep
-    float dWingL=sdCapsule(p,vec2(0.2,0.35),vec2(-0.4,0.65),0.12);
-    float dWingR=sdCapsule(p,vec2(0.2,-0.35),vec2(-0.4,-0.65),0.12);
-    float dWings=min(dWingL,dWingR);
 
-    // Wingtip arcs (drooped, thickened outer edge)
-    float dArcL=sdArc(p-vec2(-0.2,0.55),vec2(sin(0.5),cos(0.5)),0.15,0.05);
-    float dArcR=sdArc(p-vec2(-0.2,-0.55),vec2(sin(0.5),cos(0.5)),0.15,0.05);
-    dWings=smin(dWings,min(dArcL,dArcR),0.06);
-
-    // 2. Main Body: Central wide block
-    float dBody=sdRoundedBox(p-vec2(0.1,0.0),vec2(0.55,0.22),0.15);
-    
-    // Smooth Union
-    float dShape=smin(dBody,dWings,0.15);
-    
-    // 3. Cargo Bay Cutout (Belly)
-    float dCargo=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.25,0.10),0.05);
-    // Subtle indentation instead of full cutout
-    float dShapeCarved=max(dShape,-dCargo); 
-
-    // AA and Height Field
-    float aa=fwidth(dShapeCarved)*FWIDTH_MULT[sh];
-    float hf=1.0-smoothstep(0.0,aa,dShapeCarved);
-    
-    // 4. Details
-    // Rim lighting
-    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dShapeCarved)))*hf;
-    // Cargo Bay Glow/Outline
-    float cargoGlow=(1.0-smoothstep(0.0,aa,abs(dCargo)))*0.6; 
-    
-    // 5. Engine Glow (Rear)
-    // Twin engines at back of wings
-    float dEng1=length(p-vec2(-0.45,0.45));
-    float dEng2=length(p-vec2(-0.45,-0.45));
-    float engDist=min(dEng1,dEng2);
-    
-    float pulse=0.6+0.4*sin(t*8.0);
-    float glow=exp(-engDist*4.0)*pulse;
-    
-    // Exhaust trails (going left, negative X)
-    // p.x < -0.45 is behind engine.
-    // Use exponential decay based on distance from engine center
+    // 8. Twin engine glow (split thrusters — symmetric, ×2 approx)
+    float pulse=0.6+0.4*sin(t*12.0);
+    float gSide=exp(-length(pm-vec2(-0.40,0.06))*16.0);
+    float glow=gSide*2.0*pulse;
+    // 9. Sensor sweep (forward scanning pulse)
+    float scan=exp(-length(p-vec2(0.38,0.0))*20.0)*(0.4+0.6*abs(sin(t*3.0)));
+    // 10. Wingtip energy nodes (fast SF blink)
+    float tipL=exp(-length(p-vec2(0.02,0.58))*24.0)*(0.5+0.5*sin(t*8.0));
+    float tipR=exp(-length(p-vec2(0.02,-0.58))*24.0)*(0.5+0.5*sin(t*8.0+3.14));
+    // 11. Trail (twin exhaust — pm.y folds naturally)
     float trail=0.0;
-    if(p.x < -0.45) {
-       float dy1=abs(p.y-0.45);
-       float dy2=abs(p.y+0.45);
-       float dy=min(dy1,dy2);
-       trail=exp(-dy*4.0) * exp((p.x+0.45)*1.5) * pulse * 0.9;
+    if(p.x<-0.40){
+      float dy=abs(pm.y-0.06);
+      trail=exp(-dy*28.0)*exp((p.x+0.40)*4.5)*pulse*0.25;
     }
 
-    a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + cargoGlow*0.3 + glow + trail;
-    a=1.2*tanh(a/1.2); // Tone map
-  }
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+glow*0.65+scan*0.45+(tipL+tipR)*0.55+trail;
+    a=1.2*tanh(a/1.2); }
+  else if(sh==1){ vec2 p=vU*0.64; float t=vA+uTime;
+    // Fighter: X-Wing blueprint — long fuselage, 4 splayed wings, 4 laser cannons, 4 engine pods
+    // +X = forward (nose), -X = rear (engines)
+
+    // 1. Fuselage — long narrow nose cone (X-Wing blueprint style)
+    //    Nose: long pointed wedge extending far forward
+    float dNose=sdTrapezoid(p.yx-vec2(0.0,0.34), 0.06, 0.008, 0.28);
+    //    Sensor cone tip (small rounded point at very front)
+    float dSensor=sdCapsule(p, vec2(0.56,0.0), vec2(0.66,0.0), 0.010);
+    //    Mid body (wider section behind cockpit)
+    float dMid=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.22,0.072),0.025);
+    //    Rear hull (engine mounting block)
+    float dRear=sdRoundedBox(p-vec2(-0.28,0.0),vec2(0.14,0.09),0.03);
+    float dFuse=smin(smin(dNose,dMid,0.04),dRear,0.04);
+    dFuse=smin(dFuse,dSensor,0.008);
+
+    // Y-axis mirror fold — all wing/cannon/engine geometry is symmetric
+    vec2 pm=vec2(p.x,abs(p.y));
+    // 2. Four wings in X-formation (folded to 2 via abs(p.y))
+    float dWF=sdCapsule(pm, vec2(0.02,0.07), vec2(-0.14,0.46), 0.038);  // front pair
+    float dWR=sdCapsule(pm, vec2(-0.06,0.07), vec2(-0.22,0.42), 0.034);  // rear pair
+    float dWings=min(dWF,dWR);
+
+    // 3. Laser cannons (folded to 2 via abs(p.y))
+    float dCF=sdCapsule(pm, vec2(-0.14,0.46), vec2(0.52,0.46), 0.014);  // front cannon
+    float dCR=sdCapsule(pm, vec2(-0.22,0.42), vec2(0.46,0.42), 0.012);  // rear cannon
+    float dCannons=min(dCF,dCR);
+
+    // 4. Cockpit canopy (oval, forward on fuselage)
+    float dCock=sdRoundedBox(p-vec2(0.20,0.0),vec2(0.09,0.038),0.022);
+
+    // 5. R2 astromech dome (behind cockpit)
+    float dR2=length(p-vec2(0.08,0.0))-0.032;
+
+    // 6. Engine pods (folded to 2 via abs(p.y))
+    float dEP1=sdCapsule(pm, vec2(-0.08,0.18), vec2(-0.22,0.24), 0.032);
+    float dEP2=sdCapsule(pm, vec2(-0.12,0.16), vec2(-0.26,0.22), 0.028);
+    float dEngPods=min(dEP1,dEP2);
+
+    // 7. Union — tight blend for mechanical look, cannons very sharp join
+    float dBody=smin(dFuse,dWings,0.035);
+    dBody=smin(dBody,dCannons,0.005);
+    dBody=smin(dBody,dCock,0.025);
+    dBody=smin(dBody,dR2,0.015);
+    dBody=smin(dBody,dEngPods,0.025);
+
+    // 8. Panel seams — center line + wing panel lines
+    float dSeam=sdCapsule(p,vec2(0.50,0.0),vec2(-0.38,0.0),0.003);
+    dBody=max(dBody,-dSeam+0.005);
+    // Wing panel line (folded to 1 via abs(p.y))
+    float dWP=sdCapsule(pm,vec2(0.0,0.08),vec2(-0.18,0.44),0.003);
+    dBody=max(dBody,-dWP+0.005);
+
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+
+    // 9. Engine exhaust glows (symmetric ×2 approx via pm)
+    float pulse=0.6+0.4*sin(t*14.0);
+    float eF=exp(-length(pm-vec2(-0.26,0.26))*15.0);
+    float eR=exp(-length(pm-vec2(-0.30,0.22))*15.0);
+    float eng=(eF+eR)*2.0*pulse;
+
+    // 10. Cannon muzzle flash (symmetric ×2 approx via pm)
+    float mFF=exp(-length(pm-vec2(0.52,0.46))*22.0);
+    float mFR=exp(-length(pm-vec2(0.46,0.42))*22.0);
+    float mFlash=(mFF+mFR)*2.0*(0.3+0.7*step(0.85,sin(t*20.0)));
+
+    // 11. R2 dome glow (blue-white pulse)
+    float r2Glow=exp(-length(p-vec2(0.08,0.0))*22.0)*(0.4+0.6*sin(t*3.0));
+
+    // 12. Cockpit canopy highlight
+    float cockGlow=exp(-length(p-vec2(0.22,0.0))*14.0)*0.25;
+
+    // 13. Engine trails (symmetric — pm.y folds naturally)
+    float trail=0.0;
+    if(p.x<-0.26){
+      float dy=min(abs(pm.y-0.26),abs(pm.y-0.22));
+      trail=exp(-dy*18.0)*exp((p.x+0.26)*3.5)*pulse*0.30;
+    }
+
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.85+mFlash*0.25+r2Glow*0.45+cockGlow+trail;
+    a=1.2*tanh(a/1.2); }
+  else if(sh==2){ vec2 p=vU*0.82; float t=vA+uTime;
+    // B2 Spirit: Flying wing — sharp swept leading edge, W trailing edge
+    // +X forward. Wingspan ~1.4, chord ~0.6
+
+    // Y-axis mirror fold — flying wing is fully symmetric
+    vec2 pm=vec2(p.x,abs(p.y));
+    // 1. Inner wing (folded to 1 via abs(p.y))
+    float dInner=sdTrapezoid(pm.yx-vec2(0.30, 0.05), 0.32, 0.20, 0.32);
+
+    // 2. Outer wing (folded to 1 via abs(p.y))
+    float dOuter=sdCapsule(pm, vec2(-0.02,0.42), vec2(-0.32,0.72), 0.055);
+
+    // 3. Union wings with tight blending (no round center body)
+    float dBody=smin(dInner, dOuter, 0.06);
+
+    // 4. Hard swept leading edge cut — forces knife-edge front
+    //    Line: x = 0.38 - |y|*0.55  (sweepback angle ~29deg)
+    float leadEdge = p.x - 0.38 + abs(p.y)*0.55;
+    dBody = max(dBody, leadEdge);
+
+    // 5. Cockpit — tiny forward bump, hard blend so it stays sharp
+    float dCock=sdRoundedBox(p-vec2(0.34,0.0), vec2(0.06,0.04), 0.02);
+    dBody=smin(dBody, dCock, 0.02);
+
+    // 6. Engine nacelle ridge (folded to 1 via abs(p.y))
+    float dNac=sdRoundedBox(pm-vec2(0.02,0.22), vec2(0.12,0.045), 0.02);
+    dBody=smin(dBody, dNac, 0.03);
+
+    // 7. W-shaped trailing edge — carve notches from rear
+    float dCutC=sdTriangle(p, vec2(-0.18,0.0), vec2(-0.42,0.18), vec2(-0.42,-0.18));
+    dBody=max(dBody, -dCutC);
+    float dCutS=sdTriangle(pm, vec2(-0.28,0.38), vec2(-0.50,0.28), vec2(-0.50,0.55));
+    dBody=max(dBody, -dCutS);
+
+    // 8. Panel line groove (folded to 1 via abs(p.y))
+    float dPanel=sdCapsule(pm, vec2(0.22,0.10), vec2(-0.12,0.42), 0.004);
+    dBody=max(dBody, -dPanel+0.006);
+
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+
+    // 9. Engine glow (symmetric ×2 approx via pm)
+    float pulse=0.55+0.45*sin(t*6.0);
+    float eOuter=exp(-length(pm-vec2(-0.16,0.18))*14.0);
+    float eInner=exp(-length(pm-vec2(-0.20,0.10))*14.0);
+    float eng=(eOuter+eInner)*2.0*pulse;
+
+    // 10. Trail (symmetric — pm.y folds naturally)
+    float trail=0.0;
+    if(p.x<-0.22){
+      float dy=min(abs(pm.y-0.18),abs(pm.y-0.10));
+      trail=exp(-dy*14.0)*exp((p.x+0.22)*2.8)*pulse*0.30;
+    }
+
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.75+trail;
+    a=1.2*tanh(a/1.2); }
   else if(sh==3){ // Circle (particles, AOE projectiles)
     a=smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
   else if(sh==4){ // Diamond (projectiles)
