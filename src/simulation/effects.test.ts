@@ -390,7 +390,9 @@ describe('chainLightning — KillEvent 伝播', () => {
     const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], captureKiller(attacker), rng);
+    const killer = captureKiller(attacker);
+    if (!killer) throw new Error('expected killer');
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killer, rng);
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -407,7 +409,9 @@ describe('chainLightning — KillEvent 伝播', () => {
     const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], captureKiller(attacker), rng);
+    const killer2 = captureKiller(attacker);
+    if (!killer2) throw new Error('expected killer');
+    chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killer2, rng);
     updateChains(0.06, rng);
     expect(unit(enemy2).alive).toBe(false);
     const killEvents = events.filter((e) => e.killerTeam !== undefined);

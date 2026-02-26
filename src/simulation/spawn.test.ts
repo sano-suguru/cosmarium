@@ -255,9 +255,16 @@ describe('captureKiller', () => {
   it('alive ユニットの team/type を返す', () => {
     const idx = spawnUnit(1, 3, 100, 200, testRng);
     const k = captureKiller(idx);
+    if (!k) throw new Error('expected killer');
     expect(k.index).toBe(idx);
     expect(k.team).toBe(1);
     expect(k.type).toBe(3);
+  });
+
+  it('dead ユニットに対して undefined を返す', () => {
+    const idx = spawnUnit(0, 1, 50, 50, testRng);
+    killUnit(idx);
+    expect(captureKiller(idx)).toBeUndefined();
   });
 });
 

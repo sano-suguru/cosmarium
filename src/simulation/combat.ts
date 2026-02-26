@@ -596,7 +596,9 @@ function handleChain(ctx: CombatContext): void {
   if (d < 0) return;
   if (d < ctx.range) {
     u.cooldown = t.fireRate;
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, captureKiller(ctx.ui), ctx.rng);
+    const killer = captureKiller(ctx.ui);
+    if (!killer) return;
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, killer, ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }

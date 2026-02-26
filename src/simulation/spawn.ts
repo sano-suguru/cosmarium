@@ -30,8 +30,9 @@ interface KilledUnitSnapshot {
   readonly type: number;
 }
 
-export function captureKiller(i: UnitIndex): Killer {
+export function captureKiller(i: UnitIndex): Killer | undefined {
   const u = unit(i);
+  if (!u.alive) return undefined;
   return { index: i, team: u.team, type: u.type };
 }
 
