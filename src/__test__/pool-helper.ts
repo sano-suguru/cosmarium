@@ -9,8 +9,9 @@ import {
   setUnitCount,
   unit,
 } from '../pools.ts';
+import { _resetSweepHits } from '../simulation/combat.ts';
 import { resetChains } from '../simulation/effects.ts';
-import { clearKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
+import { spawnUnit } from '../simulation/spawn.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
@@ -99,7 +100,7 @@ export function resetPools() {
   resetPoolCounts();
   beams.length = 0;
   trackingBeams.length = 0;
-  clearKillUnitHooks();
+  _resetSweepHits();
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */

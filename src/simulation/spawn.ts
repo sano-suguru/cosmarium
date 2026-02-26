@@ -47,17 +47,13 @@ type KillEvent = {
 type KillUnitHook = (e: KillEvent) => void;
 const killUnitHooks: KillUnitHook[] = [];
 type Unsubscribe = () => void;
-
+/** hookを登録し、登録解除用のunsubscribe関数を返す。呼び出し元がライフサイクルを管理すること */
 export function onKillUnit(hook: KillUnitHook): Unsubscribe {
   killUnitHooks.push(hook);
   return () => {
     const idx = killUnitHooks.indexOf(hook);
     if (idx !== -1) killUnitHooks.splice(idx, 1);
   };
-}
-
-export function clearKillUnitHooks() {
-  killUnitHooks.length = 0;
 }
 
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
