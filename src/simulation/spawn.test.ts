@@ -19,11 +19,7 @@ import {
 } from './spawn.ts';
 
 const testRng = () => 0.5;
-const unsubs: (() => void)[] = [];
-
 afterEach(() => {
-  for (const fn of unsubs) fn();
-  unsubs.length = 0;
   resetPools();
   resetState();
 });
@@ -152,11 +148,9 @@ describe('killUnit', () => {
 
   it('フックに killer 引数が伝播される', () => {
     const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        calls.push({ victim: e.victim, killer: e.killer });
-      }),
-    );
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
     spawnUnit(0, 0, 0, 0, testRng);
     spawnUnit(1, 1, 100, 100, testRng);
     killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex));
@@ -167,11 +161,9 @@ describe('killUnit', () => {
 
   it('相打ち: killerFrom で事前キャプチャした情報が正しく伝播される', () => {
     const calls: { victimTeam: number; killerTeam: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        calls.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
-      }),
-    );
+    onKillUnit((e) => {
+      calls.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
+    });
     spawnUnit(0, 0, 0, 0, testRng); // index 0, team 0
     spawnUnit(1, 1, 100, 100, testRng); // index 1, team 1
     // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
@@ -187,11 +179,9 @@ describe('killUnit', () => {
 
   it('killer 省略時は NO_UNIT がフックに渡される', () => {
     const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        calls.push({ victim: e.victim, killer: e.killer });
-      }),
-    );
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
     spawnUnit(0, 0, 0, 0, testRng);
     killUnit(0 as UnitIndex);
     expect(calls).toHaveLength(1);

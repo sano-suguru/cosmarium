@@ -46,6 +46,7 @@ type KillEvent = {
 
 type KillUnitHook = (e: KillEvent) => void;
 const killUnitHooks: KillUnitHook[] = [];
+const permanentKillUnitHooks: KillUnitHook[] = [];
 type Unsubscribe = () => void;
 /** hookを登録し、登録解除用のunsubscribe関数を返す。呼び出し元がライフサイクルを管理すること */
 export function onKillUnit(hook: KillUnitHook): Unsubscribe {
@@ -56,9 +57,14 @@ export function onKillUnit(hook: KillUnitHook): Unsubscribe {
   };
 }
 
-/** 永続フック登録。モジュール/アプリ初期化時に使用（unsubscribe不要） */
+/** 永続フック登録。モジュール/アプリ初期化時に使用（unsubscribe不要、テストリセット対象外） */
 export function onKillUnitPermanent(hook: KillUnitHook): void {
-  killUnitHooks.push(hook);
+  permanentKillUnitHooks.push(hook);
+}
+
+/** テスト専用: テスト用killUnitHooksをクリア。永続フックは維持。pool-helper.tsのresetPools()から呼ばれる */
+export function _resetKillUnitHooks(): void {
+  killUnitHooks.length = 0;
 }
 
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
@@ -124,6 +130,7 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
     u.alive = false;
     decUnits();
     for (const hook of killUnitHooks) hook(e);
+    for (const hook of permanentKillUnitHooks) hook(e);
     return snap;
   }
   return undefined;
