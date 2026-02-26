@@ -683,18 +683,18 @@ describe('combat — CHAIN LIGHTNING', () => {
 
 describe('combat — NORMAL FIRE', () => {
   it('射程内で cooldown<=0 → プロジェクタイル発射', () => {
-    const fighter = spawnAt(0, 1, 0, 0); // Fighter (rng=170, fireRate=0.9, burst=3)
+    const fighter = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    expect(poolCounts.projectiles).toBe(1);
+    expect(poolCounts.projectiles).toBe(2);
     expect(unit(fighter).cooldown).toBeCloseTo(BURST_INTERVAL);
   });
 
   it('射程外 → プロジェクタイルなし', () => {
-    const fighter = spawnAt(0, 1, 0, 0); // Fighter (rng=170)
+    const fighter = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 500, 0); // 距離500 > rng
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
@@ -712,7 +712,9 @@ describe('combat — NORMAL FIRE', () => {
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
     const fighterType = unitType(1);
+
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.2);
+    expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.2);
   });
 
   it('vet=2: damage×1.4', () => {
@@ -724,7 +726,9 @@ describe('combat — NORMAL FIRE', () => {
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
     const fighterType = unitType(1);
+
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.4);
+    expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.4);
   });
 
   it('homing: Launcher → 3発ホーミングミサイル (homing burst)', () => {
@@ -1327,16 +1331,16 @@ describe('combat — DRONE SWARM', () => {
 });
 
 describe('combat — FIGHTER BURST', () => {
-  it('初発でバーストカウント開始 (burst=3 → burstCount=2 after shot)', () => {
-    const fighter = spawnAt(0, 1, 0, 0); // Fighter (burst=3)
+  it('初発でバーストカウント開始 (burst=2, salvo=2 → burstCount=1 after shot)', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 0;
     unit(fighter).target = enemy;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    expect(poolCounts.projectiles).toBe(1);
-    expect(unit(fighter).burstCount).toBe(2);
+    expect(poolCounts.projectiles).toBe(2);
+    expect(unit(fighter).burstCount).toBe(1);
   });
 
   it('バースト中間: cooldown = BURST_INTERVAL (0.07)', () => {
@@ -1347,7 +1351,6 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).target = enemy;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    // burstCount=2 (>0) → cooldown = 0.07
     expect(unit(fighter).cooldown).toBeCloseTo(0.07);
   });
 
@@ -1366,7 +1369,7 @@ describe('combat — FIGHTER BURST', () => {
 
   it('ターゲットロスト → burstCount リセット', () => {
     const fighter = spawnAt(0, 1, 0, 0);
-    unit(fighter).burstCount = 2;
+    unit(fighter).burstCount = 1;
     unit(fighter).target = NO_UNIT;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
@@ -1377,13 +1380,49 @@ describe('combat — FIGHTER BURST', () => {
     const fighter = spawnAt(0, 1, 0, 0);
     const enemy = spawnAt(1, 1, 100, 0);
     unit(fighter).cooldown = 0;
-    unit(fighter).burstCount = 2;
+    unit(fighter).burstCount = 1;
     unit(fighter).target = enemy;
     unit(enemy).alive = false;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
     expect(unit(fighter).burstCount).toBe(0);
     expect(unit(fighter).target).toBe(NO_UNIT);
+  });
+
+  it('salvo=2: 左右対称のキャノン位置から発射', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    unit(fighter).cooldown = 0;
+    unit(fighter).burstCount = 0;
+    unit(fighter).angle = 0; // +x方向
+    unit(fighter).target = enemy;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(2);
+    const p0 = projectile(0);
+    const p1 = projectile(1);
+    expect(p0.x).toBeCloseTo(p1.x, 1);
+    expect(p0.y).toBeCloseTo(-p1.y, 1);
+    expect(p0.y).not.toBeCloseTo(0);
+  });
+
+  it('salvo=2: 2バースト目は後方キャノンペアから発射', () => {
+    const fighter = spawnAt(0, 1, 0, 0);
+    const enemy = spawnAt(1, 1, 100, 0);
+    unit(fighter).cooldown = 0;
+    unit(fighter).burstCount = 1; // 2バースト目（残り1発）
+    unit(fighter).angle = 0;
+    unit(fighter).target = enemy;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(2);
+    const p0 = projectile(0);
+    const p1 = projectile(1);
+    const fighterType = unitType(1);
+    const rearOffsetX = fighterType.cannonOffsets?.[1]?.[0] ?? 0;
+    const expectedX = fighterType.size * rearOffsetX;
+    expect(p0.x).toBeCloseTo(expectedX, 1);
+    expect(p0.y).toBeCloseTo(-p1.y, 1);
   });
 });
 
@@ -1503,7 +1542,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(fighter).target = enemy;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    expect(poolCounts.projectiles).toBe(1);
+    expect(poolCounts.projectiles).toBe(2);
     // vy > 0 → 弾のvy成分が正方向にずれる（上を狙う）
     const p = projectile(0);
     expect(p.vy).toBeGreaterThan(0);

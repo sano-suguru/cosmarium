@@ -994,27 +994,85 @@ function swarmDmgMul(u: Unit): number {
   return 1 + u.swarmN * 0.15;
 }
 
+const DEFAULT_CANNON_OFFSET: readonly [number, number] = [0.8, 0.7];
+const SALVO_SIGNS: readonly (-1 | 1)[] = [-1, 1];
+
+const _cwBuf: [number, number] = [0, 0];
+function cannonWorld(u: Unit, localX: number, localY: number): void {
+  const cos = Math.cos(u.angle);
+  const sin = Math.sin(u.angle);
+  _cwBuf[0] = u.x + cos * localX - sin * localY;
+  _cwBuf[1] = u.y + sin * localX + cos * localY;
+}
+
+function spawnCannonFlash(ctx: CombatContext, ang: number, mx: number, my: number) {
+  const { c } = ctx;
+  spawnParticle(
+    mx,
+    my,
+    Math.cos(ang) * (60 + ctx.rng() * 60) + (ctx.rng() - 0.5) * 35,
+    Math.sin(ang) * (60 + ctx.rng() * 60) + (ctx.rng() - 0.5) * 35,
+    0.06 + ctx.rng() * 0.03,
+    2.5 + ctx.rng() * 2,
+    c[0],
+    c[1],
+    c[2],
+    SH_CIRCLE,
+  );
+  spawnParticle(mx, my, 0, 0, 0.05, 2.5, 1, 1, 1, SH_CIRCLE);
+}
+
 function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1) {
   const { u, c, t, vd } = ctx;
-  if (u.burstCount <= 0) u.burstCount = t.burst ?? 1;
+  const burst = t.burst ?? 1;
+  if (u.burstCount <= 0) u.burstCount = burst;
   const sizeMul = 1 + (dmgMul - 1) * 0.5;
   const wb = (dmgMul - 1) * 0.4;
-  spawnProjectile(
-    u.x + Math.cos(u.angle) * t.size,
-    u.y + Math.sin(u.angle) * t.size,
-    Math.cos(ang) * sp + u.vx * 0.3,
-    Math.sin(ang) * sp + u.vy * 0.3,
-    d / sp + 0.1,
-    t.damage * vd * dmgMul,
-    u.team,
-    (1.8 + t.damage * 0.25) * sizeMul,
-    c[0] + (1 - c[0]) * wb,
-    c[1] + (1 - c[1]) * wb,
-    c[2] + (1 - c[2]) * wb,
-  );
+  const vxInherit = u.vx * 0.3;
+  const vyInherit = u.vy * 0.3;
+  const life = d / sp + 0.1;
+  const dmg = t.damage * vd * dmgMul;
+  const pSize = (1.8 + t.damage * 0.25) * sizeMul;
+  const pr = c[0] + (1 - c[0]) * wb;
+  const pg = c[1] + (1 - c[1]) * wb;
+  const pb = c[2] + (1 - c[2]) * wb;
+  const salvo = t.salvo ?? 0;
+  if (salvo >= 2) {
+    const offsets = t.cannonOffsets;
+    const burstIdx = burst - u.burstCount;
+    const idx = offsets ? burstIdx % offsets.length : 0;
+    const pair = offsets?.[idx] ?? DEFAULT_CANNON_OFFSET;
+    const ox = pair[0];
+    const oy = pair[1];
+    const localX = ox * t.size;
+    const localY = oy * t.size;
+    const vxP = Math.cos(ang) * sp + vxInherit;
+    const vyP = Math.sin(ang) * sp + vyInherit;
+    for (const sign of SALVO_SIGNS) {
+      cannonWorld(u, localX, localY * sign);
+      const mx = _cwBuf[0];
+      const my = _cwBuf[1];
+      spawnProjectile(mx, my, vxP, vyP, life, dmg, u.team, pSize, pr, pg, pb);
+      spawnCannonFlash(ctx, ang, mx, my);
+    }
+  } else {
+    spawnProjectile(
+      u.x + Math.cos(u.angle) * t.size,
+      u.y + Math.sin(u.angle) * t.size,
+      Math.cos(ang) * sp + vxInherit,
+      Math.sin(ang) * sp + vyInherit,
+      life,
+      dmg,
+      u.team,
+      pSize,
+      pr,
+      pg,
+      pb,
+    );
+    spawnMuzzleFlash(ctx, ang);
+  }
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
-  spawnMuzzleFlash(ctx, ang);
 }
 
 const HOMING_SPREAD = 0.15;

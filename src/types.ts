@@ -108,6 +108,10 @@ export interface UnitType {
   swarm?: boolean;
   broadside?: boolean;
   burst?: number;
+  /** 1バーストあたりの同時発射数。2=左右ツイン。未指定/0=従来の単射 */
+  salvo?: number;
+  /** salvo用キャノン位置オフセット [xRatio, yRatio][] — バーストインデックスで循環 */
+  cannonOffsets?: readonly (readonly [number, number])[];
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
   massWeight?: number;
   engageMin?: number;
