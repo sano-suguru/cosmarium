@@ -1,9 +1,8 @@
 import type { Color3, Team } from './types.ts';
 
-const TEAM_BASE: readonly [Color3, Color3] = [
-  [0.15, 0.85, 1.0], // Team 0 — cyan
-  [1.0, 0.35, 0.2], // Team 1 — vermilion
-];
+const CYAN: Color3 = [0.15, 0.85, 1.0];
+const VERMILION: Color3 = [1.0, 0.35, 0.2];
+const TEAM_BASE: readonly [Color3, Color3] = [CYAN, VERMILION];
 
 interface UnitColorMod {
   readonly hue: number; // -0.5 .. +0.5  colour lean (HSL turns)
@@ -15,39 +14,39 @@ interface UnitColorMod {
 
 // 順序は TYPES (unit-types.ts) と一致
 const UNIT_MODS: readonly UnitColorMod[] = [
-  // 0  Drone       — 小型攻撃: warm lean, vivid
+  // 0 Drone
   { hue: -0.08, lum: 1.08, sat: 1.15, effectHue: -0.15, effectSat: 1.35 },
-  // 1  Fighter     — 小型攻撃: warm lean, bright
+  // 1 Fighter
   { hue: -0.06, lum: 1.12, sat: 1.1, effectHue: -0.13, effectSat: 1.3 },
-  // 2  Bomber      — 重火力: strong warm, standard brightness
+  // 2 Bomber
   { hue: -0.1, lum: 0.95, sat: 1.0, effectHue: -0.19, effectSat: 1.2 },
-  // 3  Cruiser     — 重火力: deep warm, desaturated heavy
+  // 3 Cruiser
   { hue: -0.12, lum: 0.88, sat: 0.78, effectHue: -0.22, effectSat: 1.05 },
-  // 4  Flagship    — 重火力: deepest warm, desaturated heavy
+  // 4 Flagship
   { hue: -0.14, lum: 0.85, sat: 0.72, effectHue: -0.24, effectSat: 1.05 },
-  // 5  Healer      — 支援: pale, cool green-cyan
+  // 5 Healer
   { hue: 0.08, lum: 1.3, sat: 0.55, effectHue: 0.15, effectSat: 1.1 },
-  // 6  Reflector   — 支援: pale, cool cyan
+  // 6 Reflector
   { hue: 0.1, lum: 1.15, sat: 0.6, effectHue: 0.17, effectSat: 1.1 },
-  // 7  Carrier     — 母艦: unique deep purple
+  // 7 Carrier
   { hue: 0.14, lum: 0.88, sat: 0.78, effectHue: 0.23, effectSat: 1.15 },
-  // 8  Sniper      — 射撃/特殊: cool lean, sharp
+  // 8 Sniper
   { hue: 0.03, lum: 1.05, sat: 1.2, effectHue: 0.08, effectSat: 1.35 },
-  // 9  Lancer      — 重火力: hot amber, bold
+  // 9 Lancer
   { hue: -0.11, lum: 0.9, sat: 1.0, effectHue: -0.21, effectSat: 1.2 },
-  // 10 Launcher    — 射撃/特殊: cool strong lean
+  // 10 Launcher
   { hue: 0.12, lum: 1.0, sat: 1.05, effectHue: 0.21, effectSat: 1.25 },
-  // 11 Disruptor   — 射撃/特殊: warm magenta lean
+  // 11 Disruptor
   { hue: -0.04, lum: 1.1, sat: 1.15, effectHue: -0.1, effectSat: 1.35 },
-  // 12 Scorcher    — 射撃/特殊: cool blue-cyan
+  // 12 Scorcher
   { hue: 0.05, lum: 0.9, sat: 1.0, effectHue: 0.11, effectSat: 1.2 },
-  // 13 Teleporter  — 小型攻撃: warm pink lean, bright
+  // 13 Teleporter
   { hue: -0.09, lum: 1.15, sat: 1.2, effectHue: -0.17, effectSat: 1.4 },
-  // 14 Arcer       — 射撃/特殊: strong warm gold
+  // 14 Arcer
   { hue: -0.15, lum: 1.1, sat: 1.1, effectHue: -0.25, effectSat: 1.3 },
-  // 15 Bastion     — 支援: cool steel, desaturated
+  // 15 Bastion
   { hue: 0.06, lum: 1.0, sat: 0.55, effectHue: 0.13, effectSat: 1.05 },
-  // 16 Amplifier   — 支援: warm orange, moderate saturation
+  // 16 Amplifier
   { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
 ];
 

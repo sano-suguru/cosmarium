@@ -361,13 +361,12 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   const tgt = findTarget(u, nn, t.range * ampRange, dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
-  // retreat urgency を先行計算 — engage力のアッテネーションに使用
   const hpRatio = u.maxHp > 0 ? u.hp / u.maxHp : 0;
   const retreatUrgency =
     t.retreatHpRatio !== undefined && hpRatio < t.retreatHpRatio ? 1 - hpRatio / t.retreatHpRatio : 0;
 
   const engage = computeEngagementForce(u, tgt, t, dt, rng);
-  // 退避中はengage力を減衰 — urgency=1で完全退避、urgency=0で通常エンゲージ
+  // urgency=1で完全退避、0で通常エンゲージ
   const engageAtten = 1 - retreatUrgency;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;

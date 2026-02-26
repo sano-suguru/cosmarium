@@ -135,18 +135,18 @@ export function destroyMutualKill(
 ): void {
   const killerA: Killer = { index: a, team: unit(a).team, type: unit(a).type };
   const killerB: Killer = { index: b, team: unit(b).team, type: unit(b).type };
-  // Phase 1: kill (両方のスナップショット取得後にkill)
+  // kill は両方のスナップショット取得後（順序重要）
   let snapB: ReturnType<typeof killUnit>;
   let snapA: ReturnType<typeof killUnit>;
   if (bHpDepleted) snapB = killUnit(b, killerA);
   if (aHpDepleted) snapA = killUnit(a, killerB);
 
-  // Phase 2: 視覚エフェクト
   if (snapB) explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
   if (snapA) explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
 
-  // Phase 3: vet加算 + on-kill効果（片方のみ死亡時のみ — 相打ちではkillerもdead）
-  if (!(aHpDepleted && bHpDepleted)) {
+  // vet加算 + on-kill効果（相打ちではkillerもdeadのため除外）
+  const isMutualKill = aHpDepleted && bHpDepleted;
+  if (!isMutualKill) {
     if (snapB) {
       updateKillerVet(killerA);
       applyOnKillEffects(killerA.index, killerA.team, killContext);
@@ -177,19 +177,20 @@ export function trail(u: Unit, rng: () => number) {
   );
 }
 
+const ENGINE_SKIP_CHANCE = 0.45;
+
 export function flagshipTrail(u: Unit, rng: () => number) {
   const t = unitType(u.type),
     c = trailColor(u.type, u.team);
   const cos = Math.cos(u.angle);
   const sin = Math.sin(u.angle);
-  const localX = -(t.size * 1.05); // 後方（シェーダノズル0.80より奥）
+  const engineRearOffset = -(t.size * 1.05); // シェーダノズル0.80より奥
   for (const sign of [-1, 1] as const) {
     for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
-      // 毎フレーム全4基ではなくrng確率で約2基をspawn
-      if (rng() < 0.45) continue;
+      if (rng() < ENGINE_SKIP_CHANCE) continue;
       const localY = sign * ey * t.size;
-      const wx = u.x + cos * localX - sin * localY;
-      const wy = u.y + sin * localX + cos * localY;
+      const wx = u.x + cos * engineRearOffset - sin * localY;
+      const wy = u.y + sin * engineRearOffset + cos * localY;
       spawnParticle(
         wx + (rng() - 0.5) * t.size * 0.15,
         wy + (rng() - 0.5) * t.size * 0.15,

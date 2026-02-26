@@ -122,9 +122,10 @@ export const BURST_INTERVAL = 0.07;
 export const BEAM_DECAY_RATE = 3;
 export const HEALER_AMOUNT = 3;
 export const HEALER_COOLDOWN = 0.35;
-const HALF_ARC = 0.524; // ±30°
+const HALF_ARC = (30 * Math.PI) / 180;
 const RAILGUN_SHAPE = 8;
 const FLAGSHIP_MAIN_GUN_SPEED = 380;
+const FLAGSHIP_MAIN_SPREAD = 0.15;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
 const BROADSIDE_PHASE_CHARGE = 0;
@@ -253,7 +254,7 @@ function handleHealer(ctx: CombatContext) {
 }
 
 const REFLECT_RADIUS_MULT = 3;
-const REFLECT_SCATTER = 0.524; // 全幅30°（±15°）
+const REFLECT_SCATTER_FULL = (30 * Math.PI) / 180;
 const REFLECT_SPEED_MULT = 1.0;
 const REFLECT_LIFE = 0.5;
 
@@ -289,7 +290,7 @@ export function reflectProjectile(
   const dot = p.vx * nx + p.vy * ny;
   const rvx = p.vx - 2 * dot * nx;
   const rvy = p.vy - 2 * dot * ny;
-  const scatter = (rng() - 0.5) * REFLECT_SCATTER;
+  const scatter = (rng() - 0.5) * REFLECT_SCATTER_FULL;
   const cs = Math.cos(scatter);
   const sn = Math.sin(scatter);
   p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
@@ -324,7 +325,7 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number,
     const dx = p.x - u.x;
     const dy = p.y - u.y;
     if (dx * dx + dy * dy >= reflectR * reflectR) continue;
-    // ループ途中でenergy枯渇 or クールダウン開始した場合の早期脱出（呼び出し元のガードとは別目的）
+    // energy枯渇/クールダウン開始時の早期脱出（呼び出し元ガードとは別）
     if (u.energy <= 0 || u.shieldCooldown > 0) break;
     consumeReflectorShieldHp(u, p.damage, cooldown);
     reflectProjectile(ctx.rng, u.x, u.y, p, team, c);
@@ -1139,13 +1140,12 @@ function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) 
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
 }
 
-// localX = forward, localY = starboard
 const _fwBuf: [number, number] = [0, 0];
-function flagshipWorld(u: Unit, localX: number, localY: number): [number, number] {
+function flagshipWorld(u: Unit, forward: number, starboard: number): [number, number] {
   const cos = Math.cos(u.angle);
   const sin = Math.sin(u.angle);
-  _fwBuf[0] = u.x + cos * localX - sin * localY;
-  _fwBuf[1] = u.y + sin * localX + cos * localY;
+  _fwBuf[0] = u.x + cos * forward - sin * starboard;
+  _fwBuf[1] = u.y + sin * forward + cos * starboard;
   return _fwBuf;
 }
 
@@ -1206,9 +1206,9 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const dx = Math.cos(lockAngle);
   const dy = Math.sin(lockAngle);
 
-  // non-homing lock ±0.15 → weak vs swarms (intentional)
+  /** 固定照準の散布角 — スウォーム相手に意図的に弱い */
   for (let i = -1; i <= 1; i++) {
-    const ba = lockAngle + i * 0.15;
+    const ba = lockAngle + i * FLAGSHIP_MAIN_SPREAD;
     const hullSign = i >= 0 ? 1 : -1;
     const [ox, oy] = flagshipWorld(u, t.size * MUZZLE_FWD, hullSign * 0.24 * t.size);
     spawnProjectile(
@@ -1649,8 +1649,8 @@ function handleAmplifier(ctx: CombatContext) {
   }
 }
 
-/** Exclusive-fire dispatch: returns true if a handler consumed the frame */
-function dispatchExclusiveFire(ctx: CombatContext): boolean {
+/** @returns true if an exclusive handler fired */
+function tryExclusiveFire(ctx: CombatContext): boolean {
   const { t, u } = ctx;
   if (t.chain && u.cooldown <= 0) {
     handleChain(ctx);
@@ -1706,7 +1706,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   }
   // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
   if (t.teleports) handleTeleporter(_ctx);
-  if (!dispatchExclusiveFire(_ctx)) fireNormal(_ctx);
+  if (!tryExclusiveFire(_ctx)) fireNormal(_ctx);
 }
 
 const COMBAT_FLAG_PRIORITY: DemoFlag[] = [

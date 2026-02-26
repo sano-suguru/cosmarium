@@ -24,6 +24,7 @@ const SH_BAR = 21;
 const SH_OCT_SHIELD = 22;
 const SH_LIGHTNING = 23;
 const SH_REFLECT_FIELD = 27;
+const VET_TINT_FACTOR = 0.15;
 // TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
 export const WRAP_PERIOD = TAU * 10000;
 
@@ -180,7 +181,7 @@ function renderUnits(now: number) {
     }
     if (u.swarmN > 0)
       writeOverlay(u.x, u.y, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
-    const vetTint = u.vet * 0.15; // vet上限=2 (effects.ts) → max 0.3、クランプ不要
+    const vetTint = u.vet * VET_TINT_FACTOR; // max 0.3 (vet ≤ 2), clamp不要
     const vr0 = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
     const vg0 = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;
     const vb0 = (c[2] + (0.3 - c[2]) * vetTint) * flash * sf;

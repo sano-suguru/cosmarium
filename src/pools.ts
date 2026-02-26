@@ -119,7 +119,6 @@ export function setPoolCounts(units: number, particles: number, projectiles: num
   rebuildParticleFreeStack();
 }
 
-/* プール配列アクセサ — noUncheckedIndexedAccess の undefined チェックを集約 */
 export function unit(i: number): Unit {
   const u = unitPool[i];
   if (u === undefined) throw new RangeError(`Invalid unit index: ${i}`);
