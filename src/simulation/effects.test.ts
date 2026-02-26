@@ -33,11 +33,7 @@ import {
 
 const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
 
-const unsubs: (() => void)[] = [];
-
 afterEach(() => {
-  for (const fn of unsubs) fn();
-  unsubs.length = 0;
   resetPools();
   resetState();
   // vi.mock() ファクトリで作成した vi.fn() の呼び出し履歴は restoreAllMocks ではクリアされないため必要
@@ -387,11 +383,9 @@ describe('boostTrail', () => {
 describe('chainLightning — KillEvent 伝播', () => {
   it('即時ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-      }),
-    );
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
     const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
     const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
     buildHash();
@@ -405,11 +399,9 @@ describe('chainLightning — KillEvent 伝播', () => {
 
   it('遅延ホップ kill 時に sourceKiller が KillEvent に伝播される', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
-    unsubs.push(
-      onKillUnit((e) => {
-        events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
-      }),
-    );
+    onKillUnit((e) => {
+      events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
+    });
     const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
     spawnAt(1, 1, 50, 0); // 即時ホップ対象 (Fighter hp=10, 生存)
     const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
@@ -451,29 +443,28 @@ describe('killUnitWithExplosion', () => {
 });
 
 describe('destroyMutualKill', () => {
-  it('相打ち時に両方のkillerのkillsが加算される', () => {
+  it('相打ち時はkiller双方のkillsを加算しない（両者deadのためスキップ）', () => {
     const a = spawnAt(0, 1, 0, 0);
     const b = spawnAt(1, 1, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect);
-    // aがbをkill → aのkills++、bがaをkill → bのkills++
-    expect(unit(a).kills).toBe(1);
-    expect(unit(b).kills).toBe(1);
+    expect(unit(a).kills).toBe(0);
+    expect(unit(b).kills).toBe(0);
   });
 
-  it('相打ち時に両方のkillerのvetが対称に昇格する', () => {
+  it('相打ち時はvet昇格をスキップする（両者deadのため）', () => {
     const a = spawnAt(0, 1, 0, 0);
     const b = spawnAt(1, 1, 100, 0);
-    unit(a).kills = 2; // あと1killでvet=1
+    unit(a).kills = 2;
     unit(b).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect);
-    expect(unit(a).kills).toBe(3);
-    expect(unit(a).vet).toBe(1);
-    expect(unit(b).kills).toBe(3);
-    expect(unit(b).vet).toBe(1);
+    expect(unit(a).kills).toBe(2);
+    expect(unit(a).vet).toBe(0);
+    expect(unit(b).kills).toBe(2);
+    expect(unit(b).vet).toBe(0);
   });
 
   it('片方のみHP枯渇 → 枯渇側のみkill、killer側のみvet加算', () => {

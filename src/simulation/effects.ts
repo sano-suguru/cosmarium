@@ -76,21 +76,6 @@ function updateKillerVet(killer: Killer) {
   }
 }
 
-/**
- * 相打ち用vet加算。相打ちでは kill → vet の順序ではなく
- * 全 kill 完了後に vet を加算するため、killer のスロットは既に dead。
- * !alive でスロット再利用（spawnUnit で alive=true にリセット済み）を除外し、
- * team/type 一致で同一ユニットを判定する。
- */
-function updateKillerVetMutual(killer: Killer) {
-  const ku = unit(killer.index);
-  if (!ku.alive && ku.team === killer.team && ku.type === killer.type) {
-    ku.kills++;
-    if (ku.kills >= 3) ku.vet = 1;
-    if (ku.kills >= 8) ku.vet = 2;
-  }
-}
-
 export function explosion(x: number, y: number, team: Team, type: number, rng: () => number) {
   const size = unitType(type).size;
   const c = effectColor(type, team);
@@ -158,20 +143,16 @@ export function destroyMutualKill(
   if (snapB) explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
   if (snapA) explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
 
-  // Phase 3: vet加算 + on-kill効果
-  // 相打ち（両方死亡）ではkillerのスロットが相手のkillで dead になっているため
-  // updateKillerVetMutual（!alive判定）を使う。片方のみ死亡では
-  // killer は alive のまま → updateKillerVet（alive判定）を使う。
-  const bothKilled = aHpDepleted && bHpDepleted;
-  if (snapB) {
-    if (bothKilled) updateKillerVetMutual(killerA);
-    else updateKillerVet(killerA);
-    applyOnKillEffects(killerA.index, killerA.team, killContext);
-  }
-  if (snapA) {
-    if (bothKilled) updateKillerVetMutual(killerB);
-    else updateKillerVet(killerB);
-    applyOnKillEffects(killerB.index, killerB.team, killContext);
+  // Phase 3: vet加算 + on-kill効果（片方のみ死亡時のみ — 相打ちではkillerもdead）
+  if (!(aHpDepleted && bHpDepleted)) {
+    if (snapB) {
+      updateKillerVet(killerA);
+      applyOnKillEffects(killerA.index, killerA.team, killContext);
+    }
+    if (snapA) {
+      updateKillerVet(killerB);
+      applyOnKillEffects(killerB.index, killerB.team, killContext);
+    }
   }
 }
 
