@@ -105,6 +105,10 @@ function showEntry(victimTeam: Team, victimType: number, killer: KillerInfo | nu
 }
 
 function drainQueue() {
+  if (queue.length === 0) {
+    drainTimer = 0;
+    return;
+  }
   const item = queue.shift();
   if (item) {
     showEntry(item.victimTeam, item.victimType, item.killer);
