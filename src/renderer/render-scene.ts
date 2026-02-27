@@ -2,6 +2,7 @@ import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { color } from '../colors.ts';
 import {
   AMP_BOOST_LINGER,
+  CATALYST_BOOST_LINGER,
   POOL_PARTICLES,
   POOL_PROJECTILES,
   POOL_UNITS,
@@ -15,7 +16,7 @@ import {
   WORLD_SIZE,
 } from '../constants.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
-import type { Beam, Unit, UnitType } from '../types.ts';
+import type { Beam, Color3, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
 import { instanceData, MAX_INSTANCES, writeSlots } from './buffers.ts';
@@ -112,7 +113,39 @@ function renderHpBar(u: Unit, ut: UnitType, rs: number) {
   }
 }
 
-function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
+function renderBuffOverlays(u: Unit, ut: UnitType, now: number, rs: number) {
+  if (u.ampBoostTimer > 0 && !ut.amplifies) {
+    const ampAlpha = 0.08 + (u.ampBoostTimer / AMP_BOOST_LINGER) * 0.07;
+    writeInstance(u.x, u.y, ut.size * 1.7 * rs, 1.0, 0.6, 0.15, ampAlpha, (now * 0.3) % TAU, SH_EXPLOSION_RING);
+  }
+  if (u.scrambleTimer > 0 && !ut.scrambles) {
+    const ratio = u.scrambleTimer / SCRAMBLE_BOOST_LINGER;
+    const scrAlpha = 0.15 + ratio * 0.25;
+    const scrOuter = Math.max(30, ut.size * 2.2 * rs);
+    const scrInner = Math.max(22, ut.size * 1.5 * rs);
+    const blink = Math.sin(now * 6) * 0.3 + 0.7;
+    writeInstance(u.x, u.y, scrOuter, 0.8, 0.15, 0.4, scrAlpha * blink, (now * 0.8) % TAU, SH_DIAMOND_RING);
+    const blink2 = Math.sin(now * 9 + 1.5) * 0.25 + 0.75;
+    writeInstance(u.x, u.y, scrInner, 0.7, 0.15, 0.55, scrAlpha * blink2, (now * -1.2) % TAU, SH_DIAMOND_RING);
+  }
+  if (u.catalystTimer > 0 && !ut.catalyzes) {
+    const catAlpha = 0.06 + (u.catalystTimer / CATALYST_BOOST_LINGER) * 0.06;
+    const catPulse = 1 + Math.sin(now * 5) * 0.12;
+    writeInstance(
+      u.x,
+      u.y,
+      ut.size * 1.7 * rs * catPulse,
+      0.2,
+      0.9,
+      0.4,
+      catAlpha,
+      (now * -0.5) % TAU,
+      SH_EXPLOSION_RING,
+    );
+  }
+}
+
+function renderOverlays(u: Unit, ut: UnitType, now: number, rs: number) {
   if (ut.shields && u.maxEnergy > 0 && u.energy > 0) {
     const alpha = 0.15 + (u.energy / u.maxEnergy) * 0.25;
     writeInstance(u.x, u.y, ut.size * 1.5 * rs, 0.3, 0.6, 1, alpha, (now * 0.8) % TAU, SH_OCT_SHIELD);
@@ -154,20 +187,50 @@ function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
       writeInstance(u.x, u.y, ut.size * 1.6 * rs, 0.7, 0.5, 1.0, baseAlpha, (now * 1.2) % TAU, SH_REFLECT_FIELD);
     }
   }
-  if (u.ampBoostTimer > 0 && !ut.amplifies) {
-    const ampAlpha = 0.08 + (u.ampBoostTimer / AMP_BOOST_LINGER) * 0.07;
-    writeInstance(u.x, u.y, ut.size * 1.7 * rs, 1.0, 0.6, 0.15, ampAlpha, (now * 0.3) % TAU, SH_EXPLOSION_RING);
+  renderBuffOverlays(u, ut, now, rs);
+}
+
+const GHOST_COUNT = 5;
+const GHOST_GREEN_TINT = 0.3;
+const GHOST_BASE_ALPHA = 0.3;
+const GHOST_SIZE_DECAY = 0.08;
+const GHOST_TRAIL_SPD_FACTOR = 0.12;
+const GHOST_TRAIL_MIN_FACTOR = 2.0;
+
+const SPEED_EPSILON = 0.001;
+
+function renderCatalystGhosts(u: Unit, ut: UnitType, c: Color3, rs: number) {
+  const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
+  const trailLen = Math.max(ut.size * GHOST_TRAIL_MIN_FACTOR, spd * GHOST_TRAIL_SPD_FACTOR);
+  const ratio = u.catalystTimer / CATALYST_BOOST_LINGER;
+  const invSpd = spd > SPEED_EPSILON ? 1 / spd : 0;
+  if (invSpd === 0) return;
+  const nx = u.vx * invSpd;
+  const ny = u.vy * invSpd;
+
+  const gr = c[0] * (1 - GHOST_GREEN_TINT) + 0.2 * GHOST_GREEN_TINT;
+  const gg = c[1] * (1 - GHOST_GREEN_TINT) + 0.9 * GHOST_GREEN_TINT;
+  const gb = c[2] * (1 - GHOST_GREEN_TINT) + 0.4 * GHOST_GREEN_TINT;
+
+  for (let i = 1; i <= GHOST_COUNT; i++) {
+    const dist = (i * trailLen) / GHOST_COUNT;
+    const gx = u.x - nx * dist;
+    const gy = u.y - ny * dist;
+    const ghostSize = ut.size * (1 - i * GHOST_SIZE_DECAY) * rs;
+    const ghostAlpha = ratio * GHOST_BASE_ALPHA * (1 - i / (GHOST_COUNT + 1));
+    writeInstance(gx, gy, ghostSize, gr, gg, gb, ghostAlpha, u.angle, ut.shape);
   }
-  if (u.scrambleTimer > 0 && !ut.scrambles) {
-    const ratio = u.scrambleTimer / SCRAMBLE_BOOST_LINGER;
-    const scrAlpha = 0.15 + ratio * 0.25;
-    const scrOuter = Math.max(30, ut.size * 2.2 * rs);
-    const scrInner = Math.max(22, ut.size * 1.5 * rs);
-    const blink = Math.sin(now * 6) * 0.3 + 0.7;
-    writeInstance(u.x, u.y, scrOuter, 0.8, 0.15, 0.4, scrAlpha * blink, (now * 0.8) % TAU, SH_DIAMOND_RING);
-    const blink2 = Math.sin(now * 9 + 1.5) * 0.25 + 0.75;
-    writeInstance(u.x, u.y, scrInner, 0.7, 0.15, 0.55, scrAlpha * blink2, (now * -1.2) % TAU, SH_DIAMOND_RING);
+}
+
+function renderVetSwarmOverlays(u: Unit, ut: UnitType, c: Color3, now: number, rs: number) {
+  if (u.vet > 0) {
+    const pulse = 1 + Math.sin(now * 4) * 0.1;
+    const vetSize = ut.size * (1.4 + u.vet * 0.3) * rs * pulse;
+    const vetAlpha = 0.1 + u.vet * 0.08;
+    writeOverlay(u.x, u.y, vetSize, 1, 0.9, 0.3, vetAlpha, SH_EXPLOSION_RING);
   }
+  if (u.swarmN > 0)
+    writeOverlay(u.x, u.y, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
 }
 
 function renderUnits(now: number) {
@@ -183,16 +246,12 @@ function renderUnits(now: number) {
     const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
     const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
 
-    renderShieldOverlay(u, ut, now, rs);
-    renderStunStars(u, ut, now, rs);
-    if (u.vet > 0) {
-      const pulse = 1 + Math.sin(now * 4) * 0.1;
-      const vetSize = ut.size * (1.4 + u.vet * 0.3) * rs * pulse;
-      const vetAlpha = 0.1 + u.vet * 0.08;
-      writeOverlay(u.x, u.y, vetSize, 1, 0.9, 0.3, vetAlpha, SH_EXPLOSION_RING);
+    if (u.catalystTimer > 0 && !ut.catalyzes) {
+      renderCatalystGhosts(u, ut, c, rs);
     }
-    if (u.swarmN > 0)
-      writeOverlay(u.x, u.y, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
+    renderOverlays(u, ut, now, rs);
+    renderStunStars(u, ut, now, rs);
+    renderVetSwarmOverlays(u, ut, c, now, rs);
     const vetTint = u.vet * VET_TINT_FACTOR; // max 0.3 (vet ≤ 2), clamp不要
     const vr0 = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
     const vg0 = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;

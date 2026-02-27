@@ -180,6 +180,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     fieldGrantCooldown: 0,
     ampBoostTimer: 0,
     scrambleTimer: 0,
+    catalystTimer: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {

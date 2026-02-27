@@ -3,6 +3,7 @@ import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/
 import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
 import {
   AMP_BOOST_LINGER,
+  CATALYST_BOOST_LINGER,
   POOL_UNITS,
   REF_FPS,
   REFLECT_FIELD_MAX_HP,
@@ -1097,5 +1098,52 @@ describe('Scrambler debuff', () => {
     unit(enemy).trailTimer = 99;
     update(0.5, 0, rng, gameLoopState());
     expect(unit(enemy).scrambleTimer).toBeCloseTo(0.5, 1);
+  });
+});
+
+const CATALYST_TYPE = unitTypeIndex('Catalyst');
+describe('Catalyst buff', () => {
+  it('範囲内味方に catalystTimer が付与される', () => {
+    const catalyst = spawnAt(0, CATALYST_TYPE, 0, 0);
+    unit(catalyst).trailTimer = 99;
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).catalystTimer).toBe(CATALYST_BOOST_LINGER);
+  });
+
+  it('範囲外味方には付与されない', () => {
+    const catalyst = spawnAt(0, CATALYST_TYPE, 0, 0);
+    unit(catalyst).trailTimer = 99;
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 500, 0);
+    unit(ally).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(ally).catalystTimer).toBe(0);
+  });
+
+  it('Catalyst 同士は免疫', () => {
+    const catalyst = spawnAt(0, CATALYST_TYPE, 0, 0);
+    unit(catalyst).trailTimer = 99;
+    const allyCatalyst = spawnAt(0, CATALYST_TYPE, 50, 0);
+    unit(allyCatalyst).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(allyCatalyst).catalystTimer).toBe(0);
+  });
+
+  it('敵には影響しない', () => {
+    const catalyst = spawnAt(0, CATALYST_TYPE, 0, 0);
+    unit(catalyst).trailTimer = 99;
+    const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 50, 0);
+    unit(enemy).trailTimer = 99;
+    update(0.016, 0, rng, gameLoopState());
+    expect(unit(enemy).catalystTimer).toBe(0);
+  });
+
+  it('catalystTimer が毎フレーム減衰する', () => {
+    const ally = spawnAt(0, FIGHTER_TYPE_IDX, 0, 0);
+    unit(ally).catalystTimer = 1.0;
+    unit(ally).trailTimer = 99;
+    update(0.5, 0, rng, gameLoopState());
+    expect(unit(ally).catalystTimer).toBeCloseTo(0.5, 1);
   });
 });

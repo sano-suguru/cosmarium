@@ -393,6 +393,28 @@ export const TYPES: UnitType[] = [
     description: '電磁妨害波で敵の射撃性能を劣化させる電子戦支援艦。範囲内の敵は射程・精度・発射速度が低下する。',
     attackDesc: '電磁妨害フィールド（敵デバフ）',
   },
+  {
+    name: 'Catalyst',
+    size: 12,
+    hp: 20,
+    speed: 70,
+    turnRate: 2.0,
+    fireRate: 1.6,
+    range: 160,
+    damage: 1,
+    shape: 30,
+    trailInterval: 0.5,
+    mass: 4,
+    accel: 4.0,
+    drag: 2.0,
+    leadAccuracy: 0.25,
+    catalyzes: true,
+    supportFollow: true,
+    boost: { multiplier: 1.3, duration: 0.3, cooldown: 3.5, triggerRange: 150 },
+    retreatHpRatio: 0.35,
+    description: '味方艦の機動力と発射速度を底上げするフィールド触媒支援艦。範囲内の味方は加速・旋回・射撃が向上する。',
+    attackDesc: '加速フィールド（味方バフ）＋通常射撃',
+  },
 ];
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));

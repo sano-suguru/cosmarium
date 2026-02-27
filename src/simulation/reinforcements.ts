@@ -10,11 +10,7 @@ import { spawnUnit } from './spawn.ts';
 // for conditional spawns. Ranges overlap intentionally so multiple types
 // can spawn in the same wave. Low-count gates (cnt<50/40) ensure rare
 // powerful units appear only when the team is losing.
-// Known overlaps:
-//   BASTION (0.45-0.55) × BOMBER (<0.5)     → r∈[0.45,0.5) で同時出現
-//   BASTION (0.45-0.55) × REFLECTOR (0.35-0.5) → r∈[0.45,0.5) で同時出現
-//   LAUNCHER (0.3-0.45)  × REFLECTOR (0.35-0.5) → r∈[0.35,0.45) で同時出現
-//   SCRAMBLER (0.67-0.77) × LANCER (0.65-0.77) → r∈[0.67,0.77) で同時出現
+// Known overlaps are verified in reinforcements.test.ts
 
 interface ReinforcementEntry {
   readonly type: number;
@@ -40,8 +36,9 @@ const ARCER = unitTypeIndex('Arcer');
 const BASTION = unitTypeIndex('Bastion');
 const AMPLIFIER = unitTypeIndex('Amplifier');
 const SCRAMBLER = unitTypeIndex('Scrambler');
+const CATALYST = unitTypeIndex('Catalyst');
 
-const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
+export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
   { type: CRUISER, spread: 80, condition: (r) => r < 0.4 }, // 40%
   { type: FLAGSHIP, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // 10% (losing)
@@ -58,6 +55,7 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BASTION, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
   { type: AMPLIFIER, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
   { type: SCRAMBLER, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
+  { type: CATALYST, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
 ];
 
 function countAlive(team: Team): number {

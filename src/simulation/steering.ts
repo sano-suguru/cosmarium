@@ -29,6 +29,13 @@ const GLOBAL_TARGET_PROB = 0.012;
 const NEIGHBOR_RANGE = 200;
 
 const VET_SPEED_BONUS = 0.12;
+export const CATALYST_SPEED_MULT = 1.25;
+export const CATALYST_TURN_MULT = 1.3;
+
+export const CATALYST_BOOST_MULT = 1.3;
+export const CATALYST_BOOST_DUR_MULT = 1.3;
+export const CATALYST_BOOST_CD_MULT = 0.75;
+export const CATALYST_BOOST_RANGE_MULT = 1.3;
 export const STUN_DRAG_BASE = 0.93;
 const KB_DRAG_BASE = 0.88;
 const KB_EPSILON = 0.01;
@@ -257,14 +264,20 @@ function tickBoost(
   tgt: number,
   spd: number,
   dt: number,
+  catalyzed: boolean,
 ): typeof _boostVel | null {
+  const mult = catalyzed ? boost.multiplier * CATALYST_BOOST_MULT : boost.multiplier;
+  const dur = catalyzed ? boost.duration * CATALYST_BOOST_DUR_MULT : boost.duration;
+  const cd = catalyzed ? boost.cooldown * CATALYST_BOOST_CD_MULT : boost.cooldown;
+  const range = catalyzed ? boost.triggerRange * CATALYST_BOOST_RANGE_MULT : boost.triggerRange;
+
   if (u.boostTimer > 0) {
     u.boostTimer -= dt;
     if (u.boostTimer <= 0) {
       u.boostTimer = 0;
-      u.boostCooldown = boost.cooldown;
+      u.boostCooldown = cd;
     } else {
-      const bv = spd * boost.multiplier;
+      const bv = spd * mult;
       _boostVel.vx = Math.cos(u.angle) * bv;
       _boostVel.vy = Math.sin(u.angle) * bv;
       return _boostVel;
@@ -278,9 +291,9 @@ function tickBoost(
     const dx = o.x - u.x;
     const dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d <= boost.triggerRange) {
-      u.boostTimer = boost.duration;
-      const bv = spd * boost.multiplier;
+    if (d <= range) {
+      u.boostTimer = dur;
+      const bv = spd * mult;
       const nd = d || 1;
       _boostVel.vx = (dx / nd) * bv;
       _boostVel.vy = (dy / nd) * bv;
@@ -323,8 +336,9 @@ function steerStunned(u: Unit, dt: number) {
 }
 
 function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
-  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS);
-  const boostVel = t.boost ? tickBoost(u, t.boost, tgt, spd, dt) : null;
+  const catalyzed = u.catalystTimer > 0;
+  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS) * (catalyzed ? CATALYST_SPEED_MULT : 1);
+  const boostVel = t.boost ? tickBoost(u, t.boost, tgt, spd, dt, catalyzed) : null;
   const accelLerp = dt * t.accel;
   u.vx += (Math.cos(u.angle) * spd - u.vx) * accelLerp;
   u.vy += (Math.sin(u.angle) * spd - u.vy) * accelLerp;
@@ -401,7 +415,8 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   let ad = da - u.angle;
   if (ad > PI) ad -= TAU;
   if (ad < -PI) ad += TAU;
-  u.angle += ad * t.turnRate * dt;
+  const catTurn = u.catalystTimer > 0 ? CATALYST_TURN_MULT : 1;
+  u.angle += ad * t.turnRate * catTurn * dt;
 
   applyVelocity(u, t, tgt, dt);
 }

@@ -3,7 +3,8 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { REINFORCE_INTERVAL, REINFORCE_UNIT_CAP, reinforce } from './reinforcements.ts';
+import { TYPES } from '../unit-types.ts';
+import { REINFORCE_INTERVAL, REINFORCE_UNIT_CAP, REINFORCEMENT_TABLE, reinforce } from './reinforcements.ts';
 
 afterEach(() => {
   resetPools();
@@ -82,5 +83,91 @@ describe('reinforce', () => {
     expect(team0).toBeGreaterThan(0);
     expect(team1).toBeGreaterThan(0);
     expect(team0).toBe(team1);
+  });
+});
+
+describe('REINFORCEMENT_TABLE — overlap snapshot', () => {
+  const STEP = 0.001;
+  const STEPS = Math.ceil(1 / STEP);
+  const CNT = 0; // cnt<50/40 ゲートを通すため低い値
+
+  /** 各エントリが true を返す r の集合をサンプリング */
+  function sampleActive(): boolean[][] {
+    const active: boolean[][] = [];
+    for (const entry of REINFORCEMENT_TABLE) {
+      const hits: boolean[] = [];
+      for (let s = 0; s < STEPS; s++) {
+        hits.push(entry.condition(s * STEP, CNT));
+      }
+      active.push(hits);
+    }
+    return active;
+  }
+
+  /** 2つの boolean 配列に同時 true が存在するか */
+  function hasOverlap(a: boolean[], b: boolean[]): boolean {
+    for (let s = 0; s < STEPS; s++) {
+      if (a[s] && b[s]) return true;
+    }
+    return false;
+  }
+
+  /** エントリ index → ユニット名 */
+  function entryName(idx: number): string {
+    const entry = REINFORCEMENT_TABLE[idx];
+    if (!entry) return `idx${idx}`;
+    return TYPES[entry.type]?.name ?? `type${entry.type}`;
+  }
+
+  /** 全ペアの重複を検出 */
+  function detectOverlaps(): string[] {
+    const active = sampleActive();
+    const pairs = collectPairs(active);
+    return [...new Set(pairs)].sort();
+  }
+
+  /** active 配列からペアを収集 */
+  function collectPairs(active: boolean[][]): string[] {
+    const pairs: string[] = [];
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        if (hasOverlap(active[i] ?? [], active[j] ?? [])) {
+          const sorted = [entryName(i), entryName(j)].sort();
+          pairs.push(`${sorted[0]} × ${sorted[1]}`);
+        }
+      }
+    }
+    return pairs;
+  }
+
+  it('既知の重複ペアと一致（ユニット追加時はスナップショット更新）', () => {
+    expect(detectOverlaps()).toEqual([
+      'Amplifier × Lancer',
+      'Amplifier × Sniper',
+      'Arcer × Catalyst',
+      'Bastion × Bomber',
+      'Bastion × Reflector',
+      'Bastion × Sniper',
+      'Bomber × Carrier',
+      'Bomber × Cruiser',
+      'Bomber × Flagship',
+      'Bomber × Healer',
+      'Bomber × Launcher',
+      'Bomber × Reflector',
+      'Bomber × Scorcher',
+      'Carrier × Cruiser',
+      'Carrier × Flagship',
+      'Carrier × Scorcher',
+      'Catalyst × Teleporter',
+      'Cruiser × Flagship',
+      'Cruiser × Healer',
+      'Cruiser × Launcher',
+      'Cruiser × Reflector',
+      'Cruiser × Scorcher',
+      'Healer × Launcher',
+      'Healer × Scorcher',
+      'Lancer × Scrambler',
+      'Launcher × Reflector',
+    ]);
   });
 });

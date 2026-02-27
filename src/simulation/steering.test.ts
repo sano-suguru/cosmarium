@@ -7,7 +7,17 @@ import type { UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
-import { BOUNDARY_MARGIN, STUN_DRAG_BASE, steer } from './steering.ts';
+import {
+  BOUNDARY_MARGIN,
+  CATALYST_BOOST_CD_MULT,
+  CATALYST_BOOST_DUR_MULT,
+  CATALYST_BOOST_MULT,
+  CATALYST_BOOST_RANGE_MULT,
+  CATALYST_SPEED_MULT,
+  CATALYST_TURN_MULT,
+  STUN_DRAG_BASE,
+  steer,
+} from './steering.ts';
 
 afterEach(() => {
   resetPools();
@@ -762,5 +772,211 @@ describe('steer — HP退避ポテンシャル', () => {
     }
     // 近傍内の敵からは退避するので、より大きく後退する
     expect(uIn.x).toBeLessThan(uOut.x);
+  });
+});
+
+describe('steer — Catalyst バフ', () => {
+  it('catalystTimer>0 → 速度が CATALYST_SPEED_MULT 倍に増加', () => {
+    // catalystTimer=1.0 のユニット
+    const catIdx = spawnAt(0, 1, 0, 0);
+    const uCat = unit(catIdx);
+    uCat.catalystTimer = 1.0;
+    uCat.angle = 0;
+
+    // catalystTimer=0 の対照群（離れた位置）
+    const refIdx = spawnAt(0, 1, 500, 500);
+    const uRef = unit(refIdx);
+    uRef.catalystTimer = 0;
+    uRef.angle = 0;
+
+    buildHash();
+    for (let i = 0; i < 100; i++) {
+      steer(uCat, 0.033, rng);
+      steer(uRef, 0.033, rng);
+    }
+
+    const spdCat = Math.sqrt(uCat.vx ** 2 + uCat.vy ** 2);
+    const spdRef = Math.sqrt(uRef.vx ** 2 + uRef.vy ** 2);
+    expect(spdCat / spdRef).toBeCloseTo(CATALYST_SPEED_MULT, 1);
+  });
+
+  it('catalystTimer>0 → 旋回速度が CATALYST_TURN_MULT 倍に増加', () => {
+    // バフ有りユニット: 敵を配置して旋回を誘発
+    const catIdx = spawnAt(0, 1, 0, 0);
+    const uCat = unit(catIdx);
+    uCat.catalystTimer = 1.0;
+    uCat.angle = 0;
+    const enemy1 = spawnAt(1, 1, 0, 100); // 真上 → 90度旋回を誘発
+    uCat.target = enemy1;
+
+    // バフ無しユニット（離れた位置）
+    const refIdx = spawnAt(0, 1, 500, 500);
+    const uRef = unit(refIdx);
+    uRef.catalystTimer = 0;
+    uRef.angle = 0;
+    const enemy2 = spawnAt(1, 1, 500, 600); // 同じ相対配置
+    uRef.target = enemy2;
+
+    buildHash();
+    // 1ステップだけ回して角度変化量を比較
+    steer(uCat, 0.033, rng);
+    steer(uRef, 0.033, rng);
+
+    const daCat = Math.abs(uCat.angle);
+    const daRef = Math.abs(uRef.angle);
+    expect(daCat / daRef).toBeCloseTo(CATALYST_TURN_MULT, 1);
+  });
+
+  it('catalystTimer=0 → 通常速度（バフなし）', () => {
+    const idx = spawnAt(0, 1, 0, 0);
+    const u = unit(idx);
+    u.catalystTimer = 0;
+    u.angle = 0;
+    u.vet = 0;
+    buildHash();
+    for (let i = 0; i < 100; i++) steer(u, 0.033, rng);
+
+    const spd = Math.sqrt(u.vx ** 2 + u.vy ** 2);
+    const t = unitType(1);
+    // vet=0, catalyst=0 → drag/wanderの影響で t.speed より低めに収束
+    expect(spd).toBeGreaterThan(t.speed * 0.6);
+    expect(spd).toBeLessThan(t.speed * 1.15);
+  });
+
+  async function mockBoostTypeForCatalyst(base: number, boost: NonNullable<UnitType['boost']>) {
+    const { boost: _, ...rest } = unitType(base);
+    const mock: UnitType = { ...rest, boost };
+    const mod = await import('../unit-types.ts');
+    vi.spyOn(mod, 'unitType').mockImplementation((id) => {
+      if (id === base) return mock;
+      const t = mod.TYPES[id];
+      if (!t) throw new Error(`Unknown type id: ${id}`);
+      return t;
+    });
+    return mock;
+  }
+
+  it('catalystTimer>0 → ブースト突進のmultiplierがCATALYST_BOOST_MULT倍に強化', async () => {
+    const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
+    await mockBoostTypeForCatalyst(0, boost);
+
+    // バフ有り
+    const u1 = spawnAt(0, 0, 0, 0);
+    const uCat = unit(u1);
+    uCat.catalystTimer = 1.0;
+    const enemy1 = spawnAt(1, 0, 150, 0);
+    uCat.target = enemy1;
+
+    // バフ無し（離れた位置）
+    const u2 = spawnAt(0, 0, 500, 500);
+    const uRef = unit(u2);
+    uRef.catalystTimer = 0;
+    const enemy2 = spawnAt(1, 0, 650, 500);
+    uRef.target = enemy2;
+
+    buildHash();
+    steer(uCat, 1 / 30, rng);
+    steer(uRef, 1 / 30, rng);
+
+    // 両方ブーストが発動
+    expect(uCat.boostTimer).toBeGreaterThan(0);
+    expect(uRef.boostTimer).toBeGreaterThan(0);
+
+    // バフ有りの速度はバフ無しの CATALYST_BOOST_MULT * CATALYST_SPEED_MULT / 1 倍
+    const spdCat = Math.sqrt(uCat.vx ** 2 + uCat.vy ** 2);
+    const spdRef = Math.sqrt(uRef.vx ** 2 + uRef.vy ** 2);
+    // boost velocity = spd * mult. バフ有り: spd*CATALYST_SPEED_MULT * mult*CATALYST_BOOST_MULT
+    expect(spdCat / spdRef).toBeCloseTo(CATALYST_SPEED_MULT * CATALYST_BOOST_MULT, 1);
+  });
+
+  it('catalystTimer>0 → ブーストcooldownがCATALYST_BOOST_CD_MULT倍に短縮', async () => {
+    const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
+    await mockBoostTypeForCatalyst(0, boost);
+
+    // バフ有り: boost timer直前に設定→期限切れでcooldownが設定される
+    const u1 = spawnAt(0, 0, 0, 0);
+    const uCat = unit(u1);
+    uCat.catalystTimer = 1.0;
+    uCat.boostTimer = 0.02; // 次tickで期限切れ
+    buildHash();
+    steer(uCat, 1 / 30, rng);
+
+    // バフ無し
+    const u2 = spawnAt(0, 0, 500, 500);
+    const uRef = unit(u2);
+    uRef.catalystTimer = 0;
+    uRef.boostTimer = 0.02;
+    buildHash();
+    steer(uRef, 1 / 30, rng);
+
+    expect(uCat.boostCooldown).toBeCloseTo(boost.cooldown * CATALYST_BOOST_CD_MULT);
+    expect(uRef.boostCooldown).toBeCloseTo(boost.cooldown);
+  });
+
+  it('catalystTimer>0 → ブースト持続時間がCATALYST_BOOST_DUR_MULT倍に延長', async () => {
+    const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
+    await mockBoostTypeForCatalyst(0, boost);
+
+    // バフ有り: 敵を近くに配置してブースト発動
+    const u1 = spawnAt(0, 0, 0, 0);
+    const uCat = unit(u1);
+    uCat.catalystTimer = 1.0;
+    const e1 = spawnAt(1, 0, 50, 0);
+    uCat.target = e1;
+    buildHash();
+    steer(uCat, 1 / 30, rng);
+
+    // バフ無し
+    const u2 = spawnAt(0, 0, 500, 500);
+    const uRef = unit(u2);
+    uRef.catalystTimer = 0;
+    const e2 = spawnAt(1, 0, 550, 500);
+    uRef.target = e2;
+    buildHash();
+    steer(uRef, 1 / 30, rng);
+
+    expect(uCat.boostTimer).toBeCloseTo(boost.duration * CATALYST_BOOST_DUR_MULT);
+    expect(uRef.boostTimer).toBeCloseTo(boost.duration);
+  });
+
+  it('catalystTimer>0 → ブーストtriggerRangeがCATALYST_BOOST_RANGE_MULT倍に拡大', async () => {
+    const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 100 };
+    await mockBoostTypeForCatalyst(0, boost);
+
+    // バフ有り範囲内かつ通常範囲外の距離を定数から動的に算出
+    const dist = boost.triggerRange * CATALYST_BOOST_RANGE_MULT - 10;
+    const u1 = spawnAt(0, 0, 0, 0);
+    const uCat = unit(u1);
+    uCat.catalystTimer = 1.0;
+    const enemy1 = spawnAt(1, 0, dist, 0);
+    uCat.target = enemy1;
+
+    const u2 = spawnAt(0, 0, 500, 500);
+    const uRef = unit(u2);
+    uRef.catalystTimer = 0;
+    const enemy2 = spawnAt(1, 0, 500 + dist, 500);
+    uRef.target = enemy2;
+
+    buildHash();
+    steer(uCat, 1 / 30, rng);
+    steer(uRef, 1 / 30, rng);
+
+    expect(uCat.boostTimer).toBeGreaterThan(0); // バフ有り: 発動
+    expect(uRef.boostTimer).toBe(0); // バフ無し: 範囲外
+  });
+
+  it('catalystTimer=0 → ブーストは通常値', async () => {
+    const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
+    await mockBoostTypeForCatalyst(0, boost);
+
+    const u1 = spawnAt(0, 0, 0, 0);
+    const u = unit(u1);
+    u.catalystTimer = 0;
+    u.boostTimer = 0.02;
+    buildHash();
+    steer(u, 1 / 30, rng);
+
+    // cooldown は通常値
+    expect(u.boostCooldown).toBeCloseTo(boost.cooldown);
   });
 });

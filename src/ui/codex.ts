@@ -45,6 +45,7 @@ const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
   shields: () => demoBastion(),
   amplifies: () => demoAmplifier(),
   scrambles: () => demoScrambler(),
+  catalyzes: () => demoCatalyst(),
 };
 
 let elCodex: HTMLElement | null = null;
@@ -292,6 +293,21 @@ function demoScrambler() {
   }
   spawnUnit(1, FIGHTER_TYPE, 70, -40, demoRng);
   spawnUnit(1, FIGHTER_TYPE, 70, 40, demoRng);
+}
+
+function demoCatalyst() {
+  const DRONE_TYPE = unitTypeIndex('Drone');
+  const FIGHTER_TYPE = unitTypeIndex('Fighter');
+  // 味方Drone 4体 + Fighter 1体（加速される対象）
+  spawnUnit(0, DRONE_TYPE, -50, -60, demoRng);
+  spawnUnit(0, DRONE_TYPE, -50, -20, demoRng);
+  spawnUnit(0, DRONE_TYPE, -50, 20, demoRng);
+  spawnUnit(0, DRONE_TYPE, -50, 60, demoRng);
+  spawnUnit(0, FIGHTER_TYPE, -70, 0, demoRng);
+  // 敵Drone 3体（遠方、対比用）
+  spawnUnit(1, DRONE_TYPE, 200, -40, demoRng);
+  spawnUnit(1, DRONE_TYPE, 200, 0, demoRng);
+  spawnUnit(1, DRONE_TYPE, 200, 40, demoRng);
 }
 
 function demoDefault(t: UnitType) {

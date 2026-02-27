@@ -50,6 +50,8 @@ const UNIT_MODS: readonly UnitColorMod[] = [
   { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
   // 17 Scrambler
   { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
+  // 18 Catalyst
+  { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
 ];
 
 interface HslMod {

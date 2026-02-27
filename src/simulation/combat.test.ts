@@ -9,6 +9,7 @@ import { NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import {
   AMP_DAMAGE_MULT,
+  CATALYST_COOLDOWN_MULT,
   ORPHAN_TETHER_BEAM_MULT,
   REFLECT_BEAM_DAMAGE_MULT,
   SCRAMBLE_COOLDOWN_MULT,
@@ -2107,5 +2108,59 @@ describe('combat — SCRAMBLER debuff effects', () => {
 
   it('demoFlag は scrambles を返す', () => {
     expect(demoFlag(unitType(SCRAMBLER_TYPE))).toBe('scrambles');
+  });
+});
+
+describe('combat — CATALYST buff effects', () => {
+  const CATALYST_TYPE = unitTypeIndex('Catalyst');
+  const FIGHTER_TYPE = 1;
+
+  it('catalystTimer > 0 でクールダウン回復が加速', () => {
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    unit(fighter).cooldown = 1.0;
+    unit(fighter).catalystTimer = 1.0;
+    unit(fighter).target = NO_UNIT;
+    buildHash();
+    const dt = 0.5;
+    combat(unit(fighter), fighter, dt, 0, rng);
+    expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * CATALYST_COOLDOWN_MULT, 2);
+  });
+
+  it('catalyst + scramble が乗算的にスタック', () => {
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    unit(fighter).cooldown = 1.0;
+    unit(fighter).catalystTimer = 1.0;
+    unit(fighter).scrambleTimer = 1.0;
+    unit(fighter).target = NO_UNIT;
+    buildHash();
+    const dt = 0.5;
+    combat(unit(fighter), fighter, dt, 0, rng);
+    expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * SCRAMBLE_COOLDOWN_MULT * CATALYST_COOLDOWN_MULT, 2);
+  });
+
+  it('catalystTimer = 0 では効果なし（対照群）', () => {
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    unit(fighter).cooldown = 1.0;
+    unit(fighter).catalystTimer = 0;
+    unit(fighter).target = NO_UNIT;
+    buildHash();
+    const dt = 0.5;
+    combat(unit(fighter), fighter, dt, 0, rng);
+    expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt, 2);
+  });
+
+  it('Catalyst 自身の通常射撃が発動する（非排他）', () => {
+    const catalyst = spawnAt(0, CATALYST_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
+    unit(catalyst).target = enemy;
+    unit(catalyst).cooldown = 0;
+    unit(catalyst).angle = 0;
+    buildHash();
+    combat(unit(catalyst), catalyst, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBeGreaterThan(0);
+  });
+
+  it('demoFlag は catalyzes を返す', () => {
+    expect(demoFlag(unitType(CATALYST_TYPE))).toBe('catalyzes');
   });
 });

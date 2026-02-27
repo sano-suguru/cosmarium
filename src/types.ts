@@ -42,6 +42,7 @@ export interface Unit {
   fieldGrantCooldown: number;
   ampBoostTimer: number;
   scrambleTimer: number;
+  catalystTimer: number;
 }
 
 export interface Particle {
@@ -125,6 +126,7 @@ export interface UnitType {
   shields?: boolean;
   amplifies?: boolean;
   scrambles?: boolean;
+  catalyzes?: boolean;
   /** 味方追従行動を取る支援タイプか */
   supportFollow?: boolean;
   maxEnergy?: number;
@@ -150,7 +152,8 @@ export type DemoFlag =
   | 'broadside'
   | 'shields'
   | 'amplifies'
-  | 'scrambles';
+  | 'scrambles'
+  | 'catalyzes';
 
 export interface Beam {
   x1: number;

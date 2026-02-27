@@ -15,7 +15,8 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
   0.028,0.030,0.020,             // 25-27 sh25=Healer,sh26=Reflector
   0.028,                          // 28    sh28=Amplifier
-  0.030                           // 29    sh29=Scrambler
+  0.030,                          // 29    sh29=Scrambler
+  0.038                           // 30    sh30=Catalyst
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.72,0.55,0.38,0.38, // 0-4
@@ -25,7 +26,8 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.25,0.38,0.38,0.38,0.50, // 20-24 sh20=Bastion,sh24=Flagship
   0.28,0.30,0.38,            // 25-27 sh25=Healer,sh26=Reflector
   0.45,                        // 28    sh28=Amplifier
-  0.48                         // 29    sh29=Scrambler
+  0.48,                        // 29    sh29=Scrambler
+  0.62                         // 30    sh30=Catalyst
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.70,0.50,0.48,0.48, // 0-4
@@ -35,7 +37,8 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.22,0.48,0.48,0.48,0.32, // 20-24 sh20=Bastion,sh24=Flagship
   0.35,0.40,0.48,            // 25-27 sh25=Healer,sh26=Reflector
   0.38,                        // 28    sh28=Amplifier
-  0.38                         // 29    sh29=Scrambler
+  0.38,                        // 29    sh29=Scrambler
+  0.60                         // 30    sh30=Catalyst
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   2.4,2.2,1.4,1.5,1.5, // 0-4
@@ -45,7 +48,8 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   0.85,1.5,1.5,1.5,1.1,// 20-24 sh20=Bastion,sh24=Flagship
   2.2,2.5,1.5,           // 25-27 sh25=Healer,sh26=Reflector
   1.3,                     // 28    sh28=Amplifier
-  1.5                      // 29    sh29=Scrambler
+  1.5,                     // 29    sh29=Scrambler
+  2.0                      // 30    sh30=Catalyst
 );
 void main(){
   float d=length(vU), a=0.0;
@@ -1122,6 +1126,81 @@ void main(){
     col=mix(col,vec3(1.0,0.5,0.8),flicker*0.30);
     col=mix(col,vec3(0.8,0.2,0.6),noise*0.5);
     col=mix(col,vec3(0.6,0.15,0.9),condFlow*0.40);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+  else if(sh==30){ vec2 p=vU*0.58; float t=vA+uTime;
+    // 1. Wedge fuselage (narrow nose → wide rear)
+    float dFuse=sdTrapezoid(p,0.03,0.10,0.22);
+    // 2. Nose emitter spike
+    float dNose=sdCapsule(p,vec2(0.0,0.22),vec2(0.0,0.30),0.012);
+    // 3. Cockpit bulge
+    float dCock=sdRoundedBox(p-vec2(0.0,0.12),vec2(0.028,0.04),0.015);
+    // 4. Swept delta wings (Y-mirrored)
+    float dWL=sdCapsule(p,vec2(-0.03,0.06),vec2(-0.32,-0.12),0.022);
+    float dWR=sdCapsule(p,vec2(0.03,0.06),vec2(0.32,-0.12),0.022);
+    float dWings=min(dWL,dWR);
+    // 5. Secondary inner wings
+    float dIW=min(
+      sdCapsule(p,vec2(-0.02,0.02),vec2(-0.18,-0.06),0.014),
+      sdCapsule(p,vec2(0.02,0.02),vec2(0.18,-0.06),0.014));
+    // 6. Wingtip energy node pods
+    float dNL=sdTriangle(p-vec2(-0.33,-0.13),vec2(0.0,0.025),vec2(-0.02,-0.02),vec2(0.02,-0.02));
+    float dNR=sdTriangle(p-vec2(0.33,-0.13),vec2(0.0,0.025),vec2(-0.02,-0.02),vec2(0.02,-0.02));
+    float dNodes=min(dNL,dNR);
+    // 7. Dorsal spine ridge
+    float dSpine=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.012,0.14),0.006);
+    // 8. Union
+    float dBody=smin(dFuse,dNose,0.03);
+    dBody=smin(dBody,dCock,0.02);
+    dBody=smin(dBody,dWings,0.025);
+    dBody=smin(dBody,dIW,0.02);
+    dBody=smin(dBody,dNodes,0.015);
+    dBody=smin(dBody,dSpine,0.02);
+    // 9. Panel grooves
+    float seam=exp(-abs(p.x)*50.0)*smoothstep(0.18,-0.10,p.y)*0.12;
+    float wGrooveL=exp(-abs(dot(p-vec2(-0.04,0.04),normalize(vec2(-0.30,-0.18))))*40.0)*0.08;
+    float wGrooveR=exp(-abs(dot(p-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*40.0)*0.08;
+    float diagL=exp(-abs(dot(p-vec2(-0.08,0.0),normalize(vec2(-1.0,-0.6))))*35.0)*0.06;
+    float diagR=exp(-abs(dot(p-vec2(0.08,0.0),normalize(vec2(1.0,-0.6))))*35.0)*0.06;
+    float grooves=seam+wGrooveL+wGrooveR+diagL+diagR;
+    // 10. Engine nozzle cutouts
+    float dEngL=sdRoundedBox(p-vec2(-0.06,-0.20),vec2(0.022,0.035),0.008);
+    float dEngR=sdRoundedBox(p-vec2(0.06,-0.20),vec2(0.022,0.035),0.008);
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    hf-=grooves*hf;
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+    // Effects: pulse rings (inherited, radial expand)
+    float rd=length(p);
+    float rp1=mod(t*0.5,1.0); float rp2=mod(t*0.5+0.5,1.0);
+    float ring1=exp(-pow(rd-rp1,2.0)*60.0)*0.28*smoothstep(0.0,0.12,rp1)*smoothstep(1.0,0.5,rp1);
+    float ring2=exp(-pow(rd-rp2,2.0)*60.0)*0.22*smoothstep(0.0,0.12,rp2)*smoothstep(1.0,0.5,rp2);
+    float rings=(ring1+ring2)*smoothstep(0.6,0.12,rd);
+    // Nose emitter glow (green beacon)
+    float noseGlow=exp(-length(p-vec2(0.0,0.30))*12.0)*(0.40+0.35*sin(t*7.0));
+    // Wing conduit energy flow (green animated)
+    float cFlowL=exp(-abs(dot(p-vec2(-0.04,0.04),normalize(vec2(-0.30,-0.18))))*25.0);
+    cFlowL*=0.20*(0.5+0.5*sin(dot(p,normalize(vec2(-0.30,-0.18)))*25.0-t*6.0));
+    float cFlowR=exp(-abs(dot(p-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*25.0);
+    cFlowR*=0.20*(0.5+0.5*sin(dot(p,normalize(vec2(0.30,-0.18)))*25.0-t*6.0));
+    float cFlow=cFlowL+cFlowR;
+    // Wingtip node pulse (green)
+    float nodeL=exp(-length(p-vec2(-0.33,-0.13))*16.0)*(0.30+0.25*sin(t*5.0+1.5));
+    float nodeR=exp(-length(p-vec2(0.33,-0.13))*16.0)*(0.30+0.25*sin(t*5.0));
+    float nodePulse=nodeL+nodeR;
+    // Twin engines + exhaust trail (green-tinted)
+    float engL=exp(-length(p-vec2(-0.06,-0.24))*10.0)*0.30;
+    float engR=exp(-length(p-vec2(0.06,-0.24))*10.0)*0.30;
+    float exhaust=(engL+engR)*(0.7+0.3*sin(t*12.0));
+    float exTrail=exp(-abs(p.x-(-0.06))*20.0)*smoothstep(-0.24,-0.50,p.y)*0.15;
+    exTrail+=exp(-abs(p.x-0.06)*20.0)*smoothstep(-0.24,-0.50,p.y)*0.15;
+    exTrail*=(0.6+0.4*sin(p.y*30.0+t*8.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+noseGlow*0.50+cFlow+nodePulse*0.45+exhaust+exTrail;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.3,1.0,0.5),rings*0.40);
+    col=mix(col,vec3(0.4,1.0,0.6),noseGlow*0.35);
+    col=mix(col,vec3(0.2,0.9,0.4),(cFlow+nodePulse)*0.45);
+    col=mix(col,vec3(0.3,1.0,0.5),(exhaust+exTrail)*0.30);
     a=1.2*tanh(a/1.2);
     fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else { a=smoothstep(1.0,0.6,d); }

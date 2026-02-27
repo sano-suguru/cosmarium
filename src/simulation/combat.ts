@@ -20,7 +20,9 @@ export const BASTION_SELF_ABSORB_RATIO = 0.3;
 export const ORPHAN_TETHER_BEAM_MULT = 0.8;
 export const ORPHAN_TETHER_PROJECTILE_MULT = 0.7;
 const SCRAMBLE_ACCURACY_MULT = 0.5;
+// cooldown -= dt * mult: <1 で回復減速(デバフ), >1 で回復加速(バフ)
 export const SCRAMBLE_COOLDOWN_MULT = 1 / 1.35;
+export const CATALYST_COOLDOWN_MULT = 1.25;
 
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
 
@@ -1639,6 +1641,31 @@ function amplifyAllies(ctx: CombatContext) {
   spawnAuraParticle(ctx, 0.8, 0.5, 0.2, SH_DIAMOND);
 }
 
+function catalyzeAllies(ctx: CombatContext) {
+  const { u, c, dt } = ctx;
+  spawnAuraParticle(ctx, 0.3, 0.9, 0.4, SH_DIAMOND);
+  // Catalyst uses directional streak particles instead of a center ring
+  const streakProb = 1 - 0.7 ** (dt * REF_FPS);
+  for (let k = 0; k < 2; k++) {
+    if (ctx.rng() < streakProb) {
+      const ang = u.angle + (ctx.rng() - 0.5) * 1.2;
+      const off = u.mass * (1.5 + ctx.rng());
+      spawnParticle(
+        u.x + Math.cos(ang) * off,
+        u.y + Math.sin(ang) * off,
+        Math.cos(ang) * 30,
+        Math.sin(ang) * 30,
+        0.25,
+        2.5 + ctx.rng() * 2,
+        c[0] * 0.2,
+        c[1] * 0.85,
+        c[2] * 0.45,
+        SH_CIRCLE,
+      );
+    }
+  }
+}
+
 function scrambleEnemies(ctx: CombatContext) {
   const { u, c, dt } = ctx;
   spawnAuraParticle(ctx, 0.7, 0.2, 0.5, SH_DIAMOND);
@@ -1677,6 +1704,7 @@ function dispatchSupportAbilities(ctx: CombatContext): boolean {
   }
   if (t.shields) shieldAllies(ctx);
   if (t.amplifies) amplifyAllies(ctx);
+  if (t.catalyzes) catalyzeAllies(ctx);
   if (t.spawns) launchDrones(ctx);
   if (t.emp && u.abilityCooldown <= 0) {
     dischargeEmp(ctx);
@@ -1711,8 +1739,9 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   const t = unitType(u.type);
   if (u.stun > 0) return;
   const scrCd = u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1;
-  u.cooldown -= dt * scrCd;
-  u.abilityCooldown -= dt * scrCd;
+  const catCd = u.catalystTimer > 0 ? CATALYST_COOLDOWN_MULT : 1;
+  u.cooldown -= dt * scrCd * catCd;
+  u.abilityCooldown -= dt * scrCd * catCd;
   const c = effectColor(u.type, u.team);
   const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
   const vd = (1 + u.vet * 0.2) * ampDmg;
@@ -1742,6 +1771,7 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'reflects',
   'shields',
   'amplifies',
+  'catalyzes',
   'spawns',
   'emp',
   'teleports',
