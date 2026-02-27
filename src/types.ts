@@ -41,6 +41,7 @@ export interface Unit {
   reflectFieldHp: number;
   fieldGrantCooldown: number;
   ampBoostTimer: number;
+  scrambleTimer: number;
 }
 
 export interface Particle {
@@ -123,6 +124,9 @@ export interface UnitType {
   retreatHpRatio?: number;
   shields?: boolean;
   amplifies?: boolean;
+  scrambles?: boolean;
+  /** 味方追従行動を取る支援タイプか */
+  supportFollow?: boolean;
   maxEnergy?: number;
   energyRegen?: number;
   shieldCooldown?: number;
@@ -145,7 +149,8 @@ export type DemoFlag =
   | 'beam'
   | 'broadside'
   | 'shields'
-  | 'amplifies';
+  | 'amplifies'
+  | 'scrambles';
 
 export interface Beam {
   x1: number;

@@ -14,6 +14,7 @@ import { spawnUnit } from './spawn.ts';
 //   BASTION (0.45-0.55) × BOMBER (<0.5)     → r∈[0.45,0.5) で同時出現
 //   BASTION (0.45-0.55) × REFLECTOR (0.35-0.5) → r∈[0.45,0.5) で同時出現
 //   LAUNCHER (0.3-0.45)  × REFLECTOR (0.35-0.5) → r∈[0.35,0.45) で同時出現
+//   SCRAMBLER (0.67-0.77) × LANCER (0.65-0.77) → r∈[0.67,0.77) で同時出現
 
 interface ReinforcementEntry {
   readonly type: number;
@@ -38,6 +39,7 @@ const TELEPORTER = unitTypeIndex('Teleporter');
 const ARCER = unitTypeIndex('Arcer');
 const BASTION = unitTypeIndex('Bastion');
 const AMPLIFIER = unitTypeIndex('Amplifier');
+const SCRAMBLER = unitTypeIndex('Scrambler');
 
 const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
@@ -55,6 +57,7 @@ const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: ARCER, spread: 60, condition: (r) => r > 0.95 }, // 5%
   { type: BASTION, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
   { type: AMPLIFIER, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
+  { type: SCRAMBLER, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
 ];
 
 function countAlive(team: Team): number {

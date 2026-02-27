@@ -1,5 +1,8 @@
 import type { UnitType } from './types.ts';
 
+/** 射撃を行わないユニット用のダミー fireRate（cooldown が実質満了しない大きな値） */
+const NO_FIRE = 999;
+
 export const TYPES: UnitType[] = [
   {
     name: 'Drone',
@@ -126,6 +129,7 @@ export const TYPES: UnitType[] = [
     drag: 2.0,
     leadAccuracy: 0.3,
     heals: true,
+    supportFollow: true,
     boost: { multiplier: 1.6, duration: 0.3, cooldown: 3.0, triggerRange: 160 },
     retreatHpRatio: 0.4,
     description: '修復ビームで味方艦の損傷を回復する支援艦。',
@@ -203,7 +207,7 @@ export const TYPES: UnitType[] = [
     hp: 65,
     speed: 260,
     turnRate: 2,
-    fireRate: 999,
+    fireRate: NO_FIRE,
     range: 0,
     damage: 0,
     shape: 9,
@@ -361,10 +365,33 @@ export const TYPES: UnitType[] = [
     drag: 1.8,
     leadAccuracy: 0.35,
     amplifies: true,
+    supportFollow: true,
     boost: { multiplier: 1.4, duration: 0.3, cooldown: 3.5, triggerRange: 180 },
     retreatHpRatio: 0.35,
     description: 'テザービームで味方の射撃性能を底上げする電磁増幅支援艦。',
     attackDesc: '射撃バフテザー＋通常射撃',
+  },
+  {
+    name: 'Scrambler',
+    size: 11,
+    hp: 18,
+    speed: 105,
+    turnRate: 2.8,
+    fireRate: NO_FIRE,
+    range: 0,
+    damage: 0,
+    shape: 29,
+    trailInterval: 0.5,
+    mass: 3,
+    accel: 5.5,
+    drag: 1.8,
+    leadAccuracy: 0,
+    scrambles: true,
+    supportFollow: true,
+    boost: { multiplier: 1.5, duration: 0.3, cooldown: 3.5, triggerRange: 130 },
+    retreatHpRatio: 0.4,
+    description: '電磁妨害波で敵の射撃性能を劣化させる電子戦支援艦。範囲内の敵は射程・精度・発射速度が低下する。',
+    attackDesc: '電磁妨害フィールド（敵デバフ）',
   },
 ];
 

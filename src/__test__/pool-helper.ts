@@ -62,6 +62,7 @@ export function resetPools() {
     u.reflectFieldHp = 0;
     u.fieldGrantCooldown = 0;
     u.ampBoostTimer = 0;
+    u.scrambleTimer = 0;
   }
   for (let i = 0; i < POOL_PARTICLES; i++) {
     const p = particle(i);

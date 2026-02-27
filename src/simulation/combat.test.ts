@@ -6,10 +6,16 @@ import { decUnits, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { ProjectileIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
-import { AMP_DAMAGE_MULT, AMP_RANGE_MULT, ORPHAN_TETHER_BEAM_MULT, REFLECT_BEAM_DAMAGE_MULT } from './combat.ts';
+import { unitType, unitTypeIndex } from '../unit-types.ts';
+import {
+  AMP_DAMAGE_MULT,
+  ORPHAN_TETHER_BEAM_MULT,
+  REFLECT_BEAM_DAMAGE_MULT,
+  SCRAMBLE_COOLDOWN_MULT,
+} from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
 import { killProjectile, onKillUnit, spawnProjectile } from './spawn.ts';
+import { AMP_RANGE_MULT, SCRAMBLE_RANGE_MULT } from './steering.ts';
 import { updateSwarmN } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -2013,5 +2019,93 @@ describe('combat — KillEvent 伝播', () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
     expect(events[0]?.killerType).toBe(12);
+  });
+});
+
+// ============================================================
+// SCRAMBLER debuff effects
+// ============================================================
+describe('combat — SCRAMBLER debuff effects', () => {
+  const SCRAMBLER_TYPE = unitTypeIndex('Scrambler');
+  const FIGHTER_TYPE_S = 1;
+
+  it('scrambleTimer > 0 でクールダウン回復が遅延', () => {
+    const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);
+    unit(fighter).cooldown = 1.0;
+    unit(fighter).scrambleTimer = 1.0;
+    unit(fighter).target = NO_UNIT;
+    buildHash();
+    const dt = 0.5;
+    combat(unit(fighter), fighter, dt, 0, rng);
+    // scramble 中はクールダウンが dt * SCRAMBLE_COOLDOWN_MULT だけ減少
+    expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * SCRAMBLE_COOLDOWN_MULT, 2);
+  });
+
+  it('scrambleTimer > 0 で射程が縮小し射撃不発', () => {
+    const t = unitType(FIGHTER_TYPE_S);
+    const baseRange = t.range;
+    const scrambledRange = baseRange * SCRAMBLE_RANGE_MULT;
+
+    // 基本射程内だが scramble 射程外に配置
+    const dist = scrambledRange + 5;
+    expect(dist).toBeLessThan(baseRange);
+
+    const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_S, dist, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).scrambleTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // 射程外なので射撃せず
+    expect(unit(fighter).cooldown).toBeLessThanOrEqual(0);
+  });
+
+  it('scrambleTimer = 0 では射程縮小なし（対照）', () => {
+    const t = unitType(FIGHTER_TYPE_S);
+    const baseRange = t.range;
+    const scrambledRange = baseRange * SCRAMBLE_RANGE_MULT;
+    const dist = scrambledRange + 5;
+
+    const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_S, dist, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).scrambleTimer = 0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // scramble なしなら通常射程内で射撃成功
+    expect(unit(fighter).cooldown).toBeGreaterThan(0);
+  });
+
+  it('amp + scramble が乗算的にスタック', () => {
+    const t = unitType(FIGHTER_TYPE_S);
+    const baseRange = t.range;
+    const combinedRange = baseRange * AMP_RANGE_MULT * SCRAMBLE_RANGE_MULT;
+
+    const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_S, combinedRange - 5, 0);
+    unit(fighter).target = enemy;
+    unit(fighter).cooldown = 0;
+    unit(fighter).ampBoostTimer = 1.0;
+    unit(fighter).scrambleTimer = 1.0;
+    buildHash();
+    combat(unit(fighter), fighter, 0.016, 0, rng);
+    // 乗算射程内なので射撃成功
+    expect(unit(fighter).cooldown).toBeGreaterThan(0);
+  });
+
+  it('Scrambler は排他的に処理され射撃しない', () => {
+    const scrambler = spawnAt(0, SCRAMBLER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE_S, 50, 0);
+    unit(scrambler).target = enemy;
+    unit(scrambler).cooldown = 0;
+    buildHash();
+    combat(unit(scrambler), scrambler, 0.016, 0, rng);
+    expect(poolCounts.projectiles).toBe(0);
+  });
+
+  it('demoFlag は scrambles を返す', () => {
+    expect(demoFlag(unitType(SCRAMBLER_TYPE))).toBe('scrambles');
   });
 });

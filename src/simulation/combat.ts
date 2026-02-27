@@ -1,5 +1,5 @@
 import { effectColor } from '../colors.ts';
-import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING } from '../constants.ts';
+import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_DIAMOND, SH_DIAMOND_RING, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -9,8 +9,8 @@ import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import { addBeam, captureKiller, onKillUnitPermanent, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
+import { computeEffectiveRange } from './steering.ts';
 
-export const AMP_RANGE_MULT = 1.25;
 const AMP_ACCURACY_MULT = 1.4;
 export const AMP_DAMAGE_MULT = 1.2;
 
@@ -19,7 +19,8 @@ export const BASTION_ABSORB_RATIO = 0.4;
 export const BASTION_SELF_ABSORB_RATIO = 0.3;
 export const ORPHAN_TETHER_BEAM_MULT = 0.8;
 export const ORPHAN_TETHER_PROJECTILE_MULT = 0.7;
-const SH_DIAMOND_RING = 17;
+const SCRAMBLE_ACCURACY_MULT = 0.5;
+export const SCRAMBLE_COOLDOWN_MULT = 1 / 1.35;
 
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
 
@@ -1588,7 +1589,8 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   else if (t.aoe) sp = AOE_PROJ_SPEED;
   else sp = 480 + t.damage * 12;
   const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
-  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc));
+  const scrAcc = u.scrambleTimer > 0 ? SCRAMBLE_ACCURACY_MULT : 1;
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc * scrAcc));
   if (t.carpet) {
     fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
     return;
@@ -1609,7 +1611,7 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
   }
 }
 
-function shieldAllies(ctx: CombatContext) {
+function spawnAuraParticle(ctx: CombatContext, r0: number, g0: number, b0: number, shape: number) {
   const { u, c, dt } = ctx;
   if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
     const a = ctx.rng() * Math.PI * 2;
@@ -1621,32 +1623,66 @@ function shieldAllies(ctx: CombatContext) {
       Math.sin(a) * 25,
       0.5,
       4,
-      c[0] * 0.6,
-      c[1] * 0.6,
-      c[2] * 0.8,
-      SH_DIAMOND_RING,
+      c[0] * r0,
+      c[1] * g0,
+      c[2] * b0,
+      shape,
     );
   }
 }
 
+function shieldAllies(ctx: CombatContext) {
+  spawnAuraParticle(ctx, 0.6, 0.6, 0.8, SH_DIAMOND_RING);
+}
+
 function amplifyAllies(ctx: CombatContext) {
+  spawnAuraParticle(ctx, 0.8, 0.5, 0.2, SH_DIAMOND);
+}
+
+function scrambleEnemies(ctx: CombatContext) {
   const { u, c, dt } = ctx;
-  if (ctx.rng() < 1 - 0.6 ** (dt * REF_FPS)) {
-    const a = ctx.rng() * Math.PI * 2;
-    const r = u.mass * 3.5;
+  spawnAuraParticle(ctx, 0.7, 0.2, 0.5, SH_DIAMOND);
+  if (ctx.rng() < 1 - 0.85 ** (dt * REF_FPS)) {
+    spawnParticle(u.x, u.y, 0, 0, 0.25, 10, c[0] * 0.7, c[1] * 0.2, c[2] * 0.5, SH_DIAMOND_RING);
+  }
+  if (ctx.rng() < 1 - 0.75 ** (dt * REF_FPS)) {
+    const a2 = ctx.rng() * Math.PI * 2;
+    const r2 = u.mass * 2.0;
     spawnParticle(
-      u.x + Math.cos(a) * r,
-      u.y + Math.sin(a) * r,
-      Math.cos(a) * 25,
-      Math.sin(a) * 25,
-      0.5,
-      4,
-      c[0] * 0.8,
-      c[1] * 0.5,
-      c[2] * 0.2,
-      SH_DIAMOND,
+      u.x + Math.cos(a2) * r2,
+      u.y + Math.sin(a2) * r2,
+      Math.cos(a2) * 12,
+      Math.sin(a2) * 12,
+      0.35,
+      3,
+      c[0] * 0.5,
+      c[1] * 0.1,
+      c[2] * 0.7,
+      SH_CIRCLE,
     );
   }
+}
+
+/** 支援系アビリティの分岐。排他的にreturnするものはtrue */
+function dispatchSupportAbilities(ctx: CombatContext): boolean {
+  const { t, u } = ctx;
+  if (t.heals && u.abilityCooldown <= 0) healAllies(ctx);
+  if (t.scrambles) {
+    scrambleEnemies(ctx);
+    return true;
+  }
+  if (t.reflects) {
+    reflectProjectiles(ctx);
+    return true;
+  }
+  if (t.shields) shieldAllies(ctx);
+  if (t.amplifies) amplifyAllies(ctx);
+  if (t.spawns) launchDrones(ctx);
+  if (t.emp && u.abilityCooldown <= 0) {
+    dischargeEmp(ctx);
+    return true;
+  }
+  return false;
 }
 
 /** @returns true if an exclusive ability fired */
@@ -1674,8 +1710,9 @@ function tryExclusiveFire(ctx: CombatContext): boolean {
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = unitType(u.type);
   if (u.stun > 0) return;
-  u.cooldown -= dt;
-  u.abilityCooldown -= dt;
+  const scrCd = u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1;
+  u.cooldown -= dt * scrCd;
+  u.abilityCooldown -= dt * scrCd;
   const c = effectColor(u.type, u.team);
   const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
   const vd = (1 + u.vet * 0.2) * ampDmg;
@@ -1685,25 +1722,14 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   _ctx.c = c;
   _ctx.vd = vd;
   _ctx.t = t;
-  _ctx.range = u.ampBoostTimer > 0 ? t.range * AMP_RANGE_MULT : t.range;
+  _ctx.range = computeEffectiveRange(u, t.range);
   _ctx.rng = rng;
 
   if (t.rams) {
     ramTarget(_ctx);
     return;
   }
-  if (t.heals && u.abilityCooldown <= 0) healAllies(_ctx);
-  if (t.reflects) {
-    reflectProjectiles(_ctx);
-    return;
-  }
-  if (t.shields) shieldAllies(_ctx);
-  if (t.amplifies) amplifyAllies(_ctx);
-  if (t.spawns) launchDrones(_ctx);
-  if (t.emp && u.abilityCooldown <= 0) {
-    dischargeEmp(_ctx);
-    return;
-  }
+  if (dispatchSupportAbilities(_ctx)) return;
   // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
   if (t.teleports) teleport(_ctx);
   if (!tryExclusiveFire(_ctx)) fireNormal(_ctx);
@@ -1712,6 +1738,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
 const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'rams',
   'heals',
+  'scrambles',
   'reflects',
   'shields',
   'amplifies',

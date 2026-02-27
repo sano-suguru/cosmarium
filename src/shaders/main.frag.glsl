@@ -14,7 +14,8 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.040,0.022,0.020,0.020,0.020, // 15-19 sh15=Arcer
   0.015,0.020,0.020,0.020,0.025, // 20-24 sh20=Bastion,sh24=Flagship
   0.028,0.030,0.020,             // 25-27 sh25=Healer,sh26=Reflector
-  0.028                          // 28    sh28=Amplifier
+  0.028,                          // 28    sh28=Amplifier
+  0.030                           // 29    sh29=Scrambler
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.72,0.55,0.38,0.38, // 0-4
@@ -23,7 +24,8 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.75,0.45,0.38,0.38,0.38, // 15-19 sh15=Arcer
   0.25,0.38,0.38,0.38,0.50, // 20-24 sh20=Bastion,sh24=Flagship
   0.28,0.30,0.38,            // 25-27 sh25=Healer,sh26=Reflector
-  0.45                        // 28    sh28=Amplifier
+  0.45,                        // 28    sh28=Amplifier
+  0.48                         // 29    sh29=Scrambler
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.65,0.70,0.50,0.48,0.48, // 0-4
@@ -32,7 +34,8 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.35,0.30,0.48,0.48,0.48, // 15-19 sh15=Arcer
   0.22,0.48,0.48,0.48,0.32, // 20-24 sh20=Bastion,sh24=Flagship
   0.35,0.40,0.48,            // 25-27 sh25=Healer,sh26=Reflector
-  0.38                        // 28    sh28=Amplifier
+  0.38,                        // 28    sh28=Amplifier
+  0.38                         // 29    sh29=Scrambler
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   2.4,2.2,1.4,1.5,1.5, // 0-4
@@ -41,7 +44,8 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   0.9,1.1,1.5,1.5,1.5, // 15-19 sh15=Arcer
   0.85,1.5,1.5,1.5,1.1,// 20-24 sh20=Bastion,sh24=Flagship
   2.2,2.5,1.5,           // 25-27 sh25=Healer,sh26=Reflector
-  1.3                     // 28    sh28=Amplifier
+  1.3,                     // 28    sh28=Amplifier
+  1.5                      // 29    sh29=Scrambler
 );
 void main(){
   float d=length(vU), a=0.0;
@@ -1060,6 +1064,64 @@ void main(){
     col=mix(col,vec3(0.7,0.95,1.0),(condMaskL+condMaskR)*0.30);
     col=mix(col,vec3(1.0,0.95,0.85),exp(-focalD*10.0)*0.45);
     col=mix(col,vec3(1.0,0.75,0.4),rings*0.30);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+  // ── sh29: Scrambler — 電子戦妨害艦 ──
+  else if(sh==29){ vec2 p=vU*0.60; float t=vA+uTime;
+    // 1. Central hub (disk)
+    float dHub=length(p)-0.12;
+    // 2. Three asymmetric booms at 120° intervals (different lengths)
+    float dB1=sdCapsule(p,vec2(0.0),vec2(0.42,0.0),0.035);
+    const float A120=2.0943951; float c120=cos(A120); float s120=sin(A120);
+    vec2 b2=vec2(c120*0.38, s120*0.38);
+    vec2 b3=vec2(c120*0.34,-s120*0.34);
+    float dB2=sdCapsule(p,vec2(0.0),b2,0.032);
+    float dB3=sdCapsule(p,vec2(0.0),b3,0.032);
+    float dBooms=min(min(dB1,dB2),dB3);
+    // 3. Tip pods (sensor/jammer pods at boom ends)
+    float dP1=length(p-vec2(0.42,0.0))-0.055;
+    float dP2=length(p-b2)-0.050;
+    float dP3=length(p-b3)-0.050;
+    float dPods=min(min(dP1,dP2),dP3);
+    // 4. Union
+    float dBody=smin(dHub,dBooms,0.04);
+    dBody=smin(dBody,dPods,0.03);
+    // 5. Panel grooves along booms
+    float dGr1=sdCapsule(p,vec2(0.08,0.0),vec2(0.36,0.0),0.006);
+    float dGr2=sdCapsule(p,vec2(c120*0.08,s120*0.08),b2*0.9,0.006);
+    float dGr3=sdCapsule(p,vec2(c120*0.08,-s120*0.08),b3*0.9,0.006);
+    dBody=max(dBody,-min(min(dGr1,dGr2),dGr3)+0.005);
+    // 5b. EM conduit flow along booms
+    float cF1=exp(-abs(dGr1)*25.0)*(0.3+0.7*(0.5+0.5*sin(p.x*15.0-t*5.0)));
+    float cF2=exp(-abs(dGr2)*25.0)*(0.3+0.7*(0.5+0.5*sin(dot(p,normalize(b2))*15.0-t*5.0)));
+    float cF3=exp(-abs(dGr3)*25.0)*(0.3+0.7*(0.5+0.5*sin(dot(p,normalize(b3))*15.0-t*5.0)));
+    float condFlow=(cF1+cF2+cF3)*0.30;
+    float aa=fwidth(dBody)*FWIDTH_MULT[sh];
+    float hf=1.0-smoothstep(0.0,aa,dBody);
+    float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
+    // 6. Jamming pulse rings (triple irregular-speed ripple with fade-out)
+    float rd=length(p);
+    float rp1=mod(t*0.6,1.0); float rp2=mod(t*0.45+0.5,1.0); float rp3=mod(t*0.35+0.25,1.0);
+    float ring1=exp(-pow(rd-rp1,2.0)*70.0)*0.30*smoothstep(0.0,0.15,rp1)*smoothstep(1.0,0.5,rp1);
+    float ring2=exp(-pow(rd-rp2,2.0)*70.0)*0.25*smoothstep(0.0,0.15,rp2)*smoothstep(1.0,0.5,rp2);
+    float ring3=exp(-pow(rd-rp3,2.0)*55.0)*0.18*smoothstep(0.0,0.15,rp3)*smoothstep(1.0,0.5,rp3);
+    float rings=(ring1+ring2+ring3)*smoothstep(0.65,0.12,rd);
+    // 7. Pod tip rapid flicker (phase-shifted sin)
+    float fl1=exp(-length(p-vec2(0.42,0.0))*12.0)*(0.4+0.5*sin(t*9.0));
+    float fl2=exp(-length(p-b2)*12.0)*(0.4+0.5*sin(t*9.0+2.1));
+    float fl3=exp(-length(p-b3)*12.0)*(0.4+0.5*sin(t*9.0+4.2));
+    float flicker=fl1+fl2+fl3;
+    // 8. Noise static (fract-sin pseudo random)
+    float nv=fract(sin(dot(p*40.0+vec2(t*3.0),vec2(12.9898,78.233)))*43758.5453);
+    float noise=nv*0.10*(hf*smoothstep(0.3,0.0,rd)+rings*0.5);
+    // 9. Central hub glow
+    float hubGlow=exp(-length(p)*8.0)*(0.3+0.3*sin(t*5.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+flicker*0.40+noise+hubGlow+condFlow;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.9,0.3,0.7),rings*0.35);
+    col=mix(col,vec3(1.0,0.5,0.8),flicker*0.30);
+    col=mix(col,vec3(0.8,0.2,0.6),noise*0.5);
+    col=mix(col,vec3(0.6,0.15,0.9),condFlow*0.40);
     a=1.2*tanh(a/1.2);
     fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else { a=smoothstep(1.0,0.6,d); }

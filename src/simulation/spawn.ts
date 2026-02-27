@@ -115,6 +115,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.reflectFieldHp = 0;
       u.fieldGrantCooldown = 0;
       u.ampBoostTimer = 0;
+      u.scrambleTimer = 0;
       incUnits();
       return i as UnitIndex;
     }

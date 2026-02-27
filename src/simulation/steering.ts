@@ -3,7 +3,6 @@ import { poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
-import { AMP_RANGE_MULT } from './combat.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 
 interface SteerForce {
@@ -341,6 +340,19 @@ function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
   u.y += (u.vy + u.kbVy) * dt;
 }
 
+export const AMP_RANGE_MULT = 1.25;
+export const SCRAMBLE_RANGE_MULT = 0.75;
+
+export function computeEffectiveRange(u: Unit, baseRange: number): number {
+  const ampRange = u.ampBoostTimer > 0 ? AMP_RANGE_MULT : 1;
+  const scrRange = u.scrambleTimer > 0 ? SCRAMBLE_RANGE_MULT : 1;
+  return baseRange * ampRange * scrRange;
+}
+
+function isSupportType(t: UnitType): boolean {
+  return t.supportFollow === true;
+}
+
 export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) {
     applyKnockbackDrag(u, dt);
@@ -357,8 +369,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   let fx = boids.x,
     fy = boids.y;
 
-  const ampRange = u.ampBoostTimer > 0 ? AMP_RANGE_MULT : 1;
-  const tgt = findTarget(u, nn, t.range * ampRange, dt, rng, t.massWeight ?? 0);
+  const tgt = findTarget(u, nn, computeEffectiveRange(u, t.range), dt, rng, t.massWeight ?? 0);
   u.target = tgt;
 
   const hpRatio = u.maxHp > 0 ? u.hp / u.maxHp : 0;
@@ -366,7 +377,6 @@ export function steer(u: Unit, dt: number, rng: () => number) {
     t.retreatHpRatio !== undefined && hpRatio < t.retreatHpRatio ? 1 - hpRatio / t.retreatHpRatio : 0;
 
   const engage = computeEngagementForce(u, tgt, t, dt, rng);
-  // urgency=1で完全退避、0で通常エンゲージ
   const engageAtten = 1 - retreatUrgency;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
@@ -375,7 +385,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   fx += retreat.x;
   fy += retreat.y;
 
-  if (t.heals || t.amplifies) {
+  if (isSupportType(t)) {
     const heal = computeHealerFollow(u, nn);
     fx += heal.x;
     fy += heal.y;

@@ -100,6 +100,7 @@ src/
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import conventions**: Relative paths + explicit `.ts` extension. No path aliases, no barrel exports
+- **定数の配置**: `constants.ts` には**複数レイヤーから参照される定数のみ**（プールサイズ、ワールド境界、linger時間、シェイプID等）。単一モジュール（+そのテスト）でしか使わないロジック固有の倍率・閾値は、そのモジュール内に定義する（例: `AMP_DAMAGE_MULT` → `combat.ts`）
 - **Dependency rules** (dependency-cruiser): `simulation/` → `state.ts` 禁止（rng/stateは引数注入）。`simulation/` → `ui/` 禁止（コールバック注入で逆転）。検証: `bun run check:deps`
 - **TypeScript strict settings**:
   - `verbatimModuleSyntax` — type-only imports must use `import type { X }`

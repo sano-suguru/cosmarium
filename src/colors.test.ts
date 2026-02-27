@@ -3,7 +3,7 @@ import { color, effectColor, trailColor } from './colors.ts';
 
 describe('getColor', () => {
   it('RGB値は全て 0〜1 の範囲', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       for (const tm of [0, 1] as const) {
         const c = color(t, tm);
         expect(c).toHaveLength(3);
@@ -16,7 +16,7 @@ describe('getColor', () => {
   });
 
   it('同じユニットタイプでもチーム間で色が異なる', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       const c0 = color(t, 0);
       const c1 = color(t, 1);
       const diff = Math.abs(c0[0] - c1[0]) + Math.abs(c0[1] - c1[1]) + Math.abs(c0[2] - c1[2]);
@@ -40,7 +40,7 @@ describe('getColor', () => {
 
 describe('getTrailColor', () => {
   it('トレイルカラーはエフェクトカラーより暗い（合計値が小さい）', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       for (const tm of [0, 1] as const) {
         const main = effectColor(t, tm);
         const trail = trailColor(t, tm);
@@ -52,7 +52,7 @@ describe('getTrailColor', () => {
   });
 
   it('RGB値は全て 0〜1 の範囲', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       for (const tm of [0, 1] as const) {
         const c = trailColor(t, tm);
         expect(c).toHaveLength(3);
@@ -68,13 +68,13 @@ describe('getTrailColor', () => {
 describe('getColor — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => color(-1, 0)).toThrow(RangeError);
-    expect(() => color(17, 0)).toThrow(RangeError);
+    expect(() => color(18, 0)).toThrow(RangeError);
   });
 });
 
 describe('getEffectColor', () => {
   it('RGB値は全て 0〜1 の範囲', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       for (const tm of [0, 1] as const) {
         const c = effectColor(t, tm);
         expect(c).toHaveLength(3);
@@ -87,7 +87,7 @@ describe('getEffectColor', () => {
   });
 
   it('同じユニットタイプでもチーム間で色が異なる', () => {
-    for (let t = 0; t < 17; t++) {
+    for (let t = 0; t < 18; t++) {
       const c0 = effectColor(t, 0);
       const c1 = effectColor(t, 1);
       const diff = Math.abs(c0[0] - c1[0]) + Math.abs(c0[1] - c1[1]) + Math.abs(c0[2] - c1[2]);
@@ -99,13 +99,13 @@ describe('getEffectColor', () => {
 describe('getTrailColor — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => trailColor(-1, 0)).toThrow(RangeError);
-    expect(() => trailColor(17, 0)).toThrow(RangeError);
+    expect(() => trailColor(18, 0)).toThrow(RangeError);
   });
 });
 
 describe('getEffectColor — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
     expect(() => effectColor(-1, 0)).toThrow(RangeError);
-    expect(() => effectColor(17, 0)).toThrow(RangeError);
+    expect(() => effectColor(18, 0)).toThrow(RangeError);
   });
 });

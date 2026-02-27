@@ -6,8 +6,10 @@ import {
   POOL_PROJECTILES,
   POOL_UNITS,
   REFLECT_FIELD_MAX_HP,
+  SCRAMBLE_BOOST_LINGER,
   SH_CIRCLE,
   SH_DIAMOND,
+  SH_DIAMOND_RING,
   SH_EXPLOSION_RING,
   TAU,
   WORLD_SIZE,
@@ -155,6 +157,16 @@ function renderShieldOverlay(u: Unit, ut: UnitType, now: number, rs: number) {
   if (u.ampBoostTimer > 0 && !ut.amplifies) {
     const ampAlpha = 0.08 + (u.ampBoostTimer / AMP_BOOST_LINGER) * 0.07;
     writeInstance(u.x, u.y, ut.size * 1.7 * rs, 1.0, 0.6, 0.15, ampAlpha, (now * 0.3) % TAU, SH_EXPLOSION_RING);
+  }
+  if (u.scrambleTimer > 0 && !ut.scrambles) {
+    const ratio = u.scrambleTimer / SCRAMBLE_BOOST_LINGER;
+    const scrAlpha = 0.15 + ratio * 0.25;
+    const scrOuter = Math.max(30, ut.size * 2.2 * rs);
+    const scrInner = Math.max(22, ut.size * 1.5 * rs);
+    const blink = Math.sin(now * 6) * 0.3 + 0.7;
+    writeInstance(u.x, u.y, scrOuter, 0.8, 0.15, 0.4, scrAlpha * blink, (now * 0.8) % TAU, SH_DIAMOND_RING);
+    const blink2 = Math.sin(now * 9 + 1.5) * 0.25 + 0.75;
+    writeInstance(u.x, u.y, scrInner, 0.7, 0.15, 0.55, scrAlpha * blink2, (now * -1.2) % TAU, SH_DIAMOND_RING);
   }
 }
 
