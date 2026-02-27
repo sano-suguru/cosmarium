@@ -136,6 +136,20 @@ const BROADSIDE_PHASE_FIRE = -1;
 const AOE_PROJ_SPEED = 170;
 const AOE_PROJ_SIZE = 5;
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
+const _sweepSetPool: Set<UnitIndex>[] = [];
+
+function acquireSweepSet(): Set<UnitIndex> {
+  return _sweepSetPool.pop() ?? new Set();
+}
+
+function releaseSweepSet(ui: UnitIndex) {
+  const s = sweepHitMap.get(ui);
+  if (s) {
+    s.clear();
+    _sweepSetPool.push(s);
+  }
+  sweepHitMap.delete(ui);
+}
 
 // neighborBuffer 上書き防止用スナップショット（beam反射で getNeighbors が再呼び出しされるため）
 const _sweepSnapshot = new Int32Array(NEIGHBOR_BUFFER_SIZE);
@@ -150,6 +164,10 @@ function snapshotNeighbors(x: number, y: number, r: number): number {
 const reflectedThisFrame = new Set<number>();
 
 export function _resetSweepHits() {
+  for (const s of sweepHitMap.values()) {
+    s.clear();
+    _sweepSetPool.push(s);
+  }
   sweepHitMap.clear();
 }
 
@@ -157,7 +175,7 @@ export function resetReflected() {
   reflectedThisFrame.clear();
 }
 
-onKillUnitPermanent((e) => sweepHitMap.delete(e.victim));
+onKillUnitPermanent((e) => releaseSweepSet(e.victim));
 
 interface CombatContext {
   u: Unit;
@@ -858,7 +876,7 @@ function sweepBeam(ctx: CombatContext) {
   if (u.target === NO_UNIT) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
-    sweepHitMap.delete(ctx.ui);
+    releaseSweepSet(ctx.ui);
     return;
   }
   const o = unit(u.target);
@@ -866,7 +884,7 @@ function sweepBeam(ctx: CombatContext) {
     u.target = NO_UNIT;
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
-    sweepHitMap.delete(ctx.ui);
+    releaseSweepSet(ctx.ui);
     return;
   }
   const dx = o.x - u.x,
@@ -875,7 +893,7 @@ function sweepBeam(ctx: CombatContext) {
   if (d >= ctx.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     u.sweepPhase = 0;
-    sweepHitMap.delete(ctx.ui);
+    releaseSweepSet(ctx.ui);
     return;
   }
 
@@ -889,7 +907,7 @@ function sweepBeam(ctx: CombatContext) {
     u.sweepBaseAngle = Math.atan2(dy, dx);
     u.sweepPhase = 0.001;
     u.beamOn = 1;
-    sweepHitMap.set(ctx.ui, new Set());
+    sweepHitMap.set(ctx.ui, acquireSweepSet());
   }
 
   const prevPhase = u.sweepPhase;
@@ -921,7 +939,7 @@ function sweepBeam(ctx: CombatContext) {
   if (u.sweepPhase >= 1) {
     u.cooldown = t.fireRate;
     u.sweepPhase = 0;
-    sweepHitMap.delete(ctx.ui);
+    releaseSweepSet(ctx.ui);
   }
 }
 

@@ -17,6 +17,13 @@ const _engageForce: SteerForce = { x: 0, y: 0 };
 const _retreatForce: SteerForce = { x: 0, y: 0 };
 const _healForce: SteerForce = { x: 0, y: 0 };
 
+interface ResolveResult {
+  readonly target: UnitIndex;
+  readonly fx: number;
+  readonly fy: number;
+}
+const _resolveResult = { target: NO_UNIT as UnitIndex, fx: 0, fy: 0 };
+
 const SEPARATION_SCALE = 200;
 const SEPARATION_WEIGHT = 3;
 const ALIGNMENT_WEIGHT = 0.5;
@@ -55,25 +62,7 @@ function targetScore(ux: number, uy: number, o: Unit, massWeight: number): numbe
   return d2 / (vf * vf * mf * mf);
 }
 
-// targetScore(): vet差で見かけ距離を縮小し、massWeight>0で重い敵にバイアス
-function findNearestLocalEnemy(u: Unit, nn: number, range: number, massWeight: number): UnitIndex {
-  const limit = range * 3;
-  let bs = limit * limit,
-    bi: UnitIndex = NO_UNIT;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
-      o = unit(oi);
-    if (o.team === u.team || !o.alive) continue;
-    const score = targetScore(u.x, u.y, o, massWeight);
-    if (score < bs) {
-      bs = score;
-      bi = oi;
-    }
-  }
-  return bi;
-}
-
-// findNearestLocalEnemy の全体スキャン版（スコアリングは同一）
+// findNearestGlobalEnemy: 全体スキャン版（スコアリングは同一）
 function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
@@ -89,18 +78,6 @@ function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
     }
   }
   return bi;
-}
-
-function findTarget(u: Unit, nn: number, range: number, dt: number, rng: () => number, massWeight: number): UnitIndex {
-  if (u.target !== NO_UNIT && unit(u.target).alive) return u.target;
-
-  const localTarget = findNearestLocalEnemy(u, nn, range, massWeight);
-  if (localTarget !== NO_UNIT) return localTarget;
-
-  if (rng() < 1 - (1 - GLOBAL_TARGET_PROB) ** (dt * REF_FPS)) {
-    return findNearestGlobalEnemy(u, massWeight);
-  }
-  return NO_UNIT;
 }
 
 // Boids accumulator — computeBoidsForce がリセットし accumulateBoidsNeighbor が累積
@@ -132,6 +109,21 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   }
 }
 
+function finalizeBoids(u: Unit) {
+  let fx = _boids.sx * SEPARATION_WEIGHT,
+    fy = _boids.sy * SEPARATION_WEIGHT;
+  if (_boids.ac > 0) {
+    fx += (_boids.ax / _boids.ac - u.vx) * ALIGNMENT_WEIGHT;
+    fy += (_boids.ay / _boids.ac - u.vy) * ALIGNMENT_WEIGHT;
+  }
+  if (_boids.cc > 0) {
+    fx += (_boids.chx / _boids.cc - u.x) * COHESION_WEIGHT;
+    fy += (_boids.chy / _boids.cc - u.y) * COHESION_WEIGHT;
+  }
+  _boidsForce.x = fx;
+  _boidsForce.y = fy;
+}
+
 function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
   _boids.sx = 0;
   _boids.sy = 0;
@@ -150,19 +142,44 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
     accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
 
-  let fx = _boids.sx * SEPARATION_WEIGHT,
-    fy = _boids.sy * SEPARATION_WEIGHT;
-  if (_boids.ac > 0) {
-    fx += (_boids.ax / _boids.ac - u.vx) * ALIGNMENT_WEIGHT;
-    fy += (_boids.ay / _boids.ac - u.vy) * ALIGNMENT_WEIGHT;
-  }
-  if (_boids.cc > 0) {
-    fx += (_boids.chx / _boids.cc - u.x) * COHESION_WEIGHT;
-    fy += (_boids.chy / _boids.cc - u.y) * COHESION_WEIGHT;
-  }
-  _boidsForce.x = fx;
-  _boidsForce.y = fy;
+  finalizeBoids(u);
   return _boidsForce;
+}
+
+/** boids 計算と最近接敵探索を1パスで行う。見つかった敵の UnitIndex を返す */
+function computeBoidsAndFindLocal(u: Unit, nn: number, t: UnitType, range: number, massWeight: number): UnitIndex {
+  _boids.sx = 0;
+  _boids.sy = 0;
+  _boids.ax = 0;
+  _boids.ay = 0;
+  _boids.ac = 0;
+  _boids.chx = 0;
+  _boids.chy = 0;
+  _boids.cc = 0;
+
+  const sd = t.size * 4;
+  const limit = range * 3;
+  let bs = limit * limit;
+  let bi: UnitIndex = NO_UNIT;
+
+  for (let i = 0; i < nn; i++) {
+    const oi = getNeighborAt(i),
+      o = unit(oi);
+    if (!o.alive || o === u) continue;
+
+    accumulateBoidsNeighbor(u, o, sd, t.mass);
+
+    if (o.team !== u.team) {
+      const score = targetScore(u.x, u.y, o, massWeight);
+      if (score < bs) {
+        bs = score;
+        bi = oi;
+      }
+    }
+  }
+
+  finalizeBoids(u);
+  return bi;
 }
 
 function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number, rng: () => number): SteerForce {
@@ -367,6 +384,40 @@ function isSupportType(t: UnitType): boolean {
   return t.supportFollow === true;
 }
 
+/** boids 計算 + ターゲット解決を一括で行う。_boidsForce に boids 力を書き込み、ターゲットを返す */
+function resolveTarget(
+  u: Unit,
+  nn: number,
+  t: UnitType,
+  range: number,
+  massWeight: number,
+  dt: number,
+  rng: () => number,
+): ResolveResult {
+  if (u.target !== NO_UNIT && unit(u.target).alive) {
+    computeBoidsForce(u, nn, t);
+    _resolveResult.target = u.target;
+    _resolveResult.fx = _boidsForce.x;
+    _resolveResult.fy = _boidsForce.y;
+    return _resolveResult;
+  }
+  const localTarget = computeBoidsAndFindLocal(u, nn, t, range, massWeight);
+  if (localTarget !== NO_UNIT) {
+    _resolveResult.target = localTarget;
+    _resolveResult.fx = _boidsForce.x;
+    _resolveResult.fy = _boidsForce.y;
+    return _resolveResult;
+  }
+  _resolveResult.fx = _boidsForce.x;
+  _resolveResult.fy = _boidsForce.y;
+  if (rng() < 1 - (1 - GLOBAL_TARGET_PROB) ** (dt * REF_FPS)) {
+    _resolveResult.target = findNearestGlobalEnemy(u, massWeight);
+    return _resolveResult;
+  }
+  _resolveResult.target = NO_UNIT;
+  return _resolveResult;
+}
+
 export function steer(u: Unit, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) {
     applyKnockbackDrag(u, dt);
@@ -378,19 +429,20 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   }
   const t = unitType(u.type);
   const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+  const range = computeEffectiveRange(u, t.range);
+  const massWeight = t.massWeight ?? 0;
 
-  const boids = computeBoidsForce(u, nn, t);
-  let fx = boids.x,
-    fy = boids.y;
+  const res = resolveTarget(u, nn, t, range, massWeight, dt, rng);
+  u.target = res.target;
 
-  const tgt = findTarget(u, nn, computeEffectiveRange(u, t.range), dt, rng, t.massWeight ?? 0);
-  u.target = tgt;
+  let fx = res.fx,
+    fy = res.fy;
 
   const hpRatio = u.maxHp > 0 ? u.hp / u.maxHp : 0;
   const retreatUrgency =
     t.retreatHpRatio !== undefined && hpRatio < t.retreatHpRatio ? 1 - hpRatio / t.retreatHpRatio : 0;
 
-  const engage = computeEngagementForce(u, tgt, t, dt, rng);
+  const engage = computeEngagementForce(u, res.target, t, dt, rng);
   const engageAtten = 1 - retreatUrgency;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
@@ -418,5 +470,5 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   const catTurn = u.catalystTimer > 0 ? CATALYST_TURN_MULT : 1;
   u.angle += ad * t.turnRate * catTurn * dt;
 
-  applyVelocity(u, t, tgt, dt);
+  applyVelocity(u, t, res.target, dt);
 }
