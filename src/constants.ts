@@ -9,6 +9,9 @@ export const POOL_PARTICLES = 45000;
 export const POOL_PROJECTILES = 6000;
 export const POOL_TRACKING_BEAMS = 200;
 export const WORLD_SIZE = 4000;
+
+/** ビーム消灯時の減衰速度（sweep / focus / flagship 共通） */
+export const BEAM_DECAY_RATE = 3;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;
 export const REF_FPS = 30;

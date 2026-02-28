@@ -69,6 +69,14 @@
           }
         },
         "noUselessStringConcat": "error"
+      },
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 600
+          }
+        }
       }
     }
   },
@@ -84,6 +92,9 @@
         "rules": {
           "suspicious": {
             "noConsole": "off"
+          },
+          "nursery": {
+            "noExcessiveLinesPerFile": "off"
           }
         }
       }

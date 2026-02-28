@@ -9,7 +9,7 @@ import {
   setUnitCount,
   unit,
 } from '../pools.ts';
-import { _resetSweepHits } from '../simulation/combat.ts';
+import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { resetChains } from '../simulation/effects.ts';
 import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
 import type { GameLoopState } from '../simulation/update.ts';

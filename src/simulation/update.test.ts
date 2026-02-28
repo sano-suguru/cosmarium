@@ -14,9 +14,14 @@ import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
-import { BASTION_ABSORB_RATIO, BASTION_SELF_ABSORB_RATIO, ORPHAN_TETHER_PROJECTILE_MULT } from './combat.ts';
+import {
+  BASTION_ABSORB_RATIO,
+  BASTION_SELF_ABSORB_RATIO,
+  ORPHAN_TETHER_PROJECTILE_MULT,
+} from './combat-beam-defense.ts';
 import { addBeam, onKillUnit, spawnParticle, spawnProjectile } from './spawn.ts';
-import { MAX_STEPS_PER_FRAME, REFLECT_FIELD_GRANT_INTERVAL, SHIELD_LINGER, TETHER_BEAM_LIFE } from './update.ts';
+import { MAX_STEPS_PER_FRAME } from './update.ts';
+import { REFLECT_FIELD_GRANT_INTERVAL, SHIELD_LINGER, TETHER_BEAM_LIFE } from './update-fields.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),

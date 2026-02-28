@@ -48,7 +48,7 @@ src/
   unit-types.ts      # Unit type definitions
   shaders/           # GLSL (vite-plugin-glsl, #include)
   renderer/          # WebGL 2 rendering pipeline
-  simulation/        # Game logic (spatial hash, combat, steering)
+  simulation/        # Game logic (spatial hash, combat-*, steering)
   input/camera.ts    # Camera + pointer/keyboard input
   ui/                # Codex, HUD, game controls
 ```

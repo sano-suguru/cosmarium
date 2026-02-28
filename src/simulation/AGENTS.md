@@ -12,13 +12,13 @@
 ## 変更ガイド
 
 ### 新攻撃パターン追加
-`types.ts`(新フラグ) → `unit-types.ts`(フラグ設定) → `combat.ts`(NORMAL FIREの前にif分岐挿入) → `spawn.ts`(新Unitプロパティ時)。排他パターンなら`return`、共存なら`return`なし。
+`types.ts`(新フラグ) → `unit-types.ts`(フラグ設定) → 対応する `combat-*.ts` に実装 → `combat.ts` のディスパッチに分岐追加 → `spawn.ts`(新Unitプロパティ時)。排他パターンなら`return`、共存なら`return`なし。
 
 ### sweep攻撃
-sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で扇形回転攻撃を実装。combat.ts 内で chain の後に位置。
+sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で扇形回転攻撃を実装。`combat-sweep.ts` に実装。
 
 ### combat分岐フロー
-実行順（上から順にif判定）: rams(排他) → heals(非排他) → reflects(排他) → spawns(非排他) → emp(排他) → teleports(非排他) → chain(排他) → sweep(排他) → broadside(排他) → beam(排他)。最後: NORMAL FIRE(homing/aoe/shots>1/railgun/default)。`tgtDistOrClear(u)`でターゲット検証+距離取得を一括処理。
+`combat.ts` がエントリポイント。実行順（上から順にif判定）: rams(排他) → heals(非排他) → reflects(排他) → spawns(非排他) → emp(排他) → teleports(非排他) → chain(排他) → sweep(排他) → broadside(排他) → beam(排他)。最後: NORMAL FIRE(homing/aoe/shots>1/railgun/default)。`tgtDistOrClear(u)`でターゲット検証+距離取得を一括処理。
 
 ### steering変更
 力の合成: `fx/fy`に各力加算→角速度`u.angle`に反映。stun時: vx/vy\*=0.93、steering力スキップ。Boids3要素(Separation/Alignment/Cohesion)。ターゲット: 近傍→1.2%全域スキャン→wanderAngle。境界力: `WORLD_SIZE*0.8`超で押し戻し。
@@ -30,8 +30,21 @@ sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で�
 
 | ファイル | 役割 |
 |---------|------|
-| combat.ts | 排他/非排他の攻撃分岐。最大ファイル |
-| update.ts | tick本体。サブステップ分割、per-unit/projectile/particle/beam更新 |
+| combat.ts | エントリポイント: `combat()`, `dispatchSupportAbilities`, `tryExclusiveFire`, `demoFlag` |
+| combat-context.ts | `CombatContext` インターフェース定義 |
+| combat-aim.ts | `aimAt`, `tgtDistOrClear`, `swarmDmgMul` — 照準・ターゲット計算 |
+| combat-beam-defense.ts | ビーム防御: `applyBeamDefenses`, 反射・吸収・テザー |
+| combat-reflect.ts | Reflector プロジェクタイル反射: `reflectProjectile`, `reflectProjectiles` |
+| combat-sweep.ts | Sweep beam: `sweepBeam`, sweep VFX, `_resetSweepHits` |
+| combat-focus-beam.ts | Focus beam: `focusBeam` |
+| combat-fire.ts | 通常射撃: `fireNormal`, `dispatchFire` |
+| combat-railgun.ts | Railgun ヒットスキャン: `fireRailgun`, `collectRayHits` |
+| combat-flagship.ts | Flagship 専用: `flagshipBarrage` |
+| combat-special.ts | 特殊: `ramTarget`, `healAllies`, `teleport`, `castChain` 等 |
+| combat-support.ts | 支援VFX + 定数: `shieldAllies`, `amplifyAllies` 等（バフ付与ロジックは update-fields.ts） |
+| update.ts | tick本体。サブステップ分割、per-unit/particle/beam更新、swarmN |
+| update-projectiles.ts | プロジェクタイル全処理: 移動・ヒット検出・AOE・反射・追尾 |
+| update-fields.ts | エネルギー回復 + シールド/フィールド/バフ/デバフ decay・付与 |
 | effects.ts | explosion/trail/chain/boost エフェクト生成 |
 | steering.ts | Boids + ターゲット追跡 + 境界力 |
 | spawn.ts | spawn/kill集約。プール操作の唯一のエントリポイント |
