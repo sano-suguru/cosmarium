@@ -19,7 +19,7 @@ type DefaultKeys =
   | 'sweep'
   | 'swarm'
   | 'broadside'
-  | 'burst'
+  | 'shots'
   | 'salvo'
   | 'massWeight'
   | 'shields'
@@ -33,7 +33,7 @@ type DefaultKeys =
 
 const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   aoe: 0,
-  carpet: 0,
+  carpet: false,
   beam: false,
   heals: false,
   reflects: false,
@@ -46,7 +46,7 @@ const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   sweep: false,
   swarm: false,
   broadside: false,
-  burst: 0,
+  shots: 1,
   salvo: 0,
   massWeight: 0,
   shields: false,
@@ -99,7 +99,7 @@ export const TYPES: UnitType[] = [
     accel: 8.0,
     drag: 2.0,
     leadAccuracy: 0.7,
-    burst: 1,
+    shots: 2,
     salvo: 2,
     // SDF local coords → unit size比率: Front (0.52,±0.46)/0.64, Rear (0.46,±0.42)/0.64
     cannonOffsets: [
@@ -127,7 +127,8 @@ export const TYPES: UnitType[] = [
     drag: 1.5,
     leadAccuracy: 0.4,
     aoe: 42,
-    carpet: 4,
+    carpet: true,
+    shots: 4,
     boost: { multiplier: 1.5, duration: 0.3, cooldown: 4.0, triggerRange: 200 },
     retreatHpRatio: 0.35,
     description: '広域爆圧弾を投下する重爆撃機。密集陣形に絶大な効果を発揮。',
@@ -297,7 +298,7 @@ export const TYPES: UnitType[] = [
     accel: 5.0,
     drag: 1.5,
     leadAccuracy: 0.2,
-    burst: 2,
+    shots: 3,
     homing: true,
     boost: { multiplier: 1.5, duration: 0.3, cooldown: 4.0, triggerRange: 300 },
     retreatHpRatio: 0.35,

@@ -98,7 +98,7 @@ export interface UnitType {
   description: string;
   attackDesc: string;
   aoe: number;
-  carpet: number;
+  carpet: boolean;
   beam: boolean;
   heals: boolean;
   reflects: boolean;
@@ -111,8 +111,8 @@ export interface UnitType {
   sweep: boolean;
   swarm: boolean;
   broadside: boolean;
-  /** 追加バースト弾数。0=単発射撃、N=合計 N+1 発のバースト */
-  burst: number;
+  /** 1トリガーあたりの合計発射数。1=単射 */
+  shots: number;
   /** 1バーストあたりの同時発射数。2=左右ツイン。0=従来の単射 */
   salvo: number;
   /** salvo用キャノン位置オフセット [xRatio, yRatio][] — バーストインデックスで循環 */
@@ -135,7 +135,7 @@ export interface UnitType {
   shieldCooldown: number;
 }
 
-/** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */
+/** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe/shots は number 型のため対象外。'burst' は UnitType プロパティ名ではなく shots > 1 の派生フラグ */
 export type DemoFlag =
   | 'swarm'
   | 'carpet'

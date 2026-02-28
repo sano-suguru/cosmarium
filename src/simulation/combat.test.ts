@@ -1456,15 +1456,15 @@ describe('getDominantDemoFlag', () => {
 
   it('Bomber (carpet+aoe): carpet が aoe より優先', () => {
     const t = unitType(2);
-    expect(t.carpet).toBeTruthy();
-    expect(t.aoe).toBeTruthy();
+    expect(t.carpet).toBe(true);
+    expect(t.aoe).toBeGreaterThan(0);
     expect(demoFlag(t)).toBe('carpet');
   });
 
   it('Launcher (homing+burst): homing が burst より優先', () => {
     const t = unitType(10);
     expect(t.homing).toBeTruthy();
-    expect(t.burst).toBeTruthy();
+    expect(t.shots).toBeGreaterThan(1);
     expect(demoFlag(t)).toBe('homing');
   });
 

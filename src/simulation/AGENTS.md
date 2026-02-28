@@ -18,7 +18,7 @@
 sweep は排他パターン（return あり）。sweepPhase/sweepBaseAngle で扇形回転攻撃を実装。combat.ts 内で chain の後に位置。
 
 ### combat分岐フロー
-実行順（上から順にif判定）: rams(排他) → heals(非排他) → reflects(排他) → spawns(非排他) → emp(排他) → teleports(非排他) → chain(排他) → sweep(排他) → broadside(排他) → beam(排他)。最後: NORMAL FIRE(homing/aoe/5-burst/railgun/default)。`tgtDistOrClear(u)`でターゲット検証+距離取得を一括処理。
+実行順（上から順にif判定）: rams(排他) → heals(非排他) → reflects(排他) → spawns(非排他) → emp(排他) → teleports(非排他) → chain(排他) → sweep(排他) → broadside(排他) → beam(排他)。最後: NORMAL FIRE(homing/aoe/shots>1/railgun/default)。`tgtDistOrClear(u)`でターゲット検証+距離取得を一括処理。
 
 ### steering変更
 力の合成: `fx/fy`に各力加算→角速度`u.angle`に反映。stun時: vx/vy\*=0.93、steering力スキップ。Boids3要素(Separation/Alignment/Cohesion)。ターゲット: 近傍→1.2%全域スキャン→wanderAngle。境界力: `WORLD_SIZE*0.8`超で押し戻し。

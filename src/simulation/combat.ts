@@ -1091,7 +1091,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
 
 function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, t } = ctx;
-  const shots = t.burst + 1;
+  const shots = t.shots;
   if (u.burstCount <= 0) u.burstCount = shots;
   fireShot(ctx, ang, d, sp, 1, shots - u.burstCount);
   u.burstCount--;
@@ -1103,7 +1103,7 @@ const HOMING_SPEED = 280;
 
 function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
-  const shots = t.burst + 1;
+  const shots = t.shots;
   if (u.burstCount <= 0) u.burstCount = shots;
   const burstIdx = shots - u.burstCount;
   const spreadAng = ang + (burstIdx - (shots - 1) / 2) * HOMING_SPREAD;
@@ -1153,10 +1153,10 @@ const CARPET_SPREAD = 0.2;
 
 function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, t } = ctx;
-  const carpet = t.carpet;
-  if (u.burstCount <= 0) u.burstCount = carpet;
-  const burstIdx = carpet - u.burstCount;
-  const spreadAng = ang + (burstIdx - (carpet - 1) / 2) * CARPET_SPREAD;
+  const shots = t.shots;
+  if (u.burstCount <= 0) u.burstCount = shots;
+  const burstIdx = shots - u.burstCount;
+  const spreadAng = ang + (burstIdx - (shots - 1) / 2) * CARPET_SPREAD;
   fireAoe(ctx, spreadAng, d, sp);
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -1616,7 +1616,7 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
     fireHomingBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
-  if (t.burst) {
+  if (t.shots > 1) {
     fireBurst(ctx, aim.ang, aim.dist, sp);
     return;
   }
@@ -1779,7 +1779,7 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
   if (!blinked && !tryExclusiveFire(_ctx)) fireNormal(_ctx);
 }
 
-const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
+const COMBAT_FLAG_PRIORITY: Exclude<DemoFlag, 'burst'>[] = [
   'rams',
   'heals',
   'scrambles',
@@ -1796,14 +1796,13 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
   'beam',
   'carpet',
   'homing',
-  'burst',
   'swarm',
 ];
 
 export function demoFlag(t: UnitType): DemoFlag | null {
   for (const flag of COMBAT_FLAG_PRIORITY) {
-    const v = t[flag];
-    if (v) return flag;
+    if (t[flag]) return flag;
   }
+  if (t.shots > 1) return 'burst';
   return null;
 }
