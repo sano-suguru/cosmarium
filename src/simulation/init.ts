@@ -28,6 +28,10 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Scorcher'), count: 3, spread: 400 },
   { type: T('Teleporter'), count: 2, spread: 400 },
   { type: T('Arcer'), count: 2, spread: 400 },
+  { type: T('Bastion'), count: 2, spread: 400 },
+  { type: T('Amplifier'), count: 2, spread: 400 },
+  { type: T('Scrambler'), count: 2, spread: 400 },
+  { type: T('Catalyst'), count: 2, spread: 400 },
 ];
 
 export function initUnits(rng: () => number) {
