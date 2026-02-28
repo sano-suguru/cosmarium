@@ -1,1 +1,1 @@
-#define NUM_SHAPES 31
+#define NUM_SHAPES 29

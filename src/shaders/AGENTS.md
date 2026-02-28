@@ -12,7 +12,7 @@
 |---------|------|
 | main.frag.glsl | shape ID別SDF描画。#include sdf.glsl, shape-count.glsl。最大ファイル |
 | includes/sdf.glsl | hexDist, octDist, manDist |
-| includes/shape-count.glsl | `#define NUM_SHAPES 28` — 4配列サイズ+clampの一元管理 |
+| includes/shape-count.glsl | `#define NUM_SHAPES 29` — 4配列サイズ+clampの一元管理 |
 | main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
 | bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
 | composite.frag.glsl | vignette + Reinhardトーンマップ。uS,uB |
@@ -24,33 +24,39 @@
 
 フラグメントシェーダ (`main.frag.glsl`) が整数shape IDでSDF描画を分岐する:
 
+安定ID運用（append-only）: 既存IDの変更・再利用は禁止。新ユニット/エフェクト追加時は末尾に追番。Units 0–18, Effects 19–28。
+
 | ID | Shape | Used by |
 |----|-------|---------|
-| 0 | Circle | particle, projectile(aoe/default), HP bar, stun spark |
-| 1 | Diamond | projectile(通常弾), minimap背景/unit |
-| 2 | Triangle | — |
-| 3 | Hexagon | asteroid |
-| 4 | Cross | — |
-| 5 | Ring | reflector shield表示 |
-| 6 | Arrow | homing projectile, minimap unit |
-| 7 | Star(5) | — |
-| 8 | Crescent | — |
-| 9 | Square | — |
-| 10 | Glow ring | explosion ring, vet glow, EMP ring, shield aura, base glow |
-| 11 | Chevron | — |
-| 12 | Beam | beam segments |
-| 13 | Diamond ring | — |
-| 14 | Trefoil | — |
-| 15 | Lightning | — |
-| 16 | Pentagon | — |
-| 20 | Large hexagon | base (mode=2) |
-| 21 | Bar | HPバー (背景+前景) |
-| 22 | Octagon shield | reflectorシールド/shield linger |
-| 23 | Lightning beam | チェーンライトニングのビームセグメント |
-| 24 | Flagship Dreadnought | Flagship |
-| 25 | Medical Frigate | Healer |
-| 26 | Prism Shield | Reflector |
-| 27 | Reflect Field | Reflector味方フィールド |
+| 0 | Drone | unit |
+| 1 | Fighter | unit |
+| 2 | Bomber | unit |
+| 3 | Cruiser | unit |
+| 4 | Flagship | unit |
+| 5 | Healer | unit |
+| 6 | Reflector | unit |
+| 7 | Carrier | unit |
+| 8 | Sniper | unit |
+| 9 | Lancer | unit |
+| 10 | Launcher | unit |
+| 11 | Disruptor | unit |
+| 12 | Scorcher | unit |
+| 13 | Teleporter | unit |
+| 14 | Arcer | unit |
+| 15 | Bastion | unit |
+| 16 | Amplifier | unit |
+| 17 | Scrambler | unit |
+| 18 | Catalyst | unit |
+| 19 | Circle (SH_CIRCLE) | particle, projectile(aoe), stun spark |
+| 20 | Diamond (SH_DIAMOND) | projectile(通常弾) |
+| 21 | Homing (SH_HOMING) | homing projectile |
+| 22 | Beam (SH_BEAM) | beam segments |
+| 23 | Lightning (SH_LIGHTNING) | チェーンライトニングのビームセグメント |
+| 24 | Explosion Ring (SH_EXPLOSION_RING) | explosion ring, vet glow, EMP ring, shield aura |
+| 25 | Diamond Ring (SH_DIAMOND_RING) | scramble debuff overlay |
+| 26 | Octagon Shield (SH_OCT_SHIELD) | shield linger, Bastion shield |
+| 27 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |
+| 28 | Bar (SH_BAR) | HPバー (背景+前景) |
 
 ## 新Shape追加手順
 

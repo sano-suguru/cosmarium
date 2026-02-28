@@ -8,10 +8,16 @@ import {
   POOL_UNITS,
   REFLECT_FIELD_MAX_HP,
   SCRAMBLE_BOOST_LINGER,
+  SH_BAR,
+  SH_BEAM,
   SH_CIRCLE,
   SH_DIAMOND,
   SH_DIAMOND_RING,
   SH_EXPLOSION_RING,
+  SH_HOMING,
+  SH_LIGHTNING,
+  SH_OCT_SHIELD,
+  SH_REFLECT_FIELD,
   TAU,
   WORLD_SIZE,
 } from '../constants.ts';
@@ -21,12 +27,6 @@ import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
 import { instanceData, MAX_INSTANCES, writeSlots } from './buffers.ts';
 
-const SH_BEAM = 12;
-const SH_HOMING = 14;
-const SH_BAR = 21;
-const SH_OCT_SHIELD = 22;
-const SH_LIGHTNING = 23;
-const SH_REFLECT_FIELD = 27;
 const VET_TINT_FACTOR = 0.15;
 // TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
 export const WRAP_PERIOD = TAU * 10000;

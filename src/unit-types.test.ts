@@ -42,10 +42,15 @@ describe('TYPES 配列', () => {
       expect(t.size).toBeGreaterThan(0);
       expect(t.shape).toBeGreaterThanOrEqual(0);
       expect(t.shape % 1).toBe(0); // 整数
-      expect(t.shape).toBeLessThanOrEqual(30);
+      expect(t.shape).toBeLessThanOrEqual(28);
       expect(t.trailInterval).toBeGreaterThan(0);
       expect(t.fireRate).toBeGreaterThan(0);
     }
+  });
+
+  it('shape が全て一意', () => {
+    const shapes = TYPES.map((t) => t.shape);
+    expect(new Set(shapes).size).toBe(shapes.length);
   });
 
   it('特殊フラグ: idx 2 (Bomber) は aoe を持つ', () => {

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
+import { SH_BEAM, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_OCT_SHIELD, SH_REFLECT_FIELD } from '../constants.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
@@ -47,7 +48,7 @@ function getWriteCalls() {
 }
 
 describe('writeOverlay', () => {
-  it('active shield overlay は SH_OCT_SHIELD(22) で now=0 時に angle=0, a=0.5 で描画される', () => {
+  it('active shield overlay は SH_OCT_SHIELD(26) で now=0 時に angle=0, a=0.5 で描画される', () => {
     const idx = spawnAt(0, 0, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
@@ -56,7 +57,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 22);
+    const shieldCall = calls.find((c) => c.shape === SH_OCT_SHIELD);
     expect(shieldCall).toBeDefined();
     expect(shieldCall?.angle).toBe(0);
     expect(shieldCall?.a).toBe(0.5);
@@ -70,7 +71,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 27);
+    const shieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(shieldCall).toBeDefined();
     // energy満タン: energyRatio(1.0) * 0.2 = 0.2
     expect(shieldCall?.a).toBe(0.2);
@@ -85,7 +86,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 27);
+    const shieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(shieldCall).toBeDefined();
     // 赤系: r=1.0, g=0.2, b=0.2
     expect(shieldCall?.r).toBe(1.0);
@@ -101,7 +102,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const shieldCalls = calls.filter((c) => c.shape === 22);
+    const shieldCalls = calls.filter((c) => c.shape === SH_OCT_SHIELD);
     expect(shieldCalls).toHaveLength(1);
     expect(shieldCalls[0]?.a).toBe(0.5);
   });
@@ -114,7 +115,7 @@ describe('writeOverlay', () => {
     renderScene(2);
 
     const calls = getWriteCalls();
-    const shieldCall = calls.find((c) => c.shape === 22);
+    const shieldCall = calls.find((c) => c.shape === SH_OCT_SHIELD);
     expect(shieldCall).toBeDefined();
     expect(shieldCall?.angle).toBeCloseTo(1, 5);
   });
@@ -129,7 +130,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const vetOverlay = calls.find((c) => c.shape === 10 && c.angle === 0);
+    const vetOverlay = calls.find((c) => c.shape === SH_EXPLOSION_RING && c.angle === 0);
     expect(vetOverlay).toBeDefined();
   });
 
@@ -142,7 +143,7 @@ describe('writeOverlay', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const swarmOverlay = calls.find((c) => c.shape === 10 && c.a > 0.06);
+    const swarmOverlay = calls.find((c) => c.shape === SH_EXPLOSION_RING && c.a > 0.06);
     expect(swarmOverlay).toBeDefined();
     expect(swarmOverlay?.angle).toBe(0);
   });
@@ -160,20 +161,20 @@ describe('writeParticle', () => {
     p.b = 0.2;
     p.life = 0.8;
     p.maxLife = 1;
-    p.shape = 3;
+    p.shape = SH_CIRCLE;
     setParticleCount(1);
 
     renderScene(0);
 
     const calls = getWriteCalls();
-    const particleCall = calls.find((c) => c.shape === 3);
+    const particleCall = calls.find((c) => c.shape === SH_CIRCLE);
     expect(particleCall).toBeDefined();
     expect(particleCall?.angle).toBe(0);
     expect(particleCall?.x).toBe(50);
     expect(particleCall?.y).toBe(60);
   });
 
-  it('shape=10 のパーティクルも angle=0', () => {
+  it('shape=SH_EXPLOSION_RING のパーティクルも angle=0', () => {
     const p = particle(0);
     p.alive = true;
     p.x = 10;
@@ -184,20 +185,20 @@ describe('writeParticle', () => {
     p.b = 1;
     p.life = 0.5;
     p.maxLife = 1;
-    p.shape = 10;
+    p.shape = SH_EXPLOSION_RING;
     setParticleCount(1);
 
     renderScene(0);
 
     const calls = getWriteCalls();
-    const particleCall = calls.find((c) => c.shape === 10);
+    const particleCall = calls.find((c) => c.shape === SH_EXPLOSION_RING);
     expect(particleCall).toBeDefined();
     expect(particleCall?.angle).toBe(0);
   });
 });
 
 describe('writeBeamSegment', () => {
-  it('ビームセグメントは全て shape=12 で描画される', () => {
+  it('ビームセグメントは全て SH_BEAM で描画される', () => {
     beams.push({
       x1: 0,
       y1: 0,
@@ -217,10 +218,10 @@ describe('writeBeamSegment', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const beamCalls = calls.filter((c) => c.shape === 12);
+    const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
     expect(beamCalls.length).toBeGreaterThan(0);
     for (const bc of beamCalls) {
-      expect(bc.shape).toBe(12);
+      expect(bc.shape).toBe(SH_BEAM);
     }
   });
 
@@ -244,7 +245,7 @@ describe('writeBeamSegment', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const beamCalls = calls.filter((c) => c.shape === 12);
+    const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
     for (const bc of beamCalls) {
       expect(bc.angle).toBeCloseTo(0, 5);
     }
@@ -270,7 +271,7 @@ describe('writeBeamSegment', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const beamCalls = calls.filter((c) => c.shape === 12);
+    const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
     const expectedAngle = Math.atan2(100, 100);
     for (const bc of beamCalls) {
       expect(bc.angle).toBeCloseTo(expectedAngle, 5);
@@ -297,7 +298,7 @@ describe('writeBeamSegment', () => {
     renderScene(0);
 
     const calls = getWriteCalls();
-    const beamCalls = calls.filter((c) => c.shape === 12);
+    const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
     expect(beamCalls.length).toBeGreaterThanOrEqual(3);
     const lastCall = beamCalls[beamCalls.length - 1];
     const secondLastCall = beamCalls[beamCalls.length - 2];
@@ -341,7 +342,7 @@ describe('writeInstance（直接使用）', () => {
 
     const calls = getWriteCalls();
     const expectedAngle = Math.atan2(1, 1);
-    const prCall = calls.find((c) => c.shape === 4 && Math.abs(c.angle - expectedAngle) < 0.01);
+    const prCall = calls.find((c) => c.shape === SH_DIAMOND && Math.abs(c.angle - expectedAngle) < 0.01);
     expect(prCall).toBeDefined();
   });
 
@@ -380,7 +381,7 @@ describe('Reflector 味方フィールド描画', () => {
     u.reflectFieldHp = 15;
     renderScene(0);
     const calls = getWriteCalls();
-    const fieldCall = calls.find((c) => c.shape === 27);
+    const fieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(fieldCall).toBeDefined();
     expect(fieldCall?.r).toBe(0.7);
     expect(fieldCall?.g).toBe(0.5);
@@ -391,7 +392,7 @@ describe('Reflector 味方フィールド描画', () => {
     spawnAt(0, 1, 100, 100);
     renderScene(0);
     const calls = getWriteCalls();
-    const fieldCall = calls.find((c) => c.shape === 27);
+    const fieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(fieldCall).toBeUndefined();
   });
 
@@ -402,7 +403,7 @@ describe('Reflector 味方フィールド描画', () => {
     renderScene(0);
     const calls = getWriteCalls();
     // SH_REFLECT_FIELD は1個のみ（自前描画分）
-    const fieldCalls = calls.filter((c) => c.shape === 27);
+    const fieldCalls = calls.filter((c) => c.shape === SH_REFLECT_FIELD);
     expect(fieldCalls).toHaveLength(1);
   });
 });
