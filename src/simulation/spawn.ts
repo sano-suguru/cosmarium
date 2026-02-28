@@ -108,8 +108,8 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.hitFlash = 0;
       u.blinkCount = 0;
       u.blinkPhase = 0;
-      u.energy = t.maxEnergy ?? 0;
-      u.maxEnergy = t.maxEnergy ?? 0;
+      u.energy = t.maxEnergy;
+      u.maxEnergy = t.maxEnergy;
       u.shieldSourceUnit = NO_UNIT;
       u.shieldCooldown = 0;
       u.reflectFieldHp = 0;
@@ -201,10 +201,10 @@ export function spawnProjectile(
   r: number,
   g: number,
   b: number,
-  homing?: boolean,
-  aoe?: number,
-  target?: UnitIndex,
-  sourceUnit?: UnitIndex,
+  homing = false,
+  aoe = 0,
+  target: UnitIndex = NO_UNIT,
+  sourceUnit: UnitIndex = NO_UNIT,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = projectile(i);
@@ -221,10 +221,10 @@ export function spawnProjectile(
       p.r = r;
       p.g = g;
       p.b = b;
-      p.homing = homing ?? false;
-      p.aoe = aoe ?? 0;
-      p.target = target ?? NO_UNIT;
-      p.sourceUnit = sourceUnit ?? NO_UNIT;
+      p.homing = homing;
+      p.aoe = aoe;
+      p.target = target;
+      p.sourceUnit = sourceUnit;
       incProjectiles();
       return i as ProjectileIndex;
     }
@@ -242,14 +242,11 @@ export function addBeam(
   b: number,
   life: number,
   width: number,
-  tapered?: boolean,
-  stepDiv?: number,
-  lightning?: boolean,
+  tapered = false,
+  stepDiv = 1,
+  lightning = false,
 ) {
-  const bm: Beam = { x1, y1, x2, y2, r, g, b, life, maxLife: life, width };
-  if (tapered) bm.tapered = true;
-  if (stepDiv !== undefined && stepDiv > 1) bm.stepDiv = stepDiv;
-  if (lightning) bm.lightning = true;
+  const bm: Beam = { x1, y1, x2, y2, r, g, b, life, maxLife: life, width, tapered, stepDiv, lightning };
   beams.push(bm);
 }
 

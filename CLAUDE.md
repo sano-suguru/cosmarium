@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Language
 
-Always respond in **Japanese** (日本語で返答すること).
+Always respond in **Japanese**.
 
 ## Project Overview
 
@@ -33,9 +33,9 @@ bun run check        # All checks combined (typecheck + biome ci + knip + cpd + 
 **Biome** (config in `biome.json`): Pre-commit hook runs `bunx biome check --staged --no-errors-on-unmatched --write && git update-index --again`. Formatter: singleQuote, semicolons: always, trailingCommas: all, indentWidth: 2, lineWidth: 120. Key non-obvious rules:
 - `noConsole: error` — only `console.error`/`console.warn` allowed (test files exempt)
 - `noExplicitAny: error`, `noEvolvingTypes: error`, `noDelete: error`, `noBarrelFile: error`
-- `noNonNullAssertion: error` — `!`非null断言禁止
-- `noForEach: error` — `forEach`禁止（for-ofを使用）
-- `noExcessiveCognitiveComplexity: error` — 最大複雑度15
+- `noNonNullAssertion: error` — non-null assertion with `!` is forbidden
+- `noForEach: error` — `forEach` is forbidden (use `for...of` instead)
+- `noExcessiveCognitiveComplexity: error` — max complexity 15
 - `noNestedTernary: error`, `noParameterAssign: error`
 - `src/shaders/**` excluded from Biome
 
@@ -44,19 +44,19 @@ bun run check        # All checks combined (typecheck + biome ci + knip + cpd + 
 Helper utilities in `src/__test__/pool-helper.ts`:
 - `resetPools()` — resets all pools to dead state and zeroes poolCounts
 - `resetState()` — resets game state to menu defaults
-- `spawnAt(team, type, x, y)` — 固定RNG `() => 0` を引数注入して確定的にユニット生成
+- `spawnAt(team, type, x, y)` — injects a fixed RNG `() => 0` as argument for deterministic unit spawning
 
-**テストの定型パターン**: `afterEach(() => { resetPools(); resetState(); vi.restoreAllMocks(); })`。simulation テストでは `vi.mock()` で UI/camera 依存を排除する。
+**Standard test pattern**: `afterEach(() => { resetPools(); resetState(); vi.restoreAllMocks(); })`. In simulation tests, use `vi.mock()` to stub out UI/camera dependencies.
 
 GLSL shaders are imported via `vite-plugin-glsl` (`#include` directives). Shared SDF functions: `src/shaders/includes/sdf.glsl`.
 
-**PRNG**: `rng()` (`state.ts`) — mulberry32ベースの決定論的乱数。`seedRng(seed)` でシード固定可能（テスト用）。シミュレーション内では`rng()`を使用。`main.ts`の`frame()`内カメラシェイク揺れ計算は`Math.random()`（シード制御対象外）。
+**PRNG**: `rng()` (`state.ts`) — deterministic PRNG based on mulberry32. Seed can be fixed with `seedRng(seed)` (for testing). Simulation uses `rng()`. Camera shake jitter in `main.ts` `frame()` uses `Math.random()` (not seed-controlled).
 
-**similarity-ts**: `bun run similarity` — コード類似度検出（閾値0.92、最小7行）。`check`に含まれる。
+**similarity-ts**: `bun run similarity` — code similarity detection (threshold 0.92, minimum 7 lines). Included in `check`.
 
 ## Game Mode
 
-Infinite モードのみ。永続的な宇宙戦争シミュレーション。
+Infinite mode only. A persistent space war simulation.
 
 ## Architecture
 
@@ -76,14 +76,14 @@ src/
   ui/                # Codex, game controls, HUD
 ```
 
-**Main loop**: `frame()` → camera lerp/shake → `update(dt*timeScale)` → `renderFrame()`。詳細はroot `AGENTS.md`「Data Flow概要」参照。
+**Main loop**: `frame()` → camera lerp/shake → `update(dt*timeScale)` → `renderFrame()`. See root `AGENTS.md` "Data Flow" section for details.
 
-**Core files** (変更は広範囲に波及):
-- `types.ts` — 全ファイルが依存。型変更は`bun run typecheck`で検証
-- `state.ts` — PRNG状態+ゲーム状態。全simulationモジュールが使用
-- `constants.ts` — プール上限、ワールドサイズ。全体参照
-- `pools.ts` — オブジェクトプール。spawn/kill全体に影響
-- `unit-types.ts` — ユニット定義。combat、rendering、UIに影響
+**Core files** (changes cascade widely):
+- `types.ts` — all files depend on this. Validate type changes with `bun run typecheck`
+- `state.ts` — PRNG state + game state. Used by all simulation modules
+- `constants.ts` — pool limits, world size. Referenced globally
+- `pools.ts` — object pools. Affects all spawn/kill operations
+- `unit-types.ts` — unit definitions. Affects combat, rendering, and UI
 
 **Detailed change guides** in AGENTS.md files:
 - Root `AGENTS.md` — data flow, state management, change procedures, dependency graph
@@ -95,35 +95,41 @@ src/
 ## Coding Conventions
 
 - **State mutation**: `state.ts` exports `const state: State` — mutate via property assignment
-- **poolCounts**: `Readonly<>` export. `incUnits()`/`decUnits()` 等の専用関数（`pools.ts`）経由で操作。外部からの直接変更は型エラー
+- **poolCounts**: `Readonly<>` export. Modify only through dedicated functions like `incUnits()`/`decUnits()` in `pools.ts`. Direct external mutation causes type errors
 - **beams**: Dynamic array (not pooled) — swap-and-pop for deletion (swap with last element + `.pop()`)
 - **Functional/procedural**: No classes; game objects are plain typed objects
 - **Japanese UI text**: Menu descriptions and unit abilities are in Japanese
 - **Import conventions**: Relative paths + explicit `.ts` extension. No path aliases, no barrel exports
-- **定数の配置**: `constants.ts` には**複数レイヤーから参照される定数のみ**（プールサイズ、ワールド境界、linger時間、シェイプID等）。単一モジュール（+そのテスト）でしか使わないロジック固有の倍率・閾値は、そのモジュール内に定義する（例: `AMP_DAMAGE_MULT` → `combat.ts`）
-- **Dependency rules** (dependency-cruiser): `simulation/` → `state.ts` 禁止（rng/stateは引数注入）。`simulation/` → `ui/` 禁止（コールバック注入で逆転）。検証: `bun run check:deps`
+- **Constant placement**: `constants.ts` contains **only constants referenced across multiple layers** (pool sizes, world boundaries, linger times, shape IDs, etc.). Logic-specific multipliers/thresholds used only within a single module (+ its tests) should be defined in that module (e.g., `AMP_DAMAGE_MULT` → `combat.ts`)
+- **Dependency rules** (dependency-cruiser): `simulation/` → `state.ts` forbidden (rng/state injected as arguments). `simulation/` → `ui/` forbidden (dependency inversion via callback injection). Validate with `bun run check:deps`
 - **TypeScript strict settings**:
   - `verbatimModuleSyntax` — type-only imports must use `import type { X }`
   - `exactOptionalPropertyTypes` — cannot assign `undefined` to optional props (use `prop?: T | undefined`)
   - `noUncheckedIndexedAccess` — array/record index returns `T | undefined`
   - `noImplicitReturns` — all branches must explicitly return
-  - `noFallthroughCasesInSwitch` — switch文のフォールスルー禁止
-  - `noUnusedLocals` / `noUnusedParameters` — 未使用変数・引数はエラー
+  - `noFallthroughCasesInSwitch` — switch fallthrough is forbidden
+  - `noUnusedLocals` / `noUnusedParameters` — unused variables/parameters are errors
 
-**型安全メモ**:
-- `1 - team` は `number` を返し `Team` 型にならない → `.team !== u.team` で比較すること
+- **No defensive fallbacks**: "Just in case" default value returns (scattered `?? defaultValue`), redundant null check layering, and defensive try-catch blocks are forbidden
+  - Do not scatter runtime default values for optional type properties → resolve defaults at definition time and make the type required
+  - DOM elements should use `getElement()` (throws on missing) in initialization functions, then treat as non-null thereafter. Do not silently ignore with `?.`
+  - Function optional parameters should use default parameter syntax (`param = defaultValue`) and avoid `?? defaultValue` in the function body
+  - Array index `T | undefined` from `noUncheckedIndexedAccess` is an exception (required by type constraints)
+
+**Type safety notes**:
+- `1 - team` returns `number`, not `Team` type → compare with `.team !== u.team` instead
 - Pool loop index requires branded type cast: `i as UnitIndex` (also `ParticleIndex`, `ProjectileIndex`)
 - `u.target` is `UnitIndex` — `NO_UNIT` (-1) means no target; always check `.alive` on target
 
 ## Serena (MCP)
 
-コード解析・編集にはSerenaのLSPツールをGrep/Globより優先すること：
-- シンボル定義の検索・参照追跡 → `find_symbol`, `find_referencing_symbols`
-- ファイル構造の把握 → `get_symbols_overview`（ファイル全読みを避ける）
-- リネーム → `rename_symbol`（全参照を自動更新）
-- コード編集 → `replace_symbol_body`, `insert_after_symbol`, `insert_before_symbol`
+Prefer Serena's LSP tools over Grep/Glob for code analysis and editing:
+- Symbol definition lookup and reference tracking → `find_symbol`, `find_referencing_symbols`
+- File structure overview → `get_symbols_overview` (avoids reading entire files)
+- Renaming → `rename_symbol` (automatically updates all references)
+- Code editing → `replace_symbol_body`, `insert_after_symbol`, `insert_before_symbol`
 
-Grep/Globを使う場面: 文字列リテラル検索、ファイル名パターン検索、非コードファイル（GLSL、JSON、MD）の検索
+Use Grep/Glob for: string literal searches, filename pattern searches, non-code files (GLSL, JSON, MD)
 
 ## Key Performance Patterns
 

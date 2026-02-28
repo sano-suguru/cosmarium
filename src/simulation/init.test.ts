@@ -49,7 +49,21 @@ describe('initUnits', () => {
   });
 
   it('beams を空にする', () => {
-    beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
+    beams.push({
+      x1: 0,
+      y1: 0,
+      x2: 1,
+      y2: 1,
+      r: 1,
+      g: 0,
+      b: 0,
+      life: 1,
+      maxLife: 1,
+      width: 1,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    });
     initUnits(rng);
     expect(beams).toHaveLength(0);
   });

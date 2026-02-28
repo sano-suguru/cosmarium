@@ -430,7 +430,7 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   const t = unitType(u.type);
   const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
   const range = computeEffectiveRange(u, t.range);
-  const massWeight = t.massWeight ?? 0;
+  const massWeight = t.massWeight;
 
   const res = resolveTarget(u, nn, t, range, massWeight, dt, rng);
   u.target = res.target;

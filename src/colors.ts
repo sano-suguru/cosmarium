@@ -8,8 +8,8 @@ interface UnitColorMod {
   readonly hue: number; // -0.5 .. +0.5  colour lean (HSL turns)
   readonly lum: number; // 0.6 .. 1.4    brightness
   readonly sat: number; // 0.5 .. 1.3    saturation
-  readonly effectHue?: number;
-  readonly effectSat?: number;
+  readonly effectHue: number;
+  readonly effectSat: number;
 }
 
 const UNIT_MODS: readonly UnitColorMod[] = [
@@ -127,8 +127,8 @@ function resolveBodyMod(mod: UnitColorMod): HslMod {
 }
 
 function resolveEffectMod(mod: UnitColorMod): HslMod {
-  const hue = mod.effectHue ?? mod.hue;
-  const sat = mod.effectSat ?? mod.sat * 1.2;
+  const hue = mod.effectHue;
+  const sat = mod.effectSat;
   return { hue, lum: mod.lum, sat };
 }
 

@@ -209,6 +209,9 @@ describe('writeBeamSegment', () => {
       life: 0.5,
       maxLife: 1,
       width: 3,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
     });
 
     renderScene(0);
@@ -233,6 +236,9 @@ describe('writeBeamSegment', () => {
       life: 1,
       maxLife: 1,
       width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
     });
 
     renderScene(0);
@@ -256,6 +262,9 @@ describe('writeBeamSegment', () => {
       life: 1,
       maxLife: 1,
       width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
     });
 
     renderScene(0);
@@ -281,6 +290,8 @@ describe('writeBeamSegment', () => {
       maxLife: 1,
       width: 4,
       tapered: true,
+      stepDiv: 1,
+      lightning: false,
     });
 
     renderScene(0);

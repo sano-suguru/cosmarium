@@ -1,43 +1,33 @@
 import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, unit } from '../pools.ts';
-import { devWarn } from './dev-overlay.ts';
 import { DOM_ID_COUNT_A, DOM_ID_COUNT_B, DOM_ID_FPS, DOM_ID_PARTICLE_NUM } from './dom-ids.ts';
+import { getElement } from './dom-util.ts';
 
-let _hudInitialized = false;
-let elCountA: HTMLElement | null = null;
-let elCountB: HTMLElement | null = null;
-let elParticleNum: HTMLElement | null = null;
-let elFps: HTMLElement | null = null;
+interface HudEls {
+  readonly countA: HTMLElement;
+  readonly countB: HTMLElement;
+  readonly particleNum: HTMLElement;
+  readonly fps: HTMLElement;
+}
+
+let _els: HudEls | null = null;
+
+function els(): HudEls {
+  if (!_els) throw new Error('initHUD() has not been called');
+  return _els;
+}
 
 export function initHUD() {
-  elCountA = document.getElementById(DOM_ID_COUNT_A);
-  elCountB = document.getElementById(DOM_ID_COUNT_B);
-  elParticleNum = document.getElementById(DOM_ID_PARTICLE_NUM);
-  elFps = document.getElementById(DOM_ID_FPS);
-
-  {
-    const missing = [
-      [DOM_ID_COUNT_A, elCountA],
-      [DOM_ID_COUNT_B, elCountB],
-      [DOM_ID_PARTICLE_NUM, elParticleNum],
-      [DOM_ID_FPS, elFps],
-    ]
-      .filter(([, el]) => !el)
-      .map(([id]) => id);
-    if (missing.length > 0) {
-      throw new Error(`initHUD: missing DOM elements: ${missing.join(', ')}`);
-    }
-  }
-  _hudInitialized = true;
+  _els = {
+    countA: getElement(DOM_ID_COUNT_A),
+    countB: getElement(DOM_ID_COUNT_B),
+    particleNum: getElement(DOM_ID_PARTICLE_NUM),
+    fps: getElement(DOM_ID_FPS),
+  };
 }
 
 export function updateHUD(displayFps: number) {
-  if (!elCountA || !elCountB || !elParticleNum || !elFps) {
-    if (!_hudInitialized) {
-      devWarn('[DEV] updateHUD: initHUD() has not been called');
-    }
-    return;
-  }
+  const d = els();
 
   let ca = 0,
     cb = 0;
@@ -47,8 +37,8 @@ export function updateHUD(displayFps: number) {
     if (u.team === 0) ca++;
     else cb++;
   }
-  elCountA.textContent = `${ca}`;
-  elCountB.textContent = `${cb}`;
-  elParticleNum.textContent = `${poolCounts.particles + poolCounts.projectiles}`;
-  elFps.textContent = `${displayFps}`;
+  d.countA.textContent = `${ca}`;
+  d.countB.textContent = `${cb}`;
+  d.particleNum.textContent = `${poolCounts.particles + poolCounts.projectiles}`;
+  d.fps.textContent = `${displayFps}`;
 }

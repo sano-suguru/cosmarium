@@ -351,7 +351,7 @@ function regenEnergy(dt: number) {
     if (t.reflects) {
       tickReflectorShield(u, dt);
     } else {
-      const regen = t.energyRegen ?? 0;
+      const regen = t.energyRegen;
       u.energy = Math.min(u.maxEnergy, u.energy + regen * dt);
     }
   }

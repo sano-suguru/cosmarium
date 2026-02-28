@@ -97,41 +97,42 @@ export interface UnitType {
   leadAccuracy: number;
   description: string;
   attackDesc: string;
-  aoe?: number;
-  carpet?: number;
-  beam?: boolean;
-  heals?: boolean;
-  reflects?: boolean;
-  spawns?: boolean;
-  homing?: boolean;
-  rams?: boolean;
-  emp?: boolean;
-  teleports?: boolean;
-  chain?: boolean;
-  sweep?: boolean;
-  swarm?: boolean;
-  broadside?: boolean;
-  burst?: number;
-  /** 1バーストあたりの同時発射数。2=左右ツイン。未指定/0=従来の単射 */
-  salvo?: number;
+  aoe: number;
+  carpet: number;
+  beam: boolean;
+  heals: boolean;
+  reflects: boolean;
+  spawns: boolean;
+  homing: boolean;
+  rams: boolean;
+  emp: boolean;
+  teleports: boolean;
+  chain: boolean;
+  sweep: boolean;
+  swarm: boolean;
+  broadside: boolean;
+  /** 追加バースト弾数。0=単発射撃、N=合計 N+1 発のバースト */
+  burst: number;
+  /** 1バーストあたりの同時発射数。2=左右ツイン。0=従来の単射 */
+  salvo: number;
   /** salvo用キャノン位置オフセット [xRatio, yRatio][] — バーストインデックスで循環 */
   cannonOffsets?: readonly (readonly [number, number])[];
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
-  massWeight?: number;
+  massWeight: number;
   engageMin?: number;
   engageMax?: number;
   cooldownResetOnKill?: number;
   /** HP比率がこの値を下回ると退避行動を開始 (0-1, 省略時は退避なし) */
   retreatHpRatio?: number;
-  shields?: boolean;
-  amplifies?: boolean;
-  scrambles?: boolean;
-  catalyzes?: boolean;
+  shields: boolean;
+  amplifies: boolean;
+  scrambles: boolean;
+  catalyzes: boolean;
   /** 味方追従行動を取る支援タイプか */
-  supportFollow?: boolean;
-  maxEnergy?: number;
-  energyRegen?: number;
-  shieldCooldown?: number;
+  supportFollow: boolean;
+  maxEnergy: number;
+  energyRegen: number;
+  shieldCooldown: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe は number 型（boolean フラグでない）のため対象外 */
@@ -166,9 +167,9 @@ export interface Beam {
   life: number;
   maxLife: number;
   width: number;
-  tapered?: boolean;
-  stepDiv?: number;
-  lightning?: boolean;
+  tapered: boolean;
+  stepDiv: number;
+  lightning: boolean;
 }
 
 export interface TrackingBeam {

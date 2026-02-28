@@ -64,9 +64,9 @@ describe('TYPES 配列', () => {
     expect(unitType(6).reflects).toBe(true);
   });
 
-  it('Reflector: energyRegen未定義, shieldCooldown=3', () => {
+  it('Reflector: energyRegen=0 (デフォルト), shieldCooldown=3', () => {
     const r = unitType(6);
-    expect(r.energyRegen).toBeUndefined();
+    expect(r.energyRegen).toBe(0);
     expect(r.shieldCooldown).toBe(3);
   });
 
@@ -102,18 +102,18 @@ describe('TYPES 配列', () => {
     expect(unitType(15).shields).toBe(true);
   });
 
-  it('フラグを持たないタイプ (Drone, Fighter, Flagship, Sniper) は特殊フラグなし', () => {
+  it('フラグを持たないタイプ (Drone, Fighter, Flagship, Sniper) は特殊フラグ false', () => {
     for (const idx of [0, 1, 4, 8]) {
       const t = unitType(idx);
-      expect(t.beam).toBeUndefined();
-      expect(t.heals).toBeUndefined();
-      expect(t.reflects).toBeUndefined();
-      expect(t.spawns).toBeUndefined();
-      expect(t.homing).toBeUndefined();
-      expect(t.rams).toBeUndefined();
-      expect(t.emp).toBeUndefined();
-      expect(t.teleports).toBeUndefined();
-      expect(t.chain).toBeUndefined();
+      expect(t.beam).toBe(false);
+      expect(t.heals).toBe(false);
+      expect(t.reflects).toBe(false);
+      expect(t.spawns).toBe(false);
+      expect(t.homing).toBe(false);
+      expect(t.rams).toBe(false);
+      expect(t.emp).toBe(false);
+      expect(t.teleports).toBe(false);
+      expect(t.chain).toBe(false);
     }
   });
 });

@@ -882,7 +882,7 @@ describe('combat — UNIT STATS', () => {
   });
 
   it('Scorcher に sweep がない', () => {
-    expect(unitType(12).sweep).toBeUndefined();
+    expect(unitType(12).sweep).toBe(false);
   });
 });
 

@@ -336,7 +336,7 @@ function consumeReflectorShieldHp(u: Unit, damage: number, cooldown: number) {
 }
 
 function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number, team: number, c: Color3) {
-  const cooldown = ctx.t.shieldCooldown ?? 3;
+  const cooldown = ctx.t.shieldCooldown;
   for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) continue;
@@ -661,7 +661,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
 function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): boolean {
   const nt = unitType(n.type);
   if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
-  consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown ?? 3);
+  consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown);
   reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
   return true;
 }
@@ -1041,10 +1041,8 @@ function spawnCannonFlash(ctx: CombatContext, ang: number, mx: number, my: numbe
   spawnParticle(mx, my, 0, 0, 0.05, 2.5, 1, 1, 1, SH_CIRCLE);
 }
 
-function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1) {
+function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1, burstIdx = 0) {
   const { u, c, t, vd } = ctx;
-  const burst = t.burst ?? 1;
-  if (u.burstCount <= 0) u.burstCount = burst;
   const sizeMul = 1 + (dmgMul - 1) * 0.5;
   const wb = (dmgMul - 1) * 0.4;
   const vxInherit = u.vx * 0.3;
@@ -1055,10 +1053,9 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMu
   const pr = c[0] + (1 - c[0]) * wb;
   const pg = c[1] + (1 - c[1]) * wb;
   const pb = c[2] + (1 - c[2]) * wb;
-  const salvo = t.salvo ?? 0;
+  const salvo = t.salvo;
   if (salvo >= 2) {
     const offsets = t.cannonOffsets;
-    const burstIdx = burst - u.burstCount;
     const idx = offsets ? burstIdx % offsets.length : 0;
     const pair = offsets?.[idx] ?? DEFAULT_CANNON_OFFSET;
     const ox = pair[0];
@@ -1090,6 +1087,13 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number, dmgMu
     );
     spawnMuzzleFlash(ctx, ang);
   }
+}
+
+function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
+  const { u, t } = ctx;
+  const shots = t.burst + 1;
+  if (u.burstCount <= 0) u.burstCount = shots;
+  fireShot(ctx, ang, d, sp, 1, shots - u.burstCount);
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
 }
@@ -1099,10 +1103,10 @@ const HOMING_SPEED = 280;
 
 function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
-  const burst = t.burst ?? 1;
-  if (u.burstCount <= 0) u.burstCount = burst;
-  const burstIdx = burst - u.burstCount;
-  const spreadAng = ang + (burstIdx - (burst - 1) / 2) * HOMING_SPREAD;
+  const shots = t.burst + 1;
+  if (u.burstCount <= 0) u.burstCount = shots;
+  const burstIdx = shots - u.burstCount;
+  const spreadAng = ang + (burstIdx - (shots - 1) / 2) * HOMING_SPREAD;
   spawnProjectile(
     u.x,
     u.y,
@@ -1149,7 +1153,7 @@ const CARPET_SPREAD = 0.2;
 
 function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, t } = ctx;
-  const carpet = t.carpet ?? 1;
+  const carpet = t.carpet;
   if (u.burstCount <= 0) u.burstCount = carpet;
   const burstIdx = carpet - u.burstCount;
   const spreadAng = ang + (burstIdx - (carpet - 1) / 2) * CARPET_SPREAD;
@@ -1214,7 +1218,7 @@ function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: nu
   if (progress > 0.3) {
     const [lx, ly] = flagshipWorld(u, t.size * 0.2, 0.24 * t.size);
     const [rx, ry] = flagshipWorld(u, t.size * 0.2, -0.24 * t.size);
-    addBeam(lx, ly, rx, ry, c[0] * 0.5, c[1] * 0.5, c[2] * 0.5, 0.04, 0.5 + 1.5 * progress, undefined, 6, true);
+    addBeam(lx, ly, rx, ry, c[0] * 0.5, c[1] * 0.5, c[2] * 0.5, 0.04, 0.5 + 1.5 * progress, false, 6, true);
   }
 }
 
@@ -1620,7 +1624,8 @@ function dispatchFire(ctx: CombatContext, o: Unit) {
     fireAoe(ctx, aim.ang, aim.dist, sp);
   } else {
     const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
-    fireBurst(ctx, aim.ang, aim.dist, sp, dmgMul);
+    fireShot(ctx, aim.ang, aim.dist, sp, dmgMul);
+    u.cooldown = t.fireRate;
   }
 }
 
@@ -1797,7 +1802,8 @@ const COMBAT_FLAG_PRIORITY: DemoFlag[] = [
 
 export function demoFlag(t: UnitType): DemoFlag | null {
   for (const flag of COMBAT_FLAG_PRIORITY) {
-    if (t[flag]) return flag;
+    const v = t[flag];
+    if (v) return flag;
   }
   return null;
 }

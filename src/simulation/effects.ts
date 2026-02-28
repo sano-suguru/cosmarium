@@ -284,7 +284,7 @@ export function updateChains(dt: number, rng: () => number) {
 }
 
 function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Color3, rng: () => number) {
-  addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.3, 2.5, undefined, undefined, true);
+  addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.3, 2.5, false, 1, true);
   const pCount = 6 + ((rng() * 3) | 0);
   for (let i = 0; i < pCount; i++) {
     spawnParticle(

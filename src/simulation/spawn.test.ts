@@ -283,6 +283,9 @@ describe('addBeam', () => {
       life: 0.5,
       maxLife: 0.5,
       width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
     });
   });
 

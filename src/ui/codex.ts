@@ -18,6 +18,7 @@ import {
   DOM_ID_CODEX_NAME,
   DOM_ID_CODEX_STATS,
 } from './dom-ids.ts';
+import { getElement } from './dom-util.ts';
 
 import { clearKillFeed } from './kill-feed.ts';
 
@@ -48,11 +49,20 @@ const demoByFlag: Record<DemoFlag, (mi: UnitIndex) => void> = {
   catalyzes: () => demoCatalyst(),
 };
 
-let elCodex: HTMLElement | null = null;
-let elCodexName: HTMLElement | null = null;
-let elCodexDesc: HTMLElement | null = null;
-let elCodexStats: HTMLElement | null = null;
-let elCodexList: HTMLElement | null = null;
+interface CodexEls {
+  readonly codex: HTMLElement;
+  readonly codexName: HTMLElement;
+  readonly codexDesc: HTMLElement;
+  readonly codexStats: HTMLElement;
+  readonly codexList: HTMLElement;
+}
+
+let _els: CodexEls | null = null;
+
+function els(): CodexEls {
+  if (!_els) throw new Error('initCodexDOM() has not been called');
+  return _els;
+}
 
 let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
@@ -130,7 +140,7 @@ function closeCodex() {
     restoreCamera(cameraSnapshotBeforeCodex);
     cameraSnapshotBeforeCodex = null;
   }
-  if (elCodex) elCodex.classList.remove('open');
+  els().codex.classList.remove('open');
 }
 
 function demoDroneSwarm(mi: UnitIndex) {
@@ -415,15 +425,15 @@ export function syncDemoCamera(): void {
 }
 
 function updateCodexPanel() {
-  if (!elCodexName || !elCodexDesc || !elCodexStats) return;
+  const d = els();
   const t = unitType(state.codexSelected);
   const c0 = color(state.codexSelected, 0),
     c1 = color(state.codexSelected, 1);
   const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
   const col2 = `rgb(${(c1[0] * 255) | 0},${(c1[1] * 255) | 0},${(c1[2] * 255) | 0})`;
-  elCodexName.textContent = t.name;
-  elCodexName.style.color = col;
-  elCodexDesc.textContent = t.description;
+  d.codexName.textContent = t.name;
+  d.codexName.style.color = col;
+  d.codexDesc.textContent = t.description;
 
   const mkBar = (label: string, current: number, max: number, color: string): DocumentFragment => {
     const frag = document.createDocumentFragment();
@@ -439,17 +449,17 @@ function updateCodexPanel() {
     frag.appendChild(barOuter);
     return frag;
   };
-  elCodexStats.textContent = '';
-  elCodexStats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
-  elCodexStats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
-  elCodexStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
-  elCodexStats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
-  elCodexStats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
+  d.codexStats.textContent = '';
+  d.codexStats.appendChild(mkBar('HP', t.hp, 200, '#4f4'));
+  d.codexStats.appendChild(mkBar('SPEED', t.speed, 260, '#4cf'));
+  d.codexStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f64'));
+  d.codexStats.appendChild(mkBar('RANGE', t.range, 600, '#fc4'));
+  d.codexStats.appendChild(mkBar('MASS', t.mass, 30, '#c8f'));
   const atkDiv = document.createElement('div');
   atkDiv.style.marginTop = '8px';
   atkDiv.style.color = col;
   atkDiv.textContent = `: ${t.attackDesc}`;
-  elCodexStats.appendChild(atkDiv);
+  d.codexStats.appendChild(atkDiv);
   const teamDiv = document.createElement('div');
   teamDiv.style.marginTop = '4px';
   teamDiv.style.fontSize = '9px';
@@ -464,14 +474,15 @@ function updateCodexPanel() {
   spanB.style.color = col2;
   spanB.textContent = 'B';
   teamDiv.appendChild(spanB);
-  elCodexStats.appendChild(teamDiv);
+  d.codexStats.appendChild(teamDiv);
 }
 
 function buildCodexUI() {
-  if (!elCodexList) return;
-  const list = elCodexList;
+  const list = els().codexList;
   list.textContent = '';
-  TYPES.forEach((t, i) => {
+  for (let i = 0; i < TYPES.length; i++) {
+    const t = TYPES[i];
+    if (!t) continue;
     const entry = document.createElement('div');
     entry.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
     const c = color(i, 0);
@@ -492,14 +503,15 @@ function buildCodexUI() {
     typeDiv.textContent = t.attackDesc;
     labelGroup.appendChild(typeDiv);
     entry.appendChild(labelGroup);
-    entry.onclick = ((idx: number) => () => {
+    const idx = i;
+    entry.onclick = () => {
       state.codexSelected = idx;
       buildCodexUI();
       setupCodexDemo(idx);
       updateCodexPanel();
-    })(i);
+    };
     list.appendChild(entry);
-  });
+  }
 }
 
 export function toggleCodex() {
@@ -511,7 +523,7 @@ export function toggleCodex() {
     cameraSnapshotBeforeCodex = snapshotCamera();
     poolSnapshot = snapshotPools();
     state.codexOpen = true;
-    if (elCodex) elCodex.classList.add('open');
+    els().codex.classList.add('open');
     buildCodexUI();
     updateCodexPanel();
     setupCodexDemo(state.codexSelected);
@@ -520,23 +532,11 @@ export function toggleCodex() {
 }
 
 export function initCodexDOM() {
-  elCodex = document.getElementById(DOM_ID_CODEX);
-  elCodexName = document.getElementById(DOM_ID_CODEX_NAME);
-  elCodexDesc = document.getElementById(DOM_ID_CODEX_DESC);
-  elCodexStats = document.getElementById(DOM_ID_CODEX_STATS);
-  elCodexList = document.getElementById(DOM_ID_CODEX_LIST);
-
-  {
-    const entries: [string, HTMLElement | null][] = [
-      [DOM_ID_CODEX, elCodex],
-      [DOM_ID_CODEX_NAME, elCodexName],
-      [DOM_ID_CODEX_DESC, elCodexDesc],
-      [DOM_ID_CODEX_STATS, elCodexStats],
-      [DOM_ID_CODEX_LIST, elCodexList],
-    ];
-    const missing = entries.filter(([, el]) => !el).map(([id]) => id);
-    if (missing.length > 0) {
-      throw new Error(`initCodexDOM: missing DOM elements: ${missing.join(', ')}`);
-    }
-  }
+  _els = {
+    codex: getElement(DOM_ID_CODEX),
+    codexName: getElement(DOM_ID_CODEX_NAME),
+    codexDesc: getElement(DOM_ID_CODEX_DESC),
+    codexStats: getElement(DOM_ID_CODEX_STATS),
+    codexList: getElement(DOM_ID_CODEX_LIST),
+  };
 }

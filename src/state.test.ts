@@ -61,14 +61,42 @@ describe('直接代入', () => {
 describe('mutableオブジェクト', () => {
   it('beams は直接 push/length=0 で操作可能', () => {
     expect(beams).toHaveLength(0);
-    beams.push({ x1: 0, y1: 0, x2: 1, y2: 1, r: 1, g: 0, b: 0, life: 1, maxLife: 1, width: 1 });
+    beams.push({
+      x1: 0,
+      y1: 0,
+      x2: 1,
+      y2: 1,
+      r: 1,
+      g: 0,
+      b: 0,
+      life: 1,
+      maxLife: 1,
+      width: 1,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    });
     expect(beams).toHaveLength(1);
   });
 });
 
 describe('getBeam', () => {
   it('有効インデックスでBeam返却', () => {
-    beams.push({ x1: 10, y1: 20, x2: 30, y2: 40, r: 1, g: 0, b: 0, life: 0.5, maxLife: 0.5, width: 2 });
+    beams.push({
+      x1: 10,
+      y1: 20,
+      x2: 30,
+      y2: 40,
+      r: 1,
+      g: 0,
+      b: 0,
+      life: 0.5,
+      maxLife: 0.5,
+      width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    });
     const b = getBeam(0);
     expect(b.x1).toBe(10);
     expect(b.y1).toBe(20);

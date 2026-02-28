@@ -3,8 +3,68 @@ import type { UnitType } from './types.ts';
 /** 射撃を行わないユニット用のダミー fireRate（cooldown が実質満了しない大きな値） */
 const NO_FIRE = 999;
 
+/** resolve() が自動補完する UnitType のデフォルト値プロパティ群 */
+type DefaultKeys =
+  | 'aoe'
+  | 'carpet'
+  | 'beam'
+  | 'heals'
+  | 'reflects'
+  | 'spawns'
+  | 'homing'
+  | 'rams'
+  | 'emp'
+  | 'teleports'
+  | 'chain'
+  | 'sweep'
+  | 'swarm'
+  | 'broadside'
+  | 'burst'
+  | 'salvo'
+  | 'massWeight'
+  | 'shields'
+  | 'amplifies'
+  | 'scrambles'
+  | 'catalyzes'
+  | 'supportFollow'
+  | 'maxEnergy'
+  | 'energyRegen'
+  | 'shieldCooldown';
+
+const DEFAULTS: Pick<UnitType, DefaultKeys> = {
+  aoe: 0,
+  carpet: 0,
+  beam: false,
+  heals: false,
+  reflects: false,
+  spawns: false,
+  homing: false,
+  rams: false,
+  emp: false,
+  teleports: false,
+  chain: false,
+  sweep: false,
+  swarm: false,
+  broadside: false,
+  burst: 0,
+  salvo: 0,
+  massWeight: 0,
+  shields: false,
+  amplifies: false,
+  scrambles: false,
+  catalyzes: false,
+  supportFollow: false,
+  maxEnergy: 0,
+  energyRegen: 0,
+  shieldCooldown: 0,
+};
+
+function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, DefaultKeys>>): UnitType {
+  return { ...DEFAULTS, ...partial };
+}
+
 export const TYPES: UnitType[] = [
-  {
+  resolve({
     name: 'Drone',
     size: 4,
     hp: 3,
@@ -23,8 +83,8 @@ export const TYPES: UnitType[] = [
     boost: { multiplier: 1.8, duration: 0.3, cooldown: 2.5, triggerRange: 120 },
     description: '編隊連携に特化した無人機。同型機が密集するほど火力が増大する。',
     attackDesc: 'スウォームパルス（近傍密度連動）',
-  },
-  {
+  }),
+  resolve({
     name: 'Fighter',
     size: 7,
     hp: 10,
@@ -39,7 +99,7 @@ export const TYPES: UnitType[] = [
     accel: 8.0,
     drag: 2.0,
     leadAccuracy: 0.7,
-    burst: 2,
+    burst: 1,
     salvo: 2,
     // SDF local coords → unit size比率: Front (0.52,±0.46)/0.64, Rear (0.46,±0.42)/0.64
     cannonOffsets: [
@@ -50,8 +110,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.3,
     description: '翼端4砲から交互に2連ツインバースト射撃を放つ汎用主力機。前線の中核を担う。',
     attackDesc: '2連ツインバースト射撃',
-  },
-  {
+  }),
+  resolve({
     name: 'Bomber',
     size: 10,
     hp: 20,
@@ -72,8 +132,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: '広域爆圧弾を投下する重爆撃機。密集陣形に絶大な効果を発揮。',
     attackDesc: '絨毯爆撃（範囲爆圧ダメージ）',
-  },
-  {
+  }),
+  resolve({
     name: 'Cruiser',
     size: 15,
     hp: 50,
@@ -93,8 +153,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.25,
     description: '広角ビームで戦域を薙ぎ払う重巡洋艦。制圧力に優れる。',
     attackDesc: '掃射ビーム（±30°弧状一掃）',
-  },
-  {
+  }),
+  resolve({
     name: 'Flagship',
     size: 30,
     hp: 200,
@@ -112,8 +172,8 @@ export const TYPES: UnitType[] = [
     broadside: true,
     description: '重砲斉射で中型艦を圧倒する艦隊旗艦。対小型群には脆弱。',
     attackDesc: '蓄砲→3連主砲＋舷側砲（対中型特化）',
-  },
-  {
+  }),
+  resolve({
     name: 'Healer',
     size: 11,
     hp: 12,
@@ -134,8 +194,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.4,
     description: '修復ビームで味方艦の損傷を回復する支援艦。',
     attackDesc: '修復ビーム（味方HP回復）',
-  },
-  {
+  }),
+  resolve({
     name: 'Reflector',
     size: 13,
     hp: 30,
@@ -157,8 +217,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: '攻撃を反射し、周囲の味方にも反射フィールドを展開する防衛艦。',
     attackDesc: 'シールド反射＋味方反射フィールド',
-  },
-  {
+  }),
+  resolve({
     name: 'Carrier',
     size: 22,
     hp: 90,
@@ -177,8 +237,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.3,
     description: 'ドローンを定期射出する母艦。自身も砲撃で援護する。',
     attackDesc: 'ドローン射出＋砲撃援護',
-  },
-  {
+  }),
+  resolve({
     name: 'Sniper',
     size: 9,
     hp: 8,
@@ -200,8 +260,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.4,
     description: '超長射程の貫通レールガンで高価値目標を狙撃。撃破ごとに装填が加速。',
     attackDesc: '貫通レールガン（撃破時装填加速）',
-  },
-  {
+  }),
+  resolve({
     name: 'Lancer',
     size: 12,
     hp: 65,
@@ -221,8 +281,8 @@ export const TYPES: UnitType[] = [
     boost: { multiplier: 2.5, duration: 0.5, cooldown: 2.0, triggerRange: 250 },
     description: '最高速の衝角突撃で敵艦を粉砕する近接特化機。',
     attackDesc: '衝角突撃（高ノックバック）',
-  },
-  {
+  }),
+  resolve({
     name: 'Launcher',
     size: 11,
     hp: 18,
@@ -237,14 +297,14 @@ export const TYPES: UnitType[] = [
     accel: 5.0,
     drag: 1.5,
     leadAccuracy: 0.2,
-    burst: 3,
+    burst: 2,
     homing: true,
     boost: { multiplier: 1.5, duration: 0.3, cooldown: 4.0, triggerRange: 300 },
     retreatHpRatio: 0.35,
     description: '誘導ミサイルで目標を追尾する中距離攻撃機。',
     attackDesc: '追尾ミサイル（3連射）',
-  },
-  {
+  }),
+  resolve({
     name: 'Disruptor',
     size: 9,
     hp: 14,
@@ -264,8 +324,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: '電磁パルスを放射し、範囲内の全敵を行動不能にする電子戦機。',
     attackDesc: 'EMPバースト（1.5秒スタン）',
-  },
-  {
+  }),
+  resolve({
     name: 'Scorcher',
     size: 13,
     hp: 30,
@@ -285,8 +345,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.3,
     description: '単体に集中照射する焼灼ビーム艦。照射持続で威力が逓増する。',
     attackDesc: '集中ビーム（持続照射で威力逓増）',
-  },
-  {
+  }),
+  resolve({
     name: 'Teleporter',
     size: 8,
     hp: 12,
@@ -304,8 +364,8 @@ export const TYPES: UnitType[] = [
     teleports: true,
     description: '空間を3連跳躍し、着地衝撃で敵陣形を崩しつつ精密射撃を放つ次元奇襲機。',
     attackDesc: '3連ブリンク→着地衝撃＋精密射撃（計6発）',
-  },
-  {
+  }),
+  resolve({
     name: 'Arcer',
     size: 10,
     hp: 16,
@@ -325,8 +385,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: '放電が最大5体の敵に次々と連鎖する電撃艦。',
     attackDesc: 'チェーンライトニング（最大5連鎖）',
-  },
-  {
+  }),
+  resolve({
     name: 'Bastion',
     size: 14,
     hp: 55,
@@ -348,8 +408,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.3,
     description: 'テザービームで味方のダメージを肩代わりしつつ、自身もエネルギーシールドで被弾を軽減する装甲支援艦。',
     attackDesc: 'ダメージ吸収テザー＋自身シールド＋通常射撃',
-  },
-  {
+  }),
+  resolve({
     name: 'Amplifier',
     size: 12,
     hp: 22,
@@ -370,8 +430,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: 'テザービームで味方の射撃性能を底上げする電磁増幅支援艦。',
     attackDesc: '射撃バフテザー＋通常射撃',
-  },
-  {
+  }),
+  resolve({
     name: 'Scrambler',
     size: 11,
     hp: 18,
@@ -392,8 +452,8 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.4,
     description: '電磁妨害波で敵の射撃性能を劣化させる電子戦支援艦。範囲内の敵は射程・精度・発射速度が低下する。',
     attackDesc: '電磁妨害フィールド（敵デバフ）',
-  },
-  {
+  }),
+  resolve({
     name: 'Catalyst',
     size: 12,
     hp: 20,
@@ -414,7 +474,7 @@ export const TYPES: UnitType[] = [
     retreatHpRatio: 0.35,
     description: '味方艦の機動力と発射速度を底上げするフィールド触媒支援艦。範囲内の味方は加速・旋回・射撃が向上する。',
     attackDesc: '加速フィールド（味方バフ）＋通常射撃',
-  },
+  }),
 ];
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));

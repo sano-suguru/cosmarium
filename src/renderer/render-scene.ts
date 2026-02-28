@@ -361,7 +361,7 @@ function renderBeams(now: number) {
     const dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
     const d = Math.sqrt(dx * dx + dy * dy);
-    const divisor = bm.stepDiv ?? 1;
+    const divisor = bm.stepDiv;
     const steps = Math.max(3, (d / (5 * divisor)) | 0);
     const ang = Math.atan2(dy, dx);
     if (bm.lightning) {
