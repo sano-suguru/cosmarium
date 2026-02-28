@@ -12,7 +12,6 @@ interface UnitColorMod {
   readonly effectSat?: number;
 }
 
-// 順序は TYPES (unit-types.ts) と一致
 const UNIT_MODS: readonly UnitColorMod[] = [
   // 0 Drone
   { hue: -0.08, lum: 1.08, sat: 1.15, effectHue: -0.15, effectSat: 1.35 },
@@ -123,8 +122,6 @@ function applyMod(base: Color3, mod: HslMod): Color3 {
   return [clamp01(r), clamp01(g), clamp01(b)];
 }
 
-// Pre-compute the full 16×2 lookup tables to maintain the exact same
-// runtime API (`color(unitType, team)` / `trailColor(unitType, team)`).
 function resolveBodyMod(mod: UnitColorMod): HslMod {
   return { hue: mod.hue, lum: mod.lum, sat: mod.sat };
 }

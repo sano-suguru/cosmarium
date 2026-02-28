@@ -57,7 +57,6 @@ const _counts = { units: 0, particles: 0, projectiles: 0 };
 
 export const poolCounts: Readonly<{ units: number; particles: number; projectiles: number }> = _counts;
 
-/* mutation API — spawn.ts (+ テストヘルパー) のみが呼ぶ想定 */
 export function incUnits() {
   if (_counts.units >= POOL_UNITS) throw new RangeError(`unitCount at pool limit (${POOL_UNITS})`);
   _counts.units++;

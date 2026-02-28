@@ -131,8 +131,8 @@ const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_MAIN_SPREAD = 0.15;
 const FLAGSHIP_CHARGE_TIME = 0.3;
 const FLAGSHIP_BROADSIDE_DELAY = 0.15;
-const BROADSIDE_PHASE_CHARGE = 0;
-const BROADSIDE_PHASE_FIRE = -1;
+const BROADSIDE_IDLE = 0;
+const BROADSIDE_AWAITING_SALVO = -1;
 const AOE_PROJ_SPEED = 170;
 const AOE_PROJ_SIZE = 5;
 const sweepHitMap = new Map<UnitIndex, Set<UnitIndex>>();
@@ -300,7 +300,6 @@ export function reflectProjectile(
   let dy = p.y - uy;
   let nd = Math.sqrt(dx * dx + dy * dy);
   if (nd < 0.001) {
-    // 弾がReflector中心と一致: 速度の逆方向を法線として使用
     dx = -p.vx;
     dy = -p.vy;
     nd = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -346,7 +345,6 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: Unit, reflectR: number,
     const dx = p.x - u.x;
     const dy = p.y - u.y;
     if (dx * dx + dy * dy >= reflectR * reflectR) continue;
-    // energy枯渇/クールダウン開始時の早期脱出（呼び出し元ガードとは別）
     if (u.energy <= 0 || u.shieldCooldown > 0) break;
     consumeReflectorShieldHp(u, p.damage, cooldown);
     reflectProjectile(ctx.rng, u.x, u.y, p, team, c);
@@ -500,7 +498,6 @@ function blinkDepart(ctx: CombatContext) {
   spawnParticle(u.x, u.y, 0, 0, 0.2, 12, c[0], c[1], c[2], SH_EXPLOSION_RING);
   spawnParticle(u.x, u.y, 0, 0, 0.25, 8, c[0], c[1], c[2], SH_DIAMOND_RING);
 
-  // ターゲット背面側(120°-240°)にランダム出現
   const baseAng = Math.atan2(o.y - prevY, o.x - prevX);
   const zigzag = baseAng + (2.094 + ctx.rng() * 2.094);
   const dist = BLINK_DIST_MIN + ctx.rng() * (BLINK_DIST_MAX - BLINK_DIST_MIN);
@@ -572,32 +569,32 @@ function blinkArrive(ctx: CombatContext) {
   u.cooldown = Math.max(u.cooldown, BLINK_GAP + 0.05);
 }
 
-function teleport(ctx: CombatContext) {
+function teleport(ctx: CombatContext): boolean {
   const { u, dt } = ctx;
   u.teleportTimer -= dt;
-  if (u.teleportTimer > 0) return;
+  if (u.teleportTimer > 0) return false;
 
   if (u.blinkPhase === 1) {
     blinkArrive(ctx);
-    return;
+    return true;
   }
 
   if (u.target === NO_UNIT) {
     u.blinkCount = 0;
-    return;
+    return false;
   }
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.blinkCount = 0;
-    return;
+    return false;
   }
 
   if (u.blinkCount > 0) {
     blinkDepart(ctx);
     u.teleportTimer = WARP_DELAY;
     u.cooldown = Math.max(u.cooldown, WARP_DELAY + 0.05);
-    return;
+    return true;
   }
 
   const dx = o.x - u.x;
@@ -608,7 +605,9 @@ function teleport(ctx: CombatContext) {
     blinkDepart(ctx);
     u.teleportTimer = WARP_DELAY;
     u.cooldown = Math.max(u.cooldown, WARP_DELAY + 0.05);
+    return true;
   }
+  return false;
 }
 
 function castChain(ctx: CombatContext): void {
@@ -903,7 +902,6 @@ function sweepBeam(ctx: CombatContext) {
   }
 
   if (u.sweepPhase === 0) {
-    // 直射角度を使用（sweep系は現状 leadAccuracy=0 のため偏差射撃不要）
     u.sweepBaseAngle = Math.atan2(dy, dx);
     u.sweepPhase = 0.001;
     u.beamOn = 1;
@@ -913,7 +911,6 @@ function sweepBeam(ctx: CombatContext) {
   const prevPhase = u.sweepPhase;
   u.sweepPhase = Math.min(u.sweepPhase + dt / SWEEP_DURATION, 1);
 
-  // smoothstep: +HALF_ARC → -HALF_ARC
   const easeAt = (p: number): number => {
     const e = p * p * (3 - 2 * p);
     return HALF_ARC - e * HALF_ARC * 2;
@@ -1355,21 +1352,21 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
  * State machine reusing existing Unit fields:
  *   beamOn: charge progress (0=idle, 0→1=charging, 1=charged)
  *   sweepBaseAngle: locked target angle at charge start
- *   broadsidePhase: phase (BROADSIDE_PHASE_CHARGE=0, BROADSIDE_PHASE_FIRE=-1)
+ *   broadsidePhase: phase (BROADSIDE_IDLE=0, BROADSIDE_AWAITING_SALVO=-1)
  */
 function flagshipBarrage(ctx: CombatContext) {
   const { u, t, dt } = ctx;
 
   if (u.target === NO_UNIT) {
     u.beamOn = 0;
-    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_IDLE;
     return;
   }
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
     u.beamOn = 0;
-    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_IDLE;
     return;
   }
   const dx = o.x - u.x,
@@ -1377,28 +1374,27 @@ function flagshipBarrage(ctx: CombatContext) {
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d >= ctx.range) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
-    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_IDLE;
     return;
   }
 
   if (u.beamOn === 0 && u.cooldown > 0) return;
 
-  // State: IDLE → CHARGING（角度ロック、エネルギー蓄積開始）
   if (u.beamOn === 0) {
     const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, FLAGSHIP_MAIN_GUN_SPEED, t.leadAccuracy);
     u.sweepBaseAngle = aim.ang;
     u.beamOn = 0.001;
-    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_IDLE;
   }
 
-  if (u.broadsidePhase === BROADSIDE_PHASE_CHARGE) {
+  if (u.broadsidePhase === BROADSIDE_IDLE) {
     u.beamOn = Math.min(u.beamOn + dt / FLAGSHIP_CHARGE_TIME, 1);
     flagshipChargeVfx(ctx, u.beamOn);
     flagshipPreviewBeam(ctx, u.sweepBaseAngle, u.beamOn);
 
     if (u.beamOn >= 1) {
       flagshipFireMain(ctx, u.sweepBaseAngle);
-      u.broadsidePhase = BROADSIDE_PHASE_FIRE;
+      u.broadsidePhase = BROADSIDE_AWAITING_SALVO;
       u.beamOn = 1;
       u.cooldown = FLAGSHIP_BROADSIDE_DELAY;
       return;
@@ -1406,12 +1402,11 @@ function flagshipBarrage(ctx: CombatContext) {
     return;
   }
 
-  // State: BROADSIDE（チャージ完了後、cooldown経過で側面射撃）
-  if (u.broadsidePhase === BROADSIDE_PHASE_FIRE && u.cooldown <= 0) {
+  if (u.broadsidePhase === BROADSIDE_AWAITING_SALVO && u.cooldown <= 0) {
     flagshipFireBroadside(ctx, u.sweepBaseAngle);
     u.cooldown = t.fireRate;
     u.beamOn = 0;
-    u.broadsidePhase = BROADSIDE_PHASE_CHARGE;
+    u.broadsidePhase = BROADSIDE_IDLE;
   }
 }
 
@@ -1596,13 +1591,11 @@ function fireNormal(ctx: CombatContext) {
 function dispatchFire(ctx: CombatContext, o: Unit) {
   const { u, t } = ctx;
 
-  // ── ヒットスキャン: 偏差射撃不要なので aimAt 前に早期 return ──
   if (t.shape === RAILGUN_SHAPE) {
     const directAng = Math.atan2(o.y - u.y, o.x - u.x);
     fireRailgun(ctx, directAng);
     return;
   }
-  // ── 弾速: 各fire関数と1:1対応。分岐追加時はここだけ更新すればよい ──
   let sp: number;
   if (t.carpet) sp = AOE_PROJ_SPEED;
   else if (t.homing) sp = HOMING_SPEED;
@@ -1662,7 +1655,6 @@ function amplifyAllies(ctx: CombatContext) {
 function catalyzeAllies(ctx: CombatContext) {
   const { u, c, dt } = ctx;
   spawnAuraParticle(ctx, 0.3, 0.9, 0.4, SH_DIAMOND);
-  // Catalyst uses directional streak particles instead of a center ring
   const streakProb = 1 - 0.7 ** (dt * REF_FPS);
   for (let k = 0; k < 2; k++) {
     if (ctx.rng() < streakProb) {
@@ -1777,9 +1769,9 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     return;
   }
   if (dispatchSupportAbilities(_ctx)) return;
-  // 非排他: ブリンク非発動フレームは通常射撃にフォールスルー（blinkArrive/Depart は cooldown を設定するため二重射撃にならない）
-  if (t.teleports) teleport(_ctx);
-  if (!tryExclusiveFire(_ctx)) fireNormal(_ctx);
+  // teleport() が false を返すワープ待機中フレームでも、blinkDepart が設定した cooldown により射撃は抑制される
+  const blinked = t.teleports && teleport(_ctx);
+  if (!blinked && !tryExclusiveFire(_ctx)) fireNormal(_ctx);
 }
 
 const COMBAT_FLAG_PRIORITY: DemoFlag[] = [

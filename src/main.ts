@@ -2,12 +2,11 @@ import './style.css';
 
 import { REF_FPS } from './constants.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
-import { initBuffers } from './renderer/buffers.ts';
 import { createFBOs } from './renderer/fbo.ts';
+import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
-import { initShaders } from './renderer/shaders.ts';
-import { initWebGL, resize } from './renderer/webgl-setup.ts';
+import { resize } from './renderer/webgl-setup.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
 import { update } from './simulation/update.ts';
@@ -19,11 +18,7 @@ import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
 const BASE_SPEED = 0.55;
 
-// Init order matters: WebGL context → shader compile → FBOs → vertex buffers
-initWebGL();
-initShaders();
-createFBOs();
-initBuffers();
+initRenderer();
 
 addEventListener('resize', () => {
   resize();

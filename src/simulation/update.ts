@@ -174,11 +174,9 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
   if (p.homing) {
     const prob = 1 - 0.35 ** (dt * REF_FPS);
     if (rng() < prob) {
-      // Engine smoke
       spawnParticle(p.x, p.y, (rng() - 0.5) * 12, (rng() - 0.5) * 12, 0.3, 3.0, 0.5, 0.5, 0.5, SH_CIRCLE);
     }
     if (rng() < prob) {
-      // Colored glow trail
       spawnParticle(
         p.x,
         p.y,

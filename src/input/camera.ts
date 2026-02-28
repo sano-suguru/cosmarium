@@ -231,6 +231,5 @@ export function snapCamera(): void {
 export function updateDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {
   cam.targetX = centroid.cx;
   cam.targetY = centroid.cy;
-  // viewport.W/H は物理px — シェーダの uZ/uR が同単位で相殺されるためCSS変換不要
   cam.targetZ = Math.max(1.0, Math.min(3.5, Math.min(viewport.W, viewport.H) / (centroid.radius * 2.5)));
 }

@@ -510,7 +510,6 @@ export function toggleCodex() {
     clearKillFeed();
     cameraSnapshotBeforeCodex = snapshotCamera();
     poolSnapshot = snapshotPools();
-    // setupCodexDemo() → clearCurrentDemo() が初回クリアを担当
     state.codexOpen = true;
     if (elCodex) elCodex.classList.add('open');
     buildCodexUI();
