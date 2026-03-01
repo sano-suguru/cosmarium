@@ -5,10 +5,10 @@ import {
   AMP_BOOST_LINGER,
   CATALYST_BOOST_LINGER,
   POOL_UNITS,
-  REF_FPS,
   REFLECT_FIELD_MAX_HP,
   SCRAMBLE_BOOST_LINGER,
   SH_CIRCLE,
+  SIM_DT,
 } from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
@@ -20,7 +20,6 @@ import {
   ORPHAN_TETHER_PROJECTILE_MULT,
 } from './combat-beam-defense.ts';
 import { addBeam, onKillUnit, spawnParticle, spawnProjectile } from './spawn.ts';
-import { MAX_STEPS_PER_FRAME } from './update.ts';
 import { REFLECT_FIELD_GRANT_INTERVAL, SHIELD_LINGER, TETHER_BEAM_LIFE } from './update-fields.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -42,7 +41,7 @@ vi.mock('./spatial-hash.ts', async (importOriginal) => {
 
 import { addShake } from '../input/camera.ts';
 import { buildHash } from './spatial-hash.ts';
-import { update } from './update.ts';
+import { stepOnce as tick } from './update.ts';
 
 const mockUpdateCodexDemo = vi.fn((_dt: number) => undefined);
 
@@ -59,56 +58,46 @@ afterEach(() => {
 });
 
 // ============================================================
-// 0. buildHash call count (sub-stepping verification)
+// 0. buildHash call count (tick 単位の検証)
 // ============================================================
-describe('buildHash call count — sub-stepping検証', () => {
-  it('rawDt <= 1/REF_FPS: buildHash は1回だけ呼ばれる', () => {
+describe('buildHash call count — tick 単位検証', () => {
+  it('tick(SIM_DT) 1回 → buildHash 1回', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.02, 0, rng, gameLoopState());
+    tick(SIM_DT, 0, rng, gameLoopState());
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(1);
   });
 
-  it('rawDt > 1/REF_FPS: 適切な回数サブステップが実行される (rawDt=0.066 → 2ステップ)', () => {
+  it('tick(SIM_DT) 2回 → buildHash 2回', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.066, 0, rng, gameLoopState());
+    tick(SIM_DT, 0, rng, gameLoopState());
+    tick(SIM_DT, 0, rng, gameLoopState());
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(2);
   });
 
-  it('rawDt > 1/REF_FPS: 3ステップ以上の分割 (rawDt=0.12 → 4ステップ)', () => {
+  it('tick(SIM_DT) 4回 → buildHash 4回', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    update(0.12, 0, rng, gameLoopState());
+    for (let i = 0; i < 4; i++) tick(SIM_DT, 0, rng, gameLoopState());
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(4);
-  });
-
-  it('MAX_STEPS_PER_FRAME を超える rawDt: ステップ数がキャップされる', () => {
-    spawnAt(0, 0, 0, 0);
-    vi.mocked(buildHash).mockClear();
-    const maxStep = 1 / REF_FPS;
-    const excessiveDt = maxStep * 15; // 15ステップ分の dt
-    update(excessiveDt, 0, rng, gameLoopState());
-    expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(MAX_STEPS_PER_FRAME);
   });
 });
 
 // ============================================================
-// 1. dt sub-stepping
+// 1. 固定タイムステップ
 // ============================================================
-describe('dt sub-stepping', () => {
-  it('rawDt > 0.033 はサブステップに分割される', () => {
+describe('固定タイムステップ', () => {
+  it('tick(SIM_DT) で SIM_DT 分だけパーティクルの life が減少する', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.particles).toBe(1);
-    update(0.05, 0, rng, gameLoopState());
-    // rawDt=0.05, maxStep=0.033, steps=ceil(0.05/0.033)=2, dt=0.05/2=0.025
-    // life = 1.0 - 0.025*2 = 0.95
-    expect(particle(0).life).toBeCloseTo(1.0 - 0.05);
+    tick(SIM_DT, 0, rng, gameLoopState());
+    expect(particle(0).life).toBeCloseTo(1.0 - SIM_DT);
   });
 
-  it('rawDt <= 0.033 はそのまま使われる', () => {
+  it('stepOnce は任意の dt で直接呼べる', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, SH_CIRCLE);
-    update(0.02, 0, rng, gameLoopState());
+    tick(0.02, 0, rng, gameLoopState());
     expect(particle(0).life).toBeCloseTo(1.0 - 0.02);
   });
 });
@@ -119,7 +108,7 @@ describe('dt sub-stepping', () => {
 describe('パーティクル pass', () => {
   it('移動 + drag 0.97', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, SH_CIRCLE);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(particle(0).x).toBeCloseTo(100 * 0.016, 1);
     expect(particle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
     expect(particle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * 30));
@@ -128,7 +117,7 @@ describe('パーティクル pass', () => {
   it('life<=0 で消滅', () => {
     spawnParticle(0, 0, 0, 0, 0.01, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.particles).toBe(1);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(particle(0).alive).toBe(false);
     expect(poolCounts.particles).toBe(0);
   });
@@ -138,7 +127,7 @@ describe('ビーム pass', () => {
   it('life<=0 で beams から除去', () => {
     addBeam(0, 0, 100, 0, 1, 1, 1, 0.01, 2);
     expect(beams).toHaveLength(1);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(beams).toHaveLength(0);
   });
 });
@@ -151,7 +140,7 @@ describe('steer + combat + trail', () => {
     const idx = spawnAt(0, 0, 0, 0); // Drone
     unit(idx).shieldLingerTimer = 1.0;
     unit(idx).trailTimer = 99; // trail 抑制
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(idx).shieldLingerTimer).toBeCloseTo(1.0 - 0.016);
   });
 
@@ -160,7 +149,7 @@ describe('steer + combat + trail', () => {
     const b = spawnAt(1, 1, 100, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).target).toBeGreaterThanOrEqual(0);
     expect(poolCounts.projectiles).toBeGreaterThanOrEqual(1);
   });
@@ -168,7 +157,7 @@ describe('steer + combat + trail', () => {
   it('trail timer: trailTimer<=0 でパーティクル生成', () => {
     const idx = spawnAt(0, 0, 500, 500);
     unit(idx).trailTimer = 0.001;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 });
@@ -182,7 +171,7 @@ describe('Reflector reflect field', () => {
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
@@ -191,7 +180,7 @@ describe('Reflector reflect field', () => {
     const ally = spawnAt(0, 1, 250, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
@@ -200,7 +189,7 @@ describe('Reflector reflect field', () => {
     const enemy = spawnAt(1, 0, 50, 0);
     unit(ref).trailTimer = 99;
     unit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).reflectFieldHp).toBe(0);
   });
 
@@ -210,7 +199,7 @@ describe('Reflector reflect field', () => {
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
@@ -221,7 +210,7 @@ describe('Reflector reflect field', () => {
     unit(ref).maxEnergy = 0;
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
@@ -232,7 +221,7 @@ describe('Reflector reflect field', () => {
     unit(ref).shieldCooldown = 3; // ダウン中
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 
@@ -241,9 +230,9 @@ describe('Reflector reflect field', () => {
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     unit(ally).x = 500;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
 });
@@ -258,7 +247,7 @@ describe('Bastion tether', () => {
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).shieldLingerTimer).toBe(SHIELD_LINGER);
     expect(trackingBeams.length).toBeGreaterThan(0);
   });
@@ -269,7 +258,7 @@ describe('Bastion tether', () => {
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).shieldLingerTimer).toBe(0);
     expect(trackingBeams.length).toBe(0);
   });
@@ -279,9 +268,9 @@ describe('Bastion tether', () => {
     const ally = spawnAt(0, 1, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(trackingBeams.length).toBeGreaterThan(0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     const tb = trackingBeams[0];
     expect(tb).toBeDefined();
     if (tb === undefined) return;
@@ -297,11 +286,11 @@ describe('Bastion tether', () => {
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(trackingBeams.length).toBe(1);
     // 60フレーム分（TETHER_BEAM_LIFE=0.7秒を大幅に超える）
     for (let f = 0; f < 60; f++) {
-      update(0.016, 0, rng, gameLoopState());
+      tick(0.016, 0, rng, gameLoopState());
     }
     expect(trackingBeams.length).toBe(1);
     expect(getTrackingBeam(0).life).toBeGreaterThan(0);
@@ -313,7 +302,7 @@ describe('Bastion tether', () => {
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(trackingBeams.length).toBe(1);
     // 範囲外に移動
     unit(ally).x = 5000;
@@ -321,7 +310,7 @@ describe('Bastion tether', () => {
     // TETHER_BEAM_LIFE (0.7s) 以上の時間を進める
     const frames = Math.ceil(TETHER_BEAM_LIFE / 0.016) + 5;
     for (let f = 0; f < frames; f++) {
-      update(0.016, 0, rng, gameLoopState());
+      tick(0.016, 0, rng, gameLoopState());
     }
     expect(trackingBeams.length).toBe(0);
   });
@@ -332,10 +321,10 @@ describe('Bastion tether', () => {
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(trackingBeams.length).toBe(1);
     for (let f = 0; f < 30; f++) {
-      update(0.016, 0, rng, gameLoopState());
+      tick(0.016, 0, rng, gameLoopState());
     }
     expect(trackingBeams.length).toBe(1);
   });
@@ -352,7 +341,7 @@ describe('Bastion self-shield', () => {
     unit(bastion).maxEnergy = 25;
     const hpBefore = unit(bastion).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // 30% of 10 = 3 absorbed by energy, 70% = 7 to hp
     expect(unit(bastion).energy).toBeCloseTo(25 - 3);
     expect(unit(bastion).hp).toBeCloseTo(hpBefore - 7);
@@ -366,7 +355,7 @@ describe('Bastion self-shield', () => {
     unit(bastion).maxEnergy = 1;
     const hpBefore = unit(bastion).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // min(10*0.3, 1) = 1 absorbed, 9 to hp
     expect(unit(bastion).energy).toBeCloseTo(0);
     expect(unit(bastion).hp).toBeCloseTo(hpBefore - 9);
@@ -380,7 +369,7 @@ describe('Bastion self-shield', () => {
     unit(bastion).maxEnergy = 0;
     const hpBefore = unit(bastion).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 1, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(bastion).energy).toBe(0);
     expect(unit(bastion).hp).toBeCloseTo(hpBefore - 10);
   });
@@ -398,7 +387,7 @@ describe('Bastion self-shield', () => {
     const targetHpBefore = unit(target).hp;
     const dmg = 10;
     spawnProjectile(5, 0, 0, 0, 1.0, dmg, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // 1) Tether absorbs 40%: bastion takes 4 directly to hp, remaining dmg = 6
     const tetherDmg = dmg * BASTION_ABSORB_RATIO;
     const afterTether = dmg - tetherDmg;
@@ -416,14 +405,14 @@ describe('Bastion self-shield', () => {
 describe('projectile pass', () => {
   it('移動: x += vx*dt', () => {
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).x).toBeCloseTo(4.8);
   });
 
   it('life<=0 で消滅 (aoe=0)', () => {
     spawnProjectile(0, 0, 0, 0, 0.01, 5, 0, 2, 1, 0, 0);
     expect(poolCounts.projectiles).toBe(1);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).alive).toBe(false);
     expect(poolCounts.projectiles).toBe(0);
   });
@@ -432,7 +421,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 30, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBeLessThan(10);
     expect(addShake).toHaveBeenCalledWith(3, expect.any(Number), expect.any(Number));
   });
@@ -441,7 +430,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 1, 5, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBe(5);
     expect(projectile(0).alive).toBe(false);
   });
@@ -455,7 +444,7 @@ describe('projectile pass', () => {
     unit(target).shieldSourceUnit = bastion;
     const bastionHpBefore = unit(bastion).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // target takes 60% of 10 = 6, so hp = 10 - 6 = 4
     expect(unit(target).hp).toBe(4);
     // bastion takes 40% of 10 = 4
@@ -474,7 +463,7 @@ describe('projectile pass', () => {
     decUnits();
     const hpBefore = unit(target).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(target).hp).toBe(hpBefore - 10 * ORPHAN_TETHER_PROJECTILE_MULT);
     expect(unit(target).shieldSourceUnit).toBe(NO_UNIT);
   });
@@ -488,7 +477,7 @@ describe('projectile pass', () => {
     unit(target).shieldSourceUnit = bastion;
     const particlesBefore = poolCounts.particles;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // テザー吸収が発生し、4個のエネルギーフローパーティクルが生成される
     expect(poolCounts.particles).toBeGreaterThanOrEqual(particlesBefore + 4);
   });
@@ -497,7 +486,7 @@ describe('projectile pass', () => {
     const enemy = spawnAt(1, 0, 3, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(poolCounts.units).toBe(0);
   });
@@ -506,7 +495,7 @@ describe('projectile pass', () => {
     const target = spawnAt(1, 1, 0, 200);
     unit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBeGreaterThan(0);
   });
 
@@ -516,7 +505,7 @@ describe('projectile pass', () => {
     decUnits();
     unit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBe(0);
   });
 
@@ -525,7 +514,7 @@ describe('projectile pass', () => {
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, false, 70);
     expect(poolCounts.projectiles).toBe(1);
     const origParticleCount = poolCounts.particles;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // パーティクルが生成される (16個)
     expect(poolCounts.particles).toBeGreaterThan(origParticleCount);
     // 第1パーティクル（loop の最初）をチェック
@@ -552,7 +541,7 @@ describe('railgun hitscan', () => {
     const enemy = spawnAt(1, 0, 200, 0);
     unit(enemy).trailTimer = 99;
     const hpBefore = unit(enemy).hp;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBeLessThan(hpBefore);
   });
 
@@ -570,7 +559,7 @@ describe('railgun hitscan', () => {
     unit(enemy2).trailTimer = 99;
     unit(enemy2).hp = 200;
     unit(enemy2).maxHp = 200;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     const dmg1 = 200 - unit(enemy1).hp;
     const dmg2 = 200 - unit(enemy2).hp;
     expect(dmg1).toBeGreaterThan(0);
@@ -587,7 +576,7 @@ describe('railgun hitscan', () => {
     unit(enemy).trailTimer = 99;
     unit(enemy).reflectFieldHp = 100;
     const hpBefore = unit(enemy).hp;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // フィールドが減衰しHP変化なし
     expect(unit(enemy).reflectFieldHp).toBeLessThan(100);
     expect(unit(enemy).hp).toBe(hpBefore);
@@ -602,7 +591,7 @@ describe('railgun hitscan', () => {
     const enemy = spawnAt(1, 0, 200, 0);
     unit(enemy).trailTimer = 99;
     unit(enemy).hp = 1;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     // cooldownResetOnKill=0.8
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
@@ -619,7 +608,7 @@ describe('railgun hitscan', () => {
     unit(enemy).hp = 200;
     unit(enemy).maxHp = 200;
     const hpBefore = unit(enemy).hp;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // 直射角度 = atan2(0, 200) = 0 → 射線は敵の現在位置を通る → ヒット
     expect(unit(enemy).hp).toBeLessThan(hpBefore);
   });
@@ -633,7 +622,7 @@ describe('railgun hitscan', () => {
     const enemy = spawnAt(1, 0, 800, 0);
     unit(enemy).trailTimer = 99;
     const hpBefore = unit(enemy).hp;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBe(hpBefore);
   });
 });
@@ -646,7 +635,7 @@ describe('キル時クールダウン短縮', () => {
     unit(enemy).trailTimer = 99;
     // sourceUnit=sniper の弾を生成
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(unit(sniper).kills).toBe(1);
   });
@@ -658,7 +647,7 @@ describe('キル時クールダウン短縮', () => {
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // combat() で cooldown 2.5→2.484, 次に detectProjectileHit で min(2.484, 0.8)=0.8
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
   });
@@ -668,7 +657,7 @@ describe('キル時クールダウン短縮', () => {
     unit(enemy).trailTimer = 99;
     // sourceUnit なし（デフォルト NO_UNIT）→ 誰もvet上昇しない
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
   });
 });
@@ -679,7 +668,7 @@ describe('キル時クールダウン短縮', () => {
 describe('reinforce', () => {
   it('reinforce が呼び出され両チームにユニットが増える', () => {
     state.reinforcementTimer = 2.49;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     let t0 = 0;
     let t1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
@@ -701,7 +690,7 @@ describe('codexOpen 分岐', () => {
     state.codexOpen = true;
     const idx = spawnAt(0, 1, 0, 0);
     unit(idx).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(mockUpdateCodexDemo).toHaveBeenCalled();
   });
 
@@ -712,7 +701,7 @@ describe('codexOpen 分岐', () => {
     unit(idx).trailTimer = 99;
     unit(idx).cooldown = 0;
     unit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(idx).target).toBeGreaterThanOrEqual(0);
   });
 });
@@ -730,7 +719,7 @@ describe('swarmN 更新', () => {
     unit(b).trailTimer = 99;
     unit(c).trailTimer = 99;
     unit(d).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // a の近傍に b,c,d → swarmN=3
     expect(unit(a).swarmN).toBe(3);
   });
@@ -740,7 +729,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 1, 20, 0); // Fighter (type !== 0)
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(0);
   });
 
@@ -749,7 +738,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 1, 20, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(0);
   });
 
@@ -758,7 +747,7 @@ describe('swarmN 更新', () => {
     spawnAt(1, 0, 20, 0);
     spawnAt(1, 0, 0, 20);
     unit(a).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(0);
   });
 
@@ -769,7 +758,7 @@ describe('swarmN 更新', () => {
       unit(idx).trailTimer = 99;
     }
     unit(a).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(6);
   });
 
@@ -779,7 +768,7 @@ describe('swarmN 更新', () => {
     const far = spawnAt(0, 0, 201, 0);
     unit(a).trailTimer = 99;
     unit(far).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(0);
   });
 
@@ -789,7 +778,7 @@ describe('swarmN 更新', () => {
     const b = spawnAt(0, 0, 20, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(1);
   });
 });
@@ -803,7 +792,7 @@ describe('Reflector shieldCooldown 回復', () => {
     unit(ref).energy = 0;
     unit(ref).shieldCooldown = 3;
     unit(ref).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ref).shieldCooldown).toBeCloseTo(3 - 0.016);
   });
 
@@ -812,7 +801,7 @@ describe('Reflector shieldCooldown 回復', () => {
     unit(ref).energy = 0;
     unit(ref).shieldCooldown = 0.01; // すぐ回復
     unit(ref).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ref).shieldCooldown).toBe(0);
     expect(unit(ref).energy).toBe(unit(ref).maxEnergy);
   });
@@ -821,7 +810,7 @@ describe('Reflector shieldCooldown 回復', () => {
     const bastion = spawnAt(0, 15, 0, 0);
     unit(bastion).energy = 10;
     unit(bastion).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // Bastion energyRegen=4, energy = 10 + 4*0.016 = 10.064
     expect(unit(bastion).energy).toBeCloseTo(10 + 4 * 0.016);
   });
@@ -831,7 +820,7 @@ describe('Reflector shieldCooldown 回復', () => {
     unit(ref).energy = 50;
     unit(ref).shieldCooldown = 0;
     unit(ref).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // shieldCooldown=0かつenergy>0: 何も起きない（energyRegenなし）
     expect(unit(ref).energy).toBe(50);
   });
@@ -847,7 +836,7 @@ describe('reflectFieldHp 反射', () => {
     unit(ally).trailTimer = 99;
     const hpBefore = unit(ally).hp;
     spawnProjectile(5, 0, -100, 0, 1.0, 3, 1, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(7); // 10 - 3
     expect(unit(ally).hp).toBe(hpBefore); // ダメージ受けない
     expect(projectile(0).team).toBe(0); // 反射済み
@@ -859,7 +848,7 @@ describe('reflectFieldHp 反射', () => {
     unit(ally).trailTimer = 99;
     const hpBefore = unit(ally).hp;
     spawnProjectile(5, 0, -100, 0, 1.0, 3, 1, 2, 1, 0, 0);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).hp).toBeLessThan(hpBefore); // ダメージ受ける
   });
 
@@ -869,12 +858,12 @@ describe('reflectFieldHp 反射', () => {
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
     // HPを減らし、インターバルをリセットして「スキャンしてもHP>0なら上書きしない」ことを検証
     unit(ally).reflectFieldHp = 5;
     unit(ref).fieldGrantCooldown = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // HP > 0 のため再付与されない
     expect(unit(ally).reflectFieldHp).toBe(5);
   });
@@ -885,13 +874,13 @@ describe('reflectFieldHp 反射', () => {
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
     // フィールドHPを枯渇させる
     unit(ally).reflectFieldHp = 0;
     // Reflectorのインターバルをリセットして再スキャン可能に
     unit(ref).fieldGrantCooldown = 0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // 即再付与される
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
@@ -902,7 +891,7 @@ describe('reflectFieldHp 反射', () => {
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     unit(ref).fieldGrantCooldown = 2.0;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(0);
   });
 
@@ -911,7 +900,7 @@ describe('reflectFieldHp 反射', () => {
     const ally = spawnAt(0, 1, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
     expect(unit(ref).fieldGrantCooldown).toBe(REFLECT_FIELD_GRANT_INTERVAL);
   });
@@ -923,7 +912,7 @@ describe('reflectFieldHp 反射', () => {
     unit(ally).trailTimer = 99;
     // 味方に事前にフィールドを付与
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // 全味方がフィールド保有中なので granted=false → インターバル開始しない
     expect(unit(ref).fieldGrantCooldown).toBe(0);
   });
@@ -936,13 +925,13 @@ describe('reflectFieldHp 反射', () => {
     unit(ref2).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回: ref1 or ref2 が付与
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
     // フィールドを破壊し、ref1のインターバルを残す
     unit(ally).reflectFieldHp = 0;
     unit(ref1).fieldGrantCooldown = 0.5; // ref1はまだインターバル中
     unit(ref2).fieldGrantCooldown = 0; // ref2はインターバル完了
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     // ref2が再付与できる
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
@@ -953,13 +942,13 @@ describe('reflectFieldHp 反射', () => {
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
     // 範囲外に移動
     unit(ally).x = 5000;
     // 60フレーム分経過させてもフィールドは残る
     for (let f = 0; f < 60; f++) {
-      update(0.016, 0, rng, gameLoopState());
+      tick(0.016, 0, rng, gameLoopState());
     }
     expect(unit(ally).reflectFieldHp).toBe(REFLECT_FIELD_MAX_HP);
   });
@@ -977,7 +966,7 @@ describe('Amplifier tether', () => {
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
     unit(amp).trailTimer = 99;
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).ampBoostTimer).toBe(AMP_BOOST_LINGER);
     expect(trackingBeams.length).toBeGreaterThanOrEqual(1);
     const tb = getTrackingBeam(trackingBeams.length - 1);
@@ -992,7 +981,7 @@ describe('Amplifier tether', () => {
     unit(amp).trailTimer = 99;
     const farAlly = spawnAt(0, FIGHTER_TYPE_IDX, 500, 0);
     unit(farAlly).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(farAlly).ampBoostTimer).toBe(0);
   });
 
@@ -1001,7 +990,7 @@ describe('Amplifier tether', () => {
     const amp2 = spawnAt(0, AMPLIFIER_TYPE, 50, 0);
     unit(amp1).trailTimer = 99;
     unit(amp2).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(amp2).ampBoostTimer).toBe(0);
     expect(unit(amp1).ampBoostTimer).toBe(0);
   });
@@ -1010,7 +999,7 @@ describe('Amplifier tether', () => {
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 0, 0);
     unit(ally).ampBoostTimer = 1.0;
     unit(ally).trailTimer = 99;
-    update(0.5, 0, rng, gameLoopState());
+    tick(0.5, 0, rng, gameLoopState());
     expect(unit(ally).ampBoostTimer).toBeCloseTo(0.5, 1);
   });
 });
@@ -1029,7 +1018,7 @@ describe('KillEvent 伝播', () => {
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, attacker);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -1047,7 +1036,7 @@ describe('KillEvent 伝播', () => {
     unit(enemy).trailTimer = 99;
     // 寿命切れで爆発する AOE 弾
     spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, false, 70, undefined, attacker);
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -1066,7 +1055,7 @@ describe('Scrambler debuff', () => {
     unit(scrambler).trailTimer = 99;
     const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 50, 0);
     unit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).scrambleTimer).toBe(SCRAMBLE_BOOST_LINGER);
   });
 
@@ -1075,7 +1064,7 @@ describe('Scrambler debuff', () => {
     unit(scrambler).trailTimer = 99;
     const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 500, 0);
     unit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).scrambleTimer).toBe(0);
   });
 
@@ -1084,7 +1073,7 @@ describe('Scrambler debuff', () => {
     unit(scrambler).trailTimer = 99;
     const enemyScrambler = spawnAt(1, SCRAMBLER_TYPE, 50, 0);
     unit(enemyScrambler).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemyScrambler).scrambleTimer).toBe(0);
   });
 
@@ -1093,7 +1082,7 @@ describe('Scrambler debuff', () => {
     unit(scrambler).trailTimer = 99;
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).scrambleTimer).toBe(0);
   });
 
@@ -1101,7 +1090,7 @@ describe('Scrambler debuff', () => {
     const enemy = spawnAt(0, FIGHTER_TYPE_IDX, 0, 0);
     unit(enemy).scrambleTimer = 1.0;
     unit(enemy).trailTimer = 99;
-    update(0.5, 0, rng, gameLoopState());
+    tick(0.5, 0, rng, gameLoopState());
     expect(unit(enemy).scrambleTimer).toBeCloseTo(0.5, 1);
   });
 });
@@ -1113,7 +1102,7 @@ describe('Catalyst buff', () => {
     unit(catalyst).trailTimer = 99;
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 50, 0);
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).catalystTimer).toBe(CATALYST_BOOST_LINGER);
   });
 
@@ -1122,7 +1111,7 @@ describe('Catalyst buff', () => {
     unit(catalyst).trailTimer = 99;
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 500, 0);
     unit(ally).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(ally).catalystTimer).toBe(0);
   });
 
@@ -1131,7 +1120,7 @@ describe('Catalyst buff', () => {
     unit(catalyst).trailTimer = 99;
     const allyCatalyst = spawnAt(0, CATALYST_TYPE, 50, 0);
     unit(allyCatalyst).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(allyCatalyst).catalystTimer).toBe(0);
   });
 
@@ -1140,7 +1129,7 @@ describe('Catalyst buff', () => {
     unit(catalyst).trailTimer = 99;
     const enemy = spawnAt(1, FIGHTER_TYPE_IDX, 50, 0);
     unit(enemy).trailTimer = 99;
-    update(0.016, 0, rng, gameLoopState());
+    tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).catalystTimer).toBe(0);
   });
 
@@ -1148,7 +1137,7 @@ describe('Catalyst buff', () => {
     const ally = spawnAt(0, FIGHTER_TYPE_IDX, 0, 0);
     unit(ally).catalystTimer = 1.0;
     unit(ally).trailTimer = 99;
-    update(0.5, 0, rng, gameLoopState());
+    tick(0.5, 0, rng, gameLoopState());
     expect(unit(ally).catalystTimer).toBeCloseTo(0.5, 1);
   });
 });

@@ -1,6 +1,6 @@
 import './style.css';
 
-import { REF_FPS } from './constants.ts';
+import { REF_FPS, SIM_DT } from './constants.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
@@ -9,7 +9,7 @@ import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
-import { update } from './simulation/update.ts';
+import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { initUI } from './ui/game-control.ts';
@@ -41,6 +41,28 @@ let lastTime = 0,
   frameCount = 0,
   fpsTime = 0,
   displayFps = 0;
+
+let prevCodexOpen = false;
+let prevGameState = state.gameState;
+
+/** シミュレーション用 accumulator — 実経過時間を蓄積し SIM_DT 刻みで stepOnce を呼ぶ */
+let simAccumulator = 0;
+/** codex デモ用 accumulator（ゲーム本編とは独立） */
+let demoAccumulator = 0;
+
+const MAX_SIM_STEPS_PER_FRAME = 8;
+
+/** accumulator を消費して固定 dt で stepOnce を呼ぶ。戻り値は残余 accumulator */
+function drainAccumulator(initial: number, t: number, rngFn: () => number): number {
+  let remaining = initial;
+  let steps = 0;
+  while (remaining >= SIM_DT && steps < MAX_SIM_STEPS_PER_FRAME) {
+    stepOnce(SIM_DT, t, rngFn, gameLoopState);
+    remaining -= SIM_DT;
+    steps++;
+  }
+  return remaining >= SIM_DT ? 0 : remaining;
+}
 
 const gameLoopState = {
   get codexOpen() {
@@ -84,15 +106,20 @@ function frame(now: number) {
     cam.shake = 0;
   }
 
+  if (state.codexOpen !== prevCodexOpen || state.gameState !== prevGameState) {
+    simAccumulator = 0;
+    demoAccumulator = 0;
+    prevCodexOpen = state.codexOpen;
+    prevGameState = state.gameState;
+  }
+
   if (state.codexOpen) {
     setAutoFollow(false);
-    // デモは timeScale 無視で常に 1x 再生。ゲームPRNG汚染防止のため demoRng 使用
-    update(dt * BASE_SPEED, t, demoRng, gameLoopState);
+    demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, t, demoRng);
     syncDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
-    const scaledDt = dt * state.timeScale * BASE_SPEED;
-    update(scaledDt, t, rng, gameLoopState);
+    simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, t, rng);
     updateHotspot();
     updateAutoFollow(hotspot());
     renderFrame(t);

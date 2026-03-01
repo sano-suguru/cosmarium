@@ -16,7 +16,7 @@ vi.mock('../ui/game-control.ts', () => ({
   initUI: vi.fn(),
 }));
 
-import { update } from './update.ts';
+import { stepOnce } from './update.ts';
 
 const rng = (() => {
   let s = 12345;
@@ -48,12 +48,12 @@ afterEach(() => {
   gameLoopState.reinforcementTimer = 0;
 });
 
-describe('update 1tick', () => {
+describe('stepOnce 1tick', () => {
   const dt = 1 / REF_FPS;
 
   bench('空の世界 (0 units, 0 particles)', () => {
     rng.reset();
-    update(dt, 0, rng, gameLoopState);
+    stepOnce(dt, 0, rng, gameLoopState);
   });
 
   bench('50 units, 0 particles', () => {
@@ -62,7 +62,7 @@ describe('update 1tick', () => {
       spawnAt(0, 1, rng() * 4000, rng() * 4000);
       spawnAt(1, 1, rng() * 4000, rng() * 4000);
     }
-    update(dt, 0, rng, gameLoopState);
+    stepOnce(dt, 0, rng, gameLoopState);
     resetPools();
   });
 
@@ -73,7 +73,7 @@ describe('update 1tick', () => {
       spawnAt(1, 1, rng() * 4000, rng() * 4000);
     }
     spawnParticles(1000);
-    update(dt, 0, rng, gameLoopState);
+    stepOnce(dt, 0, rng, gameLoopState);
     resetPools();
   });
 
@@ -84,7 +84,7 @@ describe('update 1tick', () => {
       spawnAt(1, 1, rng() * 4000, rng() * 4000);
     }
     spawnParticles(10000);
-    update(dt, 0, rng, gameLoopState);
+    stepOnce(dt, 0, rng, gameLoopState);
     resetPools();
   });
 
@@ -95,7 +95,7 @@ describe('update 1tick', () => {
       spawnAt(1, 1, rng() * 4000, rng() * 4000);
     }
     spawnParticles(10000);
-    update(dt, 0, rng, gameLoopState);
+    stepOnce(dt, 0, rng, gameLoopState);
     resetPools();
   });
 });

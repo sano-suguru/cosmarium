@@ -50,7 +50,7 @@ src/
 詳細は`src/simulation/AGENTS.md`のTick順序を参照。概略:
 
 - main loop: `gameState==='play'`時のみ実行。dtは`Math.min(dt, 0.05)`でクランプ
-- update.tsがサブステップ分割（最大`MAX_STEPS_PER_FRAME=8`回）→ 各ステップでhash→steer→combat→effects→reinforce
+- main.ts の `drainAccumulator` が accumulator パターンで `stepOnce(SIM_DT)` を固定 dt 刻みで呼び出し（最大8ステップ/フレーム）→ 各ステップでhash→steer→combat→effects→reinforce
 - `codexOpen`時: simulation/renderer/input/mainの4層に波及。非デモユニットのsteer/combatスキップ、reinforceスキップ、カメラ固定、操作無効化
 - RNG: main.tsが`state.rng`(seeded)か`demoRng`を選択し`update()`に引数注入。simulation内は全て引数経由（依存ルール準拠）
 

@@ -16,7 +16,6 @@ import { applyShieldsAndFields, decayHitFlash, regenEnergy } from './update-fiel
 import { updateProjectiles } from './update-projectiles.ts';
 
 const SWARM_RADIUS_SQ = 80 * 80;
-export const MAX_STEPS_PER_FRAME = 8;
 
 function updateParticles(dt: number) {
   for (let i = 0, rem = poolCounts.particles; i < POOL_PARTICLES && rem > 0; i++) {
@@ -125,7 +124,7 @@ export interface GameLoopState extends ReinforcementState {
   updateCodexDemo: (dt: number) => void;
 }
 
-function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
+export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
   const co = gameState.codexOpen;
   decayHitFlash(dt);
   buildHash();
@@ -147,18 +146,5 @@ function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoo
     reinforce(dt, rng, gameState);
   } else {
     gameState.updateCodexDemo(dt);
-  }
-}
-
-export function update(rawDt: number, now: number, rng: () => number, gameState: GameLoopState) {
-  const maxStep = 1 / REF_FPS;
-  if (rawDt <= maxStep) {
-    stepOnce(rawDt, now, rng, gameState);
-  } else {
-    const steps = Math.min(Math.ceil(rawDt / maxStep), MAX_STEPS_PER_FRAME);
-    const dt = rawDt / steps;
-    for (let s = 0; s < steps; s++) {
-      stepOnce(dt, now, rng, gameState);
-    }
   }
 }
