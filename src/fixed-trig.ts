@@ -19,8 +19,6 @@ for (let i = 0; i < LUT_SIZE; i++) {
 }
 
 // ── 角度→LUTインデックス変換 ──
-// Q16.16 角度を [0, TAU) にラップし LUT_SIZE にスケール
-// index = angle * LUT_SIZE / FX_TAU
 const FX_TAU_NUM = FX_TAU as number;
 
 function angleToIndex(angle: FxQ16): number {
@@ -65,7 +63,6 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
     angle = (FX_HALF_PI as number) - (ATAN_LUT[idx] ?? 0);
   }
 
-  // 象限復元
   if (x < 0) angle = (FX_PI as number) - angle;
   if (y < 0) angle = -angle;
 
@@ -84,12 +81,9 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
 export function fxSqrt(a: FxQ16): FxQ16 {
   if (a <= 0) return FX_ZERO;
 
-  // Q16.16 → float → sqrt → Q16.16 で初期推定
   const floatSqrt = Math.sqrt((a as number) / FX_SCALE);
   let x = Math.round(floatSqrt * FX_SCALE);
 
-  // Newton-Raphson: x = (x + a / x) / 2 — Q16.16 除算を使用
-  // 2回の反復で十分な精度
   x = Math.trunc((x + Math.trunc(((a as number) * FX_SCALE) / x)) / 2);
   x = Math.trunc((x + Math.trunc(((a as number) * FX_SCALE) / x)) / 2);
 
@@ -105,15 +99,11 @@ export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
   if (ax === 0) return ay as FxQ16;
   if (ay === 0) return ax as FxQ16;
 
-  // |ax| >= |ay| にスワップ
   const big = ax >= ay ? ax : ay;
   const small = ax >= ay ? ay : ax;
 
-  // ratio = small / big (Q16.16) — float64 で計算してオーバーフロー回避
   const ratio = (small * FX_SCALE) / big;
-  // ratio^2 (Q16.16) — float64 中間値で計算
   const rr = (ratio * ratio) / FX_SCALE;
-  // sqrt(1 + ratio^2) の Q16.16 値
   const oneRr = (FX_SCALE + rr) | 0;
   const sqrtVal = fxSqrt(oneRr as FxQ16);
 
@@ -131,15 +121,11 @@ export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
  * base < 0.5 かつ大きな t では精度が著しく低下する（クランプで保護）。
  */
 export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
-  // x = lnBase * t (Q16.16)
   const x = fxMul(lnBase, t);
-
-  // Taylor expansion: e^x ≈ 1 + x + x²/2 + x³/6 + x⁴/24
   const x2 = fxMul(x, x);
   const x3 = fxMul(x2, x);
   const x4 = fxMul(x3, x);
 
-  // 定数 (Q16.16): 1/2, 1/6, 1/24
   const half = (FX_SCALE >> 1) as FxQ16;
   const sixth = ((FX_SCALE / 6 + 0.5) | 0) as FxQ16;
   const twentyFourth = ((FX_SCALE / 24 + 0.5) | 0) as FxQ16;
@@ -150,7 +136,6 @@ export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
 
   const result = (FX_ONE as number) + (x as number) + (term2 as number) + (term3 as number) + (term4 as number);
 
-  // クランプ: exp(負数) は (0, 1] の範囲
   if (result <= 0) return FX_ZERO;
   if (result > (FX_ONE as number)) return FX_ONE;
   return result as FxQ16;

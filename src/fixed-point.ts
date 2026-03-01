@@ -41,8 +41,6 @@ export function fxSub(a: FxQ16, b: FxQ16): FxQ16 {
  * |a|,|b| < 2^31 なら中間値 a*b < 2^62 で安全圏内
  */
 export function fxMul(a: FxQ16, b: FxQ16): FxQ16 {
-  // float64 のまま乗算し、SHIFT で割って整数に切り捨て
-  // Math.trunc で float64 を 32bit に切り詰めずに整数化（Q16.16 の大きな値にも対応）
   return Math.trunc(((a as number) * (b as number)) / SCALE) as FxQ16;
 }
 

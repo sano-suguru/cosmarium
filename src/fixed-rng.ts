@@ -1,5 +1,4 @@
 // ── Q16.16 固定小数点乱数 ──
-// mulberry32 の内部32bit整数を >>> 16 して Q16.16 の [0, FX_ONE) を直接返す
 import type { FxQ16 } from './fixed-point.ts';
 
 /**
