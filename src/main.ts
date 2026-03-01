@@ -1,6 +1,7 @@
 import './style.css';
 
 import { REF_FPS, SIM_DT } from './constants.ts';
+import { drainAccumulator } from './drain-accumulator.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
@@ -49,24 +50,6 @@ let prevGameState = state.gameState;
 let simAccumulator = 0;
 /** codex デモ用 accumulator（ゲーム本編とは独立） */
 let demoAccumulator = 0;
-
-const MAX_SIM_STEPS_PER_FRAME = 8;
-
-/**
- * accumulator を消費して固定 dt で stepOnce を呼ぶ。戻り値は残余 accumulator。
- * MAX_SIM_STEPS_PER_FRAME に達した場合は残余を破棄し、シミュレーションの暴走を防ぐ。
- */
-function drainAccumulator(initial: number, t: number, rngFn: () => number): number {
-  let remaining = initial;
-  let steps = 0;
-  while (remaining >= SIM_DT && steps < MAX_SIM_STEPS_PER_FRAME) {
-    stepOnce(SIM_DT, t, rngFn, gameLoopState);
-    remaining -= SIM_DT;
-    steps++;
-  }
-  // MAX到達で未消化分が残る場合は破棄（フレームスパイク対策: 遅延の蓄積を防止）
-  return remaining >= SIM_DT ? 0 : remaining;
-}
 
 const gameLoopState = {
   get codexOpen() {
@@ -119,11 +102,15 @@ function frame(now: number) {
 
   if (state.codexOpen) {
     setAutoFollow(false);
-    demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, t, demoRng);
+    demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () =>
+      stepOnce(SIM_DT, t, demoRng, gameLoopState),
+    );
     syncDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
-    simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, t, rng);
+    simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () =>
+      stepOnce(SIM_DT, t, rng, gameLoopState),
+    );
     updateHotspot();
     updateAutoFollow(hotspot());
     renderFrame(t);
