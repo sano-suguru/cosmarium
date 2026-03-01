@@ -1,0 +1,10 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "cosmarium"
+compatibility_date = "2026-03-01"
+main = "worker/index.ts"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"

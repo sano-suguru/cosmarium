@@ -1,20 +1,15 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +26,7 @@ jobs:
           export PATH="./node_modules/.bin:$HOME/.cargo/bin:$PATH"
           pids=()
           tsc --noEmit & pids+=($!)
+          tsc --noEmit -p worker/tsconfig.json & pids+=($!)
           biome ci . & pids+=($!)
           knip & pids+=($!)
           jscpd src/ & pids+=($!)
@@ -39,17 +35,9 @@ jobs:
           fail=0
           for pid in "${pids[@]}"; do wait "$pid" || fail=1; done
           exit $fail
-      - run: bun run build -- --base=/cosmarium/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - run: bun run build
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

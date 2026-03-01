@@ -23,6 +23,17 @@ module.exports = {
         path: '^src/ui/',
       },
     },
+    {
+      name: 'no-client-in-worker',
+      severity: 'error',
+      comment: 'worker/ はクライアントコード (src/) を import してはいけない。worker はサーバーサイドのみ。',
+      from: {
+        path: '^worker/',
+      },
+      to: {
+        path: '^src/',
+      },
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },

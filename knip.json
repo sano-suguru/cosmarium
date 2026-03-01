@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.test.ts", "src/**/*.bench.ts"],
-  "project": ["src/**/*.ts"],
+  "entry": ["src/**/*.test.ts", "src/**/*.bench.ts", "worker/index.ts"],
+  "project": ["src/**/*.ts", "worker/**/*.ts"],
   "ignore": ["src/vite-env.d.ts"],
   "ignoreBinaries": ["similarity-ts"]
 }
