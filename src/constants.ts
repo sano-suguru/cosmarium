@@ -16,6 +16,9 @@ export const PI = Math.PI;
 export const TAU = Math.PI * 2;
 export const REF_FPS = 30;
 
+/** 固定シミュレーションステップ (1/REF_FPS ≈ 0.0333秒) */
+export const SIM_DT = 1 / REF_FPS;
+
 // ── Shape IDs ──
 // Units 0–18, Effects 19–28 (stable IDs, append-only — 既存IDの変更・再利用禁止)
 // Primitives
