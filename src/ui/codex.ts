@@ -3,7 +3,7 @@ import { color } from '../colors.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../input/camera.ts';
-import { clearAllPools, particle, poolCounts, projectile, setPoolCounts, unit } from '../pools.ts';
+import { clearAllPools, particle, poolCounts, projectile, setPoolCounts, teamUnitCounts, unit } from '../pools.ts';
 import { demoFlag } from '../simulation/combat.ts';
 import { resetChains, restoreChains, snapshotChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
@@ -74,7 +74,7 @@ interface PoolSnapshot {
   beams: Beam[];
   trackingBeams: TrackingBeam[];
   pendingChains: ReturnType<typeof snapshotChains>;
-  counts: { units: number; particles: number; projectiles: number };
+  counts: { units: number; particles: number; projectiles: number; teamUnits: [number, number] };
 }
 
 let poolSnapshot: PoolSnapshot | null = null;
@@ -107,6 +107,7 @@ export function snapshotPools(): PoolSnapshot {
       units: poolCounts.units,
       particles: poolCounts.particles,
       projectiles: poolCounts.projectiles,
+      teamUnits: [teamUnitCounts[0], teamUnitCounts[1]],
     },
   };
 }
@@ -119,7 +120,12 @@ export function restorePools(snapshot: PoolSnapshot) {
   for (const entry of snapshot.projectiles) Object.assign(projectile(entry.index), entry.copy);
   for (const b of snapshot.beams) beams.push(b);
   for (const tb of snapshot.trackingBeams) trackingBeams.push(tb);
-  setPoolCounts(snapshot.counts.units, snapshot.counts.particles, snapshot.counts.projectiles);
+  setPoolCounts(
+    snapshot.counts.units,
+    snapshot.counts.particles,
+    snapshot.counts.projectiles,
+    snapshot.counts.teamUnits,
+  );
 }
 
 function clearCurrentDemo() {

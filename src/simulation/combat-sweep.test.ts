@@ -134,7 +134,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(enemy).shieldSourceUnit = bastion;
     // Bastion を死亡状態にする
     unit(bastion).alive = false;
-    decUnits();
+    decUnits(unit(bastion).team);
     buildHash();
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);

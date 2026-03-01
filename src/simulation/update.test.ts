@@ -460,7 +460,7 @@ describe('projectile pass', () => {
     unit(target).shieldSourceUnit = bastion;
     // Bastion を死亡状態にする
     unit(bastion).alive = false;
-    decUnits();
+    decUnits(unit(bastion).team);
     const hpBefore = unit(target).hp;
     spawnProjectile(5, 0, 0, 0, 1.0, 10, 0, 2, 1, 0, 0);
     tick(0.016, 0, rng, gameLoopState());
@@ -502,7 +502,7 @@ describe('projectile pass', () => {
   it('homing: ターゲット死亡時は直進', () => {
     const target = spawnAt(1, 1, 0, 200);
     unit(target).alive = false;
-    decUnits();
+    decUnits(unit(target).team);
     unit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
     tick(0.016, 0, rng, gameLoopState());

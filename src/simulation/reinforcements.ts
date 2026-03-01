@@ -1,5 +1,5 @@
-import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { WORLD_SIZE } from '../constants.ts';
+import { teamUnitCounts } from '../pools.ts';
 import type { Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
@@ -58,15 +58,6 @@ export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: CATALYST, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
 ];
 
-function countAlive(team: Team): number {
-  let cnt = 0;
-  for (let i = 0; i < POOL_UNITS; i++) {
-    const u = unit(i);
-    if (u.alive && u.team === team) cnt++;
-  }
-  return cnt;
-}
-
 function spawnWave(team: Team, cnt: number, rng: () => number) {
   const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
   const cy = (rng() - 0.5) * WORLD_SIZE;
@@ -97,7 +88,7 @@ export function reinforce(dt: number, rng: () => number, rs: ReinforcementState)
   rs.reinforcementTimer = 0;
   const lim = REINFORCE_UNIT_CAP;
   for (const team of TEAMS) {
-    const cnt = countAlive(team);
+    const cnt = teamUnitCounts[team];
     if (cnt < lim) spawnWave(team, cnt, rng);
   }
 }
