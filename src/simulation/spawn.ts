@@ -117,7 +117,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.ampBoostTimer = 0;
       u.scrambleTimer = 0;
       u.catalystTimer = 0;
-      incUnits();
+      incUnits(team);
       return i as UnitIndex;
     }
   }
@@ -133,7 +133,7 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
       ? { ...base, killer: killer.index, killerTeam: killer.team, killerType: killer.type }
       : { ...base, killer: NO_UNIT };
     u.alive = false;
-    decUnits();
+    decUnits(u.team);
     for (const hook of killUnitHooks) hook(e);
     for (const hook of permanentKillUnitHooks) hook(e);
     return snap;
