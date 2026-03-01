@@ -12,7 +12,7 @@ import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { killParticle } from './spawn.ts';
 import { steer } from './steering.ts';
-import { applyShieldsAndFields, decayHitFlash, regenEnergy } from './update-fields.ts';
+import { applyShieldsAndFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
 const SWARM_RADIUS_SQ = 80 * 80;
@@ -126,13 +126,13 @@ export interface GameLoopState extends ReinforcementState {
 
 export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState) {
   const co = gameState.codexOpen;
-  decayHitFlash(dt);
   buildHash();
   updateSwarmN();
   resetReflected();
 
   updateUnits(dt, now, rng);
-  regenEnergy(dt);
+  // updateUnits で hitFlash=1 がセットされた後にディケイする（視覚効果のみ、ロジック影響なし）
+  decayAndRegen(dt);
 
   applyShieldsAndFields(dt);
 

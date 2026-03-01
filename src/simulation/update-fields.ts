@@ -34,39 +34,28 @@ function tickReflectorShield(u: Unit, dt: number) {
   }
 }
 
-/** エネルギー自然回復（stun 中も回復する）。Reflectorはシールドクールダウン→全回復制 */
-export function regenEnergy(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
-    if (u.maxEnergy <= 0) continue;
-    const t = unitType(u.type);
-    if (t.reflects) {
-      tickReflectorShield(u, dt);
-    } else {
-      const regen = t.energyRegen;
-      u.energy = Math.min(u.maxEnergy, u.energy + regen * dt);
-    }
+function regenUnitEnergy(u: Unit, dt: number) {
+  if (u.maxEnergy <= 0) return;
+  const t = unitType(u.type);
+  if (t.reflects) {
+    tickReflectorShield(u, dt);
+  } else {
+    u.energy = Math.min(u.maxEnergy, u.energy + t.energyRegen * dt);
   }
 }
 
-export function decayHitFlash(dt: number) {
-  const decay = dt / HIT_FLASH_DURATION;
+export function decayAndRegen(dt: number) {
+  const flashDecay = dt / HIT_FLASH_DURATION;
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
-    if (u.hitFlash > 0) u.hitFlash = Math.max(0, u.hitFlash - decay);
-  }
-}
-
-function decayShieldTimers(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
+    if (u.hitFlash > 0) u.hitFlash = Math.max(0, u.hitFlash - flashDecay);
+    regenUnitEnergy(u, dt);
     if (u.shieldLingerTimer > 0) u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
+    if (u.ampBoostTimer > 0) u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
+    if (u.scrambleTimer > 0) u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
+    if (u.catalystTimer > 0) u.catalystTimer = Math.max(0, u.catalystTimer - dt);
   }
 }
 
@@ -191,23 +180,6 @@ function amplifyNearbyAllies(u: Unit, i: number) {
   }
 }
 
-function decayAmpTimers(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
-    if (u.ampBoostTimer > 0) u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
-  }
-}
-function decayScrambleTimers(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
-    if (u.scrambleTimer > 0) u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
-  }
-}
-
 function scrambleNearbyEnemies(u: Unit, i: number) {
   const nn = getNeighbors(u.x, u.y, SCRAMBLE_RADIUS);
   for (let j = 0; j < nn; j++) {
@@ -219,14 +191,6 @@ function scrambleNearbyEnemies(u: Unit, i: number) {
   }
 }
 
-function decayCatalystTimers(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    rem--;
-    if (u.catalystTimer > 0) u.catalystTimer = Math.max(0, u.catalystTimer - dt);
-  }
-}
 function catalyzeNearbyAllies(u: Unit, i: number) {
   const nn = getNeighbors(u.x, u.y, CATALYST_RADIUS);
   for (let j = 0; j < nn; j++) {
@@ -239,10 +203,6 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
 }
 
 export function applyShieldsAndFields(dt: number) {
-  decayShieldTimers(dt);
-  decayAmpTimers(dt);
-  decayScrambleTimers(dt);
-  decayCatalystTimers(dt);
   for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
