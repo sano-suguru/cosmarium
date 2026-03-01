@@ -1,9 +1,20 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { color } from '../colors.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../input/camera.ts';
-import { clearAllPools, particle, poolCounts, projectile, setPoolCounts, teamUnitCounts, unit } from '../pools.ts';
+import {
+  clearAllPools,
+  getParticleHWM,
+  getProjectileHWM,
+  getUnitHWM,
+  particle,
+  poolCounts,
+  projectile,
+  restoreHWM,
+  setPoolCounts,
+  teamUnitCounts,
+  unit,
+} from '../pools.ts';
 import { demoFlag } from '../simulation/combat.ts';
 import { resetChains, restoreChains, snapshotChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
@@ -75,24 +86,28 @@ interface PoolSnapshot {
   trackingBeams: TrackingBeam[];
   pendingChains: ReturnType<typeof snapshotChains>;
   counts: { units: number; particles: number; projectiles: number; teamUnits: [number, number] };
+  hwm: { units: number; particles: number; projectiles: number };
 }
 
 let poolSnapshot: PoolSnapshot | null = null;
 
 /** 全プール状態のスナップショット。全フィールドはプリミティブ型（検証済み）のため shallow copy で安全。新フィールド追加時は参照型でないことを確認すること */
 export function snapshotPools(): PoolSnapshot {
+  const unitHWM = getUnitHWM();
+  const particleHWM = getParticleHWM();
+  const projectileHWM = getProjectileHWM();
   const units: PoolSnapshot['units'] = [];
-  for (let i = 0; i < POOL_UNITS; i++) {
+  for (let i = 0; i < unitHWM; i++) {
     const u = unit(i);
     if (u.alive) units.push({ index: i, copy: { ...u } });
   }
   const particles: PoolSnapshot['particles'] = [];
-  for (let i = 0; i < POOL_PARTICLES; i++) {
+  for (let i = 0; i < particleHWM; i++) {
     const p = particle(i);
     if (p.alive) particles.push({ index: i, copy: { ...p } });
   }
   const projectiles: PoolSnapshot['projectiles'] = [];
-  for (let i = 0; i < POOL_PROJECTILES; i++) {
+  for (let i = 0; i < projectileHWM; i++) {
     const p = projectile(i);
     if (p.alive) projectiles.push({ index: i, copy: { ...p } });
   }
@@ -109,6 +124,7 @@ export function snapshotPools(): PoolSnapshot {
       projectiles: poolCounts.projectiles,
       teamUnits: [teamUnitCounts[0], teamUnitCounts[1]],
     },
+    hwm: { units: unitHWM, particles: particleHWM, projectiles: projectileHWM },
   };
 }
 
@@ -126,6 +142,7 @@ export function restorePools(snapshot: PoolSnapshot) {
     snapshot.counts.projectiles,
     snapshot.counts.teamUnits,
   );
+  restoreHWM(snapshot.hwm.units, snapshot.hwm.particles, snapshot.hwm.projectiles);
 }
 
 function clearCurrentDemo() {
@@ -337,7 +354,7 @@ function demoDefault(t: UnitType) {
 
 function countDemoEnemies(): number {
   let ec = 0;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -372,7 +389,7 @@ export function computeDemoBounds(): { cx: number; cy: number; radius: number } 
   let sx = 0;
   let sy = 0;
 
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -389,7 +406,7 @@ export function computeDemoBounds(): { cx: number; cy: number; radius: number } 
   const cy = sy / count;
 
   let maxDist = 0;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -410,7 +427,7 @@ export function updateCodexDemo(dt: number) {
     const ec = countDemoEnemies();
     if (ec < 2) setupCodexDemo(state.codexSelected);
   }
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;

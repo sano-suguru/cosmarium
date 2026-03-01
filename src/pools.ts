@@ -12,11 +12,15 @@ const _particleFree = new Uint16Array(POOL_PARTICLES);
 const _particleInFree = new Uint8Array(POOL_PARTICLES);
 let _particleFreeTop = POOL_PARTICLES;
 
+// テンプレート（モジュールスコープで1回だけ計算）— TypedArray bulk copy でリセット高速化
+const _particleFreeTemplate = new Uint16Array(POOL_PARTICLES);
+for (let i = 0; i < POOL_PARTICLES; i++) {
+  _particleFreeTemplate[i] = POOL_PARTICLES - 1 - i;
+}
+
 function _initParticleFreeStack() {
-  for (let i = 0; i < POOL_PARTICLES; i++) {
-    _particleFree[i] = POOL_PARTICLES - 1 - i;
-    _particleInFree[i] = 1;
-  }
+  _particleFree.set(_particleFreeTemplate);
+  _particleInFree.fill(1);
   _particleFreeTop = POOL_PARTICLES;
 }
 _initParticleFreeStack();
@@ -51,6 +55,43 @@ function rebuildParticleFreeStack() {
       _particleInFree[i] = 1;
     }
   }
+}
+
+// ── High Water Mark 追跡 ──
+// リセット時に使用済みスロットのみ走査するための最高インデックス追跡
+let _unitHWM = 0;
+let _particleHWM = 0;
+let _projectileHWM = 0;
+
+export function advanceUnitHWM(i: number) {
+  if (i >= _unitHWM) _unitHWM = i + 1;
+}
+export function advanceParticleHWM(i: number) {
+  if (i >= _particleHWM) _particleHWM = i + 1;
+}
+export function advanceProjectileHWM(i: number) {
+  if (i >= _projectileHWM) _projectileHWM = i + 1;
+}
+
+export function getUnitHWM() {
+  return _unitHWM;
+}
+export function getParticleHWM() {
+  return _particleHWM;
+}
+export function getProjectileHWM() {
+  return _projectileHWM;
+}
+export function resetHWM() {
+  _unitHWM = 0;
+  _particleHWM = 0;
+  _projectileHWM = 0;
+}
+
+export function restoreHWM(units: number, particles: number, projectiles: number) {
+  _unitHWM = units;
+  _particleHWM = particles;
+  _projectileHWM = projectiles;
 }
 
 const _counts = { units: 0, particles: 0, projectiles: 0 };
@@ -111,10 +152,11 @@ export function setProjectileCount(n: number) {
   _counts.projectiles = n;
 }
 export function clearAllPools() {
-  for (let i = 0; i < POOL_UNITS; i++) unit(i).alive = false;
-  for (let i = 0; i < POOL_PARTICLES; i++) particle(i).alive = false;
-  for (let i = 0; i < POOL_PROJECTILES; i++) projectile(i).alive = false;
+  for (let i = 0; i < _unitHWM; i++) unit(i).alive = false;
+  for (let i = 0; i < _particleHWM; i++) particle(i).alive = false;
+  for (let i = 0; i < _projectileHWM; i++) projectile(i).alive = false;
   resetPoolCounts();
+  resetHWM();
   beams.length = 0;
   trackingBeams.length = 0;
 }

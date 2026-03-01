@@ -1,5 +1,4 @@
-import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { poolCounts, teamUnitCounts } from '../pools.ts';
 import { DOM_ID_COUNT_A, DOM_ID_COUNT_B, DOM_ID_FPS, DOM_ID_PARTICLE_NUM } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 
@@ -29,16 +28,8 @@ export function initHUD() {
 export function updateHUD(displayFps: number) {
   const d = els();
 
-  let ca = 0,
-    cb = 0;
-  for (let i = 0; i < POOL_UNITS; i++) {
-    const u = unit(i);
-    if (!u.alive) continue;
-    if (u.team === 0) ca++;
-    else cb++;
-  }
-  d.countA.textContent = `${ca}`;
-  d.countB.textContent = `${cb}`;
+  d.countA.textContent = `${teamUnitCounts[0]}`;
+  d.countB.textContent = `${teamUnitCounts[1]}`;
   d.particleNum.textContent = `${poolCounts.particles + poolCounts.projectiles}`;
   d.fps.textContent = `${displayFps}`;
 }

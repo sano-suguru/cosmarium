@@ -1,5 +1,4 @@
-import { POOL_UNITS } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 
 const CELL_SIZE = 100;
@@ -27,9 +26,11 @@ export function buildHash() {
   }
   _used.length = 0;
   hashMap.clear();
-  for (let i = 0; i < POOL_UNITS; i++) {
+  const hwm = getUnitHWM();
+  for (let i = 0, rem = poolCounts.units; i < hwm && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
+    rem--;
     const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
     let a = hashMap.get(k);
     if (!a) {

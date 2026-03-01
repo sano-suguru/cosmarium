@@ -1,7 +1,7 @@
 import { color } from '../colors.ts';
-import { POOL_UNITS, WORLD_SIZE } from '../constants.ts';
+import { WORLD_SIZE } from '../constants.ts';
 import { cam, setAutoFollow } from '../input/camera.ts';
-import { unit } from '../pools.ts';
+import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import { unitType } from '../unit-types.ts';
 import { MINIMAP_MAX, minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
@@ -75,9 +75,10 @@ export function drawMinimap() {
 
   writeMinimap(0, 0, 1, 0, 0, 0.02, 0.06, 0.85, 1);
 
-  for (let i = 0; i < POOL_UNITS; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
+    rem--;
     const c = color(u.type, u.team);
     const size = Math.max(0.008, unitType(u.type).size * S * 1.5);
     writeMinimap(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);

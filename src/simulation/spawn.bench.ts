@@ -1,14 +1,9 @@
-import { afterEach, bench, describe } from 'vitest';
-import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { bench, describe } from 'vitest';
+import '../__test__/bench-helper.ts';
 import { SH_CIRCLE } from '../constants.ts';
 import type { ParticleIndex } from '../types.ts';
 import { NO_PARTICLE } from '../types.ts';
 import { killParticle, killUnit, spawnParticle, spawnUnit } from './spawn.ts';
-
-afterEach(() => {
-  resetPools();
-  resetState();
-});
 
 describe('spawnParticle', () => {
   bench('spawn 1 particle (空プール)', () => {

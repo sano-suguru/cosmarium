@@ -1,5 +1,5 @@
-import { POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
+import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3 } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt } from './combat-aim.ts';
@@ -76,7 +76,7 @@ function reflectNearbyProjectiles(
   c: Color3,
 ) {
   const cooldown = ctx.t.shieldCooldown;
-  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) continue;
     rem--;

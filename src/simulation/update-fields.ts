@@ -1,12 +1,6 @@
 import { getTrackingBeam, trackingBeams } from '../beams.ts';
-import {
-  AMP_BOOST_LINGER,
-  CATALYST_BOOST_LINGER,
-  POOL_UNITS,
-  REFLECT_FIELD_MAX_HP,
-  SCRAMBLE_BOOST_LINGER,
-} from '../constants.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { AMP_BOOST_LINGER, CATALYST_BOOST_LINGER, REFLECT_FIELD_MAX_HP, SCRAMBLE_BOOST_LINGER } from '../constants.ts';
+import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
@@ -46,7 +40,7 @@ function regenUnitEnergy(u: Unit, dt: number) {
 
 export function decayAndRegen(dt: number) {
   const flashDecay = dt / HIT_FLASH_DURATION;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -203,7 +197,7 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
 }
 
 export function applyShieldsAndFields(dt: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;

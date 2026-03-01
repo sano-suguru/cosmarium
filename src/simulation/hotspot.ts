@@ -1,5 +1,4 @@
-import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;
@@ -39,7 +38,7 @@ function cellKey(x: number, y: number): number {
 function buildCellMap(): Map<number, HotspotCell> {
   _cells.clear();
   _cellPoolIdx = 0;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -77,7 +76,7 @@ function pickBestCell(cells: Map<number, HotspotCell>): { key: number; cell: Hot
 
 function maxDistanceInCell(cellKeyValue: number, centerX: number, centerY: number): number {
   let maxDist = 0;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;

@@ -1,6 +1,9 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
+  advanceParticleHWM,
+  advanceProjectileHWM,
+  advanceUnitHWM,
   allocParticleSlot,
   decParticles,
   decProjectiles,
@@ -117,6 +120,7 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.ampBoostTimer = 0;
       u.scrambleTimer = 0;
       u.catalystTimer = 0;
+      advanceUnitHWM(i);
       incUnits(team);
       return i as UnitIndex;
     }
@@ -185,6 +189,7 @@ export function spawnParticle(
   p.g = g;
   p.b = b;
   p.shape = shape;
+  advanceParticleHWM(slot);
   incParticles();
   return slot;
 }
@@ -225,6 +230,7 @@ export function spawnProjectile(
       p.aoe = aoe;
       p.target = target;
       p.sourceUnit = sourceUnit;
+      advanceProjectileHWM(i);
       incProjectiles();
       return i as ProjectileIndex;
     }

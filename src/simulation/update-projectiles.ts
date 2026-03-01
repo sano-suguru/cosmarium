@@ -1,7 +1,7 @@
 import { effectColor } from '../colors.ts';
-import { PI, POOL_PROJECTILES, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
+import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
@@ -167,7 +167,7 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
 }
 
 export function updateProjectiles(dt: number, rng: () => number) {
-  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) continue;
     rem--;

@@ -1,5 +1,5 @@
-import { PI, POOL_UNITS, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
+import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
@@ -66,7 +66,7 @@ function targetScore(ux: number, uy: number, o: Unit, massWeight: number): numbe
 function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const o = unit(i);
     if (!o.alive) continue;
     rem--;

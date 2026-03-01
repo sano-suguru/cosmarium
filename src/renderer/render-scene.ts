@@ -3,9 +3,6 @@ import { color } from '../colors.ts';
 import {
   AMP_BOOST_LINGER,
   CATALYST_BOOST_LINGER,
-  POOL_PARTICLES,
-  POOL_PROJECTILES,
-  POOL_UNITS,
   REFLECT_FIELD_MAX_HP,
   SCRAMBLE_BOOST_LINGER,
   SH_BAR,
@@ -21,7 +18,7 @@ import {
   TAU,
   WORLD_SIZE,
 } from '../constants.ts';
-import { particle, poolCounts, projectile, unit } from '../pools.ts';
+import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { Beam, Color3, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
@@ -234,7 +231,7 @@ function renderVetSwarmOverlays(u: Unit, ut: UnitType, c: Color3, now: number, r
 }
 
 function renderUnits(now: number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -266,7 +263,7 @@ function renderUnits(now: number) {
 }
 
 function renderParticles() {
-  for (let i = 0, rem = poolCounts.particles; i < POOL_PARTICLES && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
     const p = particle(i);
     if (!p.alive) continue;
     rem--;
@@ -388,7 +385,7 @@ function renderBeams(now: number) {
 }
 
 function renderProjectiles() {
-  for (let i = 0, rem = poolCounts.projectiles; i < POOL_PROJECTILES && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const pr = projectile(i);
     if (!pr.alive) continue;
     rem--;

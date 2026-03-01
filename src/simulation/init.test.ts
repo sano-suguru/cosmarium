@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { particle, poolCounts, projectile, unit } from '../pools.ts';
@@ -22,14 +22,14 @@ afterEach(() => {
 
 describe('initUnits', () => {
   it('全ユニットの alive を false にリセットしてから再生成する', () => {
-    unit(0).alive = true;
-    unit(1).alive = true;
+    reviveUnit(0);
+    reviveUnit(1);
     initUnits(rng);
     expect(poolCounts.units).toBeGreaterThan(0);
   });
 
   it('全パーティクルの alive を false にリセットする', () => {
-    particle(0).alive = true;
+    reviveParticle(0);
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
@@ -39,7 +39,7 @@ describe('initUnits', () => {
   });
 
   it('全プロジェクタイルの alive を false にリセットする', () => {
-    projectile(0).alive = true;
+    reviveProjectile(0);
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {

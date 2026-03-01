@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { resetPools, resetState, reviveParticle, reviveProjectile, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { SH_BEAM, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_OCT_SHIELD, SH_REFLECT_FIELD } from '../constants.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
@@ -151,8 +151,8 @@ describe('writeOverlay', () => {
 
 describe('writeParticle', () => {
   it('パーティクル描画は angle=0 で描画される', () => {
+    reviveParticle(0);
     const p = particle(0);
-    p.alive = true;
     p.x = 50;
     p.y = 60;
     p.size = 5;
@@ -175,8 +175,8 @@ describe('writeParticle', () => {
   });
 
   it('shape=SH_EXPLOSION_RING のパーティクルも angle=0', () => {
+    reviveParticle(0);
     const p = particle(0);
-    p.alive = true;
     p.x = 10;
     p.y = 20;
     p.size = 8;
@@ -324,8 +324,8 @@ describe('writeInstance（直接使用）', () => {
   });
 
   it('projectile は速度ベクトルから算出された angle で描画される', () => {
+    reviveProjectile(0);
     const pr = projectile(0);
-    pr.alive = true;
     pr.x = 50;
     pr.y = 50;
     pr.vx = 1;

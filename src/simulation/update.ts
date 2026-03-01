@@ -1,6 +1,6 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
-import { POOL_PARTICLES, POOL_UNITS, REF_FPS } from '../constants.ts';
-import { particle, poolCounts, unit } from '../pools.ts';
+import { REF_FPS } from '../constants.ts';
+import { getParticleHWM, getUnitHWM, particle, poolCounts, unit } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { ParticleIndex, Unit, UnitIndex } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
@@ -17,8 +17,8 @@ import { updateProjectiles } from './update-projectiles.ts';
 
 const SWARM_RADIUS_SQ = 80 * 80;
 
-function updateParticles(dt: number) {
-  for (let i = 0, rem = poolCounts.particles; i < POOL_PARTICLES && rem > 0; i++) {
+export function updateParticles(dt: number) {
+  for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
     const pp = particle(i);
     if (!pp.alive) continue;
     rem--;
@@ -34,7 +34,7 @@ function updateParticles(dt: number) {
   }
 }
 
-function updateBeams(dt: number) {
+export function updateBeams(dt: number) {
   for (let i = 0; i < beams.length; ) {
     const bm = getBeam(i);
     bm.life -= dt;
@@ -46,7 +46,7 @@ function updateBeams(dt: number) {
   }
 }
 
-function updateTrackingBeams(dt: number) {
+export function updateTrackingBeams(dt: number) {
   for (let i = 0; i < trackingBeams.length; ) {
     const tb = getTrackingBeam(i);
     tb.life -= dt;
@@ -78,7 +78,7 @@ function countSwarmAllies(u: Unit): number {
 }
 
 export function updateSwarmN() {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
@@ -97,8 +97,8 @@ function emitTrail(u: Unit, rng: () => number) {
   else trail(u, rng);
 }
 
-function updateUnits(dt: number, now: number, rng: () => number) {
-  for (let i = 0, rem = poolCounts.units; i < POOL_UNITS && rem > 0; i++) {
+export function updateUnits(dt: number, now: number, rng: () => number) {
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;

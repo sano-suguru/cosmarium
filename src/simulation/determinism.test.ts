@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState } from '../__test__/pool-helper.ts';
-import { POOL_UNITS, SIM_DT } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { SIM_DT } from '../constants.ts';
+import { getUnitHWM, unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { stepOnce } from './update.ts';
@@ -37,7 +37,8 @@ interface UnitSnapshot {
 
 function captureSnapshot(): UnitSnapshot[] {
   const snapshot: UnitSnapshot[] = [];
-  for (let i = 0; i < POOL_UNITS; i++) {
+  const hwm = getUnitHWM();
+  for (let i = 0; i < hwm; i++) {
     const u = unit(i);
     if (u.alive) {
       snapshot.push({
@@ -98,7 +99,7 @@ describe('determinism', () => {
       expect(s2.team).toBe(s1.team);
       expect(s2.type).toBe(s1.type);
     }
-  }, 10_000);
+  });
 
   it('同一シード → 同一結果（300tick — 複数増援サイクル）', () => {
     const snapshot1 = runSimulation(42, 300);
@@ -125,7 +126,7 @@ describe('determinism', () => {
       expect(s2.team).toBe(s1.team);
       expect(s2.type).toBe(s1.type);
     }
-  }, 10_000);
+  });
 
   it('異なるシード → 異なる結果', () => {
     const snapshot1 = runSimulation(12345, 100);

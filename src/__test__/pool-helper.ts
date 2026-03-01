@@ -1,8 +1,15 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
+  advanceParticleHWM,
+  advanceProjectileHWM,
+  advanceUnitHWM,
+  getParticleHWM,
+  getProjectileHWM,
+  getUnitHWM,
   particle,
   projectile,
+  resetHWM,
   resetPoolCounts,
   setParticleCount,
   setProjectileCount,
@@ -18,7 +25,11 @@ import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 
 export function resetPools() {
-  for (let i = 0; i < POOL_UNITS; i++) {
+  const uHwm = getUnitHWM();
+  const pHwm = getParticleHWM();
+  const prHwm = getProjectileHWM();
+
+  for (let i = 0; i < uHwm; i++) {
     const u = unit(i);
     u.alive = false;
     u.team = 0;
@@ -63,8 +74,9 @@ export function resetPools() {
     u.fieldGrantCooldown = 0;
     u.ampBoostTimer = 0;
     u.scrambleTimer = 0;
+    u.catalystTimer = 0;
   }
-  for (let i = 0; i < POOL_PARTICLES; i++) {
+  for (let i = 0; i < pHwm; i++) {
     const p = particle(i);
     p.alive = false;
     p.x = 0;
@@ -79,7 +91,7 @@ export function resetPools() {
     p.b = 0;
     p.shape = 0;
   }
-  for (let i = 0; i < POOL_PROJECTILES; i++) {
+  for (let i = 0; i < prHwm; i++) {
     const p = projectile(i);
     p.alive = false;
     p.x = 0;
@@ -99,6 +111,7 @@ export function resetPools() {
     p.sourceUnit = NO_UNIT;
   }
   resetPoolCounts();
+  resetHWM();
   beams.length = 0;
   trackingBeams.length = 0;
   _resetSweepHits();
@@ -108,17 +121,38 @@ export function resetPools() {
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
 export function fillUnitPool() {
   for (let i = 0; i < POOL_UNITS; i++) unit(i).alive = true;
+  advanceUnitHWM(POOL_UNITS - 1);
   setUnitCount(POOL_UNITS);
 }
 
 export function fillParticlePool() {
   for (let i = 0; i < POOL_PARTICLES; i++) particle(i).alive = true;
+  advanceParticleHWM(POOL_PARTICLES - 1);
   setParticleCount(POOL_PARTICLES);
 }
 
 export function fillProjectilePool() {
   for (let i = 0; i < POOL_PROJECTILES; i++) projectile(i).alive = true;
+  advanceProjectileHWM(POOL_PROJECTILES - 1);
   setProjectileCount(POOL_PROJECTILES);
+}
+
+/** テスト用: スロットを alive にし HWM を同期する。poolCounts は更新しない（呼び出し側の責任） */
+export function reviveUnit(i: number) {
+  unit(i).alive = true;
+  advanceUnitHWM(i);
+}
+
+/** テスト用: スロットを alive にし HWM を同期する。poolCounts は更新しない（呼び出し側の責任） */
+export function reviveParticle(i: number) {
+  particle(i).alive = true;
+  advanceParticleHWM(i);
+}
+
+/** テスト用: スロットを alive にし HWM を同期する。poolCounts は更新しない（呼び出し側の責任） */
+export function reviveProjectile(i: number) {
+  projectile(i).alive = true;
+  advanceProjectileHWM(i);
 }
 
 const stateDefaults = {
@@ -153,6 +187,19 @@ export function makeGameLoopState(updateCodexDemo: (dt: number) => void = () => 
     },
     updateCodexDemo,
   };
+}
+
+/** ベンチ用の軽量 LCG-PRNG。reset() でシードを初期化可能 */
+export function makeRng() {
+  let s = 12345;
+  const fn = () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+  fn.reset = () => {
+    s = 12345;
+  };
+  return fn;
 }
 
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
