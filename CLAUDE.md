@@ -6,7 +6,7 @@ Always respond in **Japanese**.
 
 ## Project Overview
 
-**COSMARIUM** — real-time space strategy simulation. Vanilla TypeScript + HTML5 Canvas + WebGL 2. Vite + Bun. No UI framework. Zero production dependencies.
+**COSMARIUM** — autonomous swarm fleet battle simulation. Units fight autonomously via Boids + engagement AI; player designs/composes fleets and spectates. Vanilla TypeScript + HTML5 Canvas + WebGL 2. Vite + Bun. No UI framework. Zero production dependencies.
 
 ## Development
 
