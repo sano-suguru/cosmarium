@@ -73,8 +73,14 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
 }
 
 // ── sqrt ──
-// Newton-Raphson。初期推定は float の Math.sqrt で算出し Q16.16 に変換。
-// 結果は固定小数点に丸められるため決定論的。
+/**
+ * Newton-Raphson。初期推定は float の Math.sqrt で算出し Q16.16 に変換。
+ * 結果は固定小数点に丸められるため決定論的。
+ *
+ * NOTE: Math.sqrt は IEEE 754 correctly rounded を保証するため同一プラットフォーム内では
+ * 決定論的だが、クロスプラットフォーム lockstep が必要になった場合は pure fixed-point
+ * Newton-Raphson（初期推定をビットシフトで算出）への置き換えを検討すること。
+ */
 export function fxSqrt(a: FxQ16): FxQ16 {
   if (a <= 0) return FX_ZERO;
 
@@ -115,9 +121,15 @@ export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
 }
 
 // ── 指数減衰 ──
-// exp(lnBase * t) の多項式近似 (Taylor 4次)
-// 用途: 1 - base^(dt*REF_FPS) → 1 - exp(ln(base) * dt * REF_FPS)
-// lnBase は負値（base < 1 のため）、t は正値
+/**
+ * exp(lnBase * t) の多項式近似 (Taylor 4次)
+ * 用途: 1 - base^(dt*REF_FPS) → 1 - exp(ln(base) * dt * REF_FPS)
+ * lnBase は負値（base < 1 のため）、t は正値
+ *
+ * 有効範囲: |lnBase * t| ≲ 3.0 で実用精度。
+ * base ∈ [0.8, 0.99], t ∈ [0, 60] 程度のゲーム内減衰パラメータ向け。
+ * base < 0.5 かつ大きな t では精度が著しく低下する（クランプで保護）。
+ */
 export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
   // x = lnBase * t (Q16.16)
   const x = fxMul(lnBase, t);

@@ -52,7 +52,10 @@ let demoAccumulator = 0;
 
 const MAX_SIM_STEPS_PER_FRAME = 8;
 
-/** accumulator を消費して固定 dt で stepOnce を呼ぶ。戻り値は残余 accumulator */
+/**
+ * accumulator を消費して固定 dt で stepOnce を呼ぶ。戻り値は残余 accumulator。
+ * MAX_SIM_STEPS_PER_FRAME に達した場合は残余を破棄し、シミュレーションの暴走を防ぐ。
+ */
 function drainAccumulator(initial: number, t: number, rngFn: () => number): number {
   let remaining = initial;
   let steps = 0;
@@ -61,6 +64,7 @@ function drainAccumulator(initial: number, t: number, rngFn: () => number): numb
     remaining -= SIM_DT;
     steps++;
   }
+  // MAX到達で未消化分が残る場合は破棄（フレームスパイク対策: 遅延の蓄積を防止）
   return remaining >= SIM_DT ? 0 : remaining;
 }
 

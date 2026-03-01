@@ -97,5 +97,5 @@ export function fxFloor(a: FxQ16): FxQ16 {
  * WORLD_SIZE=4000 の範囲では安全。
  */
 export function fxCeil(a: FxQ16): FxQ16 {
-  return (((a + FRAC_MASK) & ~FRAC_MASK) | 0) as FxQ16;
+  return ((a + FRAC_MASK) & ~FRAC_MASK) as FxQ16;
 }
