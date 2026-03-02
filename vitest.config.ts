@@ -8,6 +8,7 @@ export default mergeConfig(
       include: ['src/**/*.test.ts'],
       environment: 'node',
       restoreMocks: true,
+      fileParallelism: false,
       testTimeout: 3000,
       hookTimeout: 3000,
       benchmark: {

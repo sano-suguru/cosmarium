@@ -74,7 +74,7 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
 }
 
 describe('determinism', () => {
-  it('同一シード → 同一結果（完全一致）', { timeout: 10_000 }, () => {
+  it('同一シード → 同一結果（完全一致）', () => {
     const snapshot1 = runSimulation(12345, 100);
     const snapshot2 = runSimulation(12345, 100);
 
@@ -101,7 +101,7 @@ describe('determinism', () => {
     }
   });
 
-  it('同一シード → 同一結果（300tick — 複数増援サイクル）', { timeout: 10_000 }, () => {
+  it('同一シード → 同一結果（300tick — 複数増援サイクル）', () => {
     const snapshot1 = runSimulation(42, 300);
     const snapshot2 = runSimulation(42, 300);
 
