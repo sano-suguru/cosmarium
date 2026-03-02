@@ -81,6 +81,7 @@ export interface Projectile {
 
 export interface UnitType {
   name: string;
+  cost: number;
   size: number;
   hp: number;
   speed: number;
@@ -208,7 +209,22 @@ export interface FBO {
 
 export type Color3 = [number, number, number];
 
-export type GameState = 'menu' | 'play';
+export type GameState = 'menu' | 'compose' | 'play' | 'result';
+
+export type FleetEntry = { readonly type: number; readonly count: number };
+export type FleetComposition = readonly FleetEntry[];
+
+export type BattleSnapshot = { readonly survivors: number; readonly enemyKills: number };
+
+export type BattleResult = {
+  readonly victory: boolean;
+  readonly elapsed: number;
+  readonly playerSurvivors: number;
+  readonly enemyKills: number;
+  readonly playerLosses: number;
+  readonly initialPlayerUnits: number;
+};
+
 export type Team = 0 | 1;
 export const TEAMS: readonly [Team, Team] = [0, 1];
 

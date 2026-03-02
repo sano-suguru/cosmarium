@@ -31,12 +31,52 @@
       <div class="sub">AUTONOMOUS FLEET WARFARE</div>
       <button class="mbtn" id="btnStart">
         START
-        <div class="desc">終わりなき宇宙艦隊戦を観測せよ</div>
+        <span class="desc">艦隊を編成して宇宙戦を戦い抜け</span>
+      </button>
+      <button class="mbtn" id="btnSpectate">
+        SPECTATE
+        <span class="desc">終わりなき宇宙艦隊戦を観測せよ</span>
       </button>
       <button class="mbtn" id="codexMenuBtn">
         CODEX
-        <div class="desc">全艦種の戦術データと実戦デモを参照</div>
+        <span class="desc">全艦種の戦術データと実戦デモを参照</span>
       </button>
+    </div>
+
+    <div id="compose">
+      <div class="compose-header">
+        <h2>ENEMY FLEET</h2>
+        <div id="composeEnemy" class="compose-enemy-list"></div>
+      </div>
+      <div class="compose-body">
+        <div class="compose-budget-bar">
+          <span>FLEET COMPOSITION</span>
+          <span>BUDGET: <span id="composeBudget">0 / 200</span></span>
+        </div>
+        <div id="composeGrid" class="compose-grid"></div>
+        <div class="compose-footer">
+          <span id="composeTotal"></span>
+          <span id="composeRemaining"></span>
+        </div>
+      </div>
+      <div class="compose-actions">
+        <button class="mbtn" id="composeBack">BACK</button>
+        <button class="mbtn compose-reset" id="composeReset">RESET</button>
+        <button class="mbtn compose-launch" id="composeLaunch" disabled>LAUNCH BATTLE</button>
+      </div>
+    </div>
+    <button id="composeCodexBtn" class="compose-codex-btn">TAB: CODEX</button>
+
+    <div id="result">
+      <div class="result-panel">
+        <div id="resultTitle" class="result-title">VICTORY</div>
+        <div id="resultStats" class="result-stats"></div>
+        <div class="result-actions">
+          <button class="mbtn" id="resultMenu">MENU</button>
+          <button class="mbtn" id="resultRecompose">RECOMPOSE</button>
+          <button class="mbtn" id="resultRematch">REMATCH</button>
+        </div>
+      </div>
     </div>
 
     <div id="hud" style="display: none">

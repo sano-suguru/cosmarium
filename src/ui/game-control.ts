@@ -1,10 +1,13 @@
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
-import { initUnits } from '../simulation/init.ts';
-import { rng, state } from '../state.ts';
+import { initBattle, initUnits } from '../simulation/init.ts';
+import { rng, seedRng, state } from '../state.ts';
+import type { BattleResult, FleetComposition } from '../types.ts';
+import { hideResult, reopenResult, showResult } from './battle-result.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
   DOM_ID_AUTO_FOLLOW_BTN,
+  DOM_ID_BTN_SPECTATE,
   DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
@@ -17,6 +20,7 @@ import {
   DOM_ID_SPEED,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
+import { getPlayerFleet, hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
 
 interface GameControlEls {
   readonly menu: HTMLElement;
@@ -44,32 +48,185 @@ function setSpd(v: number) {
   els().spdValue.textContent = `${v}x`;
 }
 
-function startGame() {
-  state.gameState = 'play';
-  cam.targetX = 0;
-  cam.targetY = 0;
-  cam.targetZ = 1;
+// --- 敵艦隊 state ---
+let currentEnemyFleet: FleetComposition = [];
+let currentEnemyArchName = '';
+
+// --- seed 一意性保証 ---
+let seedCounter = 0;
+/**
+ * mulberry32 用の一意シードを生成する。
+ * `>>> 0` は 64bit float の Date.now() を無符号32ビットに正規化する
+ * （mulberry32 は内部で `seed | 0` により32bit整数として処理するため）。
+ * seedCounter で ms 精度の衝突を防止。
+ */
+function uniqueSeed(): number {
+  return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
+}
+
+// --- 外部コールバック ---
+type TransitionCb = () => void;
+const throwBattleStart: TransitionCb = () => {
+  throw new Error('setOnBattleStart() must be called before battle launch');
+};
+let onBattleStart: TransitionCb = throwBattleStart;
+let onStartCompose: TransitionCb = () => undefined;
+let onSpectateStart: TransitionCb = () => undefined;
+
+export function setOnBattleStart(cb: TransitionCb) {
+  onBattleStart = cb;
+}
+
+export function setOnStartCompose(cb: TransitionCb) {
+  onStartCompose = cb;
+}
+
+export function setOnSpectateStart(cb: TransitionCb) {
+  onSpectateStart = cb;
+}
+
+// --- 画面遷移 ---
+
+function showPlayUI() {
   const d = els();
-  d.menu.style.display = 'none';
   d.hud.style.display = 'block';
   d.codexBtn.style.display = 'block';
   d.autoFollowBtn.style.display = 'block';
   d.minimap.style.display = 'block';
   d.controls.style.display = 'block';
   d.speed.style.display = 'flex';
-  initUnits(rng);
 }
+
+function hidePlayUI() {
+  const d = els();
+  d.hud.style.display = 'none';
+  d.codexBtn.style.display = 'none';
+  d.autoFollowBtn.style.display = 'none';
+  d.minimap.style.display = 'none';
+  d.controls.style.display = 'none';
+  d.speed.style.display = 'none';
+}
+
+function resetCam() {
+  cam.targetX = 0;
+  cam.targetY = 0;
+  cam.targetZ = 1;
+}
+
+/** START → compose: 敵を生成して編成画面へ */
+export function goToCompose(preserveFleet: boolean) {
+  if (state.codexOpen) toggleCodex();
+  state.gameState = 'compose';
+  els().menu.style.display = 'none';
+  hidePlayUI();
+  hideResult();
+  if (!preserveFleet) resetCounts();
+  showCompose(currentEnemyFleet, currentEnemyArchName);
+}
+
+/** SPECTATE → play: 従来の無限戦闘 */
+function startSpectate() {
+  state.gameState = 'play';
+  resetCam();
+  els().menu.style.display = 'none';
+  showPlayUI();
+  initUnits(rng);
+  onSpectateStart();
+}
+
+/** LAUNCH → play: バトル開始 */
+function startBattle(playerFleet: FleetComposition) {
+  state.gameState = 'play';
+  resetCam();
+  hideCompose();
+  hideResult();
+  showPlayUI();
+  seedRng(uniqueSeed());
+  initBattle(playerFleet, currentEnemyFleet, rng);
+  onBattleStart();
+}
+
+/** REMATCH: 同じ編成・敵で再戦（シードのみ変更） */
+export function rematch() {
+  startBattle(getPlayerFleet());
+}
+
+/** play → result: バトル終了後の結果表示 */
+export function goToResult(result: BattleResult) {
+  state.gameState = 'result';
+  hidePlayUI();
+  showResult(result);
+}
+
+/** result/play → menu */
+export function goToMenu() {
+  if (state.codexOpen) toggleCodex();
+  state.gameState = 'menu';
+  hidePlayUI();
+  hideCompose();
+  hideResult();
+  resetCounts();
+  els().menu.style.display = 'flex';
+}
+
+export function setEnemyFleet(fleet: FleetComposition, archName: string) {
+  currentEnemyFleet = fleet;
+  currentEnemyArchName = archName;
+}
+
+/** テスト専用: モジュールレベル変数をリセット */
+export function _resetGameControl() {
+  seedCounter = 0;
+  currentEnemyFleet = [];
+  currentEnemyArchName = '';
+  onBattleStart = throwBattleStart;
+  onStartCompose = () => undefined;
+  onSpectateStart = () => undefined;
+}
+
+// --- Codex toggle ---
 
 function onCodexToggle() {
   toggleCodex();
   if (state.gameState === 'menu') {
     els().menu.style.display = state.codexOpen ? 'none' : 'flex';
   }
+  if (state.gameState === 'compose') {
+    if (state.codexOpen) {
+      hideCompose();
+    } else {
+      showCompose(currentEnemyFleet, currentEnemyArchName);
+    }
+  }
   if (state.gameState === 'play') {
     els().codexBtn.style.display = state.codexOpen ? 'none' : 'block';
   }
+  if (state.gameState === 'result') {
+    if (state.codexOpen) {
+      hideResult();
+    } else {
+      // Codex 閉じ → result パネル再表示
+      reopenResult();
+    }
+  }
   if (state.codexOpen) {
     setAutoFollow(false);
+  }
+}
+
+// --- Keyboard ---
+
+function onResultKeydown(e: KeyboardEvent) {
+  if (e.code === 'Escape') {
+    e.preventDefault();
+    if (state.codexOpen) {
+      onCodexToggle();
+    } else {
+      goToMenu();
+    }
+  } else if (e.code === 'Tab') {
+    e.preventDefault();
+    onCodexToggle();
   }
 }
 
@@ -108,6 +265,8 @@ function stepSpd(dir: number) {
   } else if (i < speeds.length - 1) setSpd(speeds[i + 1] ?? unreachable(i + 1));
 }
 
+// --- Init ---
+
 export function initUI() {
   _els = {
     menu: getElement(DOM_ID_MENU),
@@ -121,11 +280,16 @@ export function initUI() {
   };
 
   const elBtnStart = getElement(DOM_ID_BTN_START);
+  const elBtnSpectate = getElement(DOM_ID_BTN_SPECTATE);
   const elCodexClose = getElement(DOM_ID_CODEX_CLOSE);
   const elCodexMenuBtn = getElement(DOM_ID_CODEX_MENU_BTN);
 
   elBtnStart.addEventListener('click', () => {
-    startGame();
+    onStartCompose();
+  });
+
+  elBtnSpectate.addEventListener('click', () => {
+    startSpectate();
   });
 
   _els.autoFollowBtn.addEventListener('click', () => {
@@ -151,9 +315,14 @@ export function initUI() {
   }
 
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if ((e.code === 'Tab' || e.code === 'Escape') && (state.gameState === 'play' || state.gameState === 'menu')) {
+    if (
+      (e.code === 'Tab' || e.code === 'Escape') &&
+      (state.gameState === 'play' || state.gameState === 'menu' || state.gameState === 'compose')
+    ) {
       e.preventDefault();
       onCodexToggle();
+    } else if (state.gameState === 'result') {
+      onResultKeydown(e);
     }
     if (state.gameState === 'play') {
       onPlayKeydown(e);
@@ -164,5 +333,6 @@ export function initUI() {
     els().autoFollowBtn.classList.toggle('active', on);
   });
 
+  initComposeDOM(startBattle, goToMenu, onCodexToggle);
   initCodexDOM();
 }

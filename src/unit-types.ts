@@ -66,6 +66,7 @@ function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, D
 export const TYPES: UnitType[] = [
   resolve({
     name: 'Drone',
+    cost: 1,
     size: 4,
     hp: 3,
     speed: 220,
@@ -86,6 +87,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Fighter',
+    cost: 3,
     size: 7,
     hp: 10,
     speed: 180,
@@ -113,6 +115,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Bomber',
+    cost: 5,
     size: 10,
     hp: 20,
     speed: 120,
@@ -136,6 +139,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Cruiser',
+    cost: 8,
     size: 15,
     hp: 50,
     speed: 75,
@@ -157,6 +161,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Flagship',
+    cost: 20,
     size: 30,
     hp: 200,
     speed: 55,
@@ -176,6 +181,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Healer',
+    cost: 4,
     size: 11,
     hp: 12,
     speed: 130,
@@ -198,6 +204,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Reflector',
+    cost: 5,
     size: 13,
     hp: 30,
     speed: 105,
@@ -221,6 +228,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Carrier',
+    cost: 12,
     size: 22,
     hp: 90,
     speed: 50,
@@ -241,6 +249,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Sniper',
+    cost: 3,
     size: 9,
     hp: 8,
     speed: 90,
@@ -264,6 +273,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Lancer',
+    cost: 6,
     size: 12,
     hp: 65,
     speed: 260,
@@ -285,6 +295,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Launcher',
+    cost: 5,
     size: 11,
     hp: 18,
     speed: 100,
@@ -307,6 +318,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Disruptor',
+    cost: 4,
     size: 9,
     hp: 14,
     speed: 110,
@@ -328,6 +340,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Scorcher',
+    cost: 5,
     size: 13,
     hp: 30,
     speed: 85,
@@ -349,6 +362,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Teleporter',
+    cost: 4,
     size: 8,
     hp: 12,
     speed: 150,
@@ -368,6 +382,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Arcer',
+    cost: 4,
     size: 10,
     hp: 16,
     speed: 115,
@@ -389,6 +404,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Bastion',
+    cost: 6,
     size: 14,
     hp: 55,
     speed: 80,
@@ -412,6 +428,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Amplifier',
+    cost: 4,
     size: 12,
     hp: 22,
     speed: 95,
@@ -434,6 +451,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Scrambler',
+    cost: 4,
     size: 11,
     hp: 18,
     speed: 105,
@@ -456,6 +474,7 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Catalyst',
+    cost: 4,
     size: 12,
     hp: 20,
     speed: 70,

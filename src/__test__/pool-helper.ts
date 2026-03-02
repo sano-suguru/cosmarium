@@ -1,3 +1,4 @@
+import { _resetBattleTracker } from '../battle-tracker.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import {
@@ -23,6 +24,8 @@ import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
+import { _resetFleetCompose } from '../ui/fleet-compose.ts';
+import { _resetGameControl } from '../ui/game-control.ts';
 
 export function resetPools() {
   const uHwm = getUnitHWM();
@@ -116,6 +119,9 @@ export function resetPools() {
   trackingBeams.length = 0;
   _resetSweepHits();
   _resetKillUnitHooks();
+  _resetBattleTracker();
+  _resetFleetCompose();
+  _resetGameControl();
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
@@ -185,6 +191,7 @@ export function makeGameLoopState(updateCodexDemo: (dt: number) => void = () => 
     set reinforcementTimer(v: number) {
       state.reinforcementTimer = v;
     },
+    battlePhase: 'spectate',
     updateCodexDemo,
   };
 }

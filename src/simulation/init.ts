@@ -1,8 +1,14 @@
 import { clearAllPools } from '../pools.ts';
+import type { FleetComposition, Team } from '../types.ts';
 import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
 import { spawnUnit } from './spawn.ts';
+
+const BATTLE_SPAWN_X = 1200;
+const BATTLE_SPAWN_Y = 300;
+const BATTLE_SPREAD_BASE = 400;
+const BATTLE_SPREAD_PER_UNIT = 4;
 
 interface InitSpawn {
   readonly type: number;
@@ -34,17 +40,43 @@ export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Catalyst'), count: 2, spread: 400 },
 ];
 
-export function initUnits(rng: () => number) {
+function resetField() {
   clearAllPools();
   resetChains();
+}
+
+function teamOrigin(team: Team): [number, number] {
+  const sign = team === 0 ? -1 : 1;
+  return [sign * BATTLE_SPAWN_X, sign * BATTLE_SPAWN_Y];
+}
+
+export function initUnits(rng: () => number) {
+  resetField();
 
   for (const team of TEAMS) {
-    const cx = team === 0 ? -1200 : 1200;
-    const cy = team === 0 ? -300 : 300;
+    const [cx, cy] = teamOrigin(team);
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
         spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
       }
     }
   }
+}
+
+/** FleetComposition ベースで両チームをスポーンする（バトルモード用） */
+export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetComposition, rng: () => number) {
+  resetField();
+
+  const spawn = (team: Team, fleet: FleetComposition) => {
+    const [cx, cy] = teamOrigin(team);
+    for (const { type, count } of fleet) {
+      const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
+      for (let j = 0; j < count; j++) {
+        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
+      }
+    }
+  };
+
+  spawn(TEAMS[0], playerFleet);
+  spawn(TEAMS[1], enemyFleet);
 }

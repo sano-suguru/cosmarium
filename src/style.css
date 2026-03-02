@@ -1,3 +1,14 @@
+/* z-index layer scale: HUD(10) < Controls(20) < Result(80) < Codex(90) < Overlay(100) */
+:root {
+  --z-hud: 10;
+  --z-controls: 20;
+  --z-result: 80;
+  --z-codex: 90;
+  --z-codex-close: 91;
+  --z-overlay: 100;
+  --z-overlay-btn: 101;
+}
+
 html {
   visibility: visible;
 }
@@ -22,7 +33,7 @@ canvas#c {
 #menu {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -85,6 +96,7 @@ canvas#c {
   transform: scale(1.02);
 }
 .mbtn .desc {
+  display: block;
   color: #555;
   font-size: 10px;
   margin-top: 4px;
@@ -95,7 +107,7 @@ canvas#c {
   position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 10;
+  z-index: var(--z-hud);
   font-family: "Share Tech Mono", monospace;
   color: #0ff;
   font-size: 11px;
@@ -122,7 +134,7 @@ canvas#c {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
+  z-index: var(--z-hud);
   font-family: "Share Tech Mono", monospace;
   color: #444;
   font-size: 10px;
@@ -133,7 +145,7 @@ canvas#c {
   bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 20;
+  z-index: var(--z-controls);
   display: none;
   gap: 4px;
   align-items: center;
@@ -172,7 +184,7 @@ canvas#c {
   position: fixed;
   top: 12px;
   right: 12px;
-  z-index: 20;
+  z-index: var(--z-controls);
   background: none;
   border: 1px solid rgba(0, 255, 255, 0.2);
   color: #0ff;
@@ -191,7 +203,7 @@ canvas#c {
   position: fixed;
   top: 12px;
   right: 130px;
-  z-index: 20;
+  z-index: var(--z-controls);
   background: none;
   border: 1px solid rgba(0, 255, 255, 0.2);
   color: #0ff;
@@ -215,7 +227,7 @@ canvas#c {
 #codex {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: var(--z-codex);
   display: none;
   pointer-events: none;
 }
@@ -343,7 +355,7 @@ canvas#c {
   position: absolute;
   top: 14px;
   right: 20px;
-  z-index: 91;
+  z-index: var(--z-codex-close);
   background: none;
   border: 1px solid rgba(255, 100, 100, 0.25);
   color: #f88;
@@ -370,7 +382,7 @@ canvas#c {
   position: fixed;
   bottom: 180px;
   right: 12px;
-  z-index: 10;
+  z-index: var(--z-hud);
   font-family: "Share Tech Mono", monospace;
   font-size: 11px;
   line-height: 1.6;
@@ -380,7 +392,7 @@ canvas#c {
   position: fixed;
   bottom: 12px;
   right: 12px;
-  z-index: 10;
+  z-index: var(--z-hud);
   border: 1px solid rgba(0, 255, 255, 0.12);
   cursor: pointer;
   border-radius: 3px;

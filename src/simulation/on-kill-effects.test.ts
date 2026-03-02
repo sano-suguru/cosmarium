@@ -11,8 +11,8 @@ vi.mock('../input/camera.ts', () => ({
 
 vi.mock('../ui/game-control.ts', () => ({
   setSpd: vi.fn(),
-  startGame: vi.fn(),
   initUI: vi.fn(),
+  _resetGameControl: vi.fn(),
 }));
 
 import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';

@@ -12,7 +12,7 @@ import {
 } from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { NO_UNIT } from '../types.ts';
+import { NO_UNIT, TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import {
   BASTION_ABSORB_RATIO,
@@ -30,8 +30,8 @@ vi.mock('../input/camera.ts', () => ({
 
 vi.mock('../ui/game-control.ts', () => ({
   setSpd: vi.fn(),
-  startGame: vi.fn(),
   initUI: vi.fn(),
+  _resetGameControl: vi.fn(),
 }));
 
 vi.mock('./spatial-hash.ts', async (importOriginal) => {
@@ -1139,5 +1139,91 @@ describe('Catalyst buff', () => {
     unit(ally).trailTimer = 99;
     tick(0.5, 0, rng, gameLoopState());
     expect(unit(ally).catalystTimer).toBeCloseTo(0.5, 1);
+  });
+});
+
+// ============================================================
+// stepOnce 勝敗判定（返り値ベース）
+// ============================================================
+describe('stepOnce 勝敗判定', () => {
+  /** バトルモード用: battlePhase='battle' で勝敗判定が有効になる */
+  function battleGameLoopState() {
+    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    gs.battlePhase = 'battle';
+    return gs;
+  }
+
+  it('相互全滅: team 1 の勝利（DEFEAT）を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    unit(a).trailTimer = 99;
+    unit(b).trailTimer = 99;
+    // 両方を殺して全滅状態にする
+    unit(a).alive = false;
+    decUnits(TEAMS[0]);
+    unit(b).alive = false;
+    decUnits(TEAMS[1]);
+
+    const result = tick(SIM_DT, 0, rng, battleGameLoopState());
+    expect(result).toBe(1);
+  });
+
+  it('敵のみ全滅: team 0 の勝利（VICTORY）を返す', () => {
+    spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    unit(b).alive = false;
+    decUnits(TEAMS[1]);
+
+    const result = tick(SIM_DT, 0, rng, battleGameLoopState());
+    expect(result).toBe(0);
+  });
+
+  it('自軍のみ全滅: team 1 の勝利（DEFEAT）を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    spawnAt(1, 0, 100, 0);
+    unit(a).alive = false;
+    decUnits(TEAMS[0]);
+
+    const result = tick(SIM_DT, 0, rng, battleGameLoopState());
+    expect(result).toBe(1);
+  });
+
+  it('両チーム生存時は null を返す', () => {
+    spawnAt(0, 0, 0, 0);
+    spawnAt(1, 0, 100, 0);
+
+    const result = tick(SIM_DT, 0, rng, battleGameLoopState());
+    expect(result).toBeNull();
+  });
+
+  it('battlePhase="spectate" では勝敗判定をスキップする', () => {
+    const b = spawnAt(1, 0, 100, 0);
+    unit(b).alive = false;
+    decUnits(TEAMS[1]);
+    // team 0 のみ生存だが spectate モードなので null
+    const result = tick(SIM_DT, 0, rng, gameLoopState());
+    expect(result).toBeNull();
+  });
+
+  it('battlePhase="ending" では勝敗判定をスキップする', () => {
+    const b = spawnAt(1, 0, 100, 0);
+    unit(b).alive = false;
+    decUnits(TEAMS[1]);
+    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    gs.battlePhase = 'ending';
+    // team 0 のみ生存だが ending なので null
+    const result = tick(SIM_DT, 0, rng, gs);
+    expect(result).toBeNull();
+  });
+
+  it('battlePhase="aftermath" では増援も勝敗判定もスキップする', () => {
+    const b = spawnAt(1, 0, 100, 0);
+    unit(b).alive = false;
+    decUnits(TEAMS[1]);
+    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    gs.battlePhase = 'aftermath';
+    // team 0 のみ生存だが aftermath なので null
+    const result = tick(SIM_DT, 0, rng, gs);
+    expect(result).toBeNull();
   });
 });

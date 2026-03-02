@@ -1,23 +1,52 @@
 import './style.css';
+import './style-battle.css';
 
+import {
+  addEnemyKill,
+  advanceBattleElapsed,
+  advanceBattleEndTimer,
+  getPlayerEnemyKills,
+  onBattleEnd,
+  resetBattleTracking,
+  setInitialPlayerUnits,
+  setOnFinalize,
+} from './battle-tracker.ts';
 import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
+import { countFleetUnits, DEFAULT_BUDGET } from './fleet-cost.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
+import { teamUnitCounts } from './pools.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
+import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
+import type { BattlePhase, GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
+import { initResultDOM } from './ui/battle-result.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
-import { initUI } from './ui/game-control.ts';
+import { getPlayerFleet } from './ui/fleet-compose.ts';
+import {
+  goToCompose,
+  goToMenu,
+  goToResult,
+  initUI,
+  rematch,
+  setEnemyFleet,
+  setOnBattleStart,
+  setOnSpectateStart,
+  setOnStartCompose,
+} from './ui/game-control.ts';
 import { initHUD, updateHUD } from './ui/hud.ts';
 import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
 const BASE_SPEED = 0.55;
+/** result 状態のスロー再生倍率 */
+const AFTERMATH_SPEED = 0.2;
 
 initRenderer();
 
@@ -26,17 +55,58 @@ addEventListener('resize', () => {
   createFBOs();
 });
 
+// --- Init UI ---
+
 initUI();
 initHUD();
 initKillFeed();
 initCamera();
 initMinimap();
 
+/** 敵艦隊を生成して編成画面へ遷移する共通ヘルパー */
+function generateAndCompose(preserveFleet: boolean) {
+  const { fleet, archetypeName } = generateEnemyFleet(DEFAULT_BUDGET, rng);
+  setEnemyFleet(fleet, archetypeName);
+  goToCompose(preserveFleet);
+}
+
+initResultDOM(goToMenu, () => generateAndCompose(true), rematch);
+
+// battle → result 遷移コールバック
+setOnFinalize((result) => {
+  gameLoopState.battlePhase = 'aftermath';
+  goToResult(result);
+});
+
+// START → compose: 敵を生成して編成画面へ
+setOnStartCompose(() => {
+  generateAndCompose(false);
+});
+
+// LAUNCH 後のバトル開始
+setOnBattleStart(() => {
+  resetBattleTracking();
+  const fleet = getPlayerFleet();
+  setInitialPlayerUnits(countFleetUnits(fleet));
+  gameLoopState.battlePhase = 'battle';
+});
+
+// Spectate 開始: 増援を有効化
+setOnSpectateStart(() => {
+  gameLoopState.battlePhase = 'spectate';
+});
+
+// --- Kill tracking ---
+
 onKillUnitPermanent((e) => {
   if (state.codexOpen || state.gameState !== 'play') return;
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
+  // 敵チーム(1)の撃破をカウント
+  if (e.victimTeam === 1) addEnemyKill();
 });
+
+// --- Frame loop ---
 
 let lastTime = 0,
   frameCount = 0,
@@ -51,7 +121,7 @@ let simAccumulator = 0;
 /** codex デモ用 accumulator（ゲーム本編とは独立） */
 let demoAccumulator = 0;
 
-const gameLoopState = {
+const gameLoopState: GameLoopState = {
   get codexOpen() {
     return state.codexOpen;
   },
@@ -61,8 +131,35 @@ const gameLoopState = {
   set reinforcementTimer(v: number) {
     state.reinforcementTimer = v;
   },
+  battlePhase: 'spectate' as BattlePhase,
   updateCodexDemo,
 };
+
+function updatePlay(dt: number, t: number) {
+  // drainAccumulator は同期ループ: 最初の勝者検知でスナップショットを確定し、
+  // battlePhase を 'ending' に遷移。後続 substep での追加キルはスナップショットに反映しない。
+  // onBattleEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
+  simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () => {
+    if (gameLoopState.battlePhase === 'battle') {
+      advanceBattleElapsed(SIM_DT);
+    }
+    const w = stepOnce(SIM_DT, t, rng, gameLoopState);
+    if (w !== null) {
+      onBattleEnd(w, { survivors: teamUnitCounts[0], enemyKills: getPlayerEnemyKills() });
+      gameLoopState.battlePhase = 'ending';
+    }
+  });
+  const bp = gameLoopState.battlePhase;
+  if (bp === 'battle' || bp === 'ending') {
+    advanceBattleEndTimer(dt);
+  }
+
+  updateHotspot();
+  updateAutoFollow(hotspot());
+  renderFrame(t);
+  updateHUD(displayFps);
+  if (frameCount % 2 === 0) drawMinimap();
+}
 
 function frame(now: number) {
   const t = now * 0.001;
@@ -102,20 +199,19 @@ function frame(now: number) {
 
   if (state.codexOpen) {
     setAutoFollow(false);
-    demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () =>
-      stepOnce(SIM_DT, t, demoRng, gameLoopState),
-    );
+    demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () => {
+      stepOnce(SIM_DT, t, demoRng, gameLoopState);
+    });
     syncDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
-    simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () =>
-      stepOnce(SIM_DT, t, rng, gameLoopState),
-    );
-    updateHotspot();
-    updateAutoFollow(hotspot());
+    updatePlay(dt, t);
+  } else if (state.gameState === 'result') {
+    // aftermath: スロー再生
+    simAccumulator = drainAccumulator(simAccumulator + dt * AFTERMATH_SPEED * BASE_SPEED, () => {
+      stepOnce(SIM_DT, t, rng, gameLoopState);
+    });
     renderFrame(t);
-    updateHUD(displayFps);
-    if (frameCount % 2 === 0) drawMinimap();
   }
 
   requestAnimationFrame(frame);

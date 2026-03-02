@@ -21,3 +21,22 @@ export const DOM_ID_CODEX_CLOSE = 'codexClose';
 export const DOM_ID_CODEX_MENU_BTN = 'codexMenuBtn';
 export const DOM_ID_AUTO_FOLLOW_BTN = 'autoFollowBtn';
 export const DOM_ID_KILL_FEED = 'killFeed';
+
+export const DOM_ID_COMPOSE = 'compose';
+export const DOM_ID_COMPOSE_GRID = 'composeGrid';
+export const DOM_ID_COMPOSE_BUDGET = 'composeBudget';
+export const DOM_ID_COMPOSE_TOTAL = 'composeTotal';
+export const DOM_ID_COMPOSE_REMAINING = 'composeRemaining';
+export const DOM_ID_COMPOSE_LAUNCH = 'composeLaunch';
+export const DOM_ID_COMPOSE_BACK = 'composeBack';
+export const DOM_ID_COMPOSE_RESET = 'composeReset';
+export const DOM_ID_COMPOSE_ENEMY = 'composeEnemy';
+export const DOM_ID_BTN_SPECTATE = 'btnSpectate';
+export const DOM_ID_COMPOSE_CODEX_BTN = 'composeCodexBtn';
+
+export const DOM_ID_RESULT = 'result';
+export const DOM_ID_RESULT_TITLE = 'resultTitle';
+export const DOM_ID_RESULT_STATS = 'resultStats';
+export const DOM_ID_RESULT_MENU = 'resultMenu';
+export const DOM_ID_RESULT_RECOMPOSE = 'resultRecompose';
+export const DOM_ID_RESULT_REMATCH = 'resultRematch';
