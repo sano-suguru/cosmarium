@@ -14,9 +14,13 @@ export const WORLD_SIZE = 4000;
 export const BEAM_DECAY_RATE = 3;
 export const PI = Math.PI;
 export const TAU = Math.PI * 2;
-export const REF_FPS = 30;
+/**
+ * 固定シミュレーション周波数。ステアリング精度の観点で 60 を選択。
+ * パフォーマンスがボトルネックになった場合は 30 + 補間への切替を検討。
+ */
+export const REF_FPS = 60;
 
-/** 固定シミュレーションステップ (1/REF_FPS ≈ 0.0333秒) */
+/** 固定シミュレーションステップ (1/REF_FPS ≈ 0.0167秒) */
 export const SIM_DT = 1 / REF_FPS;
 
 // ── Shape IDs ──

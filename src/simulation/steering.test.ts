@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { WORLD_SIZE } from '../constants.ts';
+import { REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import type { UnitType } from '../types.ts';
@@ -38,7 +38,7 @@ describe('steer — スタン', () => {
     steer(u, 0.016, rng);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
     const mass = unitType(1).mass;
-    const expectedDrag = (STUN_DRAG_BASE ** (1 / Math.sqrt(mass))) ** (0.016 * 30);
+    const expectedDrag = (STUN_DRAG_BASE ** (1 / Math.sqrt(mass))) ** (0.016 * REF_FPS);
     expect(u.vx).toBeCloseTo(100 * expectedDrag);
     expect(u.vy).toBeCloseTo(50 * expectedDrag);
     expect(u.x).toBeGreaterThan(xBefore);

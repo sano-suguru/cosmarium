@@ -1,6 +1,7 @@
 import { color } from '../colors.ts';
 import { WORLD_SIZE } from '../constants.ts';
 import { cam, setAutoFollow } from '../input/camera.ts';
+import { lerpX, lerpY } from '../interpolation.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import { unitType } from '../unit-types.ts';
 import { MINIMAP_MAX, minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
@@ -79,9 +80,11 @@ export function drawMinimap() {
     const u = unit(i);
     if (!u.alive) continue;
     rem--;
+    const rx = lerpX(u);
+    const ry = lerpY(u);
     const c = color(u.type, u.team);
     const size = Math.max(0.008, unitType(u.type).size * S * 1.5);
-    writeMinimap(u.x * S, u.y * S, size, 0, c[0], c[1], c[2], 0.7, 1);
+    writeMinimap(rx * S, ry * S, size, 0, c[0], c[1], c[2], 0.7, 1);
   }
 
   drawViewport(S, W, H, dpr);

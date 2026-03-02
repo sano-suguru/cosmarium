@@ -5,6 +5,7 @@ import {
   AMP_BOOST_LINGER,
   CATALYST_BOOST_LINGER,
   POOL_UNITS,
+  REF_FPS,
   REFLECT_FIELD_MAX_HP,
   SCRAMBLE_BOOST_LINGER,
   SH_CIRCLE,
@@ -110,8 +111,8 @@ describe('パーティクル pass', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, SH_CIRCLE);
     tick(0.016, 0, rng, gameLoopState());
     expect(particle(0).x).toBeCloseTo(100 * 0.016, 1);
-    expect(particle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * 30));
-    expect(particle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * 30));
+    expect(particle(0).vx).toBeCloseTo(100 * 0.97 ** (0.016 * REF_FPS));
+    expect(particle(0).vy).toBeCloseTo(200 * 0.97 ** (0.016 * REF_FPS));
   });
 
   it('life<=0 で消滅', () => {

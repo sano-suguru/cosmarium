@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, reviveParticle, reviveProjectile, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { SH_BEAM, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_OCT_SHIELD, SH_REFLECT_FIELD } from '../constants.ts';
+import { resetInterp, setInterpAlpha } from '../interpolation.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
 
 const mockWriteSlots = vi.fn();
@@ -25,9 +26,15 @@ it('mock の MAX_INSTANCES が実値と一致する', () => {
   expect(MAX_INSTANCES).toBe(100_000);
 });
 
+beforeEach(() => {
+  // テストでは補間を完了状態(alpha=1)に設定し、現在位置をそのまま描画する
+  setInterpAlpha(1);
+});
+
 afterEach(() => {
   resetPools();
   resetState();
+  resetInterp();
   vi.restoreAllMocks();
   mockWriteSlots.mockClear();
   beams.length = 0;

@@ -15,6 +15,7 @@ import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
 import { countFleetUnits, DEFAULT_BUDGET } from './fleet-cost.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
+import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
 import { teamUnitCounts } from './pools.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
@@ -140,6 +141,7 @@ function updatePlay(dt: number, t: number) {
   // battlePhase を 'ending' に遷移。後続 substep での追加キルはスナップショットに反映しない。
   // onBattleEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
   simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () => {
+    savePrevPositions();
     if (gameLoopState.battlePhase === 'battle') {
       advanceBattleElapsed(SIM_DT);
     }
@@ -149,6 +151,7 @@ function updatePlay(dt: number, t: number) {
       gameLoopState.battlePhase = 'ending';
     }
   });
+  setInterpAlpha(simAccumulator / SIM_DT);
   const bp = gameLoopState.battlePhase;
   if (bp === 'battle' || bp === 'ending') {
     advanceBattleEndTimer(dt);
@@ -200,8 +203,10 @@ function frame(now: number) {
   if (state.codexOpen) {
     setAutoFollow(false);
     demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () => {
+      savePrevPositions();
       stepOnce(SIM_DT, t, demoRng, gameLoopState);
     });
+    setInterpAlpha(demoAccumulator / SIM_DT);
     syncDemoCamera();
     renderFrame(t);
   } else if (state.gameState === 'play') {
@@ -209,8 +214,10 @@ function frame(now: number) {
   } else if (state.gameState === 'result') {
     // aftermath: スロー再生
     simAccumulator = drainAccumulator(simAccumulator + dt * AFTERMATH_SPEED * BASE_SPEED, () => {
+      savePrevPositions();
       stepOnce(SIM_DT, t, rng, gameLoopState);
     });
+    setInterpAlpha(simAccumulator / SIM_DT);
     renderFrame(t);
   }
 

@@ -81,6 +81,8 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
       u.type = type;
       u.x = x;
       u.y = y;
+      u.prevX = x;
+      u.prevY = y;
       u.vx = 0;
       u.vy = 0;
       u.kbVx = 0;
@@ -180,6 +182,8 @@ export function spawnParticle(
   p.alive = true;
   p.x = x;
   p.y = y;
+  p.prevX = x;
+  p.prevY = y;
   p.vx = vx;
   p.vy = vy;
   p.life = life;
@@ -217,6 +221,8 @@ export function spawnProjectile(
       p.alive = true;
       p.x = x;
       p.y = y;
+      p.prevX = x;
+      p.prevY = y;
       p.vx = vx;
       p.vy = vy;
       p.life = life;

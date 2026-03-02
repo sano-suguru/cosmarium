@@ -4,6 +4,8 @@ export interface Unit {
   type: number;
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   angle: number;
@@ -49,6 +51,8 @@ export interface Particle {
   alive: boolean;
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   life: number;
@@ -64,6 +68,8 @@ export interface Projectile {
   alive: boolean;
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   life: number;
