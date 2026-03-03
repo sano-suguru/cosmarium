@@ -18,7 +18,9 @@ const ZERO_TEAMS: Readonly<TeamCounts> = [0, 0, 0, 0, 0];
 function acquireCell(): HotspotCell {
   if (_cellPoolIdx < _cellPool.length) {
     const c = _cellPool[_cellPoolIdx++] as HotspotCell;
-    for (let i = 0; i < MAX_TEAMS; i++) c.teams[i as Team] = 0;
+    for (let i = 0; i < MAX_TEAMS; i++) {
+      c.teams[i as Team] = 0;
+    }
     c.sx = 0;
     c.sy = 0;
     c.count = 0;
@@ -43,7 +45,9 @@ function buildCellMap(): Map<number, HotspotCell> {
   _cellPoolIdx = 0;
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
     const key = cellKey(u.x, u.y);
     let cell = _cells.get(key);
@@ -82,7 +86,9 @@ function pickBestCell(cells: Map<number, HotspotCell>): { key: number; cell: Hot
       bestCell = cell;
     }
   }
-  if (bestScore === 0 || bestCell === null || bestKey === null || bestCell.count === 0) return null;
+  if (bestScore === 0 || bestCell === null || bestKey === null || bestCell.count === 0) {
+    return null;
+  }
   return { key: bestKey, cell: bestCell };
 }
 
@@ -90,19 +96,27 @@ function maxDistanceInCell(cellKeyValue: number, centerX: number, centerY: numbe
   let maxDist = 0;
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
-    if (cellKey(u.x, u.y) !== cellKeyValue) continue;
+    if (cellKey(u.x, u.y) !== cellKeyValue) {
+      continue;
+    }
     const dx = u.x - centerX;
     const dy = u.y - centerY;
     const dist = Math.hypot(dx, dy);
-    if (dist > maxDist) maxDist = dist;
+    if (dist > maxDist) {
+      maxDist = dist;
+    }
   }
   return maxDist;
 }
 
 export function updateHotspot(): void {
-  if (++frameCounter < HOTSPOT_UPDATE_INTERVAL) return;
+  if (++frameCounter < HOTSPOT_UPDATE_INTERVAL) {
+    return;
+  }
   frameCounter = 0;
 
   const cells = buildCellMap();

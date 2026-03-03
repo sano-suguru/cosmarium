@@ -55,11 +55,15 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
   const nn = getNeighbors(x, y, size * 8);
   for (let i = 0; i < nn; i++) {
     const o = unit(getNeighborAt(i));
-    if (!o.alive) continue;
+    if (!o.alive) {
+      continue;
+    }
     const ddx = o.x - x,
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-    if (dd < size * 8) knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
+    if (dd < size * 8) {
+      knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
+    }
   }
 }
 
@@ -71,8 +75,12 @@ function updateKillerVet(killer: Killer) {
   const ku = unit(killer.index);
   if (ku.alive && ku.team === killer.team && ku.type === killer.type) {
     ku.kills++;
-    if (ku.kills >= 3) ku.vet = 1;
-    if (ku.kills >= 8) ku.vet = 2;
+    if (ku.kills >= 3) {
+      ku.vet = 1;
+    }
+    if (ku.kills >= 8) {
+      ku.vet = 2;
+    }
   }
 }
 
@@ -93,7 +101,9 @@ export function explosion(x: number, y: number, team: Team, type: number, rng: (
   spawnParticle(x, y, 0, 0, 0.15, size * 1.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(x, y, 0, 0, 0.2, size * 1.8, c[0], c[1], c[2], SH_EXPLOSION_RING);
 
-  if (size >= 14) addShake(size * 0.8, x, y);
+  if (size >= 14) {
+    addShake(size * 0.8, x, y);
+  }
 
   applyKnockbackToNeighbors(x, y, size);
 }
@@ -138,11 +148,19 @@ export function destroyMutualKill(
   // kill は両方のスナップショット取得後（順序重要）
   let snapB: ReturnType<typeof killUnit>;
   let snapA: ReturnType<typeof killUnit>;
-  if (bHpDepleted) snapB = killUnit(b, killerA);
-  if (aHpDepleted) snapA = killUnit(a, killerB);
+  if (bHpDepleted) {
+    snapB = killUnit(b, killerA);
+  }
+  if (aHpDepleted) {
+    snapA = killUnit(a, killerB);
+  }
 
-  if (snapB) explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
-  if (snapA) explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
+  if (snapB) {
+    explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
+  }
+  if (snapA) {
+    explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
+  }
 
   // vet加算 + on-kill効果（相打ちではkillerもdeadのため除外）
   const isMutualKill = aHpDepleted && bHpDepleted;
@@ -187,7 +205,9 @@ export function flagshipTrail(u: Unit, rng: () => number) {
   const engineRearOffset = -(t.size * 1.05); // シェーダノズル0.80より奥
   for (const sign of [-1, 1] as const) {
     for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
-      if (rng() < ENGINE_SKIP_CHANCE) continue;
+      if (rng() < ENGINE_SKIP_CHANCE) {
+        continue;
+      }
       const localY = sign * ey * t.size;
       const wx = u.x + cos * engineRearOffset - sin * localY;
       const wy = u.y + sin * engineRearOffset + cos * localY;
@@ -276,7 +296,9 @@ function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): bool
 export function updateChains(dt: number, rng: () => number) {
   for (let i = pendingChains.length - 1; i >= 0; i--) {
     const pc = pendingChains[i];
-    if (pc === undefined) continue;
+    if (pc === undefined) {
+      continue;
+    }
     if (advanceChainHops(pc, dt, rng)) {
       swapRemove(pendingChains, i);
     }
@@ -327,7 +349,9 @@ function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (!o.alive || o.team === team || hit.has(oi)) continue;
+    if (!o.alive || o.team === team || hit.has(oi)) {
+      continue;
+    }
     const d = Math.sqrt((o.x - cx) * (o.x - cx) + (o.y - cy) * (o.y - cy));
     if (d < bd) {
       bd = d;
@@ -379,7 +403,9 @@ export function chainLightning(
   const hops: ChainHop[] = [];
   for (let ch = 0; ch < max; ch++) {
     const bi = findNearestEnemy(cx, cy, team, hit);
-    if (bi === NO_UNIT) break;
+    if (bi === NO_UNIT) {
+      break;
+    }
     hit.add(bi);
     if (ch === 0) {
       const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng);

@@ -35,11 +35,15 @@ export function ramTarget(ctx: CombatContext) {
     const oi = getNeighborAt(i),
       o = unit(oi);
     const oType = unitType(o.type);
-    if (!o.alive || o.team === u.team) continue;
+    if (!o.alive || o.team === u.team) {
+      continue;
+    }
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d >= t.size + oType.size) continue;
+    if (d >= t.size + oType.size) {
+      continue;
+    }
     o.hp -= Math.ceil(u.mass * 3 * vd);
     o.hitFlash = 1;
     knockback(oi, u.x, u.y, u.mass * 55);
@@ -80,7 +84,9 @@ export function healAllies(ctx: CombatContext) {
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === ui) continue;
+    if (!o.alive || o.team !== u.team || oi === ui) {
+      continue;
+    }
     if (o.hp < o.maxHp) {
       o.hp = Math.min(o.maxHp, o.hp + HEALER_AMOUNT);
       addBeam(u.x, u.y, o.x, o.y, 0.2, 1, 0.5, 0.12, 2.5);
@@ -119,13 +125,17 @@ export function launchDrones(ctx: CombatContext) {
 export function dischargeEmp(ctx: CombatContext) {
   const { u, t } = ctx;
   const d = tgtDistOrClear(u);
-  if (d < 0 || d >= t.range) return;
+  if (d < 0 || d >= t.range) {
+    return;
+  }
   u.abilityCooldown = t.fireRate;
   const nn = getNeighbors(u.x, u.y, t.range);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       oo = unit(oi);
-    if (!oo.alive || oo.team === u.team) continue;
+    if (!oo.alive || oo.team === u.team) {
+      continue;
+    }
     if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
       oo.stun = 1.5;
       oo.hp -= t.damage;
@@ -201,7 +211,9 @@ function blinkArrive(ctx: CombatContext) {
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i);
     const o = unit(oi);
-    if (!o.alive || o.team === u.team) continue;
+    if (!o.alive || o.team === u.team) {
+      continue;
+    }
     knockback(oi, u.x, u.y, BLINK_IMPACT_KNOCKBACK);
     o.stun = Math.max(o.stun, BLINK_IMPACT_STUN);
   }
@@ -243,7 +255,9 @@ function blinkArrive(ctx: CombatContext) {
 export function teleport(ctx: CombatContext): boolean {
   const { u, dt } = ctx;
   u.teleportTimer -= dt;
-  if (u.teleportTimer > 0) return false;
+  if (u.teleportTimer > 0) {
+    return false;
+  }
 
   if (u.blinkPhase === 1) {
     blinkArrive(ctx);
@@ -284,11 +298,15 @@ export function teleport(ctx: CombatContext): boolean {
 export function castChain(ctx: CombatContext): void {
   const { u, c, t, vd } = ctx;
   const d = tgtDistOrClear(u);
-  if (d < 0) return;
+  if (d < 0) {
+    return;
+  }
   if (d < ctx.range) {
     u.cooldown = t.fireRate;
     const killer = captureKiller(ctx.ui);
-    if (!killer) return;
+    if (!killer) {
+      return;
+    }
     chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, killer, ctx.rng);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }

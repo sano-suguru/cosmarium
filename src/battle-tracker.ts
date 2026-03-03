@@ -57,7 +57,9 @@ export function _resetBattleTracker() {
 
 export function onBattleEnd(winner: Team, snapshot: BattleSnapshot) {
   // drainAccumulator 内で複数 stepOnce が勝者を返しうるが、最初の1回のみ処理
-  if (battleWinner !== null) return;
+  if (battleWinner !== null) {
+    return;
+  }
   battleWinner = winner;
   snapshotSurvivors = snapshot.survivors;
   snapshotEnemyKills = snapshot.enemyKills;
@@ -69,7 +71,9 @@ export function getPlayerEnemyKills(): number {
 }
 
 function finalizeBattle() {
-  if (battleWinner === null) return;
+  if (battleWinner === null) {
+    return;
+  }
   const victory = battleWinner === 0;
   const result: BattleResult = {
     victory,
@@ -95,7 +99,9 @@ export function advanceBattleElapsed(simDt: number) {
 export function advanceBattleEndTimer(dt: number) {
   if (battleEndTimer >= 0) {
     battleEndTimer -= dt;
-    if (battleEndTimer < 0) finalizeBattle();
+    if (battleEndTimer < 0) {
+      finalizeBattle();
+    }
   }
 }
 

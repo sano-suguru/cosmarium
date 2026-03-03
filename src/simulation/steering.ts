@@ -68,9 +68,13 @@ function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
     bi: UnitIndex = NO_UNIT;
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const o = unit(i);
-    if (!o.alive) continue;
+    if (!o.alive) {
+      continue;
+    }
     rem--;
-    if (o.team === u.team) continue;
+    if (o.team === u.team) {
+      continue;
+    }
     const score = targetScore(u.x, u.y, o, massWeight);
     if (score < bs) {
       bs = score;
@@ -87,7 +91,9 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   const dx = u.x - o.x,
     dy = u.y - o.y;
   const d2 = dx * dx + dy * dy;
-  if (d2 < 1) return;
+  if (d2 < 1) {
+    return;
+  }
   const d = Math.sqrt(d2);
 
   if (d < sd) {
@@ -138,7 +144,9 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (!o.alive || o === u) continue;
+    if (!o.alive || o === u) {
+      continue;
+    }
     accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
 
@@ -165,7 +173,9 @@ function computeBoidsAndFindLocal(u: Unit, nn: number, t: UnitType, range: numbe
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (!o.alive || o === u) continue;
+    if (!o.alive || o === u) {
+      continue;
+    }
 
     accumulateBoidsNeighbor(u, o, sd, t.mass);
 
@@ -227,11 +237,15 @@ function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number):
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (o.team === u.team || !o.alive) continue;
+    if (o.team === u.team || !o.alive) {
+      continue;
+    }
     const dx = u.x - o.x,
       dy = u.y - o.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < 1) continue;
+    if (d < 1) {
+      continue;
+    }
     const f = t.range / d;
     rx += (dx / d) * f;
     ry += (dy / d) * f;
@@ -255,7 +269,9 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    if (o.team !== u.team || !o.alive || o === u) continue;
+    if (o.team !== u.team || !o.alive || o === u) {
+      continue;
+    }
     if (unitType(o.type).mass > bm) {
       bm = unitType(o.type).mass;
       bi = oi;
@@ -324,14 +340,22 @@ function applyKnockbackDrag(u: Unit, dt: number) {
   const kbDrag = KB_DRAG_BASE ** (dt * REF_FPS);
   u.kbVx *= kbDrag;
   u.kbVy *= kbDrag;
-  if (Math.abs(u.kbVx) < KB_EPSILON) u.kbVx = 0;
-  if (Math.abs(u.kbVy) < KB_EPSILON) u.kbVy = 0;
+  if (Math.abs(u.kbVx) < KB_EPSILON) {
+    u.kbVx = 0;
+  }
+  if (Math.abs(u.kbVy) < KB_EPSILON) {
+    u.kbVy = 0;
+  }
 }
 
 function tickBoostDuringStun(u: Unit, dt: number) {
-  if (u.boostTimer <= 0 && u.boostCooldown <= 0) return;
+  if (u.boostTimer <= 0 && u.boostCooldown <= 0) {
+    return;
+  }
   const bt = unitType(u.type).boost;
-  if (!bt) return;
+  if (!bt) {
+    return;
+  }
   if (u.boostTimer > 0) {
     u.boostTimer = 0;
     u.boostCooldown = bt.cooldown;
@@ -458,15 +482,27 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   }
 
   const m = WORLD_SIZE * BOUNDARY_MARGIN;
-  if (u.x < -m) fx += BOUNDARY_FORCE;
-  if (u.x > m) fx -= BOUNDARY_FORCE;
-  if (u.y < -m) fy += BOUNDARY_FORCE;
-  if (u.y > m) fy -= BOUNDARY_FORCE;
+  if (u.x < -m) {
+    fx += BOUNDARY_FORCE;
+  }
+  if (u.x > m) {
+    fx -= BOUNDARY_FORCE;
+  }
+  if (u.y < -m) {
+    fy += BOUNDARY_FORCE;
+  }
+  if (u.y > m) {
+    fy -= BOUNDARY_FORCE;
+  }
 
   const da = Math.atan2(fy, fx);
   let ad = da - u.angle;
-  if (ad > PI) ad -= TAU;
-  if (ad < -PI) ad += TAU;
+  if (ad > PI) {
+    ad -= TAU;
+  }
+  if (ad < -PI) {
+    ad += TAU;
+  }
   const catTurn = u.catalystTimer > 0 ? CATALYST_TURN_MULT : 1;
   u.angle += ad * t.turnRate * catTurn * dt;
 

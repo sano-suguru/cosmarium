@@ -255,7 +255,9 @@ describe('captureKiller', () => {
   it('alive ユニットの team/type を返す', () => {
     const idx = spawnUnit(1, 3, 100, 200, testRng);
     const k = captureKiller(idx);
-    if (!k) throw new Error('expected killer');
+    if (!k) {
+      throw new Error('expected killer');
+    }
     expect(k.index).toBe(idx);
     expect(k.team).toBe(1);
     expect(k.type).toBe(3);

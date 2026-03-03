@@ -35,7 +35,9 @@ describe('initUnits', () => {
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
-      if (particle(i).alive) aliveCount++;
+      if (particle(i).alive) {
+        aliveCount++;
+      }
     }
     expect(aliveCount).toBe(0);
   });
@@ -45,7 +47,9 @@ describe('initUnits', () => {
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      if (projectile(i).alive) aliveCount++;
+      if (projectile(i).alive) {
+        aliveCount++;
+      }
     }
     expect(aliveCount).toBe(0);
   });
@@ -80,7 +84,9 @@ describe('initUnits', () => {
     initUnits(rng);
     let aliveCount = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (unit(i).alive) aliveCount++;
+      if (unit(i).alive) {
+        aliveCount++;
+      }
     }
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
     expect(aliveCount).toBe(perTeam * 2);
@@ -92,9 +98,14 @@ describe('initUnits', () => {
     let team1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
       const u = unit(i);
-      if (!u.alive) continue;
-      if (u.team === 0) team0++;
-      else team1++;
+      if (!u.alive) {
+        continue;
+      }
+      if (u.team === 0) {
+        team0++;
+      } else {
+        team1++;
+      }
     }
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
     expect(team0).toBe(perTeam);
@@ -125,7 +136,9 @@ describe('initMelee', () => {
     const counts = [0, 0, 0];
     for (let i = 0; i < POOL_UNITS; i++) {
       const u = unit(i);
-      if (!u.alive) continue;
+      if (!u.alive) {
+        continue;
+      }
       const t: number = u.team;
       cx[t] = (cx[t] ?? 0) + u.x;
       counts[t] = (counts[t] ?? 0) + 1;

@@ -391,7 +391,9 @@ describe('chainLightning — KillEvent 伝播', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const killer = captureKiller(attacker);
-    if (!killer) throw new Error('expected killer');
+    if (!killer) {
+      throw new Error('expected killer');
+    }
     chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killer, rng);
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
@@ -410,7 +412,9 @@ describe('chainLightning — KillEvent 伝播', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const killer2 = captureKiller(attacker);
-    if (!killer2) throw new Error('expected killer');
+    if (!killer2) {
+      throw new Error('expected killer');
+    }
     chainLightning(0, 0, 0, 100, 5, [1, 0, 0], killer2, rng);
     updateChains(0.06, rng);
     expect(unit(enemy2).alive).toBe(false);

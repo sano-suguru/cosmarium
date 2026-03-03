@@ -40,7 +40,9 @@ interface GameControlEls {
 let _els: GameControlEls | null = null;
 
 function els(): GameControlEls {
-  if (!_els) throw new Error('initUI() has not been called');
+  if (!_els) {
+    throw new Error('initUI() has not been called');
+  }
   return _els;
 }
 
@@ -125,12 +127,16 @@ function resetCam() {
 
 /** START → compose: 敵を生成して編成画面へ */
 export function goToCompose(preserveFleet: boolean) {
-  if (state.codexOpen) toggleCodex();
+  if (state.codexOpen) {
+    toggleCodex();
+  }
   state.gameState = 'compose';
   els().menu.style.display = 'none';
   hidePlayUI();
   hideResult();
-  if (!preserveFleet) resetCounts();
+  if (!preserveFleet) {
+    resetCounts();
+  }
   showCompose(currentEnemyFleet, currentEnemyArchName);
 }
 
@@ -192,7 +198,9 @@ export function goToMeleeResult(result: MeleeResult) {
 
 /** result/play → menu */
 export function goToMenu() {
-  if (state.codexOpen) toggleCodex();
+  if (state.codexOpen) {
+    toggleCodex();
+  }
   state.gameState = 'menu';
   hidePlayUI();
   hideCompose();
@@ -294,8 +302,12 @@ function stepSpd(dir: number) {
   if (i < 0) {
     setSpd(speeds[def] ?? unreachable(def));
   } else if (dir < 0) {
-    if (i > 0) setSpd(speeds[i - 1] ?? unreachable(i - 1));
-  } else if (i < speeds.length - 1) setSpd(speeds[i + 1] ?? unreachable(i + 1));
+    if (i > 0) {
+      setSpd(speeds[i - 1] ?? unreachable(i - 1));
+    }
+  } else if (i < speeds.length - 1) {
+    setSpd(speeds[i + 1] ?? unreachable(i + 1));
+  }
 }
 
 // --- Init ---

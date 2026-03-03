@@ -34,7 +34,9 @@ let _sweepSnapshotCount = 0;
 
 function snapshotNeighbors(x: number, y: number, r: number): number {
   const nn = getNeighbors(x, y, r);
-  for (let k = 0; k < nn; k++) _sweepSnapshot[k] = getNeighborAt(k);
+  for (let k = 0; k < nn; k++) {
+    _sweepSnapshot[k] = getNeighborAt(k);
+  }
   return nn;
 }
 
@@ -79,8 +81,12 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
 
   const normalize = (a: number): number => {
     let r = a - base;
-    while (r > Math.PI) r -= Math.PI * 2;
-    while (r < -Math.PI) r += Math.PI * 2;
+    while (r > Math.PI) {
+      r -= Math.PI * 2;
+    }
+    while (r < -Math.PI) {
+      r += Math.PI * 2;
+    }
     return r;
   };
 
@@ -92,19 +98,31 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   for (let i = 0; i < _sweepSnapshotCount; i++) {
     const ni = _sweepSnapshot[i] as UnitIndex;
     const n = unit(ni);
-    if (!n.alive || n.team === u.team) continue;
+    if (!n.alive || n.team === u.team) {
+      continue;
+    }
     const ndx = n.x - u.x,
       ndy = n.y - u.y;
     const nd = Math.sqrt(ndx * ndx + ndy * ndy);
-    if (nd >= t.range) continue;
+    if (nd >= t.range) {
+      continue;
+    }
     const nAngle = Math.atan2(ndy, ndx);
     const relEnemy = normalize(nAngle);
-    if (relEnemy < lo || relEnemy > hi) continue;
-    if (sweepHitMap.get(ctx.ui)?.has(ni)) continue;
+    if (relEnemy < lo || relEnemy > hi) {
+      continue;
+    }
+    if (sweepHitMap.get(ctx.ui)?.has(ni)) {
+      continue;
+    }
     sweepHitMap.get(ctx.ui)?.add(ni);
     const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui);
-    if (dmg < 0) continue;
-    if (!u.alive) return;
+    if (dmg < 0) {
+      continue;
+    }
+    if (!u.alive) {
+      return;
+    }
     applySweepHit(ctx, ni, n, dmg);
   }
 }

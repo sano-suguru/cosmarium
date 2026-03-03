@@ -128,19 +128,25 @@ export function resetPools() {
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
 export function fillUnitPool() {
-  for (let i = 0; i < POOL_UNITS; i++) unit(i).alive = true;
+  for (let i = 0; i < POOL_UNITS; i++) {
+    unit(i).alive = true;
+  }
   advanceUnitHWM(POOL_UNITS - 1);
   setUnitCount(POOL_UNITS);
 }
 
 export function fillParticlePool() {
-  for (let i = 0; i < POOL_PARTICLES; i++) particle(i).alive = true;
+  for (let i = 0; i < POOL_PARTICLES; i++) {
+    particle(i).alive = true;
+  }
   advanceParticleHWM(POOL_PARTICLES - 1);
   setParticleCount(POOL_PARTICLES);
 }
 
 export function fillProjectilePool() {
-  for (let i = 0; i < POOL_PROJECTILES; i++) projectile(i).alive = true;
+  for (let i = 0; i < POOL_PROJECTILES; i++) {
+    projectile(i).alive = true;
+  }
   advanceProjectileHWM(POOL_PROJECTILES - 1);
   setProjectileCount(POOL_PROJECTILES);
 }

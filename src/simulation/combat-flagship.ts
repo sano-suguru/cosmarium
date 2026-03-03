@@ -233,7 +233,9 @@ export function flagshipBarrage(ctx: CombatContext) {
     return;
   }
 
-  if (u.beamOn === 0 && u.cooldown > 0) return;
+  if (u.beamOn === 0 && u.cooldown > 0) {
+    return;
+  }
 
   if (u.beamOn === 0) {
     const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, FLAGSHIP_MAIN_GUN_SPEED, t.leadAccuracy);

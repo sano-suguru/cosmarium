@@ -36,7 +36,9 @@ interface KilledUnitSnapshot {
 
 export function captureKiller(i: UnitIndex): Killer | undefined {
   const u = unit(i);
-  if (!u.alive) return undefined;
+  if (!u.alive) {
+    return undefined;
+  }
   return { index: i, team: u.team, type: u.type };
 }
 
@@ -60,7 +62,9 @@ export function onKillUnit(hook: KillUnitHook): Unsubscribe {
   killUnitHooks.push(hook);
   return () => {
     const idx = killUnitHooks.indexOf(hook);
-    if (idx !== -1) killUnitHooks.splice(idx, 1);
+    if (idx !== -1) {
+      killUnitHooks.splice(idx, 1);
+    }
   };
 }
 
@@ -144,8 +148,12 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
     const e: KillEvent = killer
       ? { ...base, killer: killer.index, killerTeam: killer.team, killerType: killer.type }
       : { ...base, killer: NO_UNIT };
-    for (const hook of killUnitHooks) hook(e);
-    for (const hook of permanentKillUnitHooks) hook(e);
+    for (const hook of killUnitHooks) {
+      hook(e);
+    }
+    for (const hook of permanentKillUnitHooks) {
+      hook(e);
+    }
     return snap;
   }
   return undefined;
@@ -181,7 +189,9 @@ export function spawnParticle(
   shape: number,
 ): ParticleIndex {
   const slot = allocParticleSlot();
-  if (slot === NO_PARTICLE) return NO_PARTICLE;
+  if (slot === NO_PARTICLE) {
+    return NO_PARTICLE;
+  }
   const p = particle(slot);
   p.alive = true;
   p.x = x;
@@ -291,6 +301,8 @@ export function addTrackingBeam(
     maxLife: life,
     width,
   };
-  if (trackingBeams.length >= POOL_TRACKING_BEAMS) return;
+  if (trackingBeams.length >= POOL_TRACKING_BEAMS) {
+    return;
+  }
   trackingBeams.push(tb);
 }

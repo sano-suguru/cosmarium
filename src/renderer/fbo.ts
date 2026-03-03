@@ -10,7 +10,9 @@ export const fbos: { scene: FBO | null; bloom1: FBO | null; bloom2: FBO | null }
 };
 
 function deleteFBO(fbo: FBO | null) {
-  if (!fbo) return;
+  if (!fbo) {
+    return;
+  }
   gl.deleteFramebuffer(fbo.framebuffer);
   gl.deleteTexture(fbo.texture);
 }
@@ -26,7 +28,9 @@ function createFBO(w: number, h: number): FBO {
   const f = required(gl.createFramebuffer(), 'createFramebuffer');
   gl.bindFramebuffer(gl.FRAMEBUFFER, f);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
-  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) devError('FBO incomplete:', w, h);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+    devError('FBO incomplete:', w, h);
+  }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   return { framebuffer: f, texture: t, width: w, height: h };
 }

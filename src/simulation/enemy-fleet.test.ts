@@ -13,7 +13,9 @@ afterEach(() => {
 
 function fleetCost(fleet: readonly { type: number; count: number }[]): number {
   let sum = 0;
-  for (const e of fleet) sum += (TYPES[e.type]?.cost ?? 0) * e.count;
+  for (const e of fleet) {
+    sum += (TYPES[e.type]?.cost ?? 0) * e.count;
+  }
   return sum;
 }
 

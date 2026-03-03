@@ -8,7 +8,9 @@ import { killParticle, killUnit, spawnParticle, spawnUnit } from './spawn.ts';
 describe('spawnParticle', () => {
   bench('spawn 1 particle (空プール)', () => {
     const idx = spawnParticle(0, 0, 1, 0, 0.5, 2, 1, 1, 1, SH_CIRCLE);
-    if (idx !== NO_PARTICLE) killParticle(idx);
+    if (idx !== NO_PARTICLE) {
+      killParticle(idx);
+    }
   });
 
   bench('spawn + kill 100 cycle', () => {
@@ -18,7 +20,9 @@ describe('spawnParticle', () => {
       buf.push(idx);
     }
     for (const idx of buf) {
-      if (idx !== NO_PARTICLE) killParticle(idx);
+      if (idx !== NO_PARTICLE) {
+        killParticle(idx);
+      }
     }
   });
 });

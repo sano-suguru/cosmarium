@@ -143,7 +143,9 @@ describe('determinism', () => {
       const s1 = snapshot1[i];
       const s2 = snapshot2[i];
 
-      if (s1 === undefined || s2 === undefined) continue;
+      if (s1 === undefined || s2 === undefined) {
+        continue;
+      }
 
       const xDiff = Math.abs(s2.x - s1.x);
       const yDiff = Math.abs(s2.y - s1.y);

@@ -22,7 +22,9 @@ function writeMinimap(
   a: number,
   shape: number,
 ) {
-  if (minimapInstanceCount >= MINIMAP_MAX) return;
+  if (minimapInstanceCount >= MINIMAP_MAX) {
+    return;
+  }
   writeSlots(minimapData, minimapInstanceCount * 9, x, y, sizeX, r, g, b, a, sizeY, shape);
   minimapInstanceCount++;
 }
@@ -67,7 +69,9 @@ function drawViewport(S: number, W: number, H: number, dpr: number) {
 }
 
 export function drawMinimap() {
-  if (!mmDiv || !mmDiv.clientWidth) return;
+  if (!mmDiv || !mmDiv.clientWidth) {
+    return;
+  }
   minimapInstanceCount = 0;
   const S = 1.0 / WORLD_SIZE;
   const dpr = viewport.dpr;
@@ -78,7 +82,9 @@ export function drawMinimap() {
 
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
     const rx = lerpX(u);
     const ry = lerpY(u);

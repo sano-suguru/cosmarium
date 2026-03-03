@@ -35,7 +35,9 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
     for (let j = 0; j < nn; j++) {
       const oi = getNeighborAt(j);
       const o = unit(oi);
-      if (o.alive && o.team !== teamFilter) _rayHitSeen.add(oi);
+      if (o.alive && o.team !== teamFilter) {
+        _rayHitSeen.add(oi);
+      }
     }
   }
   _rayHits.length = 0;
@@ -44,10 +46,14 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
     const tox = o.x - ox;
     const toy = o.y - oy;
     const proj = tox * dx + toy * dy;
-    if (proj < 0 || proj > range) continue;
+    if (proj < 0 || proj > range) {
+      continue;
+    }
     const perpDistSq = tox * tox + toy * toy - proj * proj;
     const hitSize = unitType(o.type).size;
-    if (perpDistSq < hitSize * hitSize) _rayHits.push({ oi, dist: proj });
+    if (perpDistSq < hitSize * hitSize) {
+      _rayHits.push({ oi, dist: proj });
+    }
   }
   _rayHits.sort(_rayHitCmp);
   return _rayHits;
@@ -77,7 +83,9 @@ function applyRailgunHits(
   for (const hit of hits) {
     const oi = hit.oi;
     const o = unit(oi);
-    if (!o.alive) continue;
+    if (!o.alive) {
+      continue;
+    }
 
     if (o.reflectFieldHp > 0) {
       o.reflectFieldHp = Math.max(0, o.reflectFieldHp - dmg);
@@ -91,7 +99,9 @@ function applyRailgunHits(
     o.hp -= actualDmg;
     o.hitFlash = 1;
     knockback(oi, ox + dx * hit.dist, oy + dy * hit.dist, dmg * 12);
-    if (o.hp <= 0) destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.ProjectileDirect);
+    if (o.hp <= 0) {
+      destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.ProjectileDirect);
+    }
 
     railgunHitFx(o.x, o.y, ang, ctx.c, ctx.rng);
     endDist = hit.dist;

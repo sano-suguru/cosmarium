@@ -47,7 +47,9 @@ interface ComposeEls {
 let _els: ComposeEls | undefined;
 
 function els(): ComposeEls {
-  if (!_els) throw new Error('initComposeDOM() has not been called');
+  if (!_els) {
+    throw new Error('initComposeDOM() has not been called');
+  }
   return _els;
 }
 
@@ -91,11 +93,15 @@ function handleGridPointerDown(typeIdx: number, action: 'plus' | 'minus') {
 function setupGridDelegation(grid: HTMLElement) {
   grid.addEventListener('pointerdown', (e) => {
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
-    if (!target) return;
+    if (!target) {
+      return;
+    }
     e.preventDefault();
     const idx = Number(target.dataset.idx);
     const action = target.dataset.action;
-    if (Number.isNaN(idx) || (action !== 'plus' && action !== 'minus')) return;
+    if (Number.isNaN(idx) || (action !== 'plus' && action !== 'minus')) {
+      return;
+    }
     handleGridPointerDown(idx, action);
   });
   // document レベルで捕捉: グリッド外ドラッグでも確実に停止
@@ -125,7 +131,9 @@ function usedBudget(): number {
 
 function totalUnits(): number {
   let sum = 0;
-  for (const c of counts) sum += c;
+  for (const c of counts) {
+    sum += c;
+  }
   return sum;
 }
 
@@ -162,7 +170,9 @@ function buildGrid() {
 
   for (const typeIdx of SORTED_TYPE_INDICES) {
     const t = TYPES[typeIdx];
-    if (!t) continue;
+    if (!t) {
+      continue;
+    }
     const cost = t.cost;
 
     const card = document.createElement('div');
@@ -223,7 +233,9 @@ function renderEnemyFleet() {
   unitsDiv.className = 'compose-enemy-units';
   for (const entry of enemyFleet) {
     const t = TYPES[entry.type];
-    if (!t) continue;
+    if (!t) {
+      continue;
+    }
     const span = document.createElement('span');
     span.className = 'compose-enemy-unit';
     const dot = document.createElement('span');
@@ -257,7 +269,9 @@ export function initComposeDOM(launchCb: LaunchCb, backCb: BackCb, codexToggleCb
 
   _els.launch.addEventListener('click', () => {
     const fleet = buildPlayerFleet();
-    if (fleet.length > 0) onLaunch(fleet);
+    if (fleet.length > 0) {
+      onLaunch(fleet);
+    }
   });
 
   elBack.addEventListener('click', () => {
@@ -282,7 +296,9 @@ function buildPlayerFleet(): FleetComposition {
   const fleet: FleetEntry[] = [];
   for (let i = 0; i < TYPES.length; i++) {
     const c = counts[i] ?? 0;
-    if (c > 0) fleet.push({ type: i, count: c });
+    if (c > 0) {
+      fleet.push({ type: i, count: c });
+    }
   }
   return fleet;
 }

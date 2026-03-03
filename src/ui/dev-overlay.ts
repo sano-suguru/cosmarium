@@ -9,7 +9,9 @@ const MAX_LINES = 12;
 const FADE_MS = 6_000;
 
 function ensureContainer(): HTMLDivElement {
-  if (container) return container;
+  if (container) {
+    return container;
+  }
   const el = document.createElement('div');
   el.id = '_devOverlay';
   Object.assign(el.style, {
@@ -48,7 +50,9 @@ function addLine(msg: string, color: string) {
 
   while (c.children.length > MAX_LINES) {
     const oldest = c.children[0];
-    if (oldest) c.removeChild(oldest);
+    if (oldest) {
+      c.removeChild(oldest);
+    }
   }
 
   setTimeout(() => {
@@ -60,14 +64,18 @@ function addLine(msg: string, color: string) {
 }
 
 export function devWarn(...args: unknown[]) {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV) {
+    return;
+  }
   const msg = args.map(String).join(' ');
   console.warn(...args);
   addLine(`⚠ ${msg}`, '#fc0');
 }
 
 export function devError(...args: unknown[]) {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV) {
+    return;
+  }
   const msg = args.map(String).join(' ');
   console.error(...args);
   addLine(`✖ ${msg}`, '#f44');

@@ -51,7 +51,9 @@ describe('incParticles / decParticles', () => {
   });
 
   it('POOL_PARTICLES到達でRangeError', () => {
-    for (let i = 0; i < POOL_PARTICLES; i++) incParticles();
+    for (let i = 0; i < POOL_PARTICLES; i++) {
+      incParticles();
+    }
     expect(() => incParticles()).toThrow(RangeError);
   });
 
@@ -67,7 +69,9 @@ describe('incProjectiles / decProjectiles', () => {
   });
 
   it('POOL_PROJECTILES到達でRangeError', () => {
-    for (let i = 0; i < POOL_PROJECTILES; i++) incProjectiles();
+    for (let i = 0; i < POOL_PROJECTILES; i++) {
+      incProjectiles();
+    }
     expect(() => incProjectiles()).toThrow(RangeError);
   });
 

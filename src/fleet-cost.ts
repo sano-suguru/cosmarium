@@ -13,6 +13,8 @@ export const SORTED_TYPE_INDICES: readonly number[] = TYPES.map((_, i) => i).sor
 
 export function countFleetUnits(fleet: FleetComposition): number {
   let n = 0;
-  for (const e of fleet) n += e.count;
+  for (const e of fleet) {
+    n += e.count;
+  }
   return n;
 }

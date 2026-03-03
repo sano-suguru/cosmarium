@@ -77,8 +77,12 @@ export function fxMax(a: FxQ16, b: FxQ16): FxQ16 {
 }
 
 export function fxClamp(v: FxQ16, lo: FxQ16, hi: FxQ16): FxQ16 {
-  if (v < lo) return lo;
-  if (v > hi) return hi;
+  if (v < lo) {
+    return lo;
+  }
+  if (v > hi) {
+    return hi;
+  }
   return v;
 }
 

@@ -200,19 +200,25 @@ describe('clearAllPools', () => {
     // 全スロットがdead
     let aliveUnits = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (unit(i).alive) aliveUnits++;
+      if (unit(i).alive) {
+        aliveUnits++;
+      }
     }
     expect(aliveUnits).toBe(0);
 
     let aliveParticles = 0;
     for (let i = 0; i < POOL_PARTICLES; i++) {
-      if (particle(i).alive) aliveParticles++;
+      if (particle(i).alive) {
+        aliveParticles++;
+      }
     }
     expect(aliveParticles).toBe(0);
 
     let aliveProjectiles = 0;
     for (let i = 0; i < POOL_PROJECTILES; i++) {
-      if (projectile(i).alive) aliveProjectiles++;
+      if (projectile(i).alive) {
+        aliveProjectiles++;
+      }
     }
     expect(aliveProjectiles).toBe(0);
   });

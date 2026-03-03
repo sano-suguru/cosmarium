@@ -80,7 +80,9 @@ describe('buildHash call count — tick 単位検証', () => {
   it('tick(SIM_DT) 4回 → buildHash 4回', () => {
     spawnAt(0, 0, 0, 0);
     vi.mocked(buildHash).mockClear();
-    for (let i = 0; i < 4; i++) tick(SIM_DT, 0, rng, gameLoopState());
+    for (let i = 0; i < 4; i++) {
+      tick(SIM_DT, 0, rng, gameLoopState());
+    }
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(4);
   });
 });
@@ -274,7 +276,9 @@ describe('Bastion tether', () => {
     tick(0.016, 0, rng, gameLoopState());
     const tb = trackingBeams[0];
     expect(tb).toBeDefined();
-    if (tb === undefined) return;
+    if (tb === undefined) {
+      return;
+    }
     expect(tb.x1).toBe(unit(bastion).x);
     expect(tb.y1).toBe(unit(bastion).y);
     expect(tb.x2).toBe(unit(ally).x);
@@ -674,8 +678,11 @@ describe('reinforce', () => {
     let t1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
       if (unit(i).alive) {
-        if (unit(i).team === 0) t0++;
-        else t1++;
+        if (unit(i).team === 0) {
+          t0++;
+        } else {
+          t1++;
+        }
       }
     }
     expect(t0).toBeGreaterThan(0);

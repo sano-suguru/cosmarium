@@ -4,7 +4,9 @@ export const viewport = { W: 0, H: 0, dpr: 1 };
 
 export function initWebGL() {
   const c = document.querySelector<HTMLCanvasElement>('#c');
-  if (!c) throw new Error('Canvas element #c not found');
+  if (!c) {
+    throw new Error('Canvas element #c not found');
+  }
   canvas = c;
   const ctx = canvas.getContext('webgl2', {
     alpha: false,

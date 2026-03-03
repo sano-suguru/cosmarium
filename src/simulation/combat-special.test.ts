@@ -147,7 +147,9 @@ describe('combat — CARRIER', () => {
     // Drone (type=0) が生成されている
     let drones = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (unit(i).alive && unit(i).type === 0 && i !== carrier) drones++;
+      if (unit(i).alive && unit(i).type === 0 && i !== carrier) {
+        drones++;
+      }
     }
     expect(drones).toBe(4);
   });

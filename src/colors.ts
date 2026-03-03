@@ -79,8 +79,12 @@ interface HslMod {
 }
 
 function clamp01(v: number): number {
-  if (v < 0) return 0;
-  if (v > 1) return 1;
+  if (v < 0) {
+    return 0;
+  }
+  if (v > 1) {
+    return 1;
+  }
   return v;
 }
 
@@ -117,16 +121,28 @@ function rgbToHsl(color: Color3): Color3 {
 
 function hueToRgb(p: number, q: number, t: number): number {
   let tt = t;
-  if (tt < 0) tt += 1;
-  if (tt > 1) tt -= 1;
-  if (tt < 1 / 6) return p + (q - p) * 6 * tt;
-  if (tt < 1 / 2) return q;
-  if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+  if (tt < 0) {
+    tt += 1;
+  }
+  if (tt > 1) {
+    tt -= 1;
+  }
+  if (tt < 1 / 6) {
+    return p + (q - p) * 6 * tt;
+  }
+  if (tt < 1 / 2) {
+    return q;
+  }
+  if (tt < 2 / 3) {
+    return p + (q - p) * (2 / 3 - tt) * 6;
+  }
   return p;
 }
 
 function hslToRgb(h: number, s: number, l: number): Color3 {
-  if (s === 0) return [l, l, l];
+  if (s === 0) {
+    return [l, l, l];
+  }
   const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
   const p = 2 * l - q;
   return [hueToRgb(p, q, h + 1 / 3), hueToRgb(p, q, h), hueToRgb(p, q, h - 1 / 3)];
@@ -179,16 +195,22 @@ const trailColors = buildTable(resolveEffectMod, 0.65);
 
 export function color(t: number, tm: Team): Color3 {
   const row = teamColors[t];
-  if (row === undefined) throw new RangeError(`teamColors[${t}] out of range`);
+  if (row === undefined) {
+    throw new RangeError(`teamColors[${t}] out of range`);
+  }
   return row[tm];
 }
 export function effectColor(t: number, tm: Team): Color3 {
   const row = effectColors[t];
-  if (row === undefined) throw new RangeError(`effectColors[${t}] out of range`);
+  if (row === undefined) {
+    throw new RangeError(`effectColors[${t}] out of range`);
+  }
   return row[tm];
 }
 export function trailColor(t: number, tm: Team): Color3 {
   const row = trailColors[t];
-  if (row === undefined) throw new RangeError(`trailColors[${t}] out of range`);
+  if (row === undefined) {
+    throw new RangeError(`trailColors[${t}] out of range`);
+  }
   return row[tm];
 }

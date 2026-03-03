@@ -38,7 +38,8 @@ import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import { copyTeamCounts } from './types.ts';
 import { initResultDOM } from './ui/battle-result.ts';
-import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
+import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
+import { demoRng } from './ui/codex-demos.ts';
 import { getPlayerFleet } from './ui/fleet-compose.ts';
 import {
   goToCompose,
@@ -128,11 +129,15 @@ setOnMeleeStart((numTeams: number) => {
 // --- Kill tracking ---
 
 onKillUnitPermanent((e) => {
-  if (state.codexOpen || state.gameState !== 'play') return;
+  if (state.codexOpen || state.gameState !== 'play') {
+    return;
+  }
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
   // 敵チーム(1)の撃破をカウント（BATTLE モードのみ）
-  if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') addEnemyKill();
+  if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') {
+    addEnemyKill();
+  }
 });
 
 // --- Frame loop ---
@@ -182,7 +187,9 @@ function updatePlay(dt: number, t: number) {
         onMeleeEnd(w);
         gameLoopState.battlePhase = 'meleeEnding';
       } else {
-        if (w === 'draw') throw new Error('Unexpected draw in non-melee mode');
+        if (w === 'draw') {
+          throw new Error('Unexpected draw in non-melee mode');
+        }
         onBattleEnd(w, { survivors: teamUnitCounts[0], enemyKills: getPlayerEnemyKills() });
         gameLoopState.battlePhase = 'battleEnding';
       }
@@ -200,7 +207,9 @@ function updatePlay(dt: number, t: number) {
   updateAutoFollow(hotspot());
   renderFrame(t);
   updateHUD(displayFps, bp);
-  if (frameCount % 2 === 0) drawMinimap();
+  if (frameCount % 2 === 0) {
+    drawMinimap();
+  }
 }
 
 function frame(now: number) {

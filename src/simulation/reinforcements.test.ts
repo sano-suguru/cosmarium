@@ -69,7 +69,9 @@ describe('reinforce', () => {
   it(`閾値${REINFORCE_UNIT_CAP}体以上でスポーンなし`, () => {
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
-    for (let i = 0; i < REINFORCE_UNIT_CAP; i++) spawnAt(0, 0, i * 20, 0);
+    for (let i = 0; i < REINFORCE_UNIT_CAP; i++) {
+      spawnAt(0, 0, i * 20, 0);
+    }
     reinforce(0.1, rng, rs);
     expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 11);
   });
@@ -81,9 +83,14 @@ describe('reinforce', () => {
     let team0 = 0;
     let team1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
-      if (!unit(i).alive) continue;
-      if (unit(i).team === 0) team0++;
-      else team1++;
+      if (!unit(i).alive) {
+        continue;
+      }
+      if (unit(i).team === 0) {
+        team0++;
+      } else {
+        team1++;
+      }
     }
     expect(team0).toBeGreaterThan(0);
     expect(team1).toBeGreaterThan(0);
@@ -112,7 +119,9 @@ describe('REINFORCEMENT_TABLE — overlap snapshot', () => {
   /** 2つの boolean 配列に同時 true が存在するか */
   function hasOverlap(a: boolean[], b: boolean[]): boolean {
     for (let s = 0; s < STEPS; s++) {
-      if (a[s] && b[s]) return true;
+      if (a[s] && b[s]) {
+        return true;
+      }
     }
     return false;
   }
@@ -120,7 +129,9 @@ describe('REINFORCEMENT_TABLE — overlap snapshot', () => {
   /** エントリ index → ユニット名 */
   function entryName(idx: number): string {
     const entry = REINFORCEMENT_TABLE[idx];
-    if (!entry) return `idx${idx}`;
+    if (!entry) {
+      return `idx${idx}`;
+    }
     return TYPES[entry.type]?.name ?? `type${entry.type}`;
   }
 

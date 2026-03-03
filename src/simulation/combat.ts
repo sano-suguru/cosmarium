@@ -38,7 +38,9 @@ const _ctx: CombatContext = {
 /** 支援系アビリティの分岐。排他的にreturnするものはtrue */
 function dispatchSupportAbilities(ctx: CombatContext): boolean {
   const { t, u } = ctx;
-  if (t.heals && u.abilityCooldown <= 0) healAllies(ctx);
+  if (t.heals && u.abilityCooldown <= 0) {
+    healAllies(ctx);
+  }
   if (t.scrambles) {
     scrambleEnemies(ctx);
     return true;
@@ -47,10 +49,18 @@ function dispatchSupportAbilities(ctx: CombatContext): boolean {
     reflectProjectiles(ctx);
     return true;
   }
-  if (t.shields) shieldAllies(ctx);
-  if (t.amplifies) amplifyAllies(ctx);
-  if (t.catalyzes) catalyzeAllies(ctx);
-  if (t.spawns) launchDrones(ctx);
+  if (t.shields) {
+    shieldAllies(ctx);
+  }
+  if (t.amplifies) {
+    amplifyAllies(ctx);
+  }
+  if (t.catalyzes) {
+    catalyzeAllies(ctx);
+  }
+  if (t.spawns) {
+    launchDrones(ctx);
+  }
   if (t.emp && u.abilityCooldown <= 0) {
     dischargeEmp(ctx);
     return true;
@@ -82,7 +92,9 @@ function tryExclusiveFire(ctx: CombatContext): boolean {
 
 export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
   const t = unitType(u.type);
-  if (u.stun > 0) return;
+  if (u.stun > 0) {
+    return;
+  }
   const scrCd = u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1;
   const catCd = u.catalystTimer > 0 ? CATALYST_COOLDOWN_MULT : 1;
   u.cooldown -= dt * scrCd * catCd;
@@ -103,10 +115,14 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     ramTarget(_ctx);
     return;
   }
-  if (dispatchSupportAbilities(_ctx)) return;
+  if (dispatchSupportAbilities(_ctx)) {
+    return;
+  }
   // teleport() が false を返すワープ待機中フレームでも、blinkDepart が設定した cooldown により射撃は抑制される
   const blinked = t.teleports && teleport(_ctx);
-  if (!blinked && !tryExclusiveFire(_ctx)) fireNormal(_ctx);
+  if (!blinked && !tryExclusiveFire(_ctx)) {
+    fireNormal(_ctx);
+  }
 }
 
 const COMBAT_FLAG_PRIORITY: Exclude<DemoFlag, 'burst'>[] = [
@@ -131,8 +147,12 @@ const COMBAT_FLAG_PRIORITY: Exclude<DemoFlag, 'burst'>[] = [
 
 export function demoFlag(t: UnitType): DemoFlag | null {
   for (const flag of COMBAT_FLAG_PRIORITY) {
-    if (t[flag]) return flag;
+    if (t[flag]) {
+      return flag;
+    }
   }
-  if (t.shots > 1) return 'burst';
+  if (t.shots > 1) {
+    return 'burst';
+  }
   return null;
 }

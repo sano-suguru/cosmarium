@@ -33,7 +33,9 @@ export function focusBeam(ctx: CombatContext) {
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
     const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui);
-    if (!u.alive) return;
+    if (!u.alive) {
+      return;
+    }
     if (dmg >= 0) {
       o.hp -= dmg;
       o.hitFlash = 1;

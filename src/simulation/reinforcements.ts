@@ -64,8 +64,12 @@ function spawnWave(team: Team, cnt: number, rng: () => number) {
   const s = (tp: number, spread: number) => {
     spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
   };
-  for (let i = 0; i < 8; i++) s(DRONE, 100);
-  for (let i = 0; i < 2; i++) s(FIGHTER, 80);
+  for (let i = 0; i < 8; i++) {
+    s(DRONE, 100);
+  }
+  for (let i = 0; i < 2; i++) {
+    s(FIGHTER, 80);
+  }
   for (let i = 0; i < REINFORCEMENT_TABLE.length; i++) {
     const entry = REINFORCEMENT_TABLE[i];
     if (entry?.condition(r, cnt)) {
@@ -83,13 +87,17 @@ export const REINFORCE_UNIT_CAP = 250;
 
 export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
   rs.reinforcementTimer += dt;
-  if (rs.reinforcementTimer < REINFORCE_INTERVAL) return;
+  if (rs.reinforcementTimer < REINFORCE_INTERVAL) {
+    return;
+  }
   rs.reinforcementTimer = 0;
   const lim = REINFORCE_UNIT_CAP;
   const SPECTATE_TEAMS = 2;
   for (let ti = 0; ti < SPECTATE_TEAMS; ti++) {
     const team = ti as Team;
     const cnt = teamUnitCounts[team];
-    if (cnt < lim) spawnWave(team, cnt, rng);
+    if (cnt < lim) {
+      spawnWave(team, cnt, rng);
+    }
   }
 }

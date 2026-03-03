@@ -18,8 +18,12 @@ function steerHomingProjectile(p: Projectile, dt: number) {
     let ca = Math.atan2(p.vy, p.vx);
     const da = Math.atan2(tg.y - p.y, tg.x - p.x);
     let diff = da - ca;
-    if (diff > PI) diff -= TAU;
-    if (diff < -PI) diff += TAU;
+    if (diff > PI) {
+      diff -= TAU;
+    }
+    if (diff < -PI) {
+      diff += TAU;
+    }
     ca += diff * 4 * dt;
     const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     p.vx = Math.cos(ca) * sp;
@@ -32,8 +36,12 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
-    if (!o.alive || o.team === p.team) continue;
-    if (skipUnit !== undefined && oi === skipUnit) continue;
+    if (!o.alive || o.team === p.team) {
+      continue;
+    }
+    if (skipUnit !== undefined && oi === skipUnit) {
+      continue;
+    }
     const ddx = o.x - p.x,
       ddy = o.y - p.y;
     if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
@@ -69,7 +77,9 @@ function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => numbe
   destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
 }
 function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
-  if (o.reflectFieldHp <= 0) return false;
+  if (o.reflectFieldHp <= 0) {
+    return false;
+  }
   o.reflectFieldHp -= p.damage;
   if (o.reflectFieldHp <= 0) {
     o.reflectFieldHp = 0;
@@ -100,7 +110,9 @@ function hitSparkFx(p: Projectile, rng: () => number) {
 }
 
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
-  if (tryReflectField(p, o, rng)) return;
+  if (tryReflectField(p, o, rng)) {
+    return;
+  }
   let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
   dmg = absorbByBastionShield(o, dmg);
   o.hp -= dmg;
@@ -109,7 +121,9 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   hitSparkFx(p, rng);
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);
-  if (o.hp <= 0) killByProjectile(oi, p.sourceUnit, rng);
+  if (o.hp <= 0) {
+    killByProjectile(oi, p.sourceUnit, rng);
+  }
 }
 
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
@@ -117,9 +131,13 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
       o = unit(oi);
-    if (!o.alive || o.team === p.team) continue;
+    if (!o.alive || o.team === p.team) {
+      continue;
+    }
     const hs = unitType(o.type).size;
-    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) >= hs * hs) continue;
+    if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) >= hs * hs) {
+      continue;
+    }
     applyProjectileDamage(p, oi, o, rng);
     if (p.aoe > 0) {
       detonateAoe(p, rng, oi);
@@ -169,10 +187,14 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
 export function updateProjectiles(dt: number, rng: () => number) {
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
-    if (!p.alive) continue;
+    if (!p.alive) {
+      continue;
+    }
     rem--;
 
-    if (p.homing && p.target !== NO_UNIT) steerHomingProjectile(p, dt);
+    if (p.homing && p.target !== NO_UNIT) {
+      steerHomingProjectile(p, dt);
+    }
 
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -180,7 +202,9 @@ export function updateProjectiles(dt: number, rng: () => number) {
     projectileTrail(p, dt, rng);
 
     if (p.life <= 0) {
-      if (p.aoe > 0) detonateAoe(p, rng);
+      if (p.aoe > 0) {
+        detonateAoe(p, rng);
+      }
       killProjectile(i as ProjectileIndex);
       continue;
     }

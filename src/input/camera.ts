@@ -69,7 +69,9 @@ export function initCamera() {
     'wheel',
     (e) => {
       e.preventDefault();
-      if (state.codexOpen) return;
+      if (state.codexOpen) {
+        return;
+      }
       setAutoFollow(false);
       const nz = Math.max(0.05, Math.min(8, cam.targetZ * (e.deltaY > 0 ? 0.9 : 1.1)));
       applyZoom(e.clientX, e.clientY, cam.targetZ, nz);
@@ -78,8 +80,12 @@ export function initCamera() {
   );
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (state.codexOpen) return;
-    if (activePointers.size >= 2) return;
+    if (state.codexOpen) {
+      return;
+    }
+    if (activePointers.size >= 2) {
+      return;
+    }
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 1 && e.button === 0) {
@@ -94,7 +100,9 @@ export function initCamera() {
       const pts = [...activePointers.values()];
       const p0 = pts[0];
       const p1 = pts[1];
-      if (!p0 || !p1) return;
+      if (!p0 || !p1) {
+        return;
+      }
       pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
       pinchStartZoom = cam.targetZ;
       pinchStartCamX = cam.targetX;
@@ -105,14 +113,18 @@ export function initCamera() {
   });
 
   canvas.addEventListener('pointermove', (e) => {
-    if (!activePointers.has(e.pointerId)) return;
+    if (!activePointers.has(e.pointerId)) {
+      return;
+    }
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 2 && pinchStartDist > 0) {
       const pts = [...activePointers.values()];
       const p0 = pts[0];
       const p1 = pts[1];
-      if (!p0 || !p1) return;
+      if (!p0 || !p1) {
+        return;
+      }
       const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
       const nz = Math.max(0.05, Math.min(8, pinchStartZoom * (dist / pinchStartDist)));
       applyZoom(
@@ -177,13 +189,17 @@ export function toggleAutoFollow(): boolean {
 }
 
 export function setAutoFollow(v: boolean): void {
-  if (autoFollow === v) return;
+  if (autoFollow === v) {
+    return;
+  }
   autoFollow = v;
   _onAutoFollowCb?.(autoFollow);
 }
 
 export function updateAutoFollow(hotspot: { x: number; y: number; radius: number } | null): void {
-  if (!autoFollow || !hotspot) return;
+  if (!autoFollow || !hotspot) {
+    return;
+  }
   cam.targetX = hotspot.x;
   cam.targetY = hotspot.y;
   // viewport.W/H は物理ピクセル。シェーダが uZ/uR (両方物理px) で割るため単位が相殺され正しい

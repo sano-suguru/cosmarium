@@ -10,7 +10,9 @@ const neighborBuffer: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);
 /** Hot-path accessor — bounds guaranteed by caller's count loop */
 export function getNeighborAt(i: number): UnitIndex {
   const v = neighborBuffer[i];
-  if (v === undefined) throw new RangeError(`Invalid neighbor index: ${i}`);
+  if (v === undefined) {
+    throw new RangeError(`Invalid neighbor index: ${i}`);
+  }
   return v;
 }
 
@@ -20,7 +22,9 @@ const _used: UnitIndex[][] = [];
 export function buildHash() {
   for (let i = 0; i < _used.length; i++) {
     const arr = _used[i];
-    if (arr === undefined) throw new RangeError(`Invalid _used index: ${i}`);
+    if (arr === undefined) {
+      throw new RangeError(`Invalid _used index: ${i}`);
+    }
     arr.length = 0;
     _pooled.push(arr);
   }
@@ -29,7 +33,9 @@ export function buildHash() {
   const hwm = getUnitHWM();
   for (let i = 0, rem = poolCounts.units; i < hwm && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
     const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
     let a = hashMap.get(k);
@@ -45,12 +51,18 @@ export function buildHash() {
 
 function collectCellNeighbors(key: number, count: number): number {
   const a = hashMap.get(key);
-  if (!a) return count;
+  if (!a) {
+    return count;
+  }
   let n = count;
   for (let i = 0; i < a.length; i++) {
     const idx = a[i];
-    if (idx === undefined) throw new RangeError(`Invalid cell entry at position ${i}`);
-    if (n < neighborBuffer.length) neighborBuffer[n++] = idx;
+    if (idx === undefined) {
+      throw new RangeError(`Invalid cell entry at position ${i}`);
+    }
+    if (n < neighborBuffer.length) {
+      neighborBuffer[n++] = idx;
+    }
   }
   return n;
 }

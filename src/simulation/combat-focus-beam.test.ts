@@ -85,7 +85,9 @@ describe('combat — FOCUS BEAM', () => {
     const expectedBeamOn = 1.0 + 0.016 * 0.8;
     const b = beams[0];
     expect(b).toBeDefined();
-    if (b) expect(b.width).toBeCloseTo(2 + expectedBeamOn * 2);
+    if (b) {
+      expect(b.width).toBeCloseTo(2 + expectedBeamOn * 2);
+    }
   });
 
   it('beamOn=0 → ヒットパーティクル1個', () => {

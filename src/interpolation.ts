@@ -30,21 +30,27 @@ export function lerpY(e: { prevY: number; y: number }): number {
 export function savePrevPositions(): void {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
     u.prevX = u.x;
     u.prevY = u.y;
   }
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
-    if (!p.alive) continue;
+    if (!p.alive) {
+      continue;
+    }
     rem--;
     p.prevX = p.x;
     p.prevY = p.y;
   }
   for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
     const p = particle(i);
-    if (!p.alive) continue;
+    if (!p.alive) {
+      continue;
+    }
     rem--;
     p.prevX = p.x;
     p.prevY = p.y;

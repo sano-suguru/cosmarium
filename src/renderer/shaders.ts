@@ -123,6 +123,10 @@ export function initShaders() {
       'compositeLocations.uS': compositeLocations.uS,
       'compositeLocations.uB': compositeLocations.uB,
     };
-    for (const name in locs) if (locs[name] === null) devWarn('Uniform location is null:', name);
+    for (const name in locs) {
+      if (locs[name] === null) {
+        devWarn('Uniform location is null:', name);
+      }
+    }
   }
 }

@@ -229,7 +229,9 @@ describe('fxMulberry32', () => {
     const rng2 = fxMulberry32(2);
     let same = 0;
     for (let i = 0; i < 100; i++) {
-      if (rng1() === rng2()) same++;
+      if (rng1() === rng2()) {
+        same++;
+      }
     }
     expect(same).toBeLessThan(10);
   });

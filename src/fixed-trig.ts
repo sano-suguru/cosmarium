@@ -23,7 +23,9 @@ const FX_TAU_NUM = FX_TAU as number;
 
 function angleToIndex(angle: FxQ16): number {
   let a = (angle as number) % FX_TAU_NUM;
-  if (a < 0) a += FX_TAU_NUM;
+  if (a < 0) {
+    a += FX_TAU_NUM;
+  }
   return ((a * LUT_SIZE) / FX_TAU_NUM) & LUT_MASK;
 }
 
@@ -52,7 +54,9 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
   const ax = (x < 0 ? -x : x) as number;
   const ay = (y < 0 ? -y : y) as number;
 
-  if (ax === 0 && ay === 0) return FX_ZERO;
+  if (ax === 0 && ay === 0) {
+    return FX_ZERO;
+  }
 
   let angle: number;
   if (ax >= ay) {
@@ -63,8 +67,12 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
     angle = (FX_HALF_PI as number) - (ATAN_LUT[idx] ?? 0);
   }
 
-  if (x < 0) angle = (FX_PI as number) - angle;
-  if (y < 0) angle = -angle;
+  if (x < 0) {
+    angle = (FX_PI as number) - angle;
+  }
+  if (y < 0) {
+    angle = -angle;
+  }
 
   return angle as FxQ16;
 }
@@ -79,7 +87,9 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
  * Newton-Raphson（初期推定をビットシフトで算出）への置き換えを検討すること。
  */
 export function fxSqrt(a: FxQ16): FxQ16 {
-  if (a <= 0) return FX_ZERO;
+  if (a <= 0) {
+    return FX_ZERO;
+  }
 
   const floatSqrt = Math.sqrt((a as number) / FX_SCALE);
   let x = Math.round(floatSqrt * FX_SCALE);
@@ -96,8 +106,12 @@ export function fxSqrt(a: FxQ16): FxQ16 {
 export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
   const ax = (x < 0 ? -x : x) as number;
   const ay = (y < 0 ? -y : y) as number;
-  if (ax === 0) return ay as FxQ16;
-  if (ay === 0) return ax as FxQ16;
+  if (ax === 0) {
+    return ay as FxQ16;
+  }
+  if (ay === 0) {
+    return ax as FxQ16;
+  }
 
   const big = ax >= ay ? ax : ay;
   const small = ax >= ay ? ay : ax;
@@ -136,8 +150,12 @@ export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
 
   const result = (FX_ONE as number) + (x as number) + (term2 as number) + (term3 as number) + (term4 as number);
 
-  if (result <= 0) return FX_ZERO;
-  if (result > (FX_ONE as number)) return FX_ONE;
+  if (result <= 0) {
+    return FX_ZERO;
+  }
+  if (result > (FX_ONE as number)) {
+    return FX_ONE;
+  }
   return result as FxQ16;
 }
 

@@ -25,7 +25,9 @@ interface ResultEls {
 let _els: ResultEls | undefined;
 
 function els(): ResultEls {
-  if (!_els) throw new Error('initResultDOM() has not been called');
+  if (!_els) {
+    throw new Error('initResultDOM() has not been called');
+  }
   return _els;
 }
 
@@ -118,22 +120,32 @@ function makeTeamDot(hex: string): HTMLSpanElement {
 function compareMeleeTeams(a: number, b: number, result: MeleeResult, elimMap: Map<number, number>): number {
   const sa = result.teamStats[a];
   const sb = result.teamStats[b];
-  if (!sa || !sb) return 0;
+  if (!sa || !sb) {
+    return 0;
+  }
   const aAlive = sa.survivors > 0;
   const bAlive = sb.survivors > 0;
-  if (aAlive !== bAlive) return aAlive ? -1 : 1;
+  if (aAlive !== bAlive) {
+    return aAlive ? -1 : 1;
+  }
   if (!aAlive) {
     const diff = (elimMap.get(b) ?? 0) - (elimMap.get(a) ?? 0);
-    if (diff !== 0) return diff;
+    if (diff !== 0) {
+      return diff;
+    }
   }
   const killDiff = sb.kills - sa.kills;
-  if (killDiff !== 0) return killDiff;
+  if (killDiff !== 0) {
+    return killDiff;
+  }
   return a - b;
 }
 
 function buildMeleeRanking(result: MeleeResult, elimMap: Map<number, number>): number[] {
   const ranking: number[] = [];
-  for (let i = 0; i < result.numTeams; i++) ranking.push(i);
+  for (let i = 0; i < result.numTeams; i++) {
+    ranking.push(i);
+  }
 
   ranking.sort((a, b) => compareMeleeTeams(a, b, result, elimMap));
 
@@ -237,7 +249,9 @@ function computeMaxKills(result: MeleeResult): number {
   let max = 0;
   for (let i = 0; i < result.numTeams; i++) {
     const s = result.teamStats[i];
-    if (s && s.kills > max) max = s.kills;
+    if (s && s.kills > max) {
+      max = s.kills;
+    }
   }
   return max;
 }
@@ -283,7 +297,9 @@ export function showMeleeResult(result: MeleeResult) {
   for (let rank = 0; rank < ranking.length; rank++) {
     const teamIdx = ranking[rank] as number;
     const stats = result.teamStats[teamIdx];
-    if (!stats) continue;
+    if (!stats) {
+      continue;
+    }
     d.stats.appendChild(buildScoreRow(rank, teamIdx, stats, elimMap, maxKills));
   }
 
@@ -296,7 +312,9 @@ export function showMeleeResult(result: MeleeResult) {
 
     for (let i = 0; i < result.eliminations.length; i++) {
       const ev = result.eliminations[i];
-      if (!ev) continue;
+      if (!ev) {
+        continue;
+      }
       d.stats.appendChild(buildTimelineRow(ev.team, ev.elapsed, ranking.length + i));
     }
   }

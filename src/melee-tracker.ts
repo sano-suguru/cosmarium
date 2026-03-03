@@ -106,13 +106,17 @@ export function advanceMeleeElapsed(simDt: number) {
 }
 
 export function onMeleeEnd(winner: Team | 'draw') {
-  if (meleeWinner !== undefined) return;
+  if (meleeWinner !== undefined) {
+    return;
+  }
   meleeWinner = winner;
   meleeEndTimer = MELEE_END_DELAY;
 }
 
 function finalizeMelee() {
-  if (meleeWinner === undefined || onFinalize === null) return;
+  if (meleeWinner === undefined || onFinalize === null) {
+    return;
+  }
 
   // teamStats を構築
   const teamStats: TeamStats[] = [];
@@ -144,7 +148,9 @@ function finalizeMelee() {
 export function advanceMeleeEndTimer(dt: number) {
   if (meleeEndTimer >= 0) {
     meleeEndTimer -= dt;
-    if (meleeEndTimer < 0) finalizeMelee();
+    if (meleeEndTimer < 0) {
+      finalizeMelee();
+    }
   }
 }
 

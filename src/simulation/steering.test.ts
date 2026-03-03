@@ -85,7 +85,9 @@ describe('steer — ベテラン速度', () => {
     u.angle = 0;
     buildHash();
     // 長めのdtで速度を安定させる
-    for (let i = 0; i < 100; i++) steer(u, 0.033, rng);
+    for (let i = 0; i < 100; i++) {
+      steer(u, 0.033, rng);
+    }
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
     const t = unitType(1);
     // vet=0の目標速度はspd * 1.0
@@ -196,7 +198,9 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     const enemy = spawnAt(1, 1, 200, 0); // 距離200 < engageMin=300
     unit(sniper).target = enemy;
     buildHash();
-    for (let i = 0; i < 30; i++) steer(unit(sniper), 0.033, rng);
+    for (let i = 0; i < 30; i++) {
+      steer(unit(sniper), 0.033, rng);
+    }
     // 後退: x が減少（敵から離れる方向）
     expect(unit(sniper).x).toBeLessThan(0);
   });
@@ -206,7 +210,9 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     const enemy = spawnAt(1, 1, 550, 0); // 距離550 > engageMax=500
     unit(sniper).target = enemy;
     buildHash();
-    for (let i = 0; i < 30; i++) steer(unit(sniper), 0.033, rng);
+    for (let i = 0; i < 30; i++) {
+      steer(unit(sniper), 0.033, rng);
+    }
     // 前進: x が増加（敵に近づく方向）
     expect(unit(sniper).x).toBeGreaterThan(0);
   });
@@ -230,7 +236,9 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
     buildHash();
-    for (let i = 0; i < 30; i++) steer(unit(healer), 0.033, rng);
+    for (let i = 0; i < 30; i++) {
+      steer(unit(healer), 0.033, rng);
+    }
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
     expect(unit(healer).x).toBeGreaterThan(0);
   });
@@ -245,7 +253,9 @@ describe('steer — ワールド境界', () => {
     u.vy = 0;
     u.target = NO_UNIT;
     buildHash();
-    for (let i = 0; i < 30; i++) steer(u, 0.033, rng);
+    for (let i = 0; i < 30; i++) {
+      steer(u, 0.033, rng);
+    }
     // 境界の外側にいるので内側（左方向）に力
     expect(u.x).toBeLessThan(outsideX);
   });
@@ -258,7 +268,9 @@ describe('steer — ワールド境界', () => {
     u.vy = 0;
     u.target = NO_UNIT;
     buildHash();
-    for (let i = 0; i < 30; i++) steer(u, 0.033, rng);
+    for (let i = 0; i < 30; i++) {
+      steer(u, 0.033, rng);
+    }
     // y < -WORLD_SIZE*BOUNDARY_MARGIN なので上方向（yが増える方向）に力
     expect(u.y).toBeGreaterThan(-outsideY);
   });
@@ -519,9 +531,13 @@ describe('steer — boost mechanism', () => {
     const mock: UnitType = { ...rest, boost };
     const mod = await import('../unit-types.ts');
     vi.spyOn(mod, 'unitType').mockImplementation((id) => {
-      if (id === base) return mock;
+      if (id === base) {
+        return mock;
+      }
       const t = mod.TYPES[id];
-      if (!t) throw new Error(`Unknown type id: ${id}`);
+      if (!t) {
+        throw new Error(`Unknown type id: ${id}`);
+      }
       return t;
     });
     return mock;
@@ -648,9 +664,13 @@ describe('steer — HP退避ポテンシャル', () => {
     const mock: UnitType = { ...rest, retreatHpRatio };
     const { TYPES } = await import('../unit-types.ts');
     vi.spyOn(await import('../unit-types.ts'), 'unitType').mockImplementation((id) => {
-      if (id === base) return mock;
+      if (id === base) {
+        return mock;
+      }
       const t = TYPES[id];
-      if (!t) throw new Error(`Unknown type id: ${id}`);
+      if (!t) {
+        throw new Error(`Unknown type id: ${id}`);
+      }
       return t;
     });
     return mock;
@@ -834,7 +854,9 @@ describe('steer — Catalyst バフ', () => {
     u.angle = 0;
     u.vet = 0;
     buildHash();
-    for (let i = 0; i < 100; i++) steer(u, 0.033, rng);
+    for (let i = 0; i < 100; i++) {
+      steer(u, 0.033, rng);
+    }
 
     const spd = Math.sqrt(u.vx ** 2 + u.vy ** 2);
     const t = unitType(1);
@@ -848,9 +870,13 @@ describe('steer — Catalyst バフ', () => {
     const mock: UnitType = { ...rest, boost };
     const mod = await import('../unit-types.ts');
     vi.spyOn(mod, 'unitType').mockImplementation((id) => {
-      if (id === base) return mock;
+      if (id === base) {
+        return mock;
+      }
       const t = mod.TYPES[id];
-      if (!t) throw new Error(`Unknown type id: ${id}`);
+      if (!t) {
+        throw new Error(`Unknown type id: ${id}`);
+      }
       return t;
     });
     return mock;

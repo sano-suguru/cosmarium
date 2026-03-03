@@ -149,8 +149,9 @@ function renderOverlays(rx: number, ry: number, u: Unit, ut: UnitType, now: numb
     writeInstance(rx, ry, ut.size * 1.5 * rs, 0.3, 0.6, 1, alpha, (now * 0.8) % TAU, SH_OCT_SHIELD);
   }
 
-  if (u.shieldLingerTimer > 0)
+  if (u.shieldLingerTimer > 0) {
     writeInstance(rx, ry, ut.size * 1.8 * rs, 0.3, 0.6, 1, 0.5, (now * 0.5) % TAU, SH_OCT_SHIELD);
+  }
   if (u.reflectFieldHp > 0 && !ut.reflects) {
     const hpRatio = u.reflectFieldHp / REFLECT_FIELD_MAX_HP;
     writeInstance(
@@ -192,7 +193,9 @@ function renderCatalystGhosts(rx: number, ry: number, u: Unit, ut: UnitType, c: 
   const trailLen = Math.max(ut.size * GHOST_TRAIL_MIN_FACTOR, spd * GHOST_TRAIL_SPD_FACTOR);
   const ratio = u.catalystTimer / CATALYST_BOOST_LINGER;
   const invSpd = spd > SPEED_EPSILON ? 1 / spd : 0;
-  if (invSpd === 0) return;
+  if (invSpd === 0) {
+    return;
+  }
   const nx = u.vx * invSpd;
   const ny = u.vy * invSpd;
 
@@ -217,16 +220,21 @@ function renderVetSwarmOverlays(rx: number, ry: number, u: Unit, ut: UnitType, c
     const vetAlpha = 0.1 + u.vet * 0.08;
     writeOverlay(rx, ry, vetSize, 1, 0.9, 0.3, vetAlpha, SH_EXPLOSION_RING);
   }
-  if (u.swarmN > 0)
+  if (u.swarmN > 0) {
     writeOverlay(rx, ry, ut.size * 2.2 * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
+  }
 }
 
 function renderUnits(now: number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
-    if (u.blinkPhase === 1) continue;
+    if (u.blinkPhase === 1) {
+      continue;
+    }
     const ut = unitType(u.type);
     const rs = Math.max(MIN_RENDER_SIZE, ut.size) / ut.size;
     const c = color(u.type, u.team);
@@ -258,22 +266,32 @@ function renderUnits(now: number) {
 function renderParticles() {
   for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
     const p = particle(i);
-    if (!p.alive) continue;
+    if (!p.alive) {
+      continue;
+    }
     rem--;
     const px = lerpX(p);
     const py = lerpY(p);
     const al = Math.min(1, p.life / p.maxLife);
     let size = p.size * (0.5 + al * 0.5);
     const shape = p.shape;
-    if (shape === SH_EXPLOSION_RING) size = p.size * (2.2 - al * 1.7);
+    if (shape === SH_EXPLOSION_RING) {
+      size = p.size * (2.2 - al * 1.7);
+    }
     writeParticle(px, py, size, p.r * al, p.g * al, p.b * al, al * 0.8, shape);
   }
 }
 
 function computeTaperScale(tail: number): number {
-  if (tail === 0) return 0.25;
-  if (tail === 1) return 0.5;
-  if (tail === 2) return 0.8;
+  if (tail === 0) {
+    return 0.25;
+  }
+  if (tail === 1) {
+    return 0.5;
+  }
+  if (tail === 2) {
+    return 0.8;
+  }
   return 1;
 }
 
@@ -388,15 +406,21 @@ function renderBeams(now: number) {
 function renderProjectiles() {
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const pr = projectile(i);
-    if (!pr.alive) continue;
+    if (!pr.alive) {
+      continue;
+    }
     rem--;
     const prx = lerpX(pr);
     const pry = lerpY(pr);
     let shape: number;
     const size = pr.size;
-    if (pr.homing) shape = SH_HOMING;
-    else if (pr.aoe > 0) shape = SH_CIRCLE;
-    else shape = SH_DIAMOND;
+    if (pr.homing) {
+      shape = SH_HOMING;
+    } else if (pr.aoe > 0) {
+      shape = SH_CIRCLE;
+    } else {
+      shape = SH_DIAMOND;
+    }
     writeInstance(prx, pry, size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 }

@@ -20,7 +20,9 @@ function tetherAbsorbFx(ox: number, oy: number, tx: number, ty: number, rng: () 
   const dx = tx - ox,
     dy = ty - oy;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist <= 1) return;
+  if (dist <= 1) {
+    return;
+  }
   const nx = dx / dist,
     ny = dy / dist;
   for (let k = 0; k < 4; k++) {
@@ -52,7 +54,9 @@ export function consumeReflectorShieldHp(u: Unit, damage: number, cooldown: numb
 /** Reflector反射とBastionシールド反射の共通処理を集約（重複排除） */
 function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): void {
   const attacker = unit(killerIndex);
-  if (!attacker.alive) return;
+  if (!attacker.alive) {
+    return;
+  }
 
   const c = effectColor(n.type, n.team);
 
@@ -86,7 +90,9 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
 
 function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): boolean {
   const nt = unitType(n.type);
-  if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) return false;
+  if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) {
+    return false;
+  }
   consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown);
   reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
   return true;
@@ -99,7 +105,9 @@ function tryReflectFieldBeam(
   rng: () => number,
   killerIndex: UnitIndex,
 ): boolean {
-  if (n.reflectFieldHp <= 0) return false;
+  if (n.reflectFieldHp <= 0) {
+    return false;
+  }
   n.reflectFieldHp = Math.max(0, n.reflectFieldHp - baseDmg);
   reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
   return true;
@@ -107,7 +115,9 @@ function tryReflectFieldBeam(
 
 export function absorbByBastionShield(u: Unit, dmg: number): number {
   const t = unitType(u.type);
-  if (!t.shields || u.energy <= 0) return dmg;
+  if (!t.shields || u.energy <= 0) {
+    return dmg;
+  }
   const absorbed = Math.min(dmg * BASTION_SELF_ABSORB_RATIO, u.energy);
   u.energy -= absorbed;
   return dmg - absorbed;
@@ -140,7 +150,9 @@ export function applyTetherAbsorb(
     n.shieldSourceUnit = NO_UNIT;
     return dmg * orphanMult;
   }
-  if (n.shieldLingerTimer > 0) return dmg * orphanMult;
+  if (n.shieldLingerTimer > 0) {
+    return dmg * orphanMult;
+  }
   return dmg;
 }
 
@@ -152,8 +164,12 @@ export function applyBeamDefenses(
   rng: () => number,
   killerIndex: UnitIndex,
 ): number {
-  if (tryReflectBeam(n, ni, baseDmg, rng, killerIndex)) return -1;
-  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerIndex)) return -1;
+  if (tryReflectBeam(n, ni, baseDmg, rng, killerIndex)) {
+    return -1;
+  }
+  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerIndex)) {
+    return -1;
+  }
   let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerIndex, rng);
   dmg = absorbByBastionShield(n, dmg);
   return dmg;

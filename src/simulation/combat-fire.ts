@@ -109,7 +109,9 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
 function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, t } = ctx;
   const shots = t.shots;
-  if (u.burstCount <= 0) u.burstCount = shots;
+  if (u.burstCount <= 0) {
+    u.burstCount = shots;
+  }
   fireShot(ctx, ang, d, sp, 1, shots - u.burstCount);
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -118,7 +120,9 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
 function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, c, t, vd } = ctx;
   const shots = t.shots;
-  if (u.burstCount <= 0) u.burstCount = shots;
+  if (u.burstCount <= 0) {
+    u.burstCount = shots;
+  }
   const burstIdx = shots - u.burstCount;
   const spreadAng = ang + (burstIdx - (shots - 1) / 2) * HOMING_SPREAD;
   spawnProjectile(
@@ -166,7 +170,9 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
 function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) {
   const { u, t } = ctx;
   const shots = t.shots;
-  if (u.burstCount <= 0) u.burstCount = shots;
+  if (u.burstCount <= 0) {
+    u.burstCount = shots;
+  }
   const burstIdx = shots - u.burstCount;
   const spreadAng = ang + (burstIdx - (shots - 1) / 2) * CARPET_SPREAD;
   fireAoe(ctx, spreadAng, d, sp);
@@ -184,10 +190,15 @@ function dispatchFire(ctx: CombatContext, o: CombatContext['u']) {
     return;
   }
   let sp: number;
-  if (t.carpet) sp = AOE_PROJ_SPEED;
-  else if (t.homing) sp = HOMING_SPEED;
-  else if (t.aoe) sp = AOE_PROJ_SPEED;
-  else sp = 480 + t.damage * 12;
+  if (t.carpet) {
+    sp = AOE_PROJ_SPEED;
+  } else if (t.homing) {
+    sp = HOMING_SPEED;
+  } else if (t.aoe) {
+    sp = AOE_PROJ_SPEED;
+  } else {
+    sp = 480 + t.damage * 12;
+  }
   const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
   const scrAcc = u.scrambleTimer > 0 ? SCRAMBLE_ACCURACY_MULT : 1;
   const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc * scrAcc));
@@ -218,7 +229,9 @@ export function fireNormal(ctx: CombatContext) {
     u.burstCount = 0;
     return;
   }
-  if (u.cooldown > 0) return;
+  if (u.cooldown > 0) {
+    return;
+  }
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;

@@ -30,9 +30,13 @@ describe('getColor', () => {
     for (let i = 0; i < colors.length - 1; i++) {
       const a = colors[i];
       const b = colors[i + 1];
-      if (a === undefined || b === undefined) continue;
+      if (a === undefined || b === undefined) {
+        continue;
+      }
       const diff = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
-      if (diff > 0.01) anyDifferent = true;
+      if (diff > 0.01) {
+        anyDifferent = true;
+      }
     }
     expect(anyDifferent).toBe(true);
   });

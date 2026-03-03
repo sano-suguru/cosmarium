@@ -18,7 +18,9 @@ interface HudState {
 let _state: HudState | null = null;
 
 function st(): HudState {
-  if (!_state) throw new Error('initHUD() has not been called');
+  if (!_state) {
+    throw new Error('initHUD() has not been called');
+  }
   return _state;
 }
 
@@ -75,7 +77,9 @@ export function updateHUD(displayFps: number, battlePhase: BattlePhase) {
   if (battlePhase === 'melee' || battlePhase === 'meleeEnding') {
     for (let i = 0; i < s.meleeSpans.length; i++) {
       const span = s.meleeSpans[i];
-      if (span) span.textContent = `${teamUnitCounts[i as Team]}`;
+      if (span) {
+        span.textContent = `${teamUnitCounts[i as Team]}`;
+      }
     }
   } else {
     s.countA.textContent = `${teamUnitCounts[0]}`;

@@ -20,7 +20,9 @@ const SCRAMBLE_RADIUS = 110;
 const CATALYST_RADIUS = 110;
 
 function tickReflectorShield(u: Unit, dt: number) {
-  if (u.shieldCooldown <= 0) return;
+  if (u.shieldCooldown <= 0) {
+    return;
+  }
   u.shieldCooldown -= dt;
   if (u.shieldCooldown <= 0) {
     u.shieldCooldown = 0;
@@ -29,7 +31,9 @@ function tickReflectorShield(u: Unit, dt: number) {
 }
 
 function regenUnitEnergy(u: Unit, dt: number) {
-  if (u.maxEnergy <= 0) return;
+  if (u.maxEnergy <= 0) {
+    return;
+  }
   const t = unitType(u.type);
   if (t.reflects) {
     tickReflectorShield(u, dt);
@@ -42,19 +46,33 @@ export function decayAndRegen(dt: number) {
   const flashDecay = dt / HIT_FLASH_DURATION;
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
-    if (u.hitFlash > 0) u.hitFlash = Math.max(0, u.hitFlash - flashDecay);
+    if (u.hitFlash > 0) {
+      u.hitFlash = Math.max(0, u.hitFlash - flashDecay);
+    }
     regenUnitEnergy(u, dt);
-    if (u.shieldLingerTimer > 0) u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
-    if (u.ampBoostTimer > 0) u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
-    if (u.scrambleTimer > 0) u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
-    if (u.catalystTimer > 0) u.catalystTimer = Math.max(0, u.catalystTimer - dt);
+    if (u.shieldLingerTimer > 0) {
+      u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
+    }
+    if (u.ampBoostTimer > 0) {
+      u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
+    }
+    if (u.scrambleTimer > 0) {
+      u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
+    }
+    if (u.catalystTimer > 0) {
+      u.catalystTimer = Math.max(0, u.catalystTimer - dt);
+    }
   }
 }
 
 function applyReflectorAllyField(u: Unit, i: number, dt: number) {
-  if (u.maxEnergy <= 0) return;
+  if (u.maxEnergy <= 0) {
+    return;
+  }
   if (u.fieldGrantCooldown > 0) {
     u.fieldGrantCooldown = Math.max(0, u.fieldGrantCooldown - dt);
     return;
@@ -64,7 +82,9 @@ function applyReflectorAllyField(u: Unit, i: number, dt: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) continue;
+    if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) {
+      continue;
+    }
     if (o.reflectFieldHp <= 0) {
       o.reflectFieldHp = REFLECT_FIELD_MAX_HP;
       granted = true;
@@ -109,7 +129,9 @@ function tetherNearbyAllies(u: Unit, i: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) continue;
+    if (!o.alive || o.team !== u.team || oi === i) {
+      continue;
+    }
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
@@ -152,8 +174,12 @@ function amplifyNearbyAllies(u: Unit, i: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) continue;
-    if (unitType(o.type).amplifies) continue;
+    if (!o.alive || o.team !== u.team || oi === i) {
+      continue;
+    }
+    if (unitType(o.type).amplifies) {
+      continue;
+    }
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
@@ -179,8 +205,12 @@ function scrambleNearbyEnemies(u: Unit, i: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team === u.team || oi === i) continue;
-    if (unitType(o.type).scrambles) continue;
+    if (!o.alive || o.team === u.team || oi === i) {
+      continue;
+    }
+    if (unitType(o.type).scrambles) {
+      continue;
+    }
     o.scrambleTimer = SCRAMBLE_BOOST_LINGER;
   }
 }
@@ -190,8 +220,12 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) continue;
-    if (unitType(o.type).catalyzes) continue;
+    if (!o.alive || o.team !== u.team || oi === i) {
+      continue;
+    }
+    if (unitType(o.type).catalyzes) {
+      continue;
+    }
     o.catalystTimer = CATALYST_BOOST_LINGER;
   }
 }
@@ -199,13 +233,25 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
 export function applyShieldsAndFields(dt: number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
-    if (!u.alive) continue;
+    if (!u.alive) {
+      continue;
+    }
     rem--;
     const t = unitType(u.type);
-    if (t.reflects) applyReflectorAllyField(u, i, dt);
-    if (t.shields) tetherNearbyAllies(u, i);
-    if (t.amplifies) amplifyNearbyAllies(u, i);
-    if (t.scrambles) scrambleNearbyEnemies(u, i);
-    if (t.catalyzes) catalyzeNearbyAllies(u, i);
+    if (t.reflects) {
+      applyReflectorAllyField(u, i, dt);
+    }
+    if (t.shields) {
+      tetherNearbyAllies(u, i);
+    }
+    if (t.amplifies) {
+      amplifyNearbyAllies(u, i);
+    }
+    if (t.scrambles) {
+      scrambleNearbyEnemies(u, i);
+    }
+    if (t.catalyzes) {
+      catalyzeNearbyAllies(u, i);
+    }
   }
 }

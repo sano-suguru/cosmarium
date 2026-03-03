@@ -78,17 +78,27 @@ function reflectNearbyProjectiles(
   const cooldown = ctx.t.shieldCooldown;
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
-    if (!p.alive) continue;
+    if (!p.alive) {
+      continue;
+    }
     rem--;
-    if (reflectedThisFrame.has(i) || p.team === team) continue;
+    if (reflectedThisFrame.has(i) || p.team === team) {
+      continue;
+    }
     const dx = p.x - u.x;
     const dy = p.y - u.y;
-    if (dx * dx + dy * dy >= reflectR * reflectR) continue;
-    if (u.energy <= 0 || u.shieldCooldown > 0) break;
+    if (dx * dx + dy * dy >= reflectR * reflectR) {
+      continue;
+    }
+    if (u.energy <= 0 || u.shieldCooldown > 0) {
+      break;
+    }
     consumeReflectorShieldHp(u, p.damage, cooldown);
     reflectProjectile(ctx.rng, u.x, u.y, p, team, c);
     reflectedThisFrame.add(i);
-    if (u.energy <= 0) break;
+    if (u.energy <= 0) {
+      break;
+    }
   }
 }
 

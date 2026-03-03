@@ -34,10 +34,16 @@ function shouldApplyCooldownReset(ctx: KillContext): boolean {
 }
 
 export function applyOnKillEffects(sourceUnit: UnitIndex, sourceTeam: Team, ctx: KillContext): void {
-  if (!shouldApplyCooldownReset(ctx)) return;
-  if (sourceUnit === NO_UNIT) return;
+  if (!shouldApplyCooldownReset(ctx)) {
+    return;
+  }
+  if (sourceUnit === NO_UNIT) {
+    return;
+  }
   const shooter = unit(sourceUnit);
-  if (!shooter.alive || shooter.team !== sourceTeam) return;
+  if (!shooter.alive || shooter.team !== sourceTeam) {
+    return;
+  }
   const st = unitType(shooter.type);
   if (st.cooldownResetOnKill !== undefined) {
     shooter.cooldown = Math.min(shooter.cooldown, st.cooldownResetOnKill);

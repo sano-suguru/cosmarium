@@ -54,7 +54,9 @@ function allocateByWeight(
   for (const i of indices) {
     const cost = costOf(i);
     const weight = weightOf(arch, i);
-    if (weight <= 0 || cost > remaining) continue;
+    if (weight <= 0 || cost > remaining) {
+      continue;
+    }
     const share = (weight / totalWeight) * budget;
     const targetCount = Math.floor(share / cost);
     const noisy =
@@ -76,7 +78,9 @@ function fillFraction(arch: Archetype, candidates: number[], counts: number[], r
       counts[i] = (counts[i] ?? 0) + 1;
       rem -= cost;
     }
-    if (rem <= 0) break;
+    if (rem <= 0) {
+      break;
+    }
   }
   return rem;
 }
@@ -85,10 +89,14 @@ function fillFraction(arch: Archetype, candidates: number[], counts: number[], r
 function fillRemaining(arch: Archetype, indices: number[], counts: number[], remaining: number): number {
   let rem = remaining;
   const candidates = indices.filter((i) => costOf(i) <= rem && weightOf(arch, i) > 0);
-  if (candidates.length === 0) return rem;
+  if (candidates.length === 0) {
+    return rem;
+  }
 
   const totalW = candidates.reduce((s, i) => s + weightOf(arch, i), 0);
-  if (totalW <= 0) return rem;
+  if (totalW <= 0) {
+    return rem;
+  }
 
   // 重み比例で配分（端数は切り捨て）
   for (const i of candidates) {
@@ -101,7 +109,9 @@ function fillRemaining(arch: Archetype, indices: number[], counts: number[], rem
     }
   }
 
-  if (rem > 0) rem = fillFraction(arch, candidates, counts, rem);
+  if (rem > 0) {
+    rem = fillFraction(arch, candidates, counts, rem);
+  }
   return rem;
 }
 
@@ -110,7 +120,9 @@ function collectFleet(counts: number[], budget: number): FleetEntry[] {
   const fleet: FleetEntry[] = [];
   for (let i = 0; i < NUM_TYPES; i++) {
     const c = counts[i];
-    if (c !== undefined && c > 0) fleet.push({ type: i, count: c });
+    if (c !== undefined && c > 0) {
+      fleet.push({ type: i, count: c });
+    }
   }
   if (fleet.length === 0) {
     fleet.push({ type: 0, count: Math.max(1, Math.floor(budget / costOf(0))) });
@@ -143,7 +155,9 @@ export function generateEnemyFleet(
   shuffle(indices, rng);
 
   const remaining = allocateByWeight(arch, budget, totalWeight, indices, counts, rng);
-  if (remaining > 0) fillRemaining(arch, indices, counts, remaining);
+  if (remaining > 0) {
+    fillRemaining(arch, indices, counts, remaining);
+  }
 
   return { fleet: collectFleet(counts, budget), archetypeName: arch.name };
 }

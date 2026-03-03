@@ -8,19 +8,29 @@ const _aim = { ang: 0, dist: 0 };
 /** 二次方程式 at²+bt+c=0 の最小正の実数解。解なしなら -1 */
 function smallestPositiveRoot(a: number, b: number, c: number): number {
   const disc = b * b - 4 * a * c;
-  if (disc < 0) return -1;
+  if (disc < 0) {
+    return -1;
+  }
 
   if (Math.abs(a) < 1e-6) {
-    if (Math.abs(b) < 1e-6) return -1;
+    if (Math.abs(b) < 1e-6) {
+      return -1;
+    }
     const t = -c / b;
     return t > 0 ? t : -1;
   }
   const sqrtDisc = Math.sqrt(disc);
   const t1 = (-b - sqrtDisc) / (2 * a);
   const t2 = (-b + sqrtDisc) / (2 * a);
-  if (t1 > 0 && t2 > 0) return Math.min(t1, t2);
-  if (t1 > 0) return t1;
-  if (t2 > 0) return t2;
+  if (t1 > 0 && t2 > 0) {
+    return Math.min(t1, t2);
+  }
+  if (t1 > 0) {
+    return t1;
+  }
+  if (t2 > 0) {
+    return t2;
+  }
   return -1;
 }
 
@@ -49,11 +59,15 @@ export function aimAt(
   const directAng = Math.atan2(dy, dx);
   const directDist = Math.sqrt(dx * dx + dy * dy);
 
-  if (accuracy <= 0 || speed <= 0) return setDirect(directAng, directDist);
+  if (accuracy <= 0 || speed <= 0) {
+    return setDirect(directAng, directDist);
+  }
 
   // |P + V*t|² = (s*t)²  →  (V²-s²)t² + 2(P·V)t + P·P = 0
   const t = smallestPositiveRoot(ovx * ovx + ovy * ovy - speed * speed, 2 * (dx * ovx + dy * ovy), dx * dx + dy * dy);
-  if (t <= 0) return setDirect(directAng, directDist);
+  if (t <= 0) {
+    return setDirect(directAng, directDist);
+  }
 
   const px = dx + ovx * t;
   const py = dy + ovy * t;
@@ -62,8 +76,12 @@ export function aimAt(
 
   // ±π境界を超えると逆方向に回るため最短弧で補間
   let angleDiff = leadAng - directAng;
-  if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-  if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+  if (angleDiff > Math.PI) {
+    angleDiff -= Math.PI * 2;
+  }
+  if (angleDiff < -Math.PI) {
+    angleDiff += Math.PI * 2;
+  }
 
   _aim.ang = directAng + angleDiff * accuracy;
   _aim.dist = directDist + (leadDist - directDist) * accuracy;
@@ -71,7 +89,9 @@ export function aimAt(
 }
 
 export function tgtDistOrClear(u: Unit): number {
-  if (u.target === NO_UNIT) return -1;
+  if (u.target === NO_UNIT) {
+    return -1;
+  }
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;

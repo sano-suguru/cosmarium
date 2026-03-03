@@ -6,7 +6,9 @@ import { hotspot, resetHotspot, updateHotspot } from './hotspot.ts';
 const HOTSPOT_UPDATE_INTERVAL = 6;
 
 function triggerUpdate() {
-  for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL; i++) updateHotspot();
+  for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL; i++) {
+    updateHotspot();
+  }
 }
 
 afterEach(() => {
@@ -22,7 +24,9 @@ describe('hotspot', () => {
   });
 
   it('片方のチームのみ → null', () => {
-    for (let i = 0; i < 5; i++) spawnAt(0, 1, 100, 100);
+    for (let i = 0; i < 5; i++) {
+      spawnAt(0, 1, 100, 100);
+    }
     triggerUpdate();
     expect(hotspot()).toBeNull();
   });
@@ -61,7 +65,9 @@ describe('hotspot', () => {
     spawnAt(1, 1, 120, 120);
     updateHotspot();
     expect(hotspot()).toBeNull();
-    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
+    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) {
+      updateHotspot();
+    }
     const hs = hotspot();
     expect(hs).not.toBeNull();
   });
@@ -85,7 +91,9 @@ describe('hotspot', () => {
     spawnAt(0, 1, 100, 100);
     spawnAt(1, 1, 120, 120);
 
-    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 2; i++) updateHotspot();
+    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 2; i++) {
+      updateHotspot();
+    }
     expect(hotspot()).toBeNull();
 
     resetHotspot();
@@ -93,7 +101,9 @@ describe('hotspot', () => {
     updateHotspot();
     expect(hotspot()).toBeNull();
 
-    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) updateHotspot();
+    for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) {
+      updateHotspot();
+    }
     expect(hotspot()).not.toBeNull();
   });
 
@@ -108,7 +118,9 @@ describe('hotspot', () => {
     expect(hs1?.y).toBeCloseTo(110, 0);
 
     // ユニット全滅 → 別の場所に再配置
-    for (let i = 0; i < 2; i++) unit(i).alive = false;
+    for (let i = 0; i < 2; i++) {
+      unit(i).alive = false;
+    }
     spawnAt(0, 1, 800, 800);
     spawnAt(1, 1, 820, 820);
 
@@ -138,7 +150,9 @@ describe('hotspot', () => {
     expect(hs2?.x).toBeGreaterThan(400);
 
     // 全滅→再配置（3回目）
-    for (let i = 0; i < 4; i++) unit(i).alive = false;
+    for (let i = 0; i < 4; i++) {
+      unit(i).alive = false;
+    }
     spawnAt(0, 1, 1500, 1500);
     spawnAt(1, 1, 1520, 1520);
     triggerUpdate();

@@ -60,7 +60,9 @@ function createIconSpan(svgHtml: string): HTMLSpanElement {
 }
 
 function showEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
-  if (!container) return;
+  if (!container) {
+    return;
+  }
   const entry = document.createElement('div');
   Object.assign(entry.style, {
     background: 'rgba(0, 5, 15, 0.7)',
@@ -91,11 +93,15 @@ function showEntry(victimTeam: Team, victimType: number, killer: KillerTag | nul
   container.appendChild(entry);
   while (container.children.length > MAX_ENTRIES) {
     const oldest = container.children[0];
-    if (oldest) container.removeChild(oldest);
+    if (oldest) {
+      container.removeChild(oldest);
+    }
   }
 
   setTimeout(() => {
-    if (!entry.isConnected) return;
+    if (!entry.isConnected) {
+      return;
+    }
     entry.style.opacity = '0';
     setTimeout(() => {
       entry.remove();
@@ -127,10 +133,14 @@ export function clearKillFeed() {
   }
   queue.length = 0;
   lastShowTime = 0;
-  if (container) container.textContent = '';
+  if (container) {
+    container.textContent = '';
+  }
 }
 export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
-  if (!container) return;
+  if (!container) {
+    return;
+  }
   if (drainTimer === 0) {
     const now = performance.now();
     const elapsed = now - lastShowTime;
