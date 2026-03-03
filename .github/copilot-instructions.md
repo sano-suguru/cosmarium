@@ -52,11 +52,20 @@ src/
   pools.ts              # Object pools: units, particles, projectiles + poolCounts
   colors.ts             # Team colors, trail color tables
   unit-types.ts         # 15 unit type definitions with properties
+  fleet-cost.ts         # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
+  battle-tracker.ts     # Battle mode elapsed/win/result aggregation
+  melee-tracker.ts      # Melee mode (N-team) elapsed/win/result aggregation
+  drain-accumulator.ts  # drainAccumulator() — fixed-step accumulator logic
+  interpolation.ts      # savePrevPositions / setInterpAlpha for render interpolation
+  swap-remove.ts        # swap-and-pop helper for dynamic arrays
+  fixed-point.ts        # Fixed-point math (deterministic)
+  fixed-rng.ts          # Fixed-point RNG
+  fixed-trig.ts         # Fixed-point trig (sin/cos tables)
   shaders/              # GLSL source files (vite-plugin-glsl with #include support)
   renderer/             # WebGL 2: VAO/FBO/buffers, instanced rendering, bloom, minimap
   simulation/           # Game tick logic: spatial hash, spawn/kill, steering, combat, effects
   input/camera.ts       # Camera state, input handling, screen shake
-  ui/                   # Codex (unit demo), game controls, HUD
+  ui/                   # Codex, fleet-compose, HUD, battle-result
 ```
 
 ### Main Loop (simplified)
@@ -75,7 +84,9 @@ frame() → dt clamp(0.05) → camera update + decay
 ```
 
 ### State Management
-- **state.ts**: Single `const state: State` export. Mutate directly via property assignment. Used by all modules.
+- **state.ts**: Single `const state: State` export — `GameState` (`'menu' | 'compose' | 'play' | 'result'`), `codexOpen`, PRNG, etc. Mutate via property assignment.
+- **GameLoopState** (`simulation/update.ts`): Holds `battlePhase: BattlePhase` and `activeTeamCount`. Passed into `stepOnce()` each frame; not in `state.ts`.
+- **BattlePhase**: `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`. Controls which trackers and reinforce logic run.
 - **poolCounts**: Readonly export. Update ONLY via spawn/kill functions (`killUnit`, `killParticle`, `killProjectile`). Direct mutation causes type errors.
 - **rng()**: Seeded PRNG (mulberry32) in state.ts closure. Simulation receives as argument (dependency rule).
 - **codexOpen**: Flag that affects 4 layers: simulation (skip steer/combat for non-demo units), renderer (lock camera), input (disable controls), main (hide HUD).
@@ -141,7 +152,7 @@ For **3+ files spanning multiple modules**, create a plan before implementing.
 | GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
 | Pool mutation | Never directly assign `poolCounts`. Use `killUnit()`, `killParticle()`, `killProjectile()` only. |
 | Data before kill | `killUnit()` returns a snapshot (safe). For particle/projectile, save values to locals **before** calling `kill()` — kill reuses slot immediately. Use `destroyUnit()` for unit kill + explosion combo. |
-| Team helper | Use `enemyTeam()` from types.ts, not `1 - team`. Returns `Team` type, not `number`. |
+| Team helper | Use `enemyTeam()` from types.ts, not `1 - team`. Returns `Team` type, not `number`. In N-team (Melee), enemy check is `o.team !== u.team`. |
 | Branded indices | Pool loops need cast: `i as UnitIndex` (also ParticleIndex, ProjectileIndex). |
 
 ## Common Tasks
@@ -178,9 +189,12 @@ See `src/ui/AGENTS.md` for pool side effects, demo scenarios
 - Simulation receives `rng` as function argument
 - Camera shake in main.ts uses `Math.random()` (not seeded)
 
-## Game Mode
+## Game Modes
 
-Only **Infinite** mode. Persistent space war simulation.
+- **Spectate** (`battlePhase = 'spectate'`): AI vs AI, no player fleet — equivalent to the former "Infinite" mode
+- **Battle** (`battlePhase = 'battle'`): Player fleet (team 0) vs enemy fleet (team 1), budget-limited via `fleet-cost.ts` (`DEFAULT_BUDGET = 200`)
+- **Melee** (`battlePhase = 'melee'`): N-team free-for-all (2–5 teams, `activeTeamCount`). Uses `melee-tracker.ts` for per-team elimination events
+- Phase transitions flow through `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`
 
 ## Other References
 
