@@ -1,5 +1,6 @@
 import './style.css';
 import './style-battle.css';
+import './style-result.css';
 
 import {
   addEnemyKill,
@@ -16,6 +17,13 @@ import { drainAccumulator } from './drain-accumulator.ts';
 import { countFleetUnits, DEFAULT_BUDGET } from './fleet-cost.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
+import {
+  advanceMeleeElapsed,
+  advanceMeleeEndTimer,
+  onMeleeEnd,
+  resetMeleeTracking,
+  setOnMeleeFinalize,
+} from './melee-tracker.ts';
 import { teamUnitCounts } from './pools.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
@@ -28,21 +36,24 @@ import { onKillUnitPermanent } from './simulation/spawn.ts';
 import type { BattlePhase, GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
+import { copyTeamCounts } from './types.ts';
 import { initResultDOM } from './ui/battle-result.ts';
 import { demoRng, syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { getPlayerFleet } from './ui/fleet-compose.ts';
 import {
   goToCompose,
+  goToMeleeResult,
   goToMenu,
   goToResult,
   initUI,
   rematch,
   setEnemyFleet,
   setOnBattleStart,
+  setOnMeleeStart,
   setOnSpectateStart,
   setOnStartCompose,
 } from './ui/game-control.ts';
-import { initHUD, updateHUD } from './ui/hud.ts';
+import { initHUD, setupMeleeHUD, teardownMeleeHUD, updateHUD } from './ui/hud.ts';
 import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
 const BASE_SPEED = 0.55;
@@ -79,6 +90,13 @@ setOnFinalize((result) => {
   goToResult(result);
 });
 
+// melee → result 遷移コールバック
+setOnMeleeFinalize((result) => {
+  gameLoopState.battlePhase = 'aftermath';
+  teardownMeleeHUD();
+  goToMeleeResult(result);
+});
+
 // START → compose: 敵を生成して編成画面へ
 setOnStartCompose(() => {
   generateAndCompose(false);
@@ -90,11 +108,21 @@ setOnBattleStart(() => {
   const fleet = getPlayerFleet();
   setInitialPlayerUnits(countFleetUnits(fleet));
   gameLoopState.battlePhase = 'battle';
+  gameLoopState.activeTeamCount = 2;
 });
 
 // Spectate 開始: 増援を有効化
 setOnSpectateStart(() => {
   gameLoopState.battlePhase = 'spectate';
+  gameLoopState.activeTeamCount = 2;
+});
+
+// MELEE 開始
+setOnMeleeStart((numTeams: number) => {
+  resetMeleeTracking(numTeams, copyTeamCounts(teamUnitCounts));
+  gameLoopState.battlePhase = 'melee';
+  gameLoopState.activeTeamCount = numTeams;
+  setupMeleeHUD(numTeams);
 });
 
 // --- Kill tracking ---
@@ -103,8 +131,8 @@ onKillUnitPermanent((e) => {
   if (state.codexOpen || state.gameState !== 'play') return;
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
-  // 敵チーム(1)の撃破をカウント
-  if (e.victimTeam === 1) addEnemyKill();
+  // 敵チーム(1)の撃破をカウント（BATTLE モードのみ）
+  if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') addEnemyKill();
 });
 
 // --- Frame loop ---
@@ -133,34 +161,45 @@ const gameLoopState: GameLoopState = {
     state.reinforcementTimer = v;
   },
   battlePhase: 'spectate' as BattlePhase,
+  activeTeamCount: 2,
   updateCodexDemo,
 };
 
 function updatePlay(dt: number, t: number) {
   // drainAccumulator は同期ループ: 最初の勝者検知でスナップショットを確定し、
-  // battlePhase を 'ending' に遷移。後続 substep での追加キルはスナップショットに反映しない。
-  // onBattleEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
+  // battlePhase を 'battleEnding'/'meleeEnding' に遷移。後続 substep での追加キルはスナップショットに反映しない。
+  // onBattleEnd / onMeleeEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
   simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () => {
     savePrevPositions();
     if (gameLoopState.battlePhase === 'battle') {
       advanceBattleElapsed(SIM_DT);
+    } else if (gameLoopState.battlePhase === 'melee') {
+      advanceMeleeElapsed(SIM_DT);
     }
     const w = stepOnce(SIM_DT, t, rng, gameLoopState);
     if (w !== null) {
-      onBattleEnd(w, { survivors: teamUnitCounts[0], enemyKills: getPlayerEnemyKills() });
-      gameLoopState.battlePhase = 'ending';
+      if (gameLoopState.battlePhase === 'melee') {
+        onMeleeEnd(w);
+        gameLoopState.battlePhase = 'meleeEnding';
+      } else {
+        if (w === 'draw') throw new Error('Unexpected draw in non-melee mode');
+        onBattleEnd(w, { survivors: teamUnitCounts[0], enemyKills: getPlayerEnemyKills() });
+        gameLoopState.battlePhase = 'battleEnding';
+      }
     }
   });
   setInterpAlpha(simAccumulator / SIM_DT);
   const bp = gameLoopState.battlePhase;
-  if (bp === 'battle' || bp === 'ending') {
+  if (bp === 'meleeEnding') {
+    advanceMeleeEndTimer(dt);
+  } else if (bp === 'battleEnding' || bp === 'battle') {
     advanceBattleEndTimer(dt);
   }
 
   updateHotspot();
   updateAutoFollow(hotspot());
   renderFrame(t);
-  updateHUD(displayFps);
+  updateHUD(displayFps, bp);
   if (frameCount % 2 === 0) drawMinimap();
 }
 

@@ -19,8 +19,18 @@ import { demoFlag } from '../simulation/combat.ts';
 import { resetChains, restoreChains, snapshotChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import { state } from '../state.ts';
-import type { Beam, DemoFlag, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitType } from '../types.ts';
-import { NO_UNIT } from '../types.ts';
+import type {
+  Beam,
+  DemoFlag,
+  Particle,
+  Projectile,
+  TeamCounts,
+  TrackingBeam,
+  Unit,
+  UnitIndex,
+  UnitType,
+} from '../types.ts';
+import { copyTeamCounts, NO_UNIT } from '../types.ts';
 import { TYPES, unitType, unitTypeIndex } from '../unit-types.ts';
 import {
   DOM_ID_CODEX,
@@ -85,7 +95,7 @@ interface PoolSnapshot {
   beams: Beam[];
   trackingBeams: TrackingBeam[];
   pendingChains: ReturnType<typeof snapshotChains>;
-  counts: { units: number; particles: number; projectiles: number; teamUnits: [number, number] };
+  counts: { units: number; particles: number; projectiles: number; teamUnits: TeamCounts };
   hwm: { units: number; particles: number; projectiles: number };
 }
 
@@ -122,7 +132,7 @@ export function snapshotPools(): PoolSnapshot {
       units: poolCounts.units,
       particles: poolCounts.particles,
       projectiles: poolCounts.projectiles,
-      teamUnits: [teamUnitCounts[0], teamUnitCounts[1]],
+      teamUnits: copyTeamCounts(teamUnitCounts),
     },
     hwm: { units: unitHWM, particles: particleHWM, projectiles: projectileHWM },
   };

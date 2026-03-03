@@ -16,6 +16,12 @@ import {
   teamUnitCounts,
   unit,
 } from './pools.ts';
+import type { TeamCounts } from './types.ts';
+
+/** 2チーム分のカウントから TeamCounts タプルを生成するヘルパー */
+function tc(t0: number, t1: number): TeamCounts {
+  return [t0, t1, 0, 0, 0];
+}
 
 afterEach(() => {
   resetPoolCounts();
@@ -149,7 +155,7 @@ describe('setUnitCount', () => {
 
 describe('setPoolCounts', () => {
   it('有効な値でカウントを一括設定', () => {
-    setPoolCounts(10, 20, 30, [5, 5]);
+    setPoolCounts(10, 20, 30, tc(5, 5));
     expect(poolCounts.units).toBe(10);
     expect(poolCounts.particles).toBe(20);
     expect(poolCounts.projectiles).toBe(30);
@@ -158,43 +164,43 @@ describe('setPoolCounts', () => {
   });
 
   it('上限値で設定可能', () => {
-    setPoolCounts(POOL_UNITS, POOL_PARTICLES, POOL_PROJECTILES, [POOL_UNITS, 0]);
+    setPoolCounts(POOL_UNITS, POOL_PARTICLES, POOL_PROJECTILES, tc(POOL_UNITS, 0));
     expect(poolCounts.units).toBe(POOL_UNITS);
     expect(poolCounts.particles).toBe(POOL_PARTICLES);
     expect(poolCounts.projectiles).toBe(POOL_PROJECTILES);
   });
 
   it('0で設定可能', () => {
-    setPoolCounts(0, 0, 0, [0, 0]);
+    setPoolCounts(0, 0, 0, tc(0, 0));
     expect(poolCounts.units).toBe(0);
     expect(poolCounts.particles).toBe(0);
     expect(poolCounts.projectiles).toBe(0);
   });
 
   it('unitCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(-1, 0, 0, [0, 0])).toThrow(RangeError);
-    expect(() => setPoolCounts(POOL_UNITS + 1, 0, 0, [0, 0])).toThrow(RangeError);
+    expect(() => setPoolCounts(-1, 0, 0, tc(0, 0))).toThrow(RangeError);
+    expect(() => setPoolCounts(POOL_UNITS + 1, 0, 0, tc(0, 0))).toThrow(RangeError);
   });
 
   it('particleCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(0, -1, 0, [0, 0])).toThrow(RangeError);
-    expect(() => setPoolCounts(0, POOL_PARTICLES + 1, 0, [0, 0])).toThrow(RangeError);
+    expect(() => setPoolCounts(0, -1, 0, tc(0, 0))).toThrow(RangeError);
+    expect(() => setPoolCounts(0, POOL_PARTICLES + 1, 0, tc(0, 0))).toThrow(RangeError);
   });
 
   it('projectileCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(0, 0, -1, [0, 0])).toThrow(RangeError);
-    expect(() => setPoolCounts(0, 0, POOL_PROJECTILES + 1, [0, 0])).toThrow(RangeError);
+    expect(() => setPoolCounts(0, 0, -1, tc(0, 0))).toThrow(RangeError);
+    expect(() => setPoolCounts(0, 0, POOL_PROJECTILES + 1, tc(0, 0))).toThrow(RangeError);
   });
 
   it('teamUnits 合計が units と不一致で RangeError', () => {
-    expect(() => setPoolCounts(10, 0, 0, [3, 3])).toThrow(RangeError);
-    expect(() => setPoolCounts(10, 0, 0, [0, 0])).toThrow(RangeError);
-    expect(() => setPoolCounts(0, 0, 0, [1, 0])).toThrow(RangeError);
+    expect(() => setPoolCounts(10, 0, 0, tc(3, 3))).toThrow(RangeError);
+    expect(() => setPoolCounts(10, 0, 0, tc(0, 0))).toThrow(RangeError);
+    expect(() => setPoolCounts(0, 0, 0, tc(1, 0))).toThrow(RangeError);
   });
 
   it('teamUnits に負値で RangeError', () => {
-    expect(() => setPoolCounts(10, 0, 0, [-1, 11])).toThrow(RangeError);
-    expect(() => setPoolCounts(10, 0, 0, [11, -1])).toThrow(RangeError);
+    expect(() => setPoolCounts(10, 0, 0, [0, 0, 0, -1, 11] as TeamCounts)).toThrow(RangeError);
+    expect(() => setPoolCounts(10, 0, 0, [0, 0, 0, 11, -1] as TeamCounts)).toThrow(RangeError);
   });
 });
 

@@ -1,7 +1,6 @@
 import { WORLD_SIZE } from '../constants.ts';
 import { teamUnitCounts } from '../pools.ts';
 import type { Team } from '../types.ts';
-import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -87,7 +86,9 @@ export function reinforce(dt: number, rng: () => number, rs: ReinforcementState)
   if (rs.reinforcementTimer < REINFORCE_INTERVAL) return;
   rs.reinforcementTimer = 0;
   const lim = REINFORCE_UNIT_CAP;
-  for (const team of TEAMS) {
+  const SPECTATE_TEAMS = 2;
+  for (let ti = 0; ti < SPECTATE_TEAMS; ti++) {
+    const team = ti as Team;
     const cnt = teamUnitCounts[team];
     if (cnt < lim) spawnWave(team, cnt, rng);
   }

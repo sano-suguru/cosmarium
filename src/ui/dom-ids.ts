@@ -40,3 +40,6 @@ export const DOM_ID_RESULT_STATS = 'resultStats';
 export const DOM_ID_RESULT_MENU = 'resultMenu';
 export const DOM_ID_RESULT_RECOMPOSE = 'resultRecompose';
 export const DOM_ID_RESULT_REMATCH = 'resultRematch';
+
+export const DOM_ID_BTN_MELEE = 'btnMelee';
+export const DOM_ID_MELEE_TEAMS = 'meleeTeams';

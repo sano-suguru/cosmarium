@@ -3,7 +3,6 @@ import { REF_FPS } from '../constants.ts';
 import { getParticleHWM, getUnitHWM, particle, poolCounts, teamUnitCounts, unit } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
-import { TEAMS } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { resetReflected } from './combat-reflect.ts';
@@ -120,15 +119,38 @@ export function updateUnits(dt: number, now: number, rng: () => number) {
   }
 }
 
-export type BattlePhase = 'spectate' | 'battle' | 'ending' | 'aftermath';
+export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath';
 
 export interface GameLoopState extends ReinforcementState {
   codexOpen: boolean;
   battlePhase: BattlePhase;
+  activeTeamCount: number;
   updateCodexDemo: (dt: number) => void;
 }
 
-export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState): Team | null {
+/** BATTLE 勝敗判定: 先に team 0 全滅を判定するため相互全滅は DEFEAT 扱い */
+function checkBattleWin(): Team | null {
+  if (teamUnitCounts[0] === 0) return 1 as Team;
+  if (teamUnitCounts[1] === 0) return 0 as Team;
+  return null;
+}
+
+/** MELEE 勝敗判定: 残存1勢力で勝利、全滅で draw、2勢力以上生存で null（継続） */
+function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
+  let alive = 0;
+  let last: Team = 0;
+  for (let t = 0; t < activeTeamCount; t++) {
+    if (teamUnitCounts[t as Team] > 0) {
+      alive++;
+      last = t as Team;
+    }
+  }
+  if (alive === 0) return 'draw';
+  if (alive === 1) return last;
+  return null;
+}
+
+export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState): Team | 'draw' | null {
   const co = gameState.codexOpen;
   buildHash();
   updateSwarmN();
@@ -151,18 +173,13 @@ export function stepOnce(dt: number, now: number, rng: () => number, gameState: 
       case 'spectate':
         reinforce(dt, rng, gameState);
         break;
-      case 'battle': {
-        // 勝敗判定: updateUnits → updateProjectiles の全 kill が
-        // decUnits() 経由で teamUnitCounts に即時反映された後に到達する。
-        // a === 0 (自軍全滅) 時は team 1 勝利。相互全滅も同様（先に a===0 を判定するため DEFEAT 扱い）
-        const [a, b] = teamUnitCounts;
-        if (a === 0) return TEAMS[1];
-        if (b === 0) return TEAMS[0];
-        break;
-      }
-      case 'ending':
+      case 'battle':
+        return checkBattleWin();
+      case 'melee':
+        return checkMeleeWin(gameState.activeTeamCount);
+      case 'battleEnding':
+      case 'meleeEnding':
       case 'aftermath':
-        // 物理のみ継続（増援なし・勝敗判定なし）
         break;
     }
   } else {

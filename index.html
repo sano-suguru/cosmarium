@@ -37,6 +37,10 @@
         SPECTATE
         <span class="desc">終わりなき宇宙艦隊戦を観測せよ</span>
       </button>
+      <button class="mbtn" id="btnMelee">
+        MELEE
+        <span class="desc">2〜5勢力のランダム乱戦を観戦せよ</span>
+      </button>
       <button class="mbtn" id="codexMenuBtn">
         CODEX
         <span class="desc">全艦種の戦術データと実戦デモを参照</span>
@@ -80,12 +84,13 @@
     </div>
 
     <div id="hud" style="display: none">
-      <div>
+      <div id="hudTeamRow">
         <span class="hl">UNITS:</span>
         <span class="hc" id="cA">0</span>
         <span class="hl">vs</span>
         <span class="hm" id="cB">0</span>
       </div>
+      <div id="meleeTeams" style="display: none"></div>
       <div><span class="hl">PARTICLES:</span> <span id="pN">0</span></div>
       <div>
         <span class="hl">FPS:</span> <span id="fps">0</span> <span class="hl" style="margin-left: 8px">SPD:</span>

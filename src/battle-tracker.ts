@@ -9,8 +9,8 @@
  * - `advanceBattleTimer(dt)` は呼び出しフィルタリングを含まない。
  *   呼び出し側 (main.ts) が `battlePhase` に基づいて制御する:
  *   - `'battle'`: advanceBattleTimer が呼ばれ、勝敗判定＋結果集計が有効
- *   - `'ending'`: 勝者検知後の余韻。勝敗判定はスキップだが advanceBattleTimer は継続
- *   - `'spectate'`/`'aftermath'`: advanceBattleTimer は呼ばれない
+ *   - `'battleEnding'`: 勝者検知後の余韻。勝敗判定はスキップだが advanceBattleTimer は継続
+ *   - `'spectate'`/`'melee'`/`'meleeEnding'`/`'aftermath'`: advanceBattleTimer は呼ばれない
  */
 import type { BattleResult, BattleSnapshot, Team } from './types.ts';
 

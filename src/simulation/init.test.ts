@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { particle, poolCounts, projectile, unit } from '../pools.ts';
+import { DEFAULT_BUDGET } from '../fleet-cost.ts';
+import { particle, poolCounts, projectile, teamUnitCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
+import type { Team } from '../types.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -11,7 +13,7 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { INIT_SPAWNS, initUnits } from './init.ts';
+import { INIT_SPAWNS, initMelee, initUnits } from './init.ts';
 
 afterEach(() => {
   resetPools();
@@ -97,5 +99,42 @@ describe('initUnits', () => {
     const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
     expect(team0).toBe(perTeam);
     expect(team1).toBe(perTeam);
+  });
+});
+
+describe('initMelee', () => {
+  it('2勢力で各チームにユニットがスポーンされる', () => {
+    initMelee(2, DEFAULT_BUDGET, rng);
+    expect(poolCounts.units).toBeGreaterThan(0);
+    expect(teamUnitCounts[0]).toBeGreaterThan(0);
+    expect(teamUnitCounts[1]).toBeGreaterThan(0);
+  });
+
+  it('5勢力で全チームにユニットがスポーンされる', () => {
+    initMelee(5, DEFAULT_BUDGET, rng);
+    expect(poolCounts.units).toBeGreaterThan(0);
+    for (let t = 0; t < 5; t++) {
+      expect(teamUnitCounts[t as Team]).toBeGreaterThan(0);
+    }
+  });
+
+  it('各チームのユニット配置が異なる中心位置を持つ', () => {
+    initMelee(3, DEFAULT_BUDGET, rng);
+    // チーム別の平均位置を計算
+    const cx = [0, 0, 0];
+    const counts = [0, 0, 0];
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unit(i);
+      if (!u.alive) continue;
+      const t: number = u.team;
+      cx[t] = (cx[t] ?? 0) + u.x;
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    // 各チームの平均X座標が異なることを確認（円周配置）
+    const avgX = cx.map((sum, i) => ((counts[i] ?? 1) > 0 ? (sum ?? 0) / (counts[i] ?? 1) : 0));
+    // 少なくとも2つのチームの平均位置が有意に異なる
+    const diff01 = Math.abs((avgX[0] ?? 0) - (avgX[1] ?? 0));
+    const diff02 = Math.abs((avgX[0] ?? 0) - (avgX[2] ?? 0));
+    expect(diff01 + diff02).toBeGreaterThan(100);
   });
 });

@@ -128,6 +128,14 @@ canvas#c {
 .hm {
   color: #f0f;
 }
+#meleeTeams {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#meleeTeams .hl {
+  margin: 0 2px;
+}
 
 #controls {
   position: fixed;

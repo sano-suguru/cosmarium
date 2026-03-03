@@ -1,7 +1,7 @@
 import { beams, trackingBeams } from './beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
-import type { Particle, ParticleIndex, Projectile, Team, Unit } from './types.ts';
-import { NO_PARTICLE, NO_UNIT } from './types.ts';
+import type { Particle, ParticleIndex, Projectile, Team, TeamCounts, Unit } from './types.ts';
+import { MAX_TEAMS, NO_PARTICLE, NO_UNIT } from './types.ts';
 
 const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
@@ -95,10 +95,10 @@ export function restoreHWM(units: number, particles: number, projectiles: number
 }
 
 const _counts = { units: 0, particles: 0, projectiles: 0 };
-const _teamUnits: [number, number] = [0, 0];
+const _teamUnits: TeamCounts = [0, 0, 0, 0, 0];
 
 export const poolCounts: Readonly<{ units: number; particles: number; projectiles: number }> = _counts;
-export const teamUnitCounts: Readonly<[number, number]> = _teamUnits;
+export const teamUnitCounts: Readonly<TeamCounts> = _teamUnits;
 
 export function incUnits(team: Team) {
   if (_counts.units >= POOL_UNITS) throw new RangeError(`unitCount at pool limit (${POOL_UNITS})`);
@@ -132,15 +132,13 @@ export function resetPoolCounts() {
   _counts.units = 0;
   _counts.particles = 0;
   _counts.projectiles = 0;
-  _teamUnits[0] = 0;
-  _teamUnits[1] = 0;
+  _teamUnits.fill(0);
   _initParticleFreeStack();
 }
-/** テスト専用: ユニット総数を直接設定する。teamUnitCounts は [0,0] にリセットされる */
+/** テスト専用: ユニット総数を直接設定する。teamUnitCounts は全0にリセットされる */
 export function setUnitCount(n: number) {
   _counts.units = n;
-  _teamUnits[0] = 0;
-  _teamUnits[1] = 0;
+  _teamUnits.fill(0);
 }
 /** テスト専用: パーティクル総数を直接設定する。freeStack も再構築される */
 export function setParticleCount(n: number) {
@@ -161,19 +159,22 @@ export function clearAllPools() {
   trackingBeams.length = 0;
 }
 
-export function setPoolCounts(units: number, particles: number, projectiles: number, teamUnits: [number, number]) {
+export function setPoolCounts(units: number, particles: number, projectiles: number, teamUnits: Readonly<TeamCounts>) {
   if (units < 0 || units > POOL_UNITS) throw new RangeError(`unitCount out of range: ${units}`);
   if (particles < 0 || particles > POOL_PARTICLES) throw new RangeError(`particleCount out of range: ${particles}`);
   if (projectiles < 0 || projectiles > POOL_PROJECTILES)
     throw new RangeError(`projectileCount out of range: ${projectiles}`);
-  if (teamUnits[0] < 0 || teamUnits[1] < 0) throw new RangeError('teamUnitCounts must be non-negative');
-  if (teamUnits[0] + teamUnits[1] !== units)
-    throw new RangeError(`teamUnitCounts sum (${teamUnits[0] + teamUnits[1]}) !== units (${units})`);
+  let sum = 0;
+  for (let i = 0; i < MAX_TEAMS; i++) {
+    const v = teamUnits[i as Team];
+    if (v < 0) throw new RangeError('teamUnitCounts must be non-negative');
+    sum += v;
+  }
+  if (sum !== units) throw new RangeError(`teamUnitCounts sum (${sum}) !== units (${units})`);
   _counts.units = units;
   _counts.particles = particles;
   _counts.projectiles = projectiles;
-  _teamUnits[0] = teamUnits[0];
-  _teamUnits[1] = teamUnits[1];
+  for (let i = 0; i < MAX_TEAMS; i++) _teamUnits[i as Team] = teamUnits[i as Team];
   rebuildParticleFreeStack();
 }
 

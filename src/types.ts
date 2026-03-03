@@ -231,8 +231,21 @@ export type BattleResult = {
   readonly initialPlayerUnits: number;
 };
 
-export type Team = 0 | 1;
-export const TEAMS: readonly [Team, Team] = [0, 1];
+/** チーム上限。Team / TeamCounts の基数を決定する（変更時は Team 定義も更新すること） */
+export const MAX_TEAMS = 5;
+
+/** チーム番号: [0, MAX_TEAMS)。MAX_TEAMS 変更時は手動更新が必要 */
+export type Team = 0 | 1 | 2 | 3 | 4;
+
+/** MAX_TEAMS 長の数値タプル（自動導出） */
+type _Repeat<N extends number, T, Acc extends T[] = []> = Acc['length'] extends N ? Acc : _Repeat<N, T, [...Acc, T]>;
+export type TeamTuple<T> = _Repeat<typeof MAX_TEAMS, T>;
+export type TeamCounts = TeamTuple<number>;
+
+/** TeamCounts の浅いコピーを型安全に生成する */
+export function copyTeamCounts(src: Readonly<TeamCounts>): TeamCounts {
+  return src.slice() as unknown as TeamCounts;
+}
 
 /** プールインデックスの branded type（型レベルで異なるプール間のインデックス混用を防止） */
 export type UnitIndex = number & { readonly __brand: 'UnitIndex' };

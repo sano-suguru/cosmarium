@@ -1,8 +1,27 @@
-import type { Color3, Team } from './types.ts';
+import type { Color3, Team, TeamTuple } from './types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];
 const VERMILION: Color3 = [1.0, 0.35, 0.2];
-const TEAM_BASE: readonly [Color3, Color3] = [CYAN, VERMILION];
+const GREEN: Color3 = [0.2, 0.9, 0.3];
+const PURPLE: Color3 = [0.7, 0.3, 0.9];
+const AMBER: Color3 = [0.95, 0.8, 0.15];
+const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, VERMILION, GREEN, PURPLE, AMBER];
+
+function color3ToHex(c: Color3): string {
+  const r = Math.round(c[0] * 255);
+  const g = Math.round(c[1] * 255);
+  const b = Math.round(c[2] * 255);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+export const TEAM_HEX_COLORS: Readonly<TeamTuple<string>> = TEAM_BASE.map(color3ToHex) as TeamTuple<string>;
+
+/** UI 用パステルネオンパレット — 明度↑ 彩度↓ で暗背景のグロー向き */
+function pastelNeon(c: Color3): string {
+  const [h, s, l] = rgbToHsl(c);
+  const [r, g, b] = hslToRgb(h, clamp01(s * 0.8), clamp01(l * 0.35 + 0.5));
+  return color3ToHex([clamp01(r), clamp01(g), clamp01(b)]);
+}
+export const TEAM_UI_HEX_COLORS: Readonly<TeamTuple<string>> = TEAM_BASE.map(pastelNeon) as TeamTuple<string>;
 
 interface UnitColorMod {
   readonly hue: number; // -0.5 .. +0.5  colour lean (HSL turns)
@@ -139,18 +158,17 @@ function dimColor(c: Color3, factor: number): Color3 {
 function buildTable(
   resolveMod: (mod: UnitColorMod) => HslMod,
   trailDimFactor?: number | undefined,
-): ReadonlyArray<readonly [Color3, Color3]> {
-  const table: Array<readonly [Color3, Color3]> = [];
+): ReadonlyArray<Readonly<TeamTuple<Color3>>> {
+  const table: Array<Readonly<TeamTuple<Color3>>> = [];
   for (let i = 0; i < UNIT_MODS.length; i++) {
     const mod = UNIT_MODS[i] as UnitColorMod;
     const resolved = resolveMod(mod);
-    const c0 = applyMod(TEAM_BASE[0], resolved);
-    const c1 = applyMod(TEAM_BASE[1], resolved);
-    if (trailDimFactor !== undefined) {
-      table.push([dimColor(c0, trailDimFactor), dimColor(c1, trailDimFactor)]);
-    } else {
-      table.push([c0, c1]);
+    const row: Color3[] = [];
+    for (const base of TEAM_BASE) {
+      const c = applyMod(base, resolved);
+      row.push(trailDimFactor !== undefined ? dimColor(c, trailDimFactor) : c);
     }
+    table.push(row as TeamTuple<Color3>);
   }
   return table;
 }

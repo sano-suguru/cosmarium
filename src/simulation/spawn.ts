@@ -14,6 +14,7 @@ import {
   incUnits,
   particle,
   projectile,
+  teamUnitCounts,
   unit,
 } from '../pools.ts';
 import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
@@ -43,6 +44,8 @@ type KillEvent = {
   victim: UnitIndex;
   victimTeam: Team;
   victimType: number;
+  /** decUnits 後の victimTeam の残存ユニット数。0 なら全滅。 */
+  victimTeamRemaining: number;
 } & (
   | { killer: UnitIndex; killerTeam: Team; killerType: number }
   | { killer: typeof NO_UNIT; killerTeam?: undefined; killerType?: undefined }
@@ -134,12 +137,13 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
   const u = unit(i);
   if (u.alive) {
     const snap: KilledUnitSnapshot = { x: u.x, y: u.y, team: u.team, type: u.type };
-    const base = { victim: i, victimTeam: u.team, victimType: u.type };
+    u.alive = false;
+    // decUnits → hook の順序を保証: hook 内で victimTeamRemaining を参照可能
+    decUnits(u.team);
+    const base = { victim: i, victimTeam: u.team, victimType: u.type, victimTeamRemaining: teamUnitCounts[u.team] };
     const e: KillEvent = killer
       ? { ...base, killer: killer.index, killerTeam: killer.team, killerType: killer.type }
       : { ...base, killer: NO_UNIT };
-    u.alive = false;
-    decUnits(u.team);
     for (const hook of killUnitHooks) hook(e);
     for (const hook of permanentKillUnitHooks) hook(e);
     return snap;

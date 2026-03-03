@@ -1,8 +1,9 @@
+import { TAU } from '../constants.ts';
 import { clearAllPools } from '../pools.ts';
 import type { FleetComposition, Team } from '../types.ts';
-import { TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
+import { generateEnemyFleet } from './enemy-fleet.ts';
 import { spawnUnit } from './spawn.ts';
 
 const BATTLE_SPAWN_X = 1200;
@@ -53,7 +54,8 @@ function teamOrigin(team: Team): [number, number] {
 export function initUnits(rng: () => number) {
   resetField();
 
-  for (const team of TEAMS) {
+  for (let ti = 0; ti < 2; ti++) {
+    const team = ti as Team;
     const [cx, cy] = teamOrigin(team);
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
@@ -77,6 +79,26 @@ export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetCompo
     }
   };
 
-  spawn(TEAMS[0], playerFleet);
-  spawn(TEAMS[1], enemyFleet);
+  spawn(0, playerFleet);
+  spawn(1, enemyFleet);
+}
+
+const MELEE_SPAWN_RADIUS = 1200;
+
+/** N勢力を円周配置でスポーンする（MELEEモード用） */
+export function initMelee(numTeams: number, budget: number, rng: () => number) {
+  resetField();
+  for (let t = 0; t < numTeams; t++) {
+    const angle = (t / numTeams) * TAU;
+    const cx = Math.cos(angle) * MELEE_SPAWN_RADIUS;
+    const cy = Math.sin(angle) * MELEE_SPAWN_RADIUS;
+    const team = t as Team;
+    const { fleet } = generateEnemyFleet(budget, rng);
+    for (const { type, count } of fleet) {
+      const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
+      for (let j = 0; j < count; j++) {
+        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
+      }
+    }
+  }
 }

@@ -1,12 +1,16 @@
+import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
-import { initBattle, initUnits } from '../simulation/init.ts';
+import type { MeleeResult } from '../melee-tracker.ts';
+import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
 import type { BattleResult, FleetComposition } from '../types.ts';
-import { hideResult, reopenResult, showResult } from './battle-result.ts';
+import { MAX_TEAMS } from '../types.ts';
+import { hideResult, reopenResult, showMeleeResult, showResult } from './battle-result.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
   DOM_ID_AUTO_FOLLOW_BTN,
+  DOM_ID_BTN_MELEE,
   DOM_ID_BTN_SPECTATE,
   DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
@@ -66,12 +70,14 @@ function uniqueSeed(): number {
 
 // --- 外部コールバック ---
 type TransitionCb = () => void;
+type MeleeStartCb = (numTeams: number) => void;
 const throwBattleStart: TransitionCb = () => {
   throw new Error('setOnBattleStart() must be called before battle launch');
 };
 let onBattleStart: TransitionCb = throwBattleStart;
 let onStartCompose: TransitionCb = () => undefined;
 let onSpectateStart: TransitionCb = () => undefined;
+let onMeleeStart: MeleeStartCb = () => undefined;
 
 export function setOnBattleStart(cb: TransitionCb) {
   onBattleStart = cb;
@@ -83,6 +89,10 @@ export function setOnStartCompose(cb: TransitionCb) {
 
 export function setOnSpectateStart(cb: TransitionCb) {
   onSpectateStart = cb;
+}
+
+export function setOnMeleeStart(cb: MeleeStartCb) {
+  onMeleeStart = cb;
 }
 
 // --- 画面遷移 ---
@@ -146,6 +156,21 @@ function startBattle(playerFleet: FleetComposition) {
   onBattleStart();
 }
 
+/** MELEE → play: N勢力乱戦開始 */
+const MELEE_TOTAL_BUDGET = DEFAULT_BUDGET * 2; // 2-team battle と同等の総量
+
+function startMelee() {
+  state.gameState = 'play';
+  resetCam();
+  els().menu.style.display = 'none';
+  showPlayUI();
+  seedRng(uniqueSeed());
+  const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1)); // 2〜MAX_TEAMS
+  const perTeamBudget = Math.round(MELEE_TOTAL_BUDGET / numTeams);
+  initMelee(numTeams, perTeamBudget, rng);
+  onMeleeStart(numTeams);
+}
+
 /** REMATCH: 同じ編成・敵で再戦（シードのみ変更） */
 export function rematch() {
   startBattle(getPlayerFleet());
@@ -156,6 +181,13 @@ export function goToResult(result: BattleResult) {
   state.gameState = 'result';
   hidePlayUI();
   showResult(result);
+}
+
+/** play → result: MELEE 結果表示 */
+export function goToMeleeResult(result: MeleeResult) {
+  state.gameState = 'result';
+  hidePlayUI();
+  showMeleeResult(result);
 }
 
 /** result/play → menu */
@@ -182,6 +214,7 @@ export function _resetGameControl() {
   onBattleStart = throwBattleStart;
   onStartCompose = () => undefined;
   onSpectateStart = () => undefined;
+  onMeleeStart = () => undefined;
 }
 
 // --- Codex toggle ---
@@ -281,6 +314,7 @@ export function initUI() {
 
   const elBtnStart = getElement(DOM_ID_BTN_START);
   const elBtnSpectate = getElement(DOM_ID_BTN_SPECTATE);
+  const elBtnMelee = getElement(DOM_ID_BTN_MELEE);
   const elCodexClose = getElement(DOM_ID_CODEX_CLOSE);
   const elCodexMenuBtn = getElement(DOM_ID_CODEX_MENU_BTN);
 
@@ -290,6 +324,10 @@ export function initUI() {
 
   elBtnSpectate.addEventListener('click', () => {
     startSpectate();
+  });
+
+  elBtnMelee.addEventListener('click', () => {
+    startMelee();
   });
 
   _els.autoFollowBtn.addEventListener('click', () => {

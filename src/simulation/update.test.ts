@@ -13,7 +13,7 @@ import {
 } from '../constants.ts';
 import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { NO_UNIT, TEAMS } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import {
   BASTION_ABSORB_RATIO,
@@ -1161,9 +1161,9 @@ describe('stepOnce 勝敗判定', () => {
     unit(b).trailTimer = 99;
     // 両方を殺して全滅状態にする
     unit(a).alive = false;
-    decUnits(TEAMS[0]);
+    decUnits(0);
     unit(b).alive = false;
-    decUnits(TEAMS[1]);
+    decUnits(1);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(1);
@@ -1173,7 +1173,7 @@ describe('stepOnce 勝敗判定', () => {
     spawnAt(0, 0, 0, 0);
     const b = spawnAt(1, 0, 100, 0);
     unit(b).alive = false;
-    decUnits(TEAMS[1]);
+    decUnits(1);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(0);
@@ -1183,7 +1183,7 @@ describe('stepOnce 勝敗判定', () => {
     const a = spawnAt(0, 0, 0, 0);
     spawnAt(1, 0, 100, 0);
     unit(a).alive = false;
-    decUnits(TEAMS[0]);
+    decUnits(0);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(1);
@@ -1200,19 +1200,29 @@ describe('stepOnce 勝敗判定', () => {
   it('battlePhase="spectate" では勝敗判定をスキップする', () => {
     const b = spawnAt(1, 0, 100, 0);
     unit(b).alive = false;
-    decUnits(TEAMS[1]);
+    decUnits(1);
     // team 0 のみ生存だが spectate モードなので null
     const result = tick(SIM_DT, 0, rng, gameLoopState());
     expect(result).toBeNull();
   });
 
-  it('battlePhase="ending" では勝敗判定をスキップする', () => {
+  it('battlePhase="battleEnding" では勝敗判定をスキップする', () => {
     const b = spawnAt(1, 0, 100, 0);
     unit(b).alive = false;
-    decUnits(TEAMS[1]);
+    decUnits(1);
     const gs = makeGameLoopState(mockUpdateCodexDemo);
-    gs.battlePhase = 'ending';
-    // team 0 のみ生存だが ending なので null
+    gs.battlePhase = 'battleEnding';
+    // team 0 のみ生存だが battleEnding なので null
+    const result = tick(SIM_DT, 0, rng, gs);
+    expect(result).toBeNull();
+  });
+
+  it('battlePhase="meleeEnding" では勝敗判定をスキップする', () => {
+    const b = spawnAt(1, 0, 100, 0);
+    unit(b).alive = false;
+    decUnits(1);
+    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    gs.battlePhase = 'meleeEnding';
     const result = tick(SIM_DT, 0, rng, gs);
     expect(result).toBeNull();
   });
@@ -1220,11 +1230,94 @@ describe('stepOnce 勝敗判定', () => {
   it('battlePhase="aftermath" では増援も勝敗判定もスキップする', () => {
     const b = spawnAt(1, 0, 100, 0);
     unit(b).alive = false;
-    decUnits(TEAMS[1]);
+    decUnits(1);
     const gs = makeGameLoopState(mockUpdateCodexDemo);
     gs.battlePhase = 'aftermath';
     // team 0 のみ生存だが aftermath なので null
     const result = tick(SIM_DT, 0, rng, gs);
     expect(result).toBeNull();
+  });
+});
+
+// ============================================================
+// stepOnce MELEE 勝敗判定
+// ============================================================
+describe('stepOnce MELEE 勝敗判定', () => {
+  function meleeGameLoopState(numTeams: number) {
+    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    gs.battlePhase = 'melee';
+    gs.activeTeamCount = numTeams;
+    return gs;
+  }
+
+  it('残存1勢力で勝者を返す（3勢力 melee）', () => {
+    // team 0,1,2 にスポーン
+    spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    const c = spawnAt(2, 0, 200, 0);
+    // team 1, 2 を全滅
+    unit(b).alive = false;
+    decUnits(1);
+    unit(c).alive = false;
+    decUnits(2);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
+    expect(result).toBe(0);
+  });
+
+  it('全勢力全滅: draw を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    unit(a).trailTimer = 99;
+    unit(b).trailTimer = 99;
+    unit(a).alive = false;
+    decUnits(0);
+    unit(b).alive = false;
+    decUnits(1);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(2));
+    expect(result).toBe('draw');
+  });
+
+  it('3勢力で全滅 → draw を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    const c = spawnAt(2, 0, 200, 0);
+    for (const idx of [a, b, c]) {
+      unit(idx).alive = false;
+    }
+    decUnits(0);
+    decUnits(1);
+    decUnits(2);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
+    expect(result).toBe('draw');
+  });
+
+  it('複数勢力生存中は null を返す', () => {
+    spawnAt(0, 0, 0, 0);
+    spawnAt(1, 0, 100, 0);
+    spawnAt(2, 0, 200, 0);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
+    expect(result).toBeNull();
+  });
+
+  it('5勢力で team 4 のみ残存 → team 4 が勝者', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    const c = spawnAt(2, 0, 200, 0);
+    const d = spawnAt(3, 0, 300, 0);
+    spawnAt(4, 0, 400, 0);
+    for (const idx of [a, b, c, d]) {
+      unit(idx).alive = false;
+    }
+    decUnits(0);
+    decUnits(1);
+    decUnits(2);
+    decUnits(3);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(5));
+    expect(result).toBe(4);
   });
 });

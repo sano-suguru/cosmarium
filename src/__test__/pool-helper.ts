@@ -1,6 +1,7 @@
 import { _resetBattleTracker } from '../battle-tracker.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { _resetMeleeTracker } from '../melee-tracker.ts';
 import {
   advanceParticleHWM,
   advanceProjectileHWM,
@@ -22,7 +23,7 @@ import { resetChains } from '../simulation/effects.ts';
 import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
-import type { UnitIndex } from '../types.ts';
+import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose.ts';
 import { _resetGameControl } from '../ui/game-control.ts';
@@ -120,6 +121,7 @@ export function resetPools() {
   _resetSweepHits();
   _resetKillUnitHooks();
   _resetBattleTracker();
+  _resetMeleeTracker();
   _resetFleetCompose();
   _resetGameControl();
 }
@@ -192,6 +194,7 @@ export function makeGameLoopState(updateCodexDemo: (dt: number) => void = () => 
       state.reinforcementTimer = v;
     },
     battlePhase: 'spectate',
+    activeTeamCount: 2,
     updateCodexDemo,
   };
 }
@@ -210,6 +213,6 @@ export function makeRng() {
 }
 
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
-export function spawnAt(team: 0 | 1, type: number, x: number, y: number): UnitIndex {
+export function spawnAt(team: Team, type: number, x: number, y: number): UnitIndex {
   return spawnUnit(team, type, x, y, () => 0);
 }

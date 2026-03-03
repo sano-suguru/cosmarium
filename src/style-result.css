@@ -1,0 +1,387 @@
+/* === RESULT SCREEN === */
+#result {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-result);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+#result.open {
+  display: flex;
+  pointer-events: auto;
+  animation: result-fade-in 0.6s ease-out;
+}
+
+@keyframes result-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.result-panel {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0, 20, 40, 0.95), rgba(0, 5, 12, 0.97));
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 2px;
+  padding: 48px 60px 40px;
+  text-align: center;
+  min-width: 360px;
+  max-width: 640px;
+  pointer-events: auto;
+  box-shadow:
+    0 0 30px rgba(0, 255, 255, 0.1),
+    0 0 60px rgba(0, 255, 255, 0.04),
+    0 0 2px rgba(255, 0, 255, 0.15),
+    inset 0 0 80px rgba(0, 255, 255, 0.02),
+    inset 0 1px 0 rgba(0, 255, 255, 0.1);
+  overflow: hidden;
+}
+/* scanline overlay */
+.result-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 255, 0.015) 2px,
+    rgba(0, 255, 255, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+/* inner border frame */
+.result-panel::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(0, 255, 255, 0.08);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.result-title {
+  position: relative;
+  z-index: 2;
+  font-family: "Orbitron", sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 20px;
+}
+.result-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.2), transparent);
+}
+.result-title.victory {
+  color: #0ff;
+  text-shadow:
+    0 0 20px #0ff,
+    0 0 50px rgba(0, 255, 255, 0.5),
+    0 0 80px rgba(0, 255, 255, 0.2);
+  animation: title-pulse 3s ease-in-out infinite;
+}
+.result-title.defeat {
+  color: #f0f;
+  text-shadow:
+    0 0 20px #f0f,
+    0 0 50px rgba(255, 0, 255, 0.5),
+    0 0 80px rgba(255, 0, 255, 0.2);
+  animation: title-pulse-mag 3s ease-in-out infinite;
+}
+
+@keyframes title-pulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 20px #0ff,
+      0 0 50px rgba(0, 255, 255, 0.5),
+      0 0 80px rgba(0, 255, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 30px #0ff,
+      0 0 70px rgba(0, 255, 255, 0.6),
+      0 0 120px rgba(0, 255, 255, 0.3),
+      0 0 160px rgba(255, 0, 255, 0.08);
+  }
+}
+@keyframes title-pulse-mag {
+  0%,
+  100% {
+    text-shadow:
+      0 0 20px #f0f,
+      0 0 50px rgba(255, 0, 255, 0.5),
+      0 0 80px rgba(255, 0, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 30px #f0f,
+      0 0 70px rgba(255, 0, 255, 0.6),
+      0 0 120px rgba(255, 0, 255, 0.3),
+      0 0 160px rgba(0, 255, 255, 0.08);
+  }
+}
+
+.result-stats {
+  position: relative;
+  z-index: 2;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #aaa;
+  line-height: 2;
+  margin-bottom: 28px;
+}
+.result-stats .label {
+  color: rgba(0, 255, 255, 0.5);
+}
+
+.result-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.result-actions .mbtn {
+  min-width: 160px;
+  padding: 12px 30px;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+}
+
+/* === MELEE RESULT === */
+.melee-info {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #9aa;
+  margin-bottom: 20px;
+}
+.melee-info .label {
+  color: #0ff;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+}
+
+.melee-section-header {
+  position: relative;
+  font-family: "Orbitron", sans-serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: #0ff;
+  text-align: left;
+  padding-bottom: 8px;
+  margin: 20px 0 10px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+.melee-section-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.15), transparent);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.2);
+}
+
+.melee-score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #ccc;
+  padding: 8px 10px;
+  border-radius: 2px;
+  margin: 2px 0;
+  opacity: 0;
+  animation: melee-row-in 0.4s ease-out forwards;
+}
+/* winner row — team color glow (background set via inline style) */
+.melee-score-row.melee-rank-1 {
+  border-left: 2px solid currentColor;
+}
+
+.melee-rank {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  min-width: 28px;
+  text-align: right;
+  color: rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.2);
+}
+.melee-rank-1 .melee-rank {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  font-weight: 700;
+}
+.melee-rank-2 .melee-rank {
+  color: #c0c0c0;
+  text-shadow: 0 0 6px rgba(192, 192, 192, 0.4);
+}
+.melee-rank-3 .melee-rank {
+  color: #cd7f32;
+  text-shadow: 0 0 6px rgba(205, 127, 50, 0.4);
+}
+
+.melee-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.melee-rank-1 .melee-dot {
+  width: 12px;
+  height: 12px;
+}
+
+.melee-team-name {
+  color: #cde;
+  min-width: 72px;
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.melee-rank-1 .melee-team-name {
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.melee-kills-wrap {
+  position: relative;
+  min-width: 100px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.melee-kills-bar {
+  height: 3px;
+  border-radius: 1px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.melee-rank-1 .melee-kills-bar {
+  opacity: 0.9;
+  height: 4px;
+  box-shadow: 0 0 6px currentColor;
+}
+.melee-kills {
+  color: #aab;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.melee-rank-1 .melee-kills {
+  color: #dde;
+}
+
+.melee-status {
+  color: rgba(0, 255, 255, 0.4);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.15);
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.melee-status.eliminated {
+  color: rgba(255, 0, 255, 0.5);
+  text-shadow: 0 0 4px rgba(255, 0, 255, 0.2);
+}
+.melee-rank-1 .melee-status {
+  color: rgba(0, 255, 255, 0.7);
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+}
+
+.melee-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 12px;
+  color: #aaa;
+  padding: 4px 10px;
+  border-left: 1px solid rgba(0, 255, 255, 0.12);
+  margin-left: 18px;
+  opacity: 0;
+  animation: melee-row-in 0.4s ease-out forwards;
+}
+.melee-timeline-time {
+  color: #0ff;
+  min-width: 40px;
+  text-align: right;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+.melee-timeline-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes melee-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* モバイル: result 調整 */
+@media (pointer: coarse), (max-width: 768px) {
+  .result-panel {
+    padding: 28px 16px 24px;
+    min-width: 280px;
+    max-width: calc(100vw - 32px);
+  }
+  .result-title {
+    font-size: 24px;
+    letter-spacing: 4px;
+  }
+  .result-actions {
+    flex-direction: column;
+  }
+  .melee-info {
+    gap: 16px;
+    font-size: 12px;
+  }
+  .melee-score-row {
+    font-size: 12px;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .melee-team-name {
+    min-width: 60px;
+  }
+  .melee-kills-wrap {
+    min-width: 72px;
+  }
+  .melee-kills {
+    font-size: 11px;
+  }
+  .melee-timeline-row {
+    margin-left: 10px;
+    font-size: 11px;
+  }
+}

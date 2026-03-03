@@ -4,7 +4,12 @@ import { POOL_UNITS } from '../constants.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
+import type { ReinforcementState } from './reinforcements.ts';
 import { REINFORCE_INTERVAL, REINFORCE_UNIT_CAP, REINFORCEMENT_TABLE, reinforce } from './reinforcements.ts';
+
+function makeRS(timer = 0): ReinforcementState {
+  return { reinforcementTimer: timer };
+}
 
 afterEach(() => {
   resetPools();
@@ -14,42 +19,42 @@ afterEach(() => {
 
 describe('reinforce', () => {
   it(`reinforcementTimer < ${REINFORCE_INTERVAL} → スポーンなし（タイマー蓄積のみ）`, () => {
-    state.reinforcementTimer = 0;
-    reinforce(1.0, rng, state);
-    expect(state.reinforcementTimer).toBe(1.0);
+    const rs = makeRS(0);
+    reinforce(1.0, rng, rs);
+    expect(rs.reinforcementTimer).toBe(1.0);
     expect(poolCounts.units).toBe(0);
   });
 
   it(`dt累積で${REINFORCE_INTERVAL}sに到達 → スポーン発動`, () => {
-    state.reinforcementTimer = 0;
+    const rs = makeRS(0);
     state.rng = () => 0.99;
-    reinforce(1.0, rng, state);
+    reinforce(1.0, rng, rs);
     expect(poolCounts.units).toBe(0);
-    reinforce(1.0, rng, state);
+    reinforce(1.0, rng, rs);
     expect(poolCounts.units).toBe(0);
-    reinforce(1.0, rng, state);
+    reinforce(1.0, rng, rs);
     expect(poolCounts.units).toBeGreaterThan(0);
   });
 
   it(`reinforcementTimer >= ${REINFORCE_INTERVAL} → タイマーリセット + スポーン実行`, () => {
-    state.reinforcementTimer = REINFORCE_INTERVAL - 0.5;
+    const rs = makeRS(REINFORCE_INTERVAL - 0.5);
     state.rng = () => 0.99;
-    reinforce(0.6, rng, state);
-    expect(state.reinforcementTimer).toBe(0);
+    reinforce(0.6, rng, rs);
+    expect(rs.reinforcementTimer).toBe(0);
     expect(poolCounts.units).toBeGreaterThan(0);
   });
 
   it('最低 Drone×8 + Fighter×2 が両チームにスポーン (r=0.99)', () => {
-    state.reinforcementTimer = REINFORCE_INTERVAL;
+    const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
-    reinforce(0.1, rng, state);
+    reinforce(0.1, rng, rs);
     expect(poolCounts.units).toBe(22);
   });
 
   it('r < 0.1 かつ cnt < 50 で Flagship がスポーンする', () => {
-    state.reinforcementTimer = REINFORCE_INTERVAL;
+    const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.05;
-    reinforce(0.1, rng, state);
+    reinforce(0.1, rng, rs);
     expect(poolCounts.units).toBe(28);
     let hasFlagship = false;
     for (let i = 0; i < POOL_UNITS; i++) {
@@ -62,17 +67,17 @@ describe('reinforce', () => {
   });
 
   it(`閾値${REINFORCE_UNIT_CAP}体以上でスポーンなし`, () => {
-    state.reinforcementTimer = REINFORCE_INTERVAL;
+    const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
     for (let i = 0; i < REINFORCE_UNIT_CAP; i++) spawnAt(0, 0, i * 20, 0);
-    reinforce(0.1, rng, state);
+    reinforce(0.1, rng, rs);
     expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 11);
   });
 
   it('両チーム (0, 1) にそれぞれスポーンされる', () => {
-    state.reinforcementTimer = REINFORCE_INTERVAL;
+    const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
-    reinforce(0.1, rng, state);
+    reinforce(0.1, rng, rs);
     let team0 = 0;
     let team1 = 0;
     for (let i = 0; i < POOL_UNITS; i++) {

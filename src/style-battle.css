@@ -223,73 +223,7 @@
   border-color: #0ff;
 }
 
-/* === RESULT SCREEN === */
-#result {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-result);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-#result.open {
-  display: flex;
-  pointer-events: auto;
-}
-
-.result-panel {
-  background: rgba(0, 5, 15, 0.92);
-  border: 1px solid rgba(0, 255, 255, 0.15);
-  border-radius: 6px;
-  padding: 40px 60px;
-  text-align: center;
-  min-width: 320px;
-  pointer-events: auto;
-}
-
-.result-title {
-  font-family: "Orbitron", sans-serif;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 8px;
-  margin-bottom: 24px;
-}
-.result-title.victory {
-  color: #0ff;
-  text-shadow:
-    0 0 20px #0ff,
-    0 0 40px rgba(0, 255, 255, 0.4);
-}
-.result-title.defeat {
-  color: #f0f;
-  text-shadow:
-    0 0 20px #f0f,
-    0 0 40px rgba(255, 0, 255, 0.4);
-}
-
-.result-stats {
-  font-family: "Share Tech Mono", monospace;
-  font-size: 13px;
-  color: #aaa;
-  line-height: 2;
-  margin-bottom: 28px;
-}
-.result-stats .label {
-  color: #666;
-}
-
-.result-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-.result-actions .mbtn {
-  min-width: 160px;
-  padding: 12px 30px;
-}
-
-/* モバイル: compose/result 調整 */
+/* モバイル: compose 調整 */
 @media (pointer: coarse), (max-width: 768px) {
   #compose {
     padding: 16px 12px;
@@ -311,16 +245,5 @@
     min-height: 44px;
     top: calc(12px + env(safe-area-inset-top, 0px));
     right: calc(12px + env(safe-area-inset-right, 0px));
-  }
-  .result-panel {
-    padding: 24px 20px;
-    min-width: 280px;
-  }
-  .result-title {
-    font-size: 28px;
-    letter-spacing: 5px;
-  }
-  .result-actions {
-    flex-direction: column;
   }
 }
