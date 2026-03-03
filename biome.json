@@ -28,14 +28,15 @@
     "rules": {
       "recommended": true,
       "style": {
-        "useConst": "error",
-        "noNonNullAssertion": "error",
-        "useTemplate": "error",
         "noNestedTernary": "error",
+        "noNonNullAssertion": "error",
         "noParameterAssign": "error",
-        "useNumberNamespace": "error",
+        "noYodaExpression": "error",
+        "useBlockStatements": "error",
         "useCollapsedElseIf": "error",
-        "noYodaExpression": "error"
+        "useConst": "error",
+        "useNumberNamespace": "error",
+        "useTemplate": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
