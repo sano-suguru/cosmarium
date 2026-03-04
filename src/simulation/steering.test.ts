@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
-import { rng } from '../state.ts';
+import { rng, seedRng } from '../state.ts';
 import type { UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
@@ -18,6 +18,7 @@ import {
   STUN_DRAG_BASE,
   steer,
 } from './steering.ts';
+import { accumulateUnit, beginTeamCenterUpdate, endTeamCenterUpdate } from './team-center.ts';
 
 afterEach(() => {
   resetPools();
@@ -1004,5 +1005,107 @@ describe('steer — Catalyst バフ', () => {
 
     // cooldown は通常値
     expect(u.boostCooldown).toBeCloseTo(boost.cooldown);
+  });
+});
+
+describe('steer — seek（敵重心への誘導）', () => {
+  /** buildHash 後にチーム重心を上書きするヘルパー。敵ユニットを実際に配置せず seek パスを隔離する */
+  function overrideCenters(u: { x: number; y: number }, enemyCenters: { x: number; y: number }[]) {
+    beginTeamCenterUpdate();
+    accumulateUnit(0, u.x, u.y);
+    for (let i = 0; i < enemyCenters.length; i++) {
+      const ec = enemyCenters[i];
+      if (ec === undefined) {
+        continue;
+      }
+      accumulateUnit(i + 1, ec.x, ec.y);
+    }
+    endTeamCenterUpdate(1 + enemyCenters.length);
+  }
+
+  it('敵チームの重心方向へ移動する', () => {
+    const idx = spawnAt(0, 0, 0, 0);
+    const u = unit(idx);
+    u.target = NO_UNIT;
+
+    for (let i = 0; i < 100; i++) {
+      buildHash();
+      overrideCenters(u, [{ x: 1000, y: 0 }]);
+      steer(u, 0.016, rng);
+    }
+
+    // seek により x 正方向（敵重心方向）へ移動
+    expect(u.x).toBeGreaterThan(50);
+  });
+
+  it('敵チームが存在しない場合はワンダーのみ — seek バイアスなし', () => {
+    // Scenario A: フェイク敵重心を +y 方向に設定 → seek で +y 方向へバイアス
+    // （wanderAngle 初期値=0 → ワンダーは +x 方向なので、+y に seek を置くことで弁別）
+    seedRng(42);
+    const idxA = spawnAt(0, 0, 0, 0);
+    const uA = unit(idxA);
+    uA.target = NO_UNIT;
+
+    for (let i = 0; i < 100; i++) {
+      buildHash();
+      overrideCenters(uA, [{ x: 0, y: 1000 }]);
+      steer(uA, 0.016, rng);
+    }
+    const yWithSeek = uA.y;
+    resetPools();
+    resetState();
+
+    // Scenario B: 敵重心なし → seek なし、ワンダーのみ
+    seedRng(42);
+    const idxB = spawnAt(0, 0, 0, 0);
+    const uB = unit(idxB);
+    uB.target = NO_UNIT;
+
+    for (let i = 0; i < 100; i++) {
+      buildHash();
+      steer(uB, 0.016, rng);
+    }
+    const yWithoutSeek = uB.y;
+
+    // 同一 RNG 列で seek の有無だけが異なる → seek ありのとき +y 方向へ大きく移動
+    expect(yWithSeek).toBeGreaterThan(yWithoutSeek + 30);
+  });
+
+  it('複数敵チームがいる場合は最寄りの重心に向かう', () => {
+    const idx = spawnAt(0, 0, 0, 0);
+    const u = unit(idx);
+    u.target = NO_UNIT;
+
+    for (let i = 0; i < 100; i++) {
+      buildHash();
+      // チーム1: 遠い (+2000)、チーム2: 近い (+500)
+      overrideCenters(u, [
+        { x: 2000, y: 0 },
+        { x: 500, y: 0 },
+      ]);
+      steer(u, 0.016, rng);
+    }
+
+    // 近い方（チーム 2、+500 方向）へ移動
+    expect(u.x).toBeGreaterThan(30);
+  });
+
+  it('敵重心に十分近い場合はワンダーにフォールバック', () => {
+    const idx = spawnAt(0, 0, 0.5, 0.5);
+    const u = unit(idx);
+    u.target = NO_UNIT;
+
+    for (let i = 0; i < 50; i++) {
+      buildHash();
+      // 敵重心をユニットとほぼ同一座標に設定（距離² < SEEK_MIN_DIST_SQ = 1）
+      overrideCenters(u, [{ x: 0.5, y: 0.5 }]);
+      steer(u, 0.016, rng);
+    }
+
+    // ゼロ除算なく正常動作
+    const speed = Math.sqrt(u.vx ** 2 + u.vy ** 2);
+    expect(speed).toBeGreaterThan(0);
+    expect(Number.isNaN(u.x)).toBe(false);
+    expect(Number.isNaN(u.y)).toBe(false);
   });
 });

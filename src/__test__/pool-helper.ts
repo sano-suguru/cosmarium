@@ -21,6 +21,7 @@ import {
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { resetChains } from '../simulation/effects.ts';
 import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
+import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { Team, UnitIndex } from '../types.ts';
@@ -125,6 +126,7 @@ export function resetPools() {
   _resetMeleeTracker();
   _resetFleetCompose();
   _resetGameControl();
+  resetTeamCenters();
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */

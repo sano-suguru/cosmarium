@@ -1,5 +1,7 @@
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
+import { MAX_TEAMS } from '../types.ts';
+import { accumulateUnit, beginTeamCenterUpdate, endTeamCenterUpdate } from './team-center.ts';
 
 const CELL_SIZE = 100;
 export const NEIGHBOR_BUFFER_SIZE = 800;
@@ -19,7 +21,7 @@ export function getNeighborAt(i: number): UnitIndex {
 const _pooled: UnitIndex[][] = [];
 const _used: UnitIndex[][] = [];
 
-export function buildHash() {
+export function buildHash(activeTeamCount: number = MAX_TEAMS) {
   for (let i = 0; i < _used.length; i++) {
     const arr = _used[i];
     if (arr === undefined) {
@@ -30,6 +32,7 @@ export function buildHash() {
   }
   _used.length = 0;
   hashMap.clear();
+  beginTeamCenterUpdate();
   const hwm = getUnitHWM();
   for (let i = 0, rem = poolCounts.units; i < hwm && rem > 0; i++) {
     const u = unit(i);
@@ -46,7 +49,9 @@ export function buildHash() {
       _used.push(a);
     }
     a.push(i as UnitIndex);
+    accumulateUnit(u.team, u.x, u.y);
   }
+  endTeamCenterUpdate(activeTeamCount);
 }
 
 function collectCellNeighbors(key: number, count: number): number {

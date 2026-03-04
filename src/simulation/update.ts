@@ -179,7 +179,7 @@ function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
 
 export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState): Team | 'draw' | null {
   const co = gameState.codexOpen;
-  buildHash();
+  buildHash(gameState.activeTeamCount);
   updateSwarmN();
   resetReflected();
 

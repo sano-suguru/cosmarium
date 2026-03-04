@@ -4,6 +4,7 @@ import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
+import { nearestEnemyCenter } from './team-center.ts';
 
 interface SteerForce {
   x: number;
@@ -31,6 +32,17 @@ const COHESION_WEIGHT = 0.01;
 
 const COHESION_RANGE = 150;
 const ALIGNMENT_RANGE = 120;
+
+/** seek 重みが SEEK_MAX_WEIGHT に飽和する距離 */
+const SEEK_FULL_WEIGHT_DIST = WORLD_SIZE / 12;
+/** seek 重みの上限 */
+const SEEK_MAX_WEIGHT = 1.0;
+/** wander 重み（seek : wander = SEEK_MAX_WEIGHT : WANDER_WEIGHT で比率が決まる） */
+const WANDER_WEIGHT = 0.25;
+/** seek 処理をスキップする距離²の下限（重心に十分近い場合ゼロ除算回避兼 seek 不要） */
+const SEEK_MIN_DIST_SQ = 1;
+/** ターゲットなし時の純粋ワンダー速度倍率 */
+const WANDER_ONLY_SCALE = 0.5;
 
 const GLOBAL_TARGET_PROB = 0.012;
 const NEIGHBOR_RANGE = 200;
@@ -220,8 +232,28 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
     return _engageForce;
   }
   u.wanderAngle += (rng() - 0.5) * 2 * dt;
-  _engageForce.x = Math.cos(u.wanderAngle) * t.speed * 0.5;
-  _engageForce.y = Math.sin(u.wanderAngle) * t.speed * 0.5;
+  const ec = nearestEnemyCenter(u.team, u.x, u.y);
+  if (ec) {
+    const dx = ec.x - u.x;
+    const dy = ec.y - u.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > SEEK_MIN_DIST_SQ) {
+      const dist = Math.sqrt(d2);
+      const seekW = Math.min(dist / SEEK_FULL_WEIGHT_DIST, SEEK_MAX_WEIGHT);
+      const sx = (dx / dist) * seekW;
+      const sy = (dy / dist) * seekW;
+      const wx = Math.cos(u.wanderAngle) * WANDER_WEIGHT;
+      const wy = Math.sin(u.wanderAngle) * WANDER_WEIGHT;
+      const fx = sx + wx;
+      const fy = sy + wy;
+      const fLen = Math.sqrt(fx * fx + fy * fy) || 1;
+      _engageForce.x = (fx / fLen) * t.speed;
+      _engageForce.y = (fy / fLen) * t.speed;
+      return _engageForce;
+    }
+  }
+  _engageForce.x = Math.cos(u.wanderAngle) * t.speed * WANDER_ONLY_SCALE;
+  _engageForce.y = Math.sin(u.wanderAngle) * t.speed * WANDER_ONLY_SCALE;
   return _engageForce;
 }
 
