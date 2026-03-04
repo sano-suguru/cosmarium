@@ -135,8 +135,8 @@ export interface UnitType {
   amplifies: boolean;
   scrambles: boolean;
   catalyzes: boolean;
-  /** 味方追従行動を取る支援タイプか */
-  supportFollow: boolean;
+  /** 味方追従の強度（0=なし, 0.4=弱い防御型, 1=フルサポート） */
+  supportFollow: number;
   maxEnergy: number;
   energyRegen: number;
   shieldCooldown: number;

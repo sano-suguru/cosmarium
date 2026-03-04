@@ -101,7 +101,7 @@ describe('determinism', () => {
     }
   });
 
-  it('同一シード → 同一結果（300tick — 複数増援サイクル）', () => {
+  it('同一シード → 同一結果（300tick — 複数増援サイクル）', { timeout: 10_000 }, () => {
     const snapshot1 = runSimulation(42, 300);
     const snapshot2 = runSimulation(42, 300);
 

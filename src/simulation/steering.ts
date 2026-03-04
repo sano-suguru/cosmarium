@@ -63,7 +63,7 @@ const RETREAT_SPEED_SCALE = 2.5;
 export const BOUNDARY_MARGIN = 0.8;
 const BOUNDARY_FORCE = 120;
 
-const HEALER_FOLLOW_WEIGHT = 0.05;
+const HEALER_FOLLOW_WEIGHT = 0.15;
 
 const VET_TARGET_WEIGHT = 0.3;
 
@@ -437,7 +437,7 @@ export function computeEffectiveRange(u: Unit, baseRange: number): number {
 }
 
 function isSupportType(t: UnitType): boolean {
-  return t.supportFollow === true;
+  return t.supportFollow > 0;
 }
 
 /** boids 計算 + ターゲット解決を一括で行う。_boidsForce に boids 力を書き込み、ターゲットを返す */
@@ -499,7 +499,8 @@ export function steer(u: Unit, dt: number, rng: () => number) {
     t.retreatHpRatio !== undefined && hpRatio < t.retreatHpRatio ? 1 - hpRatio / t.retreatHpRatio : 0;
 
   const engage = computeEngagementForce(u, res.target, t, dt, rng);
-  const engageAtten = 1 - retreatUrgency;
+  const supportScale = 1 - t.supportFollow * 0.6;
+  const engageAtten = (1 - retreatUrgency) * supportScale;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
 
@@ -509,8 +510,8 @@ export function steer(u: Unit, dt: number, rng: () => number) {
 
   if (isSupportType(t)) {
     const heal = computeHealerFollow(u, nn);
-    fx += heal.x;
-    fy += heal.y;
+    fx += heal.x * t.supportFollow;
+    fy += heal.y * t.supportFollow;
   }
 
   const m = WORLD_SIZE * BOUNDARY_MARGIN;
