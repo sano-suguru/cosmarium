@@ -16,6 +16,7 @@ All commands use **Bun** as the package manager.
 # Development
 bun install                      # Install dependencies
 bun run dev                      # Dev server at http://localhost:5173
+bun run dev:worker               # Cloudflare Workers dev server (wrangler)
 
 # Code quality checks
 bun run typecheck                # TypeScript strict mode check
@@ -26,9 +27,11 @@ bun run format:check             # Biome format check (read-only)
 
 # Build & testing
 bun run build                    # Production build
+bun run deploy                   # Build + wrangler deploy
 bun run test                     # Vitest watch mode
 bun run test:run                 # Vitest single run (all tests)
 bunx vitest run src/path/to.test.ts  # Single test file
+bun run bench                    # Vitest benchmark
 
 # Code quality
 bun run knip                     # Unused export detection
@@ -40,7 +43,7 @@ bun run check:deps               # Dependency rule validation (dependency-cruise
 bun run check                    # Runs all checks: typecheck + biome + knip + cpd + similarity + test + check:deps
 ```
 
-**Pre-commit hook** automatically runs: `biome check --staged --write`
+**Pre-commit hook** automatically runs: `bunx biome check --staged --no-errors-on-unmatched --write && git update-index --again`
 
 ## Project Structure
 
@@ -53,7 +56,7 @@ src/
 ├── pools.ts              # Object pools: units, particles, projectiles + poolCounts
 ├── beams.ts              # beam/trackingBeam dynamic arrays
 ├── colors.ts             # Team colors, trail color tables
-├── unit-types.ts         # 15 unit type definitions with properties
+├── unit-types.ts         # 19 unit type definitions with properties
 ├── fleet-cost.ts         # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
 ├── battle-tracker.ts     # Battle mode elapsed/win/result aggregation
 ├── melee-tracker.ts      # Melee mode (N-team) elapsed/win/result aggregation
@@ -92,7 +95,10 @@ frame() → dt clamp(0.05) → camera update + decay
 - **GameLoopState** (`simulation/update.ts`): Holds `battlePhase: BattlePhase` and `activeTeamCount`. Passed into `stepOnce()` each frame; not in `state.ts`.
 - **BattlePhase**: `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`. Controls which trackers and reinforce logic run.
 - **poolCounts**: Readonly export. Update ONLY via spawn/kill functions (`killUnit`, `killParticle`, `killProjectile`). Direct mutation causes type errors.
-- **rng()**: Seeded PRNG (mulberry32) in state.ts closure. Simulation receives as argument (dependency rule).
+- **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` via pools.ts. Centralizes `noUncheckedIndexedAccess` undefined checks.
+- **spawn/kill**: Unit/Projectile scan from pool start for first dead slot. Particle uses LIFO free stack (Uint16Array) for fast allocation. All kill functions have double-kill guard.
+- **Adding new object types**: Add pool array + counter to `pools.ts`, add limit constant to `constants.ts`.
+- **rng()**: Seeded PRNG (mulberry32) in state.ts closure. `seedRng(seed)` for testing. Simulation receives as argument (dependency rule). Camera shake uses `Math.random()` (not seeded).
 - **codexOpen**: Flag that affects 4 layers: simulation (skip steer/combat for non-demo units), renderer (lock camera), input (disable controls), main (hide HUD).
 
 ## Dependency Rules (dependency-cruiser)
@@ -101,7 +107,6 @@ Enforced in `.dependency-cruiser.cjs`. Violations cause errors via `bun run chec
 - `simulation/` → `state.ts` forbidden — inject rng/state as arguments
 - `simulation/` → `ui/` forbidden — inject callbacks to invert dependency
 - `worker/` → `src/` forbidden — worker is server-side only
-- `codex.ts` → `game-control.ts` forbidden — circular dependency
 
 ## Core Modules & Change Impact
 
@@ -132,23 +137,21 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 
 ## Key Conventions
 
-### Strict TypeScript
+### Strict TypeScript (Config in `tsconfig.json`)
 - `verbatimModuleSyntax`: Type imports **must** use `import type { X }`
 - `noUncheckedIndexedAccess`: Array index access returns `T | undefined` → check or use falsy coalesce
 - `exactOptionalPropertyTypes`: Cannot assign `undefined` to optional properties → use `prop?: T | undefined` in types
-- `noNonNullAssertion`: Forbidden (`!` operator). Use conditional checks instead.
-- `noExplicitAny`: `any` forbidden. Use proper types or `unknown` + type guard.
 - `noImplicitReturns`: All code paths must return a value.
 
 ### Biome Linting (Config in `biome.json`)
+- **noNonNullAssertion**: `!` operator forbidden. Use conditional checks.
+- **noExplicitAny**: `any` forbidden. Use `unknown` + type guard.
 - **noConsole**: Only `console.error`/`console.warn` allowed (test files exempt)
 - **noForEach**: Use `for...of` loops instead
 - **noBarrelFile**: No index.ts barrel exports
 - **noExcessiveCognitiveComplexity**: Max complexity 15
 - **noExcessiveLinesPerFile**: Max 600 lines (test files exempt)
-- **Line width**: 120 characters
-- **Quotes**: Single quotes, always semicolons
-- **Shaders excluded**: `src/shaders/**` not linted/formatted (GLSL rules differ)
+- `src/shaders/**` excluded from lint/format (GLSL)
 
 ### Import Rules
 - **Always**: Relative paths with explicit `.ts` extension. No path aliases, no barrel exports.
@@ -161,13 +164,6 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 
 ### No Defensive Fallbacks
 No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. Resolve defaults at definition time; make types required. DOM elements: use `getElement()` (throws on missing), treat as non-null thereafter.
-
-### State & Pool Conventions
-- **state.ts**: Single export object. Mutate via property assignment.
-- **poolCounts**: Readonly export. External direct mutation causes type errors. Always use `killUnit`/`killParticle`/`killProjectile` etc.
-- **spawn/kill**: Unit/Projectile scan from pool start for first dead slot. Particle uses LIFO free stack (Uint16Array) for fast allocation. All kill functions have double-kill guard.
-- **Adding new object types**: Add pool array + counter to `pools.ts`, add limit constant to `constants.ts`.
-- **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` via pools.ts aggregate functions. Centralizes `noUncheckedIndexedAccess` undefined checks.
 
 ## Testing
 
@@ -182,13 +178,6 @@ No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. R
 - **Pattern**: Always `afterEach(() => { resetPools(); resetState(); vi.restoreAllMocks(); })`
 - **UI/Camera mocks**: Use `vi.mock()` to stub UI/camera dependencies in simulation tests
 - **RNG determinism**: Use `seedRng(12345)` to ensure reproducible behavior
-
-## PRNG
-
-- `rng()` in state.ts: Deterministic (mulberry32-based)
-- `seedRng(seed)`: Set seed for reproducible behavior (testing)
-- Simulation receives `rng` as function argument
-- Camera shake in main.ts uses `Math.random()` (not seeded)
 
 ## Game Modes
 
