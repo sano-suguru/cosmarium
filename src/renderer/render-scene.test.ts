@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, reviveParticle, reviveProjectile, spawnAt } from '../__test__/pool-helper.ts';
-import { beams } from '../beams.ts';
-import { SH_BEAM, SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_OCT_SHIELD, SH_REFLECT_FIELD } from '../constants.ts';
+import { beams, trackingBeams } from '../beams.ts';
+import {
+  SH_BEAM,
+  SH_CIRCLE,
+  SH_DIAMOND,
+  SH_EXPLOSION_RING,
+  SH_OCT_SHIELD,
+  SH_REFLECT_FIELD,
+  WORLD_SIZE,
+} from '../constants.ts';
 import { resetInterp, setInterpAlpha } from '../interpolation.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
 
@@ -22,6 +30,11 @@ vi.mock('../ui/dev-overlay.ts', () => ({
 import { MAX_INSTANCES } from './buffers.ts';
 import { renderScene } from './render-scene.ts';
 
+/** カリング無効（全ワールド可視）で renderScene を呼ぶテストヘルパー */
+function renderSceneAll(now: number) {
+  return renderScene(now, 0, 0, 1, WORLD_SIZE * 4, WORLD_SIZE * 4);
+}
+
 it('mock の MAX_INSTANCES が実値と一致する', () => {
   expect(MAX_INSTANCES).toBe(100_000);
 });
@@ -38,6 +51,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   mockWriteSlots.mockClear();
   beams.length = 0;
+  trackingBeams.length = 0;
 });
 
 function getWriteCalls() {
@@ -61,7 +75,7 @@ describe('writeOverlay', () => {
     u.shieldLingerTimer = 1.0;
     u.angle = 1.5;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const shieldCall = calls.find((c) => c.shape === SH_OCT_SHIELD);
@@ -75,7 +89,7 @@ describe('writeOverlay', () => {
     const u = unit(idx);
     u.shieldLingerTimer = 0;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const shieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
@@ -90,7 +104,7 @@ describe('writeOverlay', () => {
     u.shieldCooldown = 3;
     u.energy = 0;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const shieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
@@ -106,7 +120,7 @@ describe('writeOverlay', () => {
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const shieldCalls = calls.filter((c) => c.shape === SH_OCT_SHIELD);
@@ -119,7 +133,7 @@ describe('writeOverlay', () => {
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
-    renderScene(2);
+    renderSceneAll(2);
 
     const calls = getWriteCalls();
     const shieldCall = calls.find((c) => c.shape === SH_OCT_SHIELD);
@@ -134,7 +148,7 @@ describe('writeOverlay', () => {
     u.kills = 3;
     u.angle = 2.0;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const vetOverlay = calls.find((c) => c.shape === SH_EXPLOSION_RING && c.angle === 0);
@@ -147,7 +161,7 @@ describe('writeOverlay', () => {
     u.swarmN = 3;
     u.angle = 0.8;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const swarmOverlay = calls.find((c) => c.shape === SH_EXPLOSION_RING && c.a > 0.06);
@@ -171,7 +185,7 @@ describe('writeParticle', () => {
     p.shape = SH_CIRCLE;
     setParticleCount(1);
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const particleCall = calls.find((c) => c.shape === SH_CIRCLE);
@@ -195,7 +209,7 @@ describe('writeParticle', () => {
     p.shape = SH_EXPLOSION_RING;
     setParticleCount(1);
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const particleCall = calls.find((c) => c.shape === SH_EXPLOSION_RING);
@@ -222,7 +236,7 @@ describe('writeBeamSegment', () => {
       lightning: false,
     });
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
@@ -249,7 +263,7 @@ describe('writeBeamSegment', () => {
       lightning: false,
     });
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
@@ -275,7 +289,7 @@ describe('writeBeamSegment', () => {
       lightning: false,
     });
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
@@ -302,7 +316,7 @@ describe('writeBeamSegment', () => {
       lightning: false,
     });
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const beamCalls = calls.filter((c) => c.shape === SH_BEAM);
@@ -323,7 +337,7 @@ describe('writeInstance（直接使用）', () => {
     const u = unit(0);
     u.angle = 1.23;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const unitCall = calls.find((c) => c.shape === 1 && Math.abs(c.angle - 1.23) < 0.01);
@@ -345,7 +359,7 @@ describe('writeInstance（直接使用）', () => {
     pr.aoe = 0;
     setProjectileCount(1);
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const calls = getWriteCalls();
     const expectedAngle = Math.atan2(1, 1);
@@ -356,7 +370,7 @@ describe('writeInstance（直接使用）', () => {
   it('vet=1 のユニット本体は金色方向にティント適用される', () => {
     // vet=0 の基本色を取得
     spawnAt(0, 0, 100, 100);
-    renderScene(0);
+    renderSceneAll(0);
     const baseCalls = getWriteCalls();
     const baseCall = baseCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
     expect(baseCall).toBeDefined();
@@ -369,7 +383,7 @@ describe('writeInstance（直接使用）', () => {
     u.vet = 1;
     u.kills = 3;
 
-    renderScene(0);
+    renderSceneAll(0);
 
     const vetCalls = getWriteCalls();
     const vetCall = vetCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
@@ -386,7 +400,7 @@ describe('Reflector 味方フィールド描画', () => {
     const ally = spawnAt(0, 1, 100, 100); // Fighter (reflects なし)
     const u = unit(ally);
     u.reflectFieldHp = 15;
-    renderScene(0);
+    renderSceneAll(0);
     const calls = getWriteCalls();
     const fieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(fieldCall).toBeDefined();
@@ -397,7 +411,7 @@ describe('Reflector 味方フィールド描画', () => {
 
   it('reflectFieldHp = 0 の味方には SH_REFLECT_FIELD が描画されない', () => {
     spawnAt(0, 1, 100, 100);
-    renderScene(0);
+    renderSceneAll(0);
     const calls = getWriteCalls();
     const fieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
     expect(fieldCall).toBeUndefined();
@@ -407,7 +421,7 @@ describe('Reflector 味方フィールド描画', () => {
     const idx = spawnAt(0, 6, 100, 100);
     const u = unit(idx);
     u.reflectFieldHp = 15;
-    renderScene(0);
+    renderSceneAll(0);
     const calls = getWriteCalls();
     // SH_REFLECT_FIELD は1個のみ（自前描画分）
     const fieldCalls = calls.filter((c) => c.shape === SH_REFLECT_FIELD);
@@ -417,7 +431,7 @@ describe('Reflector 味方フィールド描画', () => {
 
 describe('renderScene 描画数', () => {
   it('何もない状態では描画インスタンス数 0', () => {
-    const count = renderScene(0);
+    const count = renderSceneAll(0);
     expect(count).toBe(0);
   });
 
@@ -426,7 +440,225 @@ describe('renderScene 描画数', () => {
     const u = unit(0);
     u.hp = u.maxHp * 0.5;
 
-    const count = renderScene(0);
+    const count = renderSceneAll(0);
     expect(count).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('フラスタムカリング', () => {
+  it('画面外ユニットはスキップされる', () => {
+    // cx=0, cy=0, cz=1, vW=800, vH=600 → halfW=400, halfH=300
+    // Drone(size=4) の unitR = max(30, 4*2.2*2.5) + 10 = 40 → 可視範囲 ±440
+    // ユニットを x=5000 に配置 → 画面外
+    spawnAt(0, 0, 5000, 0);
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面内ユニットは正常に描画される', () => {
+    spawnAt(0, 0, 100, 100);
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('ユニット半径内に画面端がある場合は描画される', () => {
+    // cz=1, vW=800 → halfW=400。Drone(size=4) の unitR=40
+    // x=410 → 410-40=370 < 400 → 可視
+    spawnAt(0, 0, 410, 0);
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('爆発リングパーティクルは視覚サイズで正しくカリングされる', () => {
+    // size=75, SH_EXPLOSION_RING, life≈0 → 視覚サイズ = 75 * (2.2 - 0*1.7) = 165
+    // halfW=400 → x=550 なら 550-165=385 < 400 → 可視
+    reviveParticle(0);
+    const p = particle(0);
+    p.x = 550;
+    p.y = 0;
+    p.size = 75;
+    p.r = 1;
+    p.g = 0.5;
+    p.b = 0.2;
+    p.life = 0.001;
+    p.maxLife = 1;
+    p.shape = SH_EXPLOSION_RING;
+    setParticleCount(1);
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('爆発リングでも完全に画面外なら描画されない', () => {
+    // size=75, SH_EXPLOSION_RING, life≈0 → 視覚サイズ = 165
+    // halfW=400 → x=600 なら 600-165=435 > 400 → 不可視
+    reviveParticle(0);
+    const p = particle(0);
+    p.x = 600;
+    p.y = 0;
+    p.size = 75;
+    p.r = 1;
+    p.g = 0.5;
+    p.b = 0.2;
+    p.life = 0.001;
+    p.maxLife = 1;
+    p.shape = SH_EXPLOSION_RING;
+    setParticleCount(1);
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面外パーティクルはスキップされる', () => {
+    reviveParticle(0);
+    const p = particle(0);
+    p.x = 5000;
+    p.y = 5000;
+    p.size = 5;
+    p.r = 1;
+    p.g = 1;
+    p.b = 1;
+    p.life = 1;
+    p.maxLife = 1;
+    p.shape = SH_CIRCLE;
+    setParticleCount(1);
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面外プロジェクタイルはスキップされる', () => {
+    reviveProjectile(0);
+    const pr = projectile(0);
+    pr.x = 5000;
+    pr.y = 5000;
+    pr.vx = 1;
+    pr.vy = 0;
+    pr.size = 3;
+    pr.r = 1;
+    pr.g = 0;
+    pr.b = 0;
+    pr.homing = false;
+    pr.aoe = 0;
+    setProjectileCount(1);
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面外ビーム（両端とも画面外）はスキップされる', () => {
+    beams.push({
+      x1: 5000,
+      y1: 5000,
+      x2: 6000,
+      y2: 5000,
+      r: 1,
+      g: 1,
+      b: 1,
+      life: 1,
+      maxLife: 1,
+      width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    });
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面を横断するビームは描画される', () => {
+    // ビームの片端が画面内、もう片端が画面外 → AABB交差で描画
+    beams.push({
+      x1: -100,
+      y1: 0,
+      x2: 100,
+      y2: 0,
+      r: 1,
+      g: 1,
+      b: 1,
+      life: 1,
+      maxLife: 1,
+      width: 2,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    });
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('画面外トラッキングビームはスキップされる', () => {
+    const src = spawnAt(0, 0, 5000, 5000);
+    const tgt = spawnAt(1, 0, 6000, 5000);
+    trackingBeams.push({
+      srcUnit: src,
+      tgtUnit: tgt,
+      x1: 5000,
+      y1: 5000,
+      x2: 6000,
+      y2: 5000,
+      r: 1,
+      g: 1,
+      b: 1,
+      life: 1,
+      maxLife: 1,
+      width: 2,
+    });
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('画面外ライトニングビームはスキップされる（幅が LIGHTNING_DEVIATION_FACTOR 倍で判定）', () => {
+    // lightning=true → beamHW = width * LIGHTNING_DEVIATION_FACTOR(4)
+    // width=10 → beamHW=40。x=5000 なので十分画面外
+    beams.push({
+      x1: 5000,
+      y1: 5000,
+      x2: 6000,
+      y2: 5000,
+      r: 1,
+      g: 1,
+      b: 1,
+      life: 1,
+      maxLife: 1,
+      width: 10,
+      tapered: false,
+      stepDiv: 1,
+      lightning: true,
+    });
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
+  });
+
+  it('ユニット本体がカリングされても Catalyst ゴーストは個別に描画される', () => {
+    // Drone(size=4): rs=2.5, unitR = max(30, 4*2.2*2.5)+10 = 40
+    // x=450 → 450-40=410 > 400(halfW) → ユニット本体はカリング
+    // vx=500(右向き) → ゴーストは左に伸びる: gx = 450 - dist
+    // trailLen = max(4*2.0, 500*0.12) = 60, GHOST_COUNT=5
+    // i=5: gx=450-60=390, ghostSize=4*(1-5*0.08)*2.5=6.0 → 390+6=396<400, 390-6=384<400 → 可視
+    const idx = spawnAt(0, 0, 450, 0);
+    const u = unit(idx);
+    u.catalystTimer = 1.0;
+    u.vx = 500;
+    u.vy = 0;
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('ユニットもゴーストも完全に画面外なら描画されない', () => {
+    const idx = spawnAt(0, 0, 600, 0);
+    const u = unit(idx);
+    u.catalystTimer = 1.0;
+    u.vx = 500;
+    u.vy = 0;
+    // gx = 600 - dist → 最遠ゴースト(i=5): 600-60=540, ghostSize=6 → 540-6=534 > 400 → 不可視
+
+    const count = renderScene(0, 0, 0, 1, 800, 600);
+    expect(count).toBe(0);
   });
 });

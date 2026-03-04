@@ -27,7 +27,7 @@ function renderScenePass(sceneFBO: FBO, W: number, H: number, cx: number, cy: nu
   gl.clearColor(0.007, 0.003, 0.013, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  const ic = renderScene(now);
+  const ic = renderScene(now, cx, cy, cz, W, H);
   if (ic > 0) {
     gl.useProgram(mainProgram);
     gl.uniform2f(mainLocations.uR, W, H);
