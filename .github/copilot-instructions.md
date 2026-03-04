@@ -115,11 +115,19 @@ frame() → dt clamp(0.05) → camera update + decay
 - **Dependency constraints** (dependency-cruiser enforced):
   - `simulation/` → `state.ts` forbidden (inject rng/state as arguments)
   - `simulation/` → `ui/` forbidden (inject callbacks to invert dependency)
+  - `worker/` → `src/` forbidden (worker is server-side only)
+  - `codex.ts` → `game-control.ts` forbidden (circular dependency)
 
 ### Functional Style
 - No classes. Game objects are plain typed objects.
 - State mutations via assignment (not methods).
 - Most operations are procedural functions (spawn, kill, update).
+
+### No Defensive Fallbacks
+No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. Resolve defaults at definition time; make types required. DOM elements: use `getElement()` (throws on missing), treat as non-null thereafter.
+
+### File Size Limit
+Max 600 lines per file (`noExcessiveLinesPerFile`). Test files are exempt.
 
 ## CORE FILES (Changes Here Cascade Widely)
 
@@ -152,7 +160,7 @@ For **3+ files spanning multiple modules**, create a plan before implementing.
 | GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
 | Pool mutation | Never directly assign `poolCounts`. Use `killUnit()`, `killParticle()`, `killProjectile()` only. |
 | Data before kill | `killUnit()` returns a snapshot (safe). For particle/projectile, save values to locals **before** calling `kill()` — kill reuses slot immediately. Use `destroyUnit()` for unit kill + explosion combo. |
-| Team helper | Use `enemyTeam()` from types.ts, not `1 - team`. Returns `Team` type, not `number`. In N-team (Melee), enemy check is `o.team !== u.team`. |
+| Team helper | In N-team (Melee), enemy check is `o.team !== u.team`. Never use `1 - team`. |
 | Branded indices | Pool loops need cast: `i as UnitIndex` (also ParticleIndex, ProjectileIndex). |
 
 ## Common Tasks
