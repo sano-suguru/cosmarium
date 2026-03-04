@@ -68,6 +68,12 @@ void main(){
     // 7. Panel grooves (fuselage seams — angular detail)
     float dSeam=sdCapsule(p,vec2(0.20,0.0),vec2(-0.20,0.0),0.003);
     dBody=max(dBody,-dSeam+0.005);
+    // 7b. Diagonal wing panel cuts (±30deg — faceted armor feel)
+    float cs30d=0.866; float sn30d=0.5;
+    vec2 pd1=vec2(p.x*cs30d-p.y*sn30d,p.x*sn30d+p.y*cs30d);
+    dBody=max(dBody,-sdRoundedBox(pd1-vec2(-0.05,0.0),vec2(0.20,0.008),0.003));
+    vec2 pd2=vec2(p.x*cs30d+p.y*sn30d,-p.x*sn30d+p.y*cs30d);
+    dBody=max(dBody,-sdRoundedBox(pd2-vec2(-0.05,0.0),vec2(0.20,0.008),0.003));
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -88,8 +94,19 @@ void main(){
       trail=exp(-dy*28.0)*exp((p.x+0.40)*4.5)*pulse*0.25;
     }
 
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+glow*0.65+scan*0.45+(tipL+tipR)*0.55+trail;
-    a=1.2*tanh(a/1.2); }
+    // Wing root conduit flow
+    float wCL=sdCapsule(p,vec2(0.10,0.0),vec2(-0.12,0.48),0.006);
+    float wCR=sdCapsule(p,vec2(0.10,0.0),vec2(-0.12,-0.48),0.006);
+    float wCFlow=(exp(-abs(wCL)*25.0)+exp(-abs(wCR)*25.0))
+                 *(0.3+0.7*(0.5+0.5*sin(length(pm)*12.0-t*5.0)))*0.25;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+glow*0.65+scan*0.45+(tipL+tipR)*0.55+trail+wCFlow;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.6,0.2),glow*0.40);
+    col=mix(col,vec3(0.5,0.9,1.0),scan*0.35);
+    col=mix(col,vec3(0.9,0.95,1.0),(tipL+tipR)*0.30);
+    col=mix(col,vec3(0.6,0.85,1.0),wCFlow*0.40);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==1){ vec2 p=vU*0.64; float t=vA+uTime;
     // Fighter: X-Wing blueprint — long fuselage, 4 splayed wings, 4 laser cannons, 4 engine pods
     // +X = forward (nose), -X = rear (engines)
@@ -172,7 +189,13 @@ void main(){
     }
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.85+mFlash*0.25+r2Glow*0.45+cockGlow+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    col=mix(col,vec3(1.0,0.95,0.7),mFlash*0.40);
+    col=mix(col,vec3(0.4,0.6,1.0),r2Glow*0.45);
+    col=mix(col,vec3(0.9,0.95,1.0),cockGlow*0.50);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==2){ vec2 p=vU*0.82; float t=vA+uTime;
     // B2 Spirit: Flying wing — sharp swept leading edge, W trailing edge
     // +X forward. Wingspan ~1.4, chord ~0.6
@@ -210,6 +233,12 @@ void main(){
     // 8. Panel line groove (folded to 1 via abs(p.y))
     float dPanel=sdCapsule(pm, vec2(0.22,0.10), vec2(-0.12,0.42), 0.004);
     dBody=max(dBody, -dPanel+0.006);
+    // 8b. Diagonal armor panel cuts (±25deg)
+    float csB=0.906; float snB=0.423;
+    vec2 bp1=vec2(p.x*csB-p.y*snB,p.x*snB+p.y*csB);
+    dBody=max(dBody,-sdRoundedBox(bp1-vec2(0.0,0.0),vec2(0.22,0.008),0.003));
+    vec2 bp2=vec2(p.x*csB+p.y*snB,-p.x*snB+p.y*csB);
+    dBody=max(dBody,-sdRoundedBox(bp2-vec2(0.0,0.0),vec2(0.22,0.008),0.003));
 
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
@@ -228,8 +257,16 @@ void main(){
       trail=exp(-dy*14.0)*exp((p.x+0.22)*2.8)*pulse*0.30;
     }
 
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.75+trail;
-    a=1.2*tanh(a/1.2); }
+    // 11. Bomb bay glow (ventral weapon bay — cycling status)
+    float bayMask=smoothstep(0.06,0.0,sdRoundedBox(p-vec2(-0.04,0.0),vec2(0.14,0.06),0.02))*hf;
+    float bayGlow=bayMask*(0.3+0.3*sin(t*2.0))*0.35;
+
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.75+trail+bayGlow;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.55,0.15),eng*0.40);
+    col=mix(col,vec3(1.0,0.7,0.3),bayGlow*0.50);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==3){ vec2 p=vU*0.62; float t=vA+uTime;
     // Cruiser: Nebulon-B style dumbbell — hammerhead command + spine + engine block
     // 1. Forward command section (hammerhead)
@@ -266,6 +303,12 @@ void main(){
     float dNozL=sdRoundedBox(p-vec2(-0.44,0.08),vec2(0.02,0.03),0.008);
     float dNozR=sdRoundedBox(p-vec2(-0.44,-0.08),vec2(0.02,0.03),0.008);
     dBody=max(dBody,-min(dNozL,dNozR));
+    // 9b. Diagonal armor panel cuts (±20deg)
+    float csC=0.940; float snC=0.342;
+    vec2 cp1=vec2(p.x*csC-p.y*snC,p.x*snC+p.y*csC);
+    dBody=max(dBody,-sdRoundedBox(cp1-vec2(0.0,0.0),vec2(0.24,0.008),0.003));
+    vec2 cp2=vec2(p.x*csC+p.y*snC,-p.x*snC+p.y*csC);
+    dBody=max(dBody,-sdRoundedBox(cp2-vec2(0.0,0.0),vec2(0.24,0.008),0.003));
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -290,7 +333,14 @@ void main(){
     if(p.x<-0.46){float dy=min(abs(p.y-0.08),abs(p.y+0.08));
       trail=exp(-dy*10.0)*exp((p.x+0.46)*2.2)*eP*0.55;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.50+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.85,0.6),turretGlow*0.40);
+    col=mix(col,vec3(0.5,0.8,1.0),spineFlow*0.45);
+    col=mix(col,vec3(0.5,0.9,1.0),sensors*0.35);
+    col=mix(col,vec3(0.4,0.7,1.0),reactor*0.40);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==4){ vec2 p=vU*0.84; float t=vA+uTime;
     // Flagship: Sleek catamaran battleship — tapered twin hulls
     // 1. Tapered twin hulls (sdTrapezoid via p.yx: stern wide, bow narrow)
@@ -314,6 +364,15 @@ void main(){
     float dKeelT=sdRoundedBox(p-vec2(0.05,0.28),vec2(0.30,0.015),0.005);
     float dKeelB=sdRoundedBox(p-vec2(0.05,-0.28),vec2(0.30,0.015),0.005);
     dBody=max(dBody,-min(dKeelT,dKeelB)+0.008);
+    // 8b. Diagonal armor panel cuts (±20deg — Starfall-style faceted hull plating)
+    float csF=0.940; float snF=0.342;
+    vec2 fp1=vec2(p.x*csF-p.y*snF,p.x*snF+p.y*csF);
+    dBody=max(dBody,-sdRoundedBox(fp1-vec2(-0.05,0.0),vec2(0.28,0.010),0.004));
+    vec2 fp2=vec2(p.x*csF+p.y*snF,-p.x*snF+p.y*csF);
+    dBody=max(dBody,-sdRoundedBox(fp2-vec2(-0.05,0.0),vec2(0.28,0.010),0.004));
+    // 8c. Forward turret detail (bow weapon platform)
+    float dTurret=sdRoundedBox(p-vec2(0.50,0.0),vec2(0.06,0.08),0.02);
+    dBody=max(dBody,-dTurret+0.012);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -337,8 +396,20 @@ void main(){
       exp(-pF*(p.y-0.18)*(p.y-0.18))+exp(-pF*(p.y-0.38)*(p.y-0.38))+
       exp(-pF*(p.y+0.18)*(p.y+0.18))+exp(-pF*(p.y+0.38)*(p.y+0.38)));
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(-0.85,-0.35,p.x);
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.60;
-    a=1.2*tanh(a/1.2); }
+    // Rib conduit energy flow (animated along keel ridges)
+    float keelFlow=(exp(-abs(dKeelT)*22.0)+exp(-abs(dKeelB)*22.0))
+                   *(0.3+0.7*(0.5+0.5*sin(p.x*10.0-t*4.0)))*0.30;
+    // Turret targeting glow
+    float tgtGlow=exp(-length(p-vec2(0.52,0.0))*14.0)*(0.4+0.6*sin(t*2.5));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.60+keelFlow+tgtGlow*0.35;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.5,0.8,1.0),reactor*0.45);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.40);
+    col=mix(col,vec3(0.9,0.95,1.0),win*0.30);
+    col=mix(col,vec3(0.6,0.85,1.0),keelFlow*0.40);
+    col=mix(col,vec3(1.0,0.85,0.5),tgtGlow*0.45);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==5){ vec2 p=vU*0.55; float t=vA+uTime;
     // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
 
@@ -412,7 +483,14 @@ void main(){
     }
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.55+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.3,1.0,0.5),rings*0.45);
+    col=mix(col,vec3(0.4,1.0,0.6),crossGlow*0.40);
+    col=mix(col,vec3(0.5,0.9,1.0),nacGlow*0.35);
+    col=mix(col,vec3(0.9,0.95,1.0),dFocus*0.40);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==6){ vec2 p=vU*0.54; float t=vA+uTime;
     // Prism Shield: compact hull behind massive front shield, swept fins
 
@@ -481,7 +559,15 @@ void main(){
     }
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.50+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.5,0.7,1.0),shieldFx*0.40);
+    col=mix(col,vec3(0.6,0.85,1.0),shieldEdge*0.45);
+    col=mix(col,vec3(0.4,0.8,1.0),condFlow*0.35);
+    col=mix(col,vec3(0.9,0.95,1.0),nodes*0.40);
+    col=mix(col,vec3(1.0,0.5,0.2),core*0.40);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==7){ vec2 p=vU*0.56; float t=vA+uTime;
     // Carrier: Lucrehulk-style crescent — drone bay arc with central core
     // 1. Main crescent hull (arc wraps around back, gap faces +X forward)
@@ -507,6 +593,11 @@ void main(){
     float dSlotL=sdRoundedBox(p-hornL,vec2(0.045,0.018),0.006);
     float dSlotR=sdRoundedBox(p-hornR,vec2(0.045,0.018),0.006);
     dBody=max(dBody,-min(dSlotL,dSlotR));
+    // 5b. Armor rib panels on crescent (radial grooves)
+    float angP=atan(p.y,p.x-0.04);
+    float ribPat=sin(angP*8.0);
+    float arcMask=smoothstep(0.05,0.0,dArc)*smoothstep(-0.5,0.0,dArc+0.1);
+    dBody=max(dBody,-(1.0-smoothstep(0.45,0.50,abs(ribPat)))*arcMask*0.006);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -532,7 +623,14 @@ void main(){
     if(p.x<-0.40){float dy=abs(p.y);
       trail=exp(-dy*8.0)*exp((p.x+0.40)*1.8)*eP*0.5;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+hangarGlow+coreGlow*0.50+innerGlow+launchFlash+eng*0.50+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.8,0.4),hangarGlow*0.40);
+    col=mix(col,vec3(0.4,0.7,1.0),coreGlow*0.45);
+    col=mix(col,vec3(1.0,0.7,0.3),innerGlow*0.35);
+    col=mix(col,vec3(0.95,0.95,1.0),launchFlash*0.50);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==8){ vec2 p=vU*0.72; float t=vA+uTime;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
     // 1. Compact rear body (engine + power plant)
@@ -552,6 +650,11 @@ void main(){
     // 5. Barrel rail grooves
     float dGroove1=sdRoundedBox(p-vec2(0.24,0.0),vec2(0.30,0.012),0.003);
     dBody=max(dBody,-dGroove1);
+    // 5b. Cooling fin ridges on shroud (perpendicular ribs)
+    float finX=p.x*18.0;
+    float finPat=(1.0-smoothstep(0.38,0.48,abs(fract(finX)-0.5)+fwidth(finX)*0.6))
+                 *smoothstep(-0.02,0.20,p.x)*smoothstep(0.06,0.0,dShroud)*0.008;
+    dBody=max(dBody,-finPat);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -568,8 +671,16 @@ void main(){
     float eng=exp(-length(p-vec2(-0.48,0.0))*9.0)*pulse;
     float trail=0.0;
     if(p.x<-0.48){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.48)*5.0)*pulse*0.2;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.35+trail;
-    a=1.2*tanh(a/1.2); }
+    // Rail conduit energy flow (enhanced — animated along barrel)
+    float railCond=exp(-abs(dGroove1)*20.0)*(0.3+0.7*(0.5+0.5*sin(p.x*12.0-t*6.0)))*0.35;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+railCond+scope+eng*0.35+trail;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.95,0.8),muzzle*0.50);
+    col=mix(col,vec3(0.4,0.7,1.0),(railFlow+railCond)*0.45);
+    col=mix(col,vec3(0.3,1.0,0.4),scope*0.50);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==9){ vec2 p=vU*0.74; float t=vA+uTime;
     // Lancer: Star Destroyer wedge — heavy dagger silhouette
     // 1. Main wedge hull (trapezoid: wide stern → sharp bow)
@@ -616,8 +727,17 @@ void main(){
       trail=exp(-dy*4.0)*exp((p.x+0.46)*1.4)*pulse*0.95;}
     // 11. Bridge window glow
     float bridgeGlow=exp(-length(p-vec2(-0.22,0.0))*18.0)*0.25;
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.75+trail+bridgeGlow;
-    a=1.2*tanh(a/1.2); }
+    // Ram edge energy conduit (hull spine leading to tip)
+    float ramCond=exp(-abs(p.y)*18.0)*smoothstep(-0.20,0.50,p.x)*hf
+                  *(0.3+0.7*(0.5+0.5*sin(p.x*10.0-t*6.0)))*0.25;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.75+trail+bridgeGlow+ramCond;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.95,0.8),tipGlow*0.50);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    col=mix(col,vec3(0.9,0.95,1.0),bridgeGlow*0.40);
+    col=mix(col,vec3(0.6,0.85,1.0),ramCond*0.45);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==10){
     vec2 p=vU*0.67; float t=vA+uTime;
     // Launcher: Sleek Missile Frigate
@@ -651,6 +771,16 @@ void main(){
 
     // Engrave tubes
     dShape=max(dShape,-dTubes);
+    // Diagonal armor panel cuts (±25deg)
+    float csL=0.906; float snL=0.423;
+    vec2 lp1=vec2(p.x*csL-p.y*snL,p.x*snL+p.y*csL);
+    dShape=max(dShape,-sdRoundedBox(lp1-vec2(-0.05,0.0),vec2(0.22,0.008),0.003));
+    vec2 lp2=vec2(p.x*csL+p.y*snL,-p.x*snL+p.y*csL);
+    dShape=max(dShape,-sdRoundedBox(lp2-vec2(-0.05,0.0),vec2(0.22,0.008),0.003));
+    // Engine nozzle cutouts
+    float dNozL=sdRoundedBox(p-vec2(-0.62,0.04),vec2(0.02,0.028),0.008);
+    float dNozR=sdRoundedBox(p-vec2(-0.62,-0.04),vec2(0.02,0.028),0.008);
+    dShape=max(dShape,-min(dNozL,dNozR));
 
     // AA and Height Field
     float aa=fwidth(dShape)*FWIDTH_MULT[sh];
@@ -675,8 +805,17 @@ void main(){
     // Missile Pod Glow (Subtle status lights)
     float podGlow=(1.0-smoothstep(0.0,0.02,abs(dTubes)))*0.5*(0.5+0.5*sin(t*3.0));
 
-    a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + glow + trail + podGlow;
+    // Individual missile tube status lights
+    float tubeX=p.x*16.0;
+    float tubeLights=(1.0-smoothstep(0.35,0.48,abs(fract(tubeX)-0.5)+fwidth(tubeX)*0.6))
+                     *smoothstep(0.02,0.0,abs(dTubes))*0.30*(0.5+0.5*sin(t*4.0+tubeX*0.5));
+    a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + glow + trail + podGlow + tubeLights;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.6,0.2),glow*0.40);
+    col=mix(col,vec3(1.0,0.7,0.3),podGlow*0.45);
+    col=mix(col,vec3(1.0,0.5,0.2),tubeLights*0.50);
     a=1.1*tanh(a/1.1);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return;
   }
   else if(sh==11){ vec2 p=vU*0.64; float t=vA+uTime;
     // Disruptor: Radial antenna array, circular core, EMP ring emission
@@ -692,6 +831,11 @@ void main(){
     float dAnts=min(min(min(dA0,dA1),min(dA2,dA3)),min(dA4,dA5));
     // Union
     float dBody=smin(dCore,dAnts,0.05);
+    // Hub panel cross-cuts (radial grooves at 60deg intervals)
+    float dCross1=sdCapsule(p,vec2(0.0),vec2(0.18,0.0),0.005);
+    float dCross2=sdCapsule(p,vec2(0.0),vec2(0.09,0.156),0.005);
+    float dCross3=sdCapsule(p,vec2(0.0),vec2(-0.09,0.156),0.005);
+    dBody=max(dBody,-min(min(dCross1,dCross2),dCross3)+0.004);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -716,7 +860,13 @@ void main(){
     float pulse=0.6+0.4*sin(t*15.0);
     float eng=exp(-length(p-vec2(-0.44,0.0))*8.0)*pulse;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+nodes+coreGlow*0.50+eng*0.30;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.7,0.3,1.0),rings*0.40);
+    col=mix(col,vec3(0.5,0.9,1.0),nodes*0.35);
+    col=mix(col,vec3(0.4,0.6,1.0),coreGlow*0.45);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==12){ vec2 p=vU*0.68; float t=vA+uTime;
     // Scorcher: Forward focusing dish, beam emitter spine, charging anim
     // 1. Rear hull (compact engine block)
@@ -752,8 +902,17 @@ void main(){
     // 9. Trail
     float trail=0.0;
     if(p.x<-0.46){float dy=abs(p.y);trail=exp(-dy*20.0)*exp((p.x+0.46)*4.5)*pulse*0.25;}
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.40+trail;
-    a=1.2*tanh(a/1.2); }
+    // Dish inner surface detail (concentric rings)
+    float dishDist=length(p-vec2(0.28,0.0));
+    float dishRing=exp(-abs(dishDist-0.12)*20.0)*smoothstep(0.08,0.0,dDish)*0.25*(0.5+0.5*sin(t*3.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.40+trail+dishRing;
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.4,0.2),chanGlow*0.45);
+    col=mix(col,vec3(1.0,0.95,0.8),focus*0.50);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    col=mix(col,vec3(1.0,0.5,0.3),dishRing*0.40);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==13){ vec2 p=vU*0.66; float t=vA+uTime;
     // Teleporter: Octagonal frame, hollow center, phase distortion ripple
     // 1. Outer octagonal frame (ring shape)
@@ -768,6 +927,13 @@ void main(){
     float dPylons=min(min(dPylR,dPylL),min(dPylU,dPylD));
     // Union
     float dBody=min(dFrame,dPylons);
+    // Frame rivet points (8 octagonal vertices)
+    float dRiv1=length(p-vec2(0.38,0.16))-0.02;
+    float dRiv2=length(p-vec2(0.16,0.38))-0.02;
+    float dRiv3=length(p-vec2(-0.16,0.38))-0.02;
+    float dRiv4=length(p-vec2(-0.38,0.16))-0.02;
+    float dRivets=min(min(dRiv1,dRiv2),min(dRiv3,dRiv4));
+    dBody=max(dBody,-dRivets+0.015);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -790,7 +956,13 @@ void main(){
     float trail=0.0;
     if(p.x<-0.44){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.44)*4.0)*pulse*0.15;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+distortion+frameEdge+nodes+eng*0.25+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(0.5,0.4,1.0),distortion*0.45);
+    col=mix(col,vec3(0.5,0.9,1.0),frameEdge*0.40);
+    col=mix(col,vec3(0.9,0.95,1.0),nodes*0.40);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==14){ vec2 p=vU*0.69; float t=vA+uTime;
     // Arcer: Tesla coil Y-shape, triple prongs, electrical arc discharge
     // 1. Central body (power generator)
@@ -807,6 +979,17 @@ void main(){
     // Union
     float dBody=smin(dCore,dProngs,0.06);
     dBody=smin(dBody,dFins,0.04);
+    // Prong junction armor plates (Y-fork stress points)
+    float dJunc1=length(p-vec2(0.08,0.0))-0.035;
+    float dJunc2=length(p-vec2(0.08,0.06))-0.030;
+    float dJunc3=length(p-vec2(0.08,-0.06))-0.030;
+    dBody=max(dBody,-min(min(dJunc1,dJunc2),dJunc3)+0.020);
+    // Diagonal panel cuts on core body (±30deg)
+    float csA=0.866; float snA=0.5;
+    vec2 ap1=vec2(p.x*csA-p.y*snA,p.x*snA+p.y*csA);
+    dBody=max(dBody,-sdRoundedBox(ap1-vec2(-0.10,0.0),vec2(0.16,0.007),0.003));
+    vec2 ap2=vec2(p.x*csA+p.y*snA,-p.x*snA+p.y*csA);
+    dBody=max(dBody,-sdRoundedBox(ap2-vec2(-0.10,0.0),vec2(0.16,0.007),0.003));
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -832,7 +1015,13 @@ void main(){
     float trail=0.0;
     if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*6.0)*exp((p.x+0.34)*2.0)*pulse*0.6;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.80+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.95,0.7),nodes*0.45);
+    col=mix(col,vec3(0.95,0.95,1.0),arcGlow*0.50);
+    col=mix(col,vec3(0.4,0.6,1.0),coreGlow*0.40);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   else if(sh==15){ vec2 p=vU*0.62; float t=vA+uTime;
     // Bastion: Type-10 Defender-style armored block — inverted trapezoid, angular fins, quad engines
 
@@ -916,7 +1105,14 @@ void main(){
       trail=exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.25;}
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.35+trail;
-    a=1.2*tanh(a/1.2); }
+    vec3 col=vC.rgb;
+    col=mix(col,vec3(1.0,0.85,0.4),nodes*0.40);
+    col=mix(col,vec3(0.8,0.7,0.3),(plateGlowH+plateGlowV)*0.35);
+    col=mix(col,vec3(0.4,0.7,1.0),core*0.45);
+    col=mix(col,vec3(0.9,0.85,0.6),prowGlow*0.35);
+    col=mix(col,vec3(1.0,0.6,0.2),eng*0.35);
+    a=1.2*tanh(a/1.2);
+    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
   // ── sh16: Amplifier — 前進翼・増幅戦闘艦 ──
   else if(sh==16){ vec2 p=vU*0.58; float t=vA+uTime;
     // 1. Wedge hull (trapezoid: wide stern → sharp bow)
