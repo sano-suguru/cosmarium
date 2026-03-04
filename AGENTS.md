@@ -1,121 +1,256 @@
 # AGENTS.md — COSMARIUM
 
-> 変更作業時の判断指針。数値の正は常にソースコード。Infiniteモード（永続的な宇宙戦争シミュレーション）のみ。
+> Guidance for AI agents working on this codebase. Source of truth is always the source code.
 
-## Quick Reference
+**COSMARIUM** is a real-time space strategy/combat simulation game built with vanilla TypeScript, WebGL 2, and Vite. No UI framework. Zero production dependencies.
 
-- **言語**: 日本語で返答
-- **型チェック**: `bun run typecheck` — strict mode、`noUnusedLocals`/`noUnusedParameters` on
-- **ビルド**: `bun run build`
-- **全チェック**: `bun run check` — typecheck + lint + format:check + knip + cpd + similarity + test + check:deps
-- **テスト**: `bun run test:run` — ヘルパー: `src/__test__/pool-helper.ts`
-- **Lint/Format**: Biome。`src/shaders/**`は除外。singleQuote, lineWidth=120
-- **Biome重要ルール**: `noConsole: error`(error/warnのみ許可)、`noExplicitAny: error`。他は`biome.json`参照
-- **Pre-commit**: simple-git-hooks経由。`biome check --staged --write`。エラーのみブロック
-- **コード品質**: `bun run similarity` — 類似度検出(閾値0.92、最小7行)。`bun run check:deps` — dependency-cruiser依存ルール検証。`bun run knip` — 未使用export検出。`bun run cpd` — コピペ検出(jscpd)
-- **Import規約**: 相対パス + `.ts`拡張子明示。パスエイリアスなし。barrel export なし
-- **TSC strict（コーディングに影響）**: `verbatimModuleSyntax`(型importは`import type`必須)、`exactOptionalPropertyTypes`(`undefined`直接代入不可)、`noUncheckedIndexedAccess`(配列indexは`T | undefined`)、`noImplicitReturns`
+## Language
 
-## 構造
+Always respond in **Japanese** (日本語で返答すること). Refer to `CLAUDE.md` for Claude Code guidance.
+
+## Build, Test, and Lint Commands
+
+All commands use **Bun** as the package manager.
+
+```bash
+# Development
+bun install                      # Install dependencies
+bun run dev                      # Dev server at http://localhost:5173
+
+# Code quality checks
+bun run typecheck                # TypeScript strict mode check
+bun run lint                     # Biome lint (read-only)
+bun run lint:fix                 # Biome lint with auto-fix
+bun run format                   # Biome format (write)
+bun run format:check             # Biome format check (read-only)
+
+# Build & testing
+bun run build                    # Production build
+bun run test                     # Vitest watch mode
+bun run test:run                 # Vitest single run (all tests)
+bunx vitest run src/path/to.test.ts  # Single test file
+
+# Code quality
+bun run knip                     # Unused export detection
+bun run cpd                      # Copy-paste detection (jscpd)
+bun run similarity               # Code similarity detection (threshold: 0.92, min: 7 lines)
+bun run check:deps               # Dependency rule validation (dependency-cruiser)
+
+# Comprehensive check (pre-commit, CI)
+bun run check                    # Runs all checks: typecheck + biome + knip + cpd + similarity + test + check:deps
+```
+
+**Pre-commit hook** automatically runs: `biome check --staged --write`
+
+## Project Structure
 
 ```
 src/
-├── main.ts              # エントリ + requestAnimationFrame ループ
-├── types.ts             # 全型定義（Unit/Particle/Projectile/Beam等）。全ファイルが依存
-├── constants.ts         # プール上限、WORLD_SIZE、シェーダ定数
-├── state.ts             # ミュータブルgame state + mulberry32 rng closure
-├── pools.ts             # オブジェクトプール（unit/particle/projectile）+ poolCounts
-├── colors.ts            # チームカラー、トレイルカラーテーブル
-├── unit-types.ts        # 15ユニットタイプ定義（UnitType配列）
-├── beams.ts             # beam/trackingBeam 動的配列
-├── simulation/          # ゲームロジック（詳細: simulation/AGENTS.md）
-├── renderer/            # WebGL2レンダリング（詳細: renderer/AGENTS.md）
-├── shaders/             # GLSLソース（詳細: shaders/AGENTS.md）
-├── ui/                  # Codex/HUD/メニュー（詳細: ui/AGENTS.md）
-└── input/camera.ts      # カメラ状態 + Pointer Events/キー入力ハンドリング
+├── main.ts               # Entry point + main game loop
+├── types.ts              # All TypeScript type definitions (CORE FILE)
+├── constants.ts          # Pool limits, WORLD_SIZE, shader constants
+├── state.ts              # Mutable game state object (CORE FILE)
+├── pools.ts              # Object pools: units, particles, projectiles + poolCounts
+├── beams.ts              # beam/trackingBeam dynamic arrays
+├── colors.ts             # Team colors, trail color tables
+├── unit-types.ts         # 15 unit type definitions with properties
+├── fleet-cost.ts         # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
+├── battle-tracker.ts     # Battle mode elapsed/win/result aggregation
+├── melee-tracker.ts      # Melee mode (N-team) elapsed/win/result aggregation
+├── drain-accumulator.ts  # drainAccumulator() — fixed-step accumulator logic
+├── interpolation.ts      # savePrevPositions / setInterpAlpha for render interpolation
+├── swap-remove.ts        # swap-and-pop helper for dynamic arrays
+├── fixed-point.ts        # Fixed-point math (deterministic)
+├── fixed-rng.ts          # Fixed-point RNG
+├── fixed-trig.ts         # Fixed-point trig (sin/cos tables)
+├── shaders/              # GLSL source files (vite-plugin-glsl with #include support)
+├── renderer/             # WebGL 2: VAO/FBO/buffers, instanced rendering, bloom, minimap
+├── simulation/           # Game tick logic: spatial hash, spawn/kill, steering, combat, effects
+├── input/camera.ts       # Camera state, input handling, screen shake
+└── ui/                   # Codex, fleet-compose, HUD, battle-result
 ```
 
-## 依存ルール（dependency-cruiser）
+## Main Loop (simplified)
 
-`.dependency-cruiser.cjs`で強制。違反は`bun run check:deps`でエラー:
-- `simulation/` → `state.ts` 禁止。rng/stateは呼び出し元から引数注入
-- `simulation/` → `ui/` 禁止。コールバック注入で依存逆転
+```
+frame() → dt clamp(0.05) → camera update + decay
+  → update(dt)  [split into max 8 substeps if dt > 1/60s]
+      → buildHash() [spatial acceleration]
+      → per unit: steer → combat → trail + effects
+      → reflector pass → projectiles → particles → beams
+      → [if !codexOpen] reinforce() + win check
+      → [if codexOpen] updateCodexDemo() [demo-only units move]
+  → render()
+      → GPU buffer upload → drawArraysInstanced
+      → bloom (H/V blur) → composite
+      → minimap [hidden if codexOpen]
+```
 
-## 主要モジュールと変更影響
+## State Management
 
-`types.ts`は全ファイルが依存（変更は全体に波及）。`constants.ts`/`state.ts`/`pools.ts`/`colors.ts`/`unit-types.ts`も広域依存。定数値は`src/constants.ts`参照。
+- **state.ts**: Single `const state: State` export — `GameState` (`'menu' | 'compose' | 'play' | 'result'`), `codexOpen`, PRNG, etc. Mutate via property assignment.
+- **GameLoopState** (`simulation/update.ts`): Holds `battlePhase: BattlePhase` and `activeTeamCount`. Passed into `stepOnce()` each frame; not in `state.ts`.
+- **BattlePhase**: `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`. Controls which trackers and reinforce logic run.
+- **poolCounts**: Readonly export. Update ONLY via spawn/kill functions (`killUnit`, `killParticle`, `killProjectile`). Direct mutation causes type errors.
+- **rng()**: Seeded PRNG (mulberry32) in state.ts closure. Simulation receives as argument (dependency rule).
+- **codexOpen**: Flag that affects 4 layers: simulation (skip steer/combat for non-demo units), renderer (lock camera), input (disable controls), main (hide HUD).
 
-## Data Flow概要
+## Dependency Rules (dependency-cruiser)
 
-詳細は`src/simulation/AGENTS.md`のTick順序を参照。概略:
+Enforced in `.dependency-cruiser.cjs`. Violations cause errors via `bun run check:deps`:
+- `simulation/` → `state.ts` forbidden — inject rng/state as arguments
+- `simulation/` → `ui/` forbidden — inject callbacks to invert dependency
+- `worker/` → `src/` forbidden — worker is server-side only
+- `codex.ts` → `game-control.ts` forbidden — circular dependency
 
-- main loop: `gameState==='play'`時のみ実行。dtは`Math.min(dt, 0.05)`でクランプ
-- main.ts の `drainAccumulator` が accumulator パターンで `stepOnce(SIM_DT)` を固定 dt 刻みで呼び出し（最大8ステップ/フレーム）→ 各ステップでhash→steer→combat→effects→reinforce
-- `codexOpen`時: simulation/renderer/input/mainの4層に波及。非デモユニットのsteer/combatスキップ、reinforceスキップ、カメラ固定、操作無効化
-- RNG: main.tsが`state.rng`(seeded)か`demoRng`を選択し`update()`に引数注入。simulation内は全て引数経由（依存ルール準拠）
+## Core Modules & Change Impact
 
-## ファイル変更ガイド
+`types.ts` — all files depend (changes cascade everywhere). Validate with `bun run typecheck`.
+`constants.ts`/`state.ts`/`pools.ts`/`colors.ts`/`unit-types.ts` — also widely depended on. Constant values: see `src/constants.ts`.
 
-### 新ユニット追加
-`unit-types.ts` → `types.ts`(新フラグ時) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts`(特殊移動時) → `simulation/spawn.ts`(新プロパティ時) → `ui/codex.ts` → `src/shaders/main.frag.glsl`(新シェイプ時)
+For **3+ files spanning multiple modules**, create a plan before implementing.
 
-### 新エフェクト追加
-`simulation/effects.ts` にエフェクト関数追加 → 呼び出し元からインポート
+## Data Flow Overview
 
-### 他の変更
-レンダリング→`src/renderer/AGENTS.md`、シミュレーション→`src/simulation/AGENTS.md`、シェーダ→`src/shaders/AGENTS.md`、UI→`src/ui/AGENTS.md`
+See `src/simulation/AGENTS.md` for detailed tick order. Summary:
 
-## 規約
+- Main loop: Runs only when `gameState === 'play'`. dt clamped via `Math.min(dt, 0.05)`
+- main.ts `drainAccumulator` uses accumulator pattern to call `stepOnce(SIM_DT)` at fixed dt intervals (max 8 steps/frame) → each step: hash → steer → combat → effects → reinforce
+- When `codexOpen`: Affects simulation/renderer/input/main (4 layers). Skips steer/combat for non-demo units, skips reinforce, locks camera, disables input
+- RNG: main.ts selects `state.rng` (seeded) or `demoRng` and passes into `update()` as argument. All simulation code receives rng via arguments (dependency rule)
 
-- **state.ts**: 単一exportオブジェクト。プロパティ変更はOK
-- **poolCounts**: Readonly export。外部からの直接変更は型エラー。必ず`killUnit`/`killParticle`/`killProjectile`等の集約関数経由で操作
-- **spawn/kill**: Unit/Projectileはプール先頭からdead slot線形スキャン。Particleは LIFO free stack（Uint16Array）で高速アロケーション。全kill関数に二重kill防止ガードあり
-- **新オブジェクト種追加時**: `pools.ts`にプール配列+カウンタ追加、`constants.ts`に上限定数追加
-- **プールアクセサ**: `unit(i)`/`particle(i)`/`projectile(i)`はpools.tsの集約関数経由。noUncheckedIndexedAccessのundefinedチェックを集約
+## Change Guides
 
-## テストパターン
+### Add a New Unit Type
+`unit-types.ts` → `types.ts` (if new flags) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts` (if special movement) → `simulation/spawn.ts` (if new properties) → `ui/codex.ts` → `src/shaders/main.frag.glsl` (if new shape)
 
-vitest + Node環境。ヘルパー`src/__test__/pool-helper.ts`(`resetPools()`/`resetState()`/`spawnAt()`/`fillUnitPool()`/`makeGameLoopState()`)を必ず使用。`afterEach`で`resetPools()` + `resetState()` + `vi.restoreAllMocks()`。`vi.mock()`でUI/camera依存を排除。`seedRng(12345)`でRNG決定論性を担保。
+### Add an Effect
+Add function to `simulation/effects.ts` → import at call site
 
-## 作業方針
+### Other Changes
+Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md`, Shaders → `src/shaders/AGENTS.md`, UI → `src/ui/AGENTS.md`
 
-### 調査と実装を分離する
+## Key Conventions
 
-調査（ファイル読み、依存関係の把握）と実装は別フェーズ。全ファイルを読んでから実装を始めるのではなく、必要な箇所だけ読む。
+### Strict TypeScript
+- `verbatimModuleSyntax`: Type imports **must** use `import type { X }`
+- `noUncheckedIndexedAccess`: Array index access returns `T | undefined` → check or use falsy coalesce
+- `exactOptionalPropertyTypes`: Cannot assign `undefined` to optional properties → use `prop?: T | undefined` in types
+- `noNonNullAssertion`: Forbidden (`!` operator). Use conditional checks instead.
+- `noExplicitAny`: `any` forbidden. Use proper types or `unknown` + type guard.
+- `noImplicitReturns`: All code paths must return a value.
 
-#### サブタスク委譲時の排他ルール（重要）
+### Biome Linting (Config in `biome.json`)
+- **noConsole**: Only `console.error`/`console.warn` allowed (test files exempt)
+- **noForEach**: Use `for...of` loops instead
+- **noBarrelFile**: No index.ts barrel exports
+- **noExcessiveCognitiveComplexity**: Max complexity 15
+- **noExcessiveLinesPerFile**: Max 600 lines (test files exempt)
+- **Line width**: 120 characters
+- **Quotes**: Single quotes, always semicolons
+- **Shaders excluded**: `src/shaders/**` not linted/formatted (GLSL rules differ)
 
-調査をサブタスク（explore/librarian等）に委譲した場合:
+### Import Rules
+- **Always**: Relative paths with explicit `.ts` extension. No path aliases, no barrel exports.
+- **Example**: `import { spawn } from './spawn.ts';` not `import { spawn } from './index';`
 
-1. **同じ対象を自分で調査しない**。「直接ツールでも並行して確認する」は禁止。サブタスクと同じファイル・同じパターンをRead/Grepで重複調査するとコンテキストを浪費する
-2. **結果を回収してから判断する**。background_outputで結果を取得し、不足があれば追加の直接ツール呼び出しで補完する
-3. **待機中に別の作業を進める**のは可。ただし「別の作業」＝委譲した調査と重複しない独立タスク（todo整理、型定義の下書き等）
+### Functional Style
+- No classes. Game objects are plain typed objects.
+- State mutations via assignment (not methods).
+- Most operations are procedural functions (spawn, kill, update).
 
-「Parallelize EVERYTHING」は**異なる対象**の並行処理に適用する。同じ対象の重複調査には適用しない。
+### No Defensive Fallbacks
+No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. Resolve defaults at definition time; make types required. DOM elements: use `getElement()` (throws on missing), treat as non-null thereafter.
 
-### 計画が必要なタスク
+### State & Pool Conventions
+- **state.ts**: Single export object. Mutate via property assignment.
+- **poolCounts**: Readonly export. External direct mutation causes type errors. Always use `killUnit`/`killParticle`/`killProjectile` etc.
+- **spawn/kill**: Unit/Projectile scan from pool start for first dead slot. Particle uses LIFO free stack (Uint16Array) for fast allocation. All kill functions have double-kill guard.
+- **Adding new object types**: Add pool array + counter to `pools.ts`, add limit constant to `constants.ts`.
+- **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` via pools.ts aggregate functions. Centralizes `noUncheckedIndexedAccess` undefined checks.
 
-以下に該当する場合、実装前に作業を分割する:
+## Testing
 
-| 条件 | 理由 |
-|------|------|
-| 3モジュール以上にまたがる変更 | 上記「ファイル変更ガイド」の依存チェーン参照 |
-| `types.ts`または`state.ts`の変更 | 全ファイルに波及 |
-| 新ユニット追加 | 6〜8ファイルの連鎖変更が必要 |
-| シェーダ変更 | 型安全性なし。ブラウザ実行でしか検証不可 |
+- **Framework**: Vitest with Node environment
+- **Location**: `src/**/*.test.ts`
+- **Helpers**: `src/__test__/pool-helper.ts`
+  - `resetPools()`: Reset all pools to dead state, zero poolCounts
+  - `resetState()`: Reset game state to menu defaults
+  - `spawnAt(team, type, x, y)`: Mock Math.random for deterministic spawning
+  - `fillUnitPool()`: Fill entire unit pool
+  - `makeGameLoopState()`: Create GameLoopState for testing
+- **Pattern**: Always `afterEach(() => { resetPools(); resetState(); vi.restoreAllMocks(); })`
+- **UI/Camera mocks**: Use `vi.mock()` to stub UI/camera dependencies in simulation tests
+- **RNG determinism**: Use `seedRng(12345)` to ensure reproducible behavior
 
-### 分割単位の目安
+## PRNG
 
-- 型定義の追加 → `bun run typecheck`で検証 → 次へ
-- ロジック変更 → `bun run test:run`で検証 → 次へ
-- シェーダ変更 → ブラウザで目視確認 → 次へ
+- `rng()` in state.ts: Deterministic (mulberry32-based)
+- `seedRng(seed)`: Set seed for reproducible behavior (testing)
+- Simulation receives `rng` as function argument
+- Camera shake in main.ts uses `Math.random()` (not seeded)
 
-各単位で`bun run typecheck`が通る状態を維持する。複数モジュールを一度に変更して最後にまとめて検証しない。
+## Game Modes
+
+- **Spectate** (`battlePhase = 'spectate'`): AI vs AI, no player fleet — equivalent to the former "Infinite" mode
+- **Battle** (`battlePhase = 'battle'`): Player fleet (team 0) vs enemy fleet (team 1), budget-limited via `fleet-cost.ts` (`DEFAULT_BUDGET = 200`)
+- **Melee** (`battlePhase = 'melee'`): N-team free-for-all (2–5 teams, `activeTeamCount`). Uses `melee-tracker.ts` for per-team elimination events
+- Phase transitions flow through `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`
+
+## Work Guidelines
+
+### Separate Investigation from Implementation
+
+Investigation (reading files, understanding dependencies) and implementation are separate phases. Don't read all files before starting — read only what's needed.
+
+#### Subtask Delegation Exclusivity Rules (Important)
+
+When delegating investigation to subtasks (explore/librarian etc.):
+
+1. **Do not investigate the same target yourself.** "Also checking directly in parallel" is forbidden. Duplicate reads/greps of the same files wastes context.
+2. **Collect results before deciding.** Retrieve via background_output, then supplement with additional direct tool calls if needed.
+3. **Working on independent tasks while waiting** is allowed. "Independent" means tasks that don't overlap with the delegated investigation (e.g., todo management, type definition drafts).
+
+"Parallelize EVERYTHING" applies to **different targets** in parallel — not duplicate investigation of the same target.
+
+### Tasks Requiring a Plan
+
+Create a plan before implementing if any of these apply:
+
+| Condition | Reason |
+|-----------|--------|
+| Changes spanning 3+ modules | See Change Guides dependency chains above |
+| Changes to `types.ts` or `state.ts` | Cascades to all files |
+| Adding a new unit | Requires 6–8 file chain changes |
+| Shader changes | No type safety. Browser-only verification |
+
+### Division Unit Guidelines
+
+- Type definition additions → validate with `bun run typecheck` → proceed
+- Logic changes → validate with `bun run test:run` → proceed
+- Shader changes → verify visually in browser → proceed
+
+Maintain passing `bun run typecheck` at each unit. Don't change multiple modules at once and verify only at the end.
 
 ## Critical Gotchas
 
-- Codexの`snapshotPools()`/`restorePools()`はshallow copy。Object.assignで書き戻し
-- ブランドindex: プールループでは`i as UnitIndex`（ParticleIndex/ProjectileIndex）にキャスト必要
-- 入力はPointer Events統一（mouse/touch両対応）。canvas/minimapに`touch-action: none`設定済み。ピンチズームは`activePointers` Mapで2本指追跡
+| Issue | Details |
+|-------|---------|
+| `neighborBuffer` | Shared buffer updated by `getNeighbors()`. **Use immediately**, do not copy. Valid only after `buildHash()`. |
+| `codexOpen` impact | Affects 4 layers: skip non-demo unit steer/combat, lock camera, disable input, skip HUD. See main loop. |
+| GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
+| Pool mutation | Never directly assign `poolCounts`. Use `killUnit()`, `killParticle()`, `killProjectile()` only. |
+| Data before kill | `killUnit()` returns a snapshot (safe). For particle/projectile, save values to locals **before** calling `kill()` — kill reuses slot immediately. Use `destroyUnit()` for unit kill + explosion combo. |
+| Team helper | In N-team (Melee), enemy check is `o.team !== u.team`. Never use `1 - team`. |
+| Branded indices | Pool loops need cast: `i as UnitIndex` (also ParticleIndex, ProjectileIndex). |
+| Codex snapshot | `snapshotPools()`/`restorePools()` are shallow copy. Written back via Object.assign. |
+| Input events | Pointer Events unified (mouse/touch). canvas/minimap have `touch-action: none`. Pinch zoom tracks 2 fingers via `activePointers` Map. |
 
-simulation固有のgotchas（`neighborBuffer`共有バッファ、`destroyUnit()`使用推奨、`beams`のswap-and-pop等）は`src/simulation/AGENTS.md`参照。シェーダ固有（GLSLランタイムコンパイル、`vite-plugin-glsl`の`#include`展開等）は`src/shaders/AGENTS.md`参照。
+Simulation-specific gotchas (`destroyUnit()` preference, `beams` swap-and-pop etc.) → see `src/simulation/AGENTS.md`. Shader-specific (GLSL runtime compilation, `vite-plugin-glsl` `#include` expansion etc.) → see `src/shaders/AGENTS.md`.
+
+## Other References
+
+- **AGENTS.md** (subdirectories): Detailed data flow, state rules, multi-file change procedures per module
+- **CLAUDE.md**: Full architecture, performance patterns, shader shape ID table, anti-patterns
+
+When unsure, check this file or module-specific AGENTS.md files (renderer, simulation, shaders, ui).
