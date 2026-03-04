@@ -64,6 +64,7 @@ export const BOUNDARY_MARGIN = 0.8;
 const BOUNDARY_FORCE = 120;
 
 const HEALER_FOLLOW_WEIGHT = 0.15;
+const MASS_TIEBREAK_FACTOR = 0.01;
 
 const VET_TARGET_WEIGHT = 0.3;
 
@@ -215,8 +216,8 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
       _engageForce.y = (dy / d) * t.speed * 3;
       return _engageForce;
     }
-    const engageMax = t.engageMax ?? t.range * 0.7;
-    const engageMin = t.engageMin ?? t.range * 0.3;
+    const engageMax = t.engageMax;
+    const engageMin = t.engageMin;
     if (d > engageMax) {
       _engageForce.x = (dx / d) * t.speed * 2;
       _engageForce.y = (dy / d) * t.speed * 2;
@@ -295,8 +296,9 @@ function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number):
   return _retreatForce;
 }
 
-function computeHealerFollow(u: Unit, nn: number): SteerForce {
-  let bm = 0,
+function computeHealerFollow(u: Unit, nn: number, t: UnitType): SteerForce {
+  // bs = -1: score は常に正なので最初の候補が必ず選ばれる
+  let bs = -1,
     bi: UnitIndex = NO_UNIT;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
@@ -304,15 +306,20 @@ function computeHealerFollow(u: Unit, nn: number): SteerForce {
     if (o.team !== u.team || !o.alive || o === u) {
       continue;
     }
-    if (unitType(o.type).mass > bm) {
-      bm = unitType(o.type).mass;
+    const hpRatio = o.hp / o.maxHp;
+    const score = 1 - hpRatio + unitType(o.type).mass * MASS_TIEBREAK_FACTOR;
+    if (score > bs) {
+      bs = score;
       bi = oi;
     }
   }
   if (bi !== NO_UNIT) {
     const o = unit(bi);
-    _healForce.x = (o.x - u.x) * HEALER_FOLLOW_WEIGHT;
-    _healForce.y = (o.y - u.y) * HEALER_FOLLOW_WEIGHT;
+    const dx = o.x - u.x;
+    const dy = o.y - u.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    _healForce.x = (dx / d) * t.speed;
+    _healForce.y = (dy / d) * t.speed;
     return _healForce;
   }
   _healForce.x = 0;
@@ -509,9 +516,10 @@ export function steer(u: Unit, dt: number, rng: () => number) {
   fy += retreat.y;
 
   if (isSupportType(t)) {
-    const heal = computeHealerFollow(u, nn);
-    fx += heal.x * t.supportFollow;
-    fy += heal.y * t.supportFollow;
+    const heal = computeHealerFollow(u, nn, t);
+    const followWeight = HEALER_FOLLOW_WEIGHT * t.supportFollow;
+    fx += heal.x * followWeight;
+    fy += heal.y * followWeight;
   }
 
   const m = WORLD_SIZE * BOUNDARY_MARGIN;

@@ -126,8 +126,8 @@ export interface UnitType {
   cannonOffsets?: readonly (readonly [number, number])[];
   boost?: { multiplier: number; duration: number; cooldown: number; triggerRange: number };
   massWeight: number;
-  engageMin?: number;
-  engageMax?: number;
+  engageMin: number;
+  engageMax: number;
   cooldownResetOnKill?: number;
   /** HP比率がこの値を下回ると退避行動を開始 (0-1, 省略時は退避なし) */
   retreatHpRatio?: number;

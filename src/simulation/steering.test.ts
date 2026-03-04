@@ -232,7 +232,7 @@ describe('steer — LANCER型', () => {
 });
 
 describe('steer — ヒーラー追従', () => {
-  it('heals=true → 最大mass味方に追従', () => {
+  it('全HP満タン時、mass最大の味方に追従', () => {
     const healer = spawnAt(0, 5, 0, 0); // type 5 = Healer
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
@@ -242,6 +242,35 @@ describe('steer — ヒーラー追従', () => {
     }
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
     expect(unit(healer).x).toBeGreaterThan(0);
+  });
+
+  it('HP減少ユニットが満タンの大型ユニットより優先される', () => {
+    seedRng(12345);
+    const healer = spawnAt(0, 5, 0, 0);
+    spawnAt(0, 4, 0, -100); // Flagship (mass=30, 満タン)
+    const drone = spawnAt(0, 0, 0, 100); // Drone (mass=1)
+    unit(drone).hp = unit(drone).maxHp * 0.5;
+    buildHash();
+    for (let i = 0; i < 60; i++) {
+      steer(unit(healer), 0.033, rng);
+    }
+    // Drone (y=100) のHP減少スコアが高い → y正方向に移動
+    expect(unit(healer).y).toBeGreaterThan(0);
+  });
+
+  it('同HP比率でmassが大きいユニットが優先される', () => {
+    seedRng(12345);
+    const healer = spawnAt(0, 5, 0, 0);
+    const drone = spawnAt(0, 0, 0, -100); // Drone (mass=1)
+    const flagship = spawnAt(0, 4, 0, 100); // Flagship (mass=30)
+    unit(drone).hp = unit(drone).maxHp * 0.5;
+    unit(flagship).hp = unit(flagship).maxHp * 0.5;
+    buildHash();
+    for (let i = 0; i < 60; i++) {
+      steer(unit(healer), 0.033, rng);
+    }
+    // Flagship (y=100) のmassタイブレーカーで勝つ → y正方向に移動
+    expect(unit(healer).y).toBeGreaterThan(0);
   });
 });
 
