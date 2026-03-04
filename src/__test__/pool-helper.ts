@@ -1,5 +1,5 @@
 import { _resetBattleTracker } from '../battle-tracker.ts';
-import { beams, trackingBeams } from '../beams.ts';
+import { beams, clearBeamPools, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { _resetMeleeTracker } from '../melee-tracker.ts';
 import {
@@ -118,6 +118,7 @@ export function resetPools() {
   resetHWM();
   beams.length = 0;
   trackingBeams.length = 0;
+  clearBeamPools();
   _resetSweepHits();
   _resetKillUnitHooks();
   _resetBattleTracker();
@@ -184,6 +185,7 @@ export function resetState() {
   seedRng(12345);
   beams.length = 0;
   trackingBeams.length = 0;
+  clearBeamPools();
   resetChains();
 }
 

@@ -26,6 +26,16 @@ function _rayHitCmp(a: RayHit, b: RayHit): number {
   return a.dist - b.dist;
 }
 
+function _pushRayHit(count: number, oi: UnitIndex, dist: number): void {
+  const slot = _rayHits[count];
+  if (slot) {
+    slot.oi = oi;
+    slot.dist = dist;
+  } else {
+    _rayHits[count] = { oi, dist };
+  }
+}
+
 function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: number, teamFilter: number): RayHit[] {
   const steps = Math.ceil(range / RAILGUN_SAMPLE_STEP);
   _rayHitSeen.clear();
@@ -40,7 +50,7 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
       }
     }
   }
-  _rayHits.length = 0;
+  let count = 0;
   for (const oi of _rayHitSeen) {
     const o = unit(oi);
     const tox = o.x - ox;
@@ -52,9 +62,11 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
     const perpDistSq = tox * tox + toy * toy - proj * proj;
     const hitSize = unitType(o.type).size;
     if (perpDistSq < hitSize * hitSize) {
-      _rayHits.push({ oi, dist: proj });
+      _pushRayHit(count, oi, proj);
+      count++;
     }
   }
+  _rayHits.length = count;
   _rayHits.sort(_rayHitCmp);
   return _rayHits;
 }

@@ -1,4 +1,4 @@
-import { beams, trackingBeams } from './beams.ts';
+import { beams, clearBeamPools, trackingBeams } from './beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
 import type { Particle, ParticleIndex, Projectile, Team, TeamCounts, Unit } from './types.ts';
 import { MAX_TEAMS, NO_PARTICLE, NO_UNIT } from './types.ts';
@@ -196,6 +196,7 @@ export function clearAllPools() {
   resetHWM();
   beams.length = 0;
   trackingBeams.length = 0;
+  clearBeamPools();
 }
 
 export function setPoolCounts(units: number, particles: number, projectiles: number, teamUnits: Readonly<TeamCounts>) {

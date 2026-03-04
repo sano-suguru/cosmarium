@@ -1,4 +1,4 @@
-import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
+import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
 import { REF_FPS } from '../constants.ts';
 import { getParticleHWM, getUnitHWM, particle, poolCounts, teamUnitCounts, unit } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
@@ -41,6 +41,7 @@ export function updateBeams(dt: number) {
     const bm = getBeam(i);
     bm.life -= dt;
     if (bm.life <= 0) {
+      releaseBeam(bm);
       swapRemove(beams, i);
     } else {
       i++;
@@ -55,6 +56,7 @@ export function updateTrackingBeams(dt: number) {
     const src = unit(tb.srcUnit);
     const tgt = unit(tb.tgtUnit);
     if (tb.life <= 0 || !src.alive || !tgt.alive || src.team !== tgt.team) {
+      releaseTrackingBeam(tb);
       swapRemove(trackingBeams, i);
       continue;
     }

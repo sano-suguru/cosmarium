@@ -1,4 +1,4 @@
-import { beams, trackingBeams } from '../beams.ts';
+import { acquireBeam, acquireTrackingBeam, beams, trackingBeams } from '../beams.ts';
 import { POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
 import {
   advanceParticleHWM,
@@ -17,7 +17,7 @@ import {
   teamUnitCounts,
   unit,
 } from '../pools.ts';
-import type { Beam, ParticleIndex, ProjectileIndex, Team, TrackingBeam, UnitIndex } from '../types.ts';
+import type { ParticleIndex, ProjectileIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 
@@ -76,6 +76,7 @@ export function onKillUnitPermanent(hook: KillUnitHook): void {
 /** テスト専用: テスト用killUnitHooksをクリア。永続フックは維持。pool-helper.tsのresetPools()から呼ばれる */
 export function _resetKillUnitHooks(): void {
   killUnitHooks.length = 0;
+  _keDepth = 0;
 }
 
 export function spawnUnit(team: Team, type: number, x: number, y: number, rng: () => number): UnitIndex {
@@ -137,6 +138,33 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
   return NO_UNIT;
 }
 
+// GC回避: KillEvent 深度インデックスド・スタック（再入安全・hookは参照保存しない前提）
+const _KE_MAX_DEPTH = 4;
+function _keAt<T>(stack: T[], d: number): T {
+  const e = stack[d];
+  if (!e) {
+    throw new Error('KillEvent stack overflow');
+  }
+  return e;
+}
+const _keWK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killerTeam: Team; killerType: number } => ({
+  victim: 0 as UnitIndex,
+  victimTeam: 0 as Team,
+  victimType: 0,
+  victimTeamRemaining: 0,
+  killer: 0 as UnitIndex,
+  killerTeam: 0 as Team,
+  killerType: 0,
+}));
+const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
+  victim: 0 as UnitIndex,
+  victimTeam: 0 as Team,
+  victimType: 0,
+  victimTeamRemaining: 0,
+  killer: NO_UNIT,
+}));
+let _keDepth = 0;
+
 export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | undefined {
   const u = unit(i);
   if (u.alive) {
@@ -144,16 +172,34 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
     u.alive = false;
     // decUnits → hook の順序を保証: hook 内で victimTeamRemaining を参照可能
     decUnits(u.team);
-    const base = { victim: i, victimTeam: u.team, victimType: u.type, victimTeamRemaining: teamUnitCounts[u.team] };
-    const e: KillEvent = killer
-      ? { ...base, killer: killer.index, killerTeam: killer.team, killerType: killer.type }
-      : { ...base, killer: NO_UNIT };
+    // GC回避: 深度インデックスド・スタックから取得（再入安全）
+    const d = _keDepth++;
+    let e: KillEvent;
+    if (killer) {
+      const ke = _keAt(_keWK, d);
+      ke.victim = i;
+      ke.victimTeam = u.team;
+      ke.victimType = u.type;
+      ke.victimTeamRemaining = teamUnitCounts[u.team];
+      ke.killer = killer.index;
+      ke.killerTeam = killer.team;
+      ke.killerType = killer.type;
+      e = ke;
+    } else {
+      const ke = _keAt(_keNK, d);
+      ke.victim = i;
+      ke.victimTeam = u.team;
+      ke.victimType = u.type;
+      ke.victimTeamRemaining = teamUnitCounts[u.team];
+      e = ke;
+    }
     for (const hook of killUnitHooks) {
       hook(e);
     }
     for (const hook of permanentKillUnitHooks) {
       hook(e);
     }
+    _keDepth--;
     return snap;
   }
   return undefined;
@@ -272,7 +318,20 @@ export function addBeam(
   stepDiv = 1,
   lightning = false,
 ) {
-  const bm: Beam = { x1, y1, x2, y2, r, g, b, life, maxLife: life, width, tapered, stepDiv, lightning };
+  const bm = acquireBeam();
+  bm.x1 = x1;
+  bm.y1 = y1;
+  bm.x2 = x2;
+  bm.y2 = y2;
+  bm.r = r;
+  bm.g = g;
+  bm.b = b;
+  bm.life = life;
+  bm.maxLife = life;
+  bm.width = width;
+  bm.tapered = tapered;
+  bm.stepDiv = stepDiv;
+  bm.lightning = lightning;
   beams.push(bm);
 }
 
@@ -285,24 +344,23 @@ export function addTrackingBeam(
   life: number,
   width: number,
 ) {
-  const src = unit(srcUnit);
-  const tgt = unit(tgtUnit);
-  const tb: TrackingBeam = {
-    srcUnit,
-    tgtUnit,
-    x1: src.x,
-    y1: src.y,
-    x2: tgt.x,
-    y2: tgt.y,
-    r,
-    g,
-    b,
-    life,
-    maxLife: life,
-    width,
-  };
   if (trackingBeams.length >= POOL_TRACKING_BEAMS) {
     return;
   }
+  const src = unit(srcUnit);
+  const tgt = unit(tgtUnit);
+  const tb = acquireTrackingBeam();
+  tb.srcUnit = srcUnit;
+  tb.tgtUnit = tgtUnit;
+  tb.x1 = src.x;
+  tb.y1 = src.y;
+  tb.x2 = tgt.x;
+  tb.y2 = tgt.y;
+  tb.r = r;
+  tb.g = g;
+  tb.b = b;
+  tb.life = life;
+  tb.maxLife = life;
+  tb.width = width;
   trackingBeams.push(tb);
 }

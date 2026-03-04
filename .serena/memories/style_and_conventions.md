@@ -35,6 +35,10 @@
 - Pool loop index: branded type cast (`i as UnitIndex`)
 - Japanese UI text for menu descriptions and unit abilities
 
+## Git Workflow
+- **コミットは明示的な指示があるまで行わない**。変更完了後も `git commit` を自動実行しない
+- コミットメッセージには `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` トレーラーを含める
+
 ## Anti-Patterns
 - `1 - team` returns `number` not `Team` → use `.team !== u.team`
 - Never mutate `poolCounts` directly

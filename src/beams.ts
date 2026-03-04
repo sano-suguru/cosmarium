@@ -1,4 +1,4 @@
-import type { Beam, TrackingBeam } from './types.ts';
+import type { Beam, TrackingBeam, UnitIndex } from './types.ts';
 
 export const beams: Beam[] = [];
 
@@ -18,4 +18,60 @@ export function getTrackingBeam(i: number): TrackingBeam {
     throw new RangeError(`Invalid tracking beam index: ${i}`);
   }
   return b;
+}
+
+// GC回避: ビームオブジェクトフリーリスト
+const _beamPool: Beam[] = [];
+const _trackingBeamPool: TrackingBeam[] = [];
+
+export function acquireBeam(): Beam {
+  return (
+    _beamPool.pop() ?? {
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: 0,
+      r: 0,
+      g: 0,
+      b: 0,
+      life: 0,
+      maxLife: 0,
+      width: 0,
+      tapered: false,
+      stepDiv: 1,
+      lightning: false,
+    }
+  );
+}
+
+export function releaseBeam(b: Beam): void {
+  _beamPool.push(b);
+}
+
+export function acquireTrackingBeam(): TrackingBeam {
+  return (
+    _trackingBeamPool.pop() ?? {
+      srcUnit: 0 as UnitIndex,
+      tgtUnit: 0 as UnitIndex,
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: 0,
+      r: 0,
+      g: 0,
+      b: 0,
+      life: 0,
+      maxLife: 0,
+      width: 0,
+    }
+  );
+}
+
+export function releaseTrackingBeam(tb: TrackingBeam): void {
+  _trackingBeamPool.push(tb);
+}
+
+export function clearBeamPools(): void {
+  _beamPool.length = 0;
+  _trackingBeamPool.length = 0;
 }
