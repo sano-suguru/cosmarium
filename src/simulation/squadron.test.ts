@@ -277,7 +277,7 @@ describe('snapshotSquadrons / restoreSquadrons', () => {
   });
 });
 
-describe('squad-overflow', () => {
+describe('squadron-overflow', () => {
   it('全分隊満員時に新ユニットは配属されない', () => {
     // SQUADRONS_PER_TEAM=4, SQUADRON_MAX_SIZE=20 → 80ユニットで満員
     for (let i = 0; i < 80; i++) {

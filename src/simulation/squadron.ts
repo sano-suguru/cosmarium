@@ -127,7 +127,7 @@ export function onUnitKilled(squadronIdx: SquadronIndex, victimIdx: UnitIndex, u
   }
 }
 
-/** 全スクアッドの目標タイマーを更新し、期限切れなら新目標を設定する */
+/** 全分隊の目標タイマーを更新し、期限切れなら新目標を設定する */
 export function updateSquadronObjectives(dt: number, rng: () => number): void {
   for (let si = 0; si < POOL_SQUADRONS; si++) {
     const s = squadron(si);
