@@ -217,6 +217,18 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     // 前進: x が増加（敵に近づく方向）
     expect(unit(sniper).x).toBeGreaterThan(0);
   });
+
+  it('Sniper: y軸方向でも engageMin 以内なら後退する', () => {
+    const sniper = spawnAt(0, 8, 0, 0);
+    const enemy = spawnAt(1, 1, 0, 200); // 距離200 < engageMin=300
+    unit(sniper).target = enemy;
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
+    }
+    // 後退: y が減少（敵から離れる方向）
+    expect(unit(sniper).y).toBeLessThan(0);
+  });
 });
 
 describe('steer — LANCER型', () => {

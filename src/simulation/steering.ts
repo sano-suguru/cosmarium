@@ -28,7 +28,7 @@ interface ResolveResult {
 }
 const _resolveResult = { target: NO_UNIT as UnitIndex, fx: 0, fy: 0 };
 
-const SEPARATION_SCALE = 200;
+const SEPARATION_SCALE = 400;
 const SEPARATION_WEIGHT = 3;
 const ALIGNMENT_WEIGHT = 0.5;
 const COHESION_WEIGHT = 0.01;
@@ -155,7 +155,7 @@ function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
   _boids.chy = 0;
   _boids.cc = 0;
 
-  const sd = t.size * 4;
+  const sd = t.size * 6;
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
@@ -180,7 +180,7 @@ function computeBoidsAndFindLocal(u: Unit, nn: number, t: UnitType, range: numbe
   _boids.chy = 0;
   _boids.cc = 0;
 
-  const sd = t.size * 4;
+  const sd = t.size * 6;
   const limit = range * 3;
   let bs = limit * limit;
   let bi: UnitIndex = NO_UNIT;
@@ -226,8 +226,10 @@ function computeEngagementForce(u: Unit, tgt: UnitIndex, t: UnitType, dt: number
       return _engageForce;
     }
     if (d < engageMin) {
-      _engageForce.x = -(dx / d) * t.speed;
-      _engageForce.y = (dy / d) * t.speed * 0.5;
+      const urgency = 1 - d / engageMin;
+      const mult = 1 + urgency;
+      _engageForce.x = -(dx / d) * t.speed * mult;
+      _engageForce.y = -(dy / d) * t.speed * mult;
       return _engageForce;
     }
     _engageForce.x = (-dy / d) * t.speed * 0.8;
