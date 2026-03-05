@@ -4,7 +4,7 @@ import type { Team } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
-import { assignToSquad } from './squad.ts';
+import { assignToSquadron } from './squadron.ts';
 
 // Reinforcement spawn probability distribution:
 // Each wave spawns 8 Drones + 2 Fighters as baseline, then rolls r∈[0,1)
@@ -66,7 +66,7 @@ function spawnWave(team: Team, cnt: number, rng: () => number) {
   const s = (tp: number, spread: number) => {
     const idx = spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
     if (idx !== NO_UNIT) {
-      assignToSquad(idx, team);
+      assignToSquadron(idx, team);
     }
   };
   for (let i = 0; i < 8; i++) {

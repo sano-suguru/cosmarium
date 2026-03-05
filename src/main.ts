@@ -34,7 +34,7 @@ import { resize } from './renderer/webgl-setup.ts';
 import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
-import { onUnitKilled } from './simulation/squad.ts';
+import { onUnitKilled } from './simulation/squadron.ts';
 import type { BattlePhase, GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
@@ -138,7 +138,7 @@ onKillUnitPermanent((e) => {
   if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') {
     addEnemyKill();
   }
-  onUnitKilled(e.victimSquadIdx, e.victim, getUnitHWM());
+  onUnitKilled(e.victimSquadronIdx, e.victim, getUnitHWM());
 });
 
 let lastTime = 0,

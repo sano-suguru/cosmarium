@@ -25,7 +25,7 @@ import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
-import { renderSquadTethers } from './squad-tether.ts';
+import { renderSquadronTethers } from './squadron-tether.ts';
 
 const VET_TINT_FACTOR = 0.15;
 /** vet リングの基本サイズ倍率 */
@@ -535,7 +535,7 @@ function renderBeams(now: number) {
     }
   }
   renderTrackingBeams(now);
-  renderSquadTethers(now, writeBeam, isSegmentVisible);
+  renderSquadronTethers(now, writeBeam, isSegmentVisible);
 }
 
 /**

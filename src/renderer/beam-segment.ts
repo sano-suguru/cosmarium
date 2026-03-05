@@ -1,6 +1,6 @@
 /**
  * ビームセグメント描画の共通視覚パラメータとヘルパー。
- * renderBeams / renderTrackingBeams / renderSquadTethers が共有する
+ * renderBeams / renderTrackingBeams / renderSquadronTethers が共有する
  * フリッカー・幅オシレーション・ステップ数計算を集約する。
  */
 

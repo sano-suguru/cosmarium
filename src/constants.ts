@@ -11,8 +11,8 @@ export const POOL_PROJECTILES = 6000;
 export const POOL_TRACKING_BEAMS = 200;
 export const WORLD_SIZE = 4000;
 
-export const SQUADS_PER_TEAM = 4;
-export const POOL_SQUADS = SQUADS_PER_TEAM * MAX_TEAMS;
+export const SQUADRONS_PER_TEAM = 4;
+export const POOL_SQUADRONS = SQUADRONS_PER_TEAM * MAX_TEAMS;
 
 /** ビーム消灯時の減衰速度（sweep / focus / flagship 共通） */
 export const BEAM_DECAY_RATE = 3;

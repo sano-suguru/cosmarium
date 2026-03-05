@@ -4,7 +4,7 @@ import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
-import { computeSquadCohesion, computeSquadLeaderObjective, computeSquadLeashFactor } from './squad.ts';
+import { computeSquadronCohesion, computeSquadronLeaderObjective, computeSquadronLeashFactor } from './squadron.ts';
 import { nearestEnemyCenter } from './team-center.ts';
 
 interface SteerForce {
@@ -18,8 +18,8 @@ const _boidsForce: SteerForce = { x: 0, y: 0 };
 const _engageForce: SteerForce = { x: 0, y: 0 };
 const _retreatForce: SteerForce = { x: 0, y: 0 };
 const _healForce: SteerForce = { x: 0, y: 0 };
-const _squadCohesionOut: SteerForce = { x: 0, y: 0 };
-const _squadObjOut: SteerForce = { x: 0, y: 0 };
+const _squadronCohesionOut: SteerForce = { x: 0, y: 0 };
+const _squadronObjOut: SteerForce = { x: 0, y: 0 };
 
 interface ResolveResult {
   readonly target: UnitIndex;
@@ -511,7 +511,7 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
 
   const engage = computeEngagementForce(u, res.target, t, dt, rng);
   const supportScale = 1 - t.supportFollow * 0.6;
-  const leashFactor = computeSquadLeashFactor(u, ui);
+  const leashFactor = computeSquadronLeashFactor(u, ui);
   const engageAtten = (1 - retreatUrgency) * supportScale * leashFactor;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
@@ -527,13 +527,13 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
     fy += heal.y * followWeight;
   }
 
-  computeSquadCohesion(u, ui, _squadCohesionOut);
-  fx += _squadCohesionOut.x;
-  fy += _squadCohesionOut.y;
+  computeSquadronCohesion(u, ui, _squadronCohesionOut);
+  fx += _squadronCohesionOut.x;
+  fy += _squadronCohesionOut.y;
 
-  computeSquadLeaderObjective(u, ui, res.target !== NO_UNIT, t.speed, _squadObjOut);
-  fx += _squadObjOut.x;
-  fy += _squadObjOut.y;
+  computeSquadronLeaderObjective(u, ui, res.target !== NO_UNIT, t.speed, _squadronObjOut);
+  fx += _squadronObjOut.x;
+  fy += _squadronObjOut.y;
 
   const m = WORLD_SIZE * BOUNDARY_MARGIN;
   if (u.x < -m) {
