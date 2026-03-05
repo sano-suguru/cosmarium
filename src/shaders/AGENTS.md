@@ -1,6 +1,6 @@
 # Shaders AGENTS.md
 
-> GLSLシェーダの変更ガイド。Shape IDやSDF定義は`main.frag.glsl`が正。
+> GLSLシェーダの変更ガイド。Shape定義は`includes/shapes/`配下のファイルが正。
 
 ## #includeメカニズム
 
@@ -10,9 +10,12 @@
 
 | ファイル | 役割 |
 |---------|------|
-| main.frag.glsl | shape ID別SDF描画。#include sdf.glsl, shape-count.glsl。最大ファイル |
+| main.frag.glsl | 4配列(RIM_THRESH等) + main() + #include。76行 |
+| includes/shapes/unit-shapes.glsl | ユニットshape SDF (sh==0〜18)。`[SHAPE:ID Name]`マーカー付き |
+| includes/shapes/effect-shapes.glsl | エフェクトshape SDF (sh==19〜28)。`[SHAPE:ID Name]`マーカー付き |
 | includes/sdf.glsl | hexDist, octDist, manDist |
 | includes/shape-count.glsl | `#define NUM_SHAPES 29` — 4配列サイズ+clampの一元管理 |
+| shape-sync.test.ts | NUM_SHAPES同期バリデーション（GLSL↔TS） |
 | main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
 | bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
 | composite.frag.glsl | vignette + Reinhardトーンマップ。uS,uB |
@@ -58,14 +61,27 @@
 | 27 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |
 | 28 | Bar (SH_BAR) | HPバー (背景+前景) |
 
+## セクションマーカー規約
+
+各shapeブロックの直前に `// [SHAPE:ID Name]` マーカーを記述する:
+
+```glsl
+  // [SHAPE:13 Teleporter] ————————————————————————————
+  else if(sh==13){ vec2 p=vU*0.66; ...
+```
+
+- `grep '\[SHAPE:13'` で該当shapeに即座にジャンプ可能
+- 4配列のコメントも `[ID:Name]` 形式で統一（例: `// [0:Drone] [1:Fighter] ...`）
+
 ## 新Shape追加手順
 
 1. `includes/shape-count.glsl` の `NUM_SHAPES` を +1
 2. `main.frag.glsl` — 4配列（RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT）に要素を追加
-3. `main.frag.glsl` — 最後の`else if`の前に`else if(sh==次のID)`を追加
+3. ユニットshapeなら `includes/shapes/unit-shapes.glsl`、エフェクトなら `includes/shapes/effect-shapes.glsl` に `else if(sh==次のID)` を追加。直前に `// [SHAPE:ID Name]` マーカーを付与
 4. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `octDist`, `manDist`）
-5. `unit-types.ts` — 該当ユニットの`sh`に新IDを設定
-6. 描画確認はブラウザのみ
+5. `unit-types.ts` — 該当ユニットの`shape`に新IDを設定
+6. `bunx vitest run src/shaders/shape-sync.test.ts` で同期テスト通過を確認
+7. 描画確認はブラウザのみ
 
 > `minimap.frag.glsl`は変更不要 — SDFを使わず色をそのまま出力するため。
 
