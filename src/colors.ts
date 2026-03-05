@@ -24,6 +24,11 @@ function pastelNeon(c: Color3): string {
 }
 export const TEAM_UI_HEX_COLORS: Readonly<TeamTuple<string>> = TEAM_BASE.map(pastelNeon) as TeamTuple<string>;
 
+/** 分隊テザー等で使用するチーム基本色 */
+export function teamBaseColor(tm: Team): Readonly<Color3> {
+  return TEAM_BASE[tm];
+}
+
 interface UnitColorMod {
   readonly hue: number; // -0.5 .. +0.5  colour lean (HSL turns)
   readonly lum: number; // 0.6 .. 1.4    brightness

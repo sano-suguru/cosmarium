@@ -241,3 +241,19 @@ export function restoreSquads(): void {
     }
   }
 }
+
+/** テザー描画対象のリーダーを返す。リーダー自身・未所属・リーダー死亡時は NO_UNIT */
+export function getSquadTetherTarget(u: Unit, i: UnitIndex): UnitIndex {
+  if (u.squadIdx === NO_SQUAD) {
+    return NO_UNIT;
+  }
+  const s = squad(u.squadIdx);
+  if (!s.alive || s.leader === NO_UNIT || s.leader === i) {
+    return NO_UNIT;
+  }
+  const leader = unit(s.leader);
+  if (!leader.alive) {
+    return NO_UNIT;
+  }
+  return s.leader;
+}

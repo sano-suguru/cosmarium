@@ -23,7 +23,9 @@ import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, pro
 import type { Beam, Color3, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
+import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
+import { renderSquadTethers } from './squad-tether.ts';
 
 const VET_TINT_FACTOR = 0.15;
 /** vet リングの基本サイズ倍率 */
@@ -83,10 +85,6 @@ const EXPLOSION_RING_DECAY = 1.7;
 
 /** ライトニングビームの垂直逸脱倍率 */
 const LIGHTNING_DEVIATION_FACTOR = 4;
-/** 通常ビームの sin 振幅 */
-const BEAM_SIN_AMPLITUDE = 0.25;
-/** 通常ビームの最大幅倍率 (カリング用、振幅から導出) */
-const BEAM_WIDTH_OSCILLATION = 1 + BEAM_SIN_AMPLITUDE;
 
 /**
  * カリング境界 — renderScene() のみが毎フレーム設定するモジュールレベル状態。
@@ -478,25 +476,25 @@ function renderTrackingBeams(now: number) {
     const y1 = src.alive ? lerpY(src) : tb.y1;
     const x2 = tgt.alive ? lerpX(tgt) : tb.x2;
     const y2 = tgt.alive ? lerpY(tgt) : tb.y2;
-    if (!isSegmentVisible(x1, y1, x2, y2, tb.width * BEAM_WIDTH_OSCILLATION)) {
+    if (!isSegmentVisible(x1, y1, x2, y2, tb.width * BEAM_MAX_WIDTH_SCALE)) {
       continue;
     }
     const dx = x2 - x1,
       dy = y2 - y1;
     const d = Math.sqrt(dx * dx + dy * dy);
-    const steps = Math.max(3, (d / 5) | 0);
+    const steps = beamSegmentCount(d);
     const ang = Math.atan2(dy, dx);
     for (let j = 0; j <= steps; j++) {
       const t = j / steps;
-      const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
+      const fl = beamFlicker(j, now);
       writeBeam(
         x1 + dx * t,
         y1 + dy * t,
-        tb.width * (1 + Math.sin(j * 0.6 + now * 25) * BEAM_SIN_AMPLITUDE),
+        tb.width * beamWidthScale(j, now),
         tb.r * al * fl,
         tb.g * al * fl,
         tb.b * al * fl,
-        al * 0.85,
+        al * BEAM_ALPHA,
         ang,
       );
     }
@@ -506,7 +504,7 @@ function renderTrackingBeams(now: number) {
 function renderBeams(now: number) {
   for (let i = 0; i < beams.length; i++) {
     const bm = getBeam(i);
-    const beamHW = bm.lightning ? bm.width * LIGHTNING_DEVIATION_FACTOR : bm.width * BEAM_WIDTH_OSCILLATION;
+    const beamHW = bm.lightning ? bm.width * LIGHTNING_DEVIATION_FACTOR : bm.width * BEAM_MAX_WIDTH_SCALE;
     if (!isSegmentVisible(bm.x1, bm.y1, bm.x2, bm.y2, beamHW)) {
       continue;
     }
@@ -514,30 +512,30 @@ function renderBeams(now: number) {
     const dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
     const d = Math.sqrt(dx * dx + dy * dy);
-    const divisor = bm.stepDiv;
-    const steps = Math.max(3, (d / (5 * divisor)) | 0);
+    const steps = beamSegmentCount(d, bm.stepDiv);
     const ang = Math.atan2(dy, dx);
     if (bm.lightning) {
       renderLightningBeam(bm, now, al, dx, dy, d, ang);
     } else {
       for (let j = 0; j <= steps; j++) {
         const t = j / steps;
-        const fl = 0.7 + Math.sin(j * 2.5 + now * 35) * 0.3;
+        const fl = beamFlicker(j, now);
         const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
         writeBeam(
           bm.x1 + dx * t,
           bm.y1 + dy * t,
-          bm.width * (1 + Math.sin(j * 0.6 + now * 25) * BEAM_SIN_AMPLITUDE) * tipScale,
+          bm.width * beamWidthScale(j, now) * tipScale,
           bm.r * al * fl,
           bm.g * al * fl,
           bm.b * al * fl,
-          al * 0.85,
+          al * BEAM_ALPHA,
           ang,
         );
       }
     }
   }
   renderTrackingBeams(now);
+  renderSquadTethers(now, writeBeam, isSegmentVisible);
 }
 
 /**
