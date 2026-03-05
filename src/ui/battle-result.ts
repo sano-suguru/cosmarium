@@ -206,27 +206,6 @@ function buildScoreRow(
   return row;
 }
 
-function buildTimelineRow(evTeam: Team, evElapsed: number, delayIndex: number): HTMLDivElement {
-  const hex = teamUiHex(evTeam);
-  const row = document.createElement('div');
-  row.className = 'melee-timeline-row';
-  row.style.animationDelay = `${delayIndex * 0.08}s`;
-
-  const time = document.createElement('span');
-  time.className = 'melee-timeline-time';
-  time.textContent = formatTime(evElapsed);
-
-  const label = document.createElement('span');
-  label.className = 'melee-timeline-label';
-
-  const text = document.createElement('span');
-  text.textContent = `TEAM ${evTeam + 1} 全滅`;
-
-  label.append(makeTeamDot(hex), text);
-  row.append(time, label);
-  return row;
-}
-
 function renderMeleeTitle(el: HTMLElement, result: MeleeResult) {
   if (result.winnerTeam !== null) {
     const hex = teamUiHex(result.winnerTeam);
@@ -297,21 +276,6 @@ export function showMeleeResult(result: MeleeResult) {
       continue;
     }
     d.stats.appendChild(buildScoreRow(rank, teamIdx, stats, elimMap, maxKills));
-  }
-
-  if (result.eliminations.length > 0) {
-    const tlHeader = document.createElement('div');
-    tlHeader.className = 'melee-section-header';
-    tlHeader.textContent = 'ELIMINATION TIMELINE';
-    d.stats.appendChild(tlHeader);
-
-    for (let i = 0; i < result.eliminations.length; i++) {
-      const ev = result.eliminations[i];
-      if (!ev) {
-        continue;
-      }
-      d.stats.appendChild(buildTimelineRow(ev.team, ev.elapsed, ranking.length + i));
-    }
   }
 
   // MELEE: RECOMPOSE/REMATCH を非表示、MENU のみ

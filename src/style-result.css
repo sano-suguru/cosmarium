@@ -311,32 +311,6 @@
   text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
 }
 
-.melee-timeline-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 12px;
-  color: #aaa;
-  padding: 4px 10px;
-  border-left: 1px solid rgba(0, 255, 255, 0.12);
-  margin-left: 18px;
-  opacity: 0;
-  animation: melee-row-in 0.4s ease-out forwards;
-}
-.melee-timeline-time {
-  color: #0ff;
-  min-width: 40px;
-  text-align: right;
-  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
-  font-variant-numeric: tabular-nums;
-}
-.melee-timeline-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 @keyframes melee-row-in {
   from {
     opacity: 0;
@@ -378,10 +352,6 @@
     min-width: 72px;
   }
   .melee-kills {
-    font-size: 11px;
-  }
-  .melee-timeline-row {
-    margin-left: 10px;
     font-size: 11px;
   }
 }
