@@ -24,7 +24,7 @@ import {
   resetMeleeTracking,
   setOnMeleeFinalize,
 } from './melee-tracker.ts';
-import { teamUnitCounts } from './pools.ts';
+import { getUnitHWM, teamUnitCounts } from './pools.ts';
 import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
@@ -33,6 +33,7 @@ import { resize } from './renderer/webgl-setup.ts';
 import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
+import { onUnitKilled } from './simulation/squad.ts';
 import type { BattlePhase, GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
@@ -138,6 +139,7 @@ onKillUnitPermanent((e) => {
   if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') {
     addEnemyKill();
   }
+  onUnitKilled(e.victimSquadIdx, e.victim, getUnitHWM());
 });
 
 // --- Frame loop ---

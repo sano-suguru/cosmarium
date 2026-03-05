@@ -3,7 +3,7 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
-import type { UnitType } from '../types.ts';
+import type { UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -36,7 +36,7 @@ describe('steer — スタン', () => {
     const xBefore = u.x;
     const yBefore = u.y;
     buildHash();
-    steer(u, 0.016, rng);
+    steer(u, idx, 0.016, rng);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
     const mass = unitType(1).mass;
     const expectedDrag = (STUN_DRAG_BASE ** (1 / Math.sqrt(mass))) ** (0.016 * REF_FPS);
@@ -53,7 +53,7 @@ describe('steer — スタン', () => {
     u.target = NO_UNIT;
     buildHash();
     const angBefore = u.angle;
-    steer(u, 0.016, rng);
+    steer(u, idx, 0.016, rng);
     // angle はスタン中変化しない
     expect(u.angle).toBe(angBefore);
   });
@@ -71,8 +71,8 @@ describe('steer — スタン', () => {
     uFlagship.vy = 0;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(uDrone, 1 / 30, rng);
-      steer(uFlagship, 1 / 30, rng);
+      steer(uDrone, droneIdx, 1 / 30, rng);
+      steer(uFlagship, flagshipIdx, 1 / 30, rng);
     }
     expect(uFlagship.vx).toBeGreaterThan(uDrone.vx);
   });
@@ -87,7 +87,7 @@ describe('steer — ベテラン速度', () => {
     buildHash();
     // 長めのdtで速度を安定させる
     for (let i = 0; i < 100; i++) {
-      steer(u, 0.033, rng);
+      steer(u, idx, 0.033, rng);
     }
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
     const t = unitType(1);
@@ -111,8 +111,8 @@ describe('steer — ベテラン速度', () => {
 
     buildHash();
     for (let i = 0; i < 100; i++) {
-      steer(u0, 0.033, rng);
-      steer(u2, 0.033, rng);
+      steer(u0, i0, 0.033, rng);
+      steer(u2, i2, 0.033, rng);
     }
     const spd0 = Math.sqrt(u0.vx * u0.vx + u0.vy * u0.vy);
     const spd2 = Math.sqrt(u2.vx * u2.vx + u2.vy * u2.vy);
@@ -126,7 +126,7 @@ describe('steer — ターゲット探索', () => {
     const nearEnemy = spawnAt(1, 1, 80, 0);
     spawnAt(1, 1, 150, 0);
     buildHash();
-    steer(unit(ally), 0.016, rng);
+    steer(unit(ally), ally as UnitIndex, 0.016, rng);
     expect(unit(ally).target).toBe(nearEnemy);
   });
 
@@ -137,7 +137,7 @@ describe('steer — ターゲット探索', () => {
     unit(nearEnemy).vet = 0;
     unit(vetEnemy).vet = 2;
     buildHash();
-    steer(unit(ally), 0.016, rng);
+    steer(unit(ally), ally as UnitIndex, 0.016, rng);
     // score: 80/(1+0)=80 vs 100/(1+0.6)=62.5 → vet=2が選ばれる
     expect(unit(ally).target).toBe(vetEnemy);
   });
@@ -149,7 +149,7 @@ describe('steer — ターゲット探索', () => {
     unit(nearEnemy).vet = 0;
     unit(farVetEnemy).vet = 2;
     buildHash();
-    steer(unit(ally), 0.016, rng);
+    steer(unit(ally), ally as UnitIndex, 0.016, rng);
     // score: 80/(1+0)=80 vs 300/(1+0.6)=187.5 → 近い敵が選ばれる
     expect(unit(ally).target).toBe(nearEnemy);
   });
@@ -160,7 +160,7 @@ describe('steer — ターゲット探索', () => {
     unit(ally).target = enemy;
     unit(enemy).alive = false;
     buildHash();
-    steer(unit(ally), 0.016, rng);
+    steer(unit(ally), ally as UnitIndex, 0.016, rng);
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
@@ -175,7 +175,7 @@ describe('steer — massWeight ターゲット優先', () => {
     spawnAt(1, 0, 100, 0); // Drone mass=1, 距離100
     const flagship = spawnAt(1, 4, 180, 0); // Flagship mass=30, 距離180（neighbor radius 200以内）
     buildHash();
-    steer(unit(sniper), 0.016, rng);
+    steer(unit(sniper), sniper as UnitIndex, 0.016, rng);
     // score(drone) = 100²/(1.15²) = 10000/1.3225 ≈ 7561
     // score(flagship) = 180²/((1+0.15*30)²) = 32400/30.25 ≈ 1071
     // → Flagship が優先される
@@ -188,7 +188,7 @@ describe('steer — massWeight ターゲット優先', () => {
     const drone = spawnAt(1, 0, 100, 0); // 距離100
     spawnAt(1, 4, 300, 0); // Flagship 距離300
     buildHash();
-    steer(unit(fighter), 0.016, rng);
+    steer(unit(fighter), fighter as UnitIndex, 0.016, rng);
     expect(unit(fighter).target).toBe(drone);
   });
 });
@@ -200,7 +200,7 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(sniper), 0.033, rng);
+      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
     }
     // 後退: x が減少（敵から離れる方向）
     expect(unit(sniper).x).toBeLessThan(0);
@@ -212,7 +212,7 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(sniper), 0.033, rng);
+      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
     }
     // 前進: x が増加（敵に近づく方向）
     expect(unit(sniper).x).toBeGreaterThan(0);
@@ -225,7 +225,7 @@ describe('steer — LANCER型', () => {
     const enemy = spawnAt(1, 1, 200, 0);
     unit(lancer).target = enemy;
     buildHash();
-    steer(unit(lancer), 0.033, rng);
+    steer(unit(lancer), lancer as UnitIndex, 0.033, rng);
     // ターゲットはx正方向なので、vxが正方向に増加
     expect(unit(lancer).vx).toBeGreaterThan(0);
   });
@@ -238,7 +238,7 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(healer), 0.033, rng);
+      steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
     expect(unit(healer).x).toBeGreaterThan(0);
@@ -252,7 +252,7 @@ describe('steer — ヒーラー追従', () => {
     unit(drone).hp = unit(drone).maxHp * 0.5;
     buildHash();
     for (let i = 0; i < 60; i++) {
-      steer(unit(healer), 0.033, rng);
+      steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Drone (y=100) のHP減少スコアが高い → y正方向に移動
     expect(unit(healer).y).toBeGreaterThan(0);
@@ -267,7 +267,7 @@ describe('steer — ヒーラー追従', () => {
     unit(flagship).hp = unit(flagship).maxHp * 0.5;
     buildHash();
     for (let i = 0; i < 60; i++) {
-      steer(unit(healer), 0.033, rng);
+      steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Flagship (y=100) のmassタイブレーカーで勝つ → y正方向に移動
     expect(unit(healer).y).toBeGreaterThan(0);
@@ -284,7 +284,7 @@ describe('steer — ワールド境界', () => {
     u.target = NO_UNIT;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(u, 0.033, rng);
+      steer(u, idx, 0.033, rng);
     }
     // 境界の外側にいるので内側（左方向）に力
     expect(u.x).toBeLessThan(outsideX);
@@ -299,7 +299,7 @@ describe('steer — ワールド境界', () => {
     u.target = NO_UNIT;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(u, 0.033, rng);
+      steer(u, idx, 0.033, rng);
     }
     // y < -WORLD_SIZE*BOUNDARY_MARGIN なので上方向（yが増える方向）に力
     expect(u.y).toBeGreaterThan(-outsideY);
@@ -315,8 +315,8 @@ describe('steer — Boids Separation', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(unit(u1), 0.033, rng);
-      steer(unit(u2), 0.033, rng);
+      steer(unit(u1), u1 as UnitIndex, 0.033, rng);
+      steer(unit(u2), u2 as UnitIndex, 0.033, rng);
     }
     expect(unit(u1).x).toBeLessThan(unit(u2).x);
   });
@@ -335,8 +335,8 @@ describe('steer — Boids Separation', () => {
     buildHash();
     for (let i = 0; i < 10; i++) {
       buildHash();
-      steer(unit(drone), 0.033, rng);
-      steer(unit(flagship), 0.033, rng);
+      steer(unit(drone), drone as UnitIndex, 0.033, rng);
+      steer(unit(flagship), flagship as UnitIndex, 0.033, rng);
     }
     const droneDrift = Math.abs(unit(drone).x - droneStartX);
     const flagshipDrift = Math.abs(unit(flagship).x - flagshipStartX);
@@ -358,7 +358,7 @@ describe('steer — Boids Alignment', () => {
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(unit(subject), 0.033, rng);
+      steer(unit(subject), subject as UnitIndex, 0.033, rng);
     }
     expect(unit(subject).vx).toBeGreaterThan(0);
   });
@@ -374,7 +374,7 @@ describe('steer — Boids Cohesion', () => {
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(unit(loner), 0.033, rng);
+      steer(unit(loner), loner as UnitIndex, 0.033, rng);
     }
     expect(unit(loner).x).toBeGreaterThan(0);
   });
@@ -393,7 +393,7 @@ describe('steer — accel/drag慣性', () => {
     // 前提: spawnAt の固定rng (()=>0) により wanderAngle=0。
     //   target=NO_UNIT → wander force = (cos(0)*220*0.5, sin(0)*...) = (110, 0)
     //   angle=0 と一致するため da=0 → angle 変化なし → cos(angle)=1 が維持される
-    steer(u, 0.016, rng);
+    steer(u, idx, 0.016, rng);
     // 新モデル: response = dt * t.accel = 0.016 * 10.0 = 0.16
     // u.type = 0 (Drone) の速度は220
     // vx delta = (220 - 0) * 0.16 = 35.2
@@ -421,8 +421,8 @@ describe('steer — accel/drag慣性', () => {
 
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(fastU, 0.016, rng);
-      steer(slowU, 0.016, rng);
+      steer(fastU, fast, 0.016, rng);
+      steer(slowU, slow, 0.016, rng);
     }
 
     const fastSpeed = Math.sqrt(fastU.vx ** 2 + fastU.vy ** 2);
@@ -438,7 +438,7 @@ describe('steer — accel/drag慣性', () => {
 
     for (let i = 0; i < 500; i++) {
       buildHash();
-      steer(u, 0.016, rng);
+      steer(u, idx, 0.016, rng);
     }
 
     expect(u.x).toBeLessThan(startX);
@@ -456,7 +456,7 @@ describe('steer — accel/drag physics', () => {
     buildHash();
 
     for (let i = 0; i < 10; i++) {
-      steer(u, 1 / 30, rng);
+      steer(u, idx, 1 / 30, rng);
     }
 
     const speed = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
@@ -474,7 +474,7 @@ describe('steer — accel/drag physics', () => {
     buildHash();
 
     for (let i = 0; i < 50; i++) {
-      steer(u, 1 / 30, rng);
+      steer(u, idx, 1 / 30, rng);
     }
 
     const speed = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
@@ -494,7 +494,7 @@ describe('steer — accel/drag physics', () => {
     const initialSpeed = Math.sqrt(u.vx ** 2 + u.vy ** 2);
 
     for (let i = 0; i < 10; i++) {
-      steer(u, 1 / 30, rng);
+      steer(u, idx, 1 / 30, rng);
     }
 
     const finalSpeed = Math.sqrt(u.vx ** 2 + u.vy ** 2);
@@ -525,8 +525,8 @@ describe('steer — accel/drag physics', () => {
 
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(uDrone, 1 / 30, rng);
-      steer(uLancer, 1 / 30, rng);
+      steer(uDrone, drone, 1 / 30, rng);
+      steer(uLancer, lancer, 1 / 30, rng);
     }
 
     const droneSpeed = Math.sqrt(uDrone.vx ** 2 + uDrone.vy ** 2);
@@ -546,7 +546,7 @@ describe('steer — accel/drag physics', () => {
     buildHash();
 
     for (let i = 0; i < 30; i++) {
-      steer(u, 1 / 30, rng);
+      steer(u, idx, 1 / 30, rng);
     }
 
     expect(u.x).toBeGreaterThan(xBefore + 100);
@@ -582,7 +582,7 @@ describe('steer — boost mechanism', () => {
     u.target = u2;
     buildHash();
 
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
     expect(u.boostTimer).toBeGreaterThan(0);
   });
 
@@ -597,7 +597,7 @@ describe('steer — boost mechanism', () => {
     u.vy = 0;
     buildHash();
 
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
 
     // spd = 220 * 1.0 = 220, bv = 220 * 2.5 = 550, ターゲットは x=150 方向
     const speed = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
@@ -613,7 +613,7 @@ describe('steer — boost mechanism', () => {
     u.boostTimer = 0.02;
     buildHash();
 
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
 
     expect(u.boostTimer).toBe(0);
     expect(u.boostCooldown).toBeCloseTo(3.0);
@@ -628,7 +628,7 @@ describe('steer — boost mechanism', () => {
     u.stun = 1.0;
     buildHash();
 
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
 
     expect(u.boostTimer).toBe(0);
     expect(u.boostCooldown).toBeCloseTo(3.0 - 1 / 30);
@@ -643,7 +643,7 @@ describe('steer — boost mechanism', () => {
     u.stun = 1.0;
     buildHash();
 
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
 
     expect(u.boostCooldown).toBeCloseTo(2.0 - 1 / 30);
   });
@@ -656,7 +656,7 @@ describe('steer — boost mechanism', () => {
     buildHash();
 
     for (let i = 0; i < 30; i++) {
-      steer(u, 1 / 30, rng);
+      steer(u, idx, 1 / 30, rng);
     }
 
     expect(u.boostTimer).toBe(0);
@@ -676,12 +676,12 @@ describe('steer — boost mechanism', () => {
     buildHash();
 
     // Tick 1: stun active → boost interrupted, cooldown set
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
     expect(u.boostTimer).toBe(0);
     expect(u.boostCooldown).toBeGreaterThan(0);
 
     // Tick 2: stun expired but cooldown remains → no new boost
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
     expect(u.boostTimer).toBe(0);
     expect(u.boostCooldown).toBeGreaterThan(0);
   });
@@ -716,7 +716,7 @@ describe('steer — HP退避ポテンシャル', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(u, 0.033, rng);
+      steer(u, ally, 0.033, rng);
     }
     // 敵(x=60)から離れる → x方向に後退
     expect(u.x).toBeLessThan(0);
@@ -733,7 +733,7 @@ describe('steer — HP退避ポテンシャル', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(u, 0.033, rng);
+      steer(u, ally, 0.033, rng);
     }
     // 退避なし → 敵に向かって接近
     expect(u.x).toBeGreaterThan(0);
@@ -759,8 +759,8 @@ describe('steer — HP退避ポテンシャル', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(uMild, 0.033, rng);
-      steer(uSevere, 0.033, rng);
+      steer(uMild, mild, 0.033, rng);
+      steer(uSevere, severe, 0.033, rng);
     }
     // 重傷ユニットの方がより大きく後退
     expect(uSevere.x).toBeLessThan(uMild.x);
@@ -778,7 +778,7 @@ describe('steer — HP退避ポテンシャル', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(u, 0.033, rng);
+      steer(u, drone, 0.033, rng);
     }
     // 退避なし → 敵方向に移動
     expect(u.x).toBeGreaterThan(0);
@@ -793,7 +793,7 @@ describe('steer — HP退避ポテンシャル', () => {
     const enemy = spawnAt(1, 1, 80, 0);
     u.target = enemy;
     buildHash();
-    steer(u, 0.033, rng);
+    steer(u, ally, 0.033, rng);
     // ターゲットはクリアされない
     expect(u.target).toBe(enemy);
   });
@@ -817,8 +817,8 @@ describe('steer — HP退避ポテンシャル', () => {
 
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(uIn, 0.033, rng);
-      steer(uOut, 0.033, rng);
+      steer(uIn, inRange, 0.033, rng);
+      steer(uOut, outRange, 0.033, rng);
     }
     // 近傍内の敵からは退避するので、より大きく後退する
     expect(uIn.x).toBeLessThan(uOut.x);
@@ -841,8 +841,8 @@ describe('steer — Catalyst バフ', () => {
 
     buildHash();
     for (let i = 0; i < 100; i++) {
-      steer(uCat, 0.033, rng);
-      steer(uRef, 0.033, rng);
+      steer(uCat, catIdx, 0.033, rng);
+      steer(uRef, refIdx, 0.033, rng);
     }
 
     const spdCat = Math.sqrt(uCat.vx ** 2 + uCat.vy ** 2);
@@ -869,8 +869,8 @@ describe('steer — Catalyst バフ', () => {
 
     buildHash();
     // 1ステップだけ回して角度変化量を比較
-    steer(uCat, 0.033, rng);
-    steer(uRef, 0.033, rng);
+    steer(uCat, catIdx, 0.033, rng);
+    steer(uRef, refIdx, 0.033, rng);
 
     const daCat = Math.abs(uCat.angle);
     const daRef = Math.abs(uRef.angle);
@@ -885,7 +885,7 @@ describe('steer — Catalyst バフ', () => {
     u.vet = 0;
     buildHash();
     for (let i = 0; i < 100; i++) {
-      steer(u, 0.033, rng);
+      steer(u, idx, 0.033, rng);
     }
 
     const spd = Math.sqrt(u.vx ** 2 + u.vy ** 2);
@@ -931,8 +931,8 @@ describe('steer — Catalyst バフ', () => {
     uRef.target = enemy2;
 
     buildHash();
-    steer(uCat, 1 / 30, rng);
-    steer(uRef, 1 / 30, rng);
+    steer(uCat, u1, 1 / 30, rng);
+    steer(uRef, u2, 1 / 30, rng);
 
     // 両方ブーストが発動
     expect(uCat.boostTimer).toBeGreaterThan(0);
@@ -955,7 +955,7 @@ describe('steer — Catalyst バフ', () => {
     uCat.catalystTimer = 1.0;
     uCat.boostTimer = 0.02; // 次tickで期限切れ
     buildHash();
-    steer(uCat, 1 / 30, rng);
+    steer(uCat, u1, 1 / 30, rng);
 
     // バフ無し
     const u2 = spawnAt(0, 0, 500, 500);
@@ -963,7 +963,7 @@ describe('steer — Catalyst バフ', () => {
     uRef.catalystTimer = 0;
     uRef.boostTimer = 0.02;
     buildHash();
-    steer(uRef, 1 / 30, rng);
+    steer(uRef, u2, 1 / 30, rng);
 
     expect(uCat.boostCooldown).toBeCloseTo(boost.cooldown * CATALYST_BOOST_CD_MULT);
     expect(uRef.boostCooldown).toBeCloseTo(boost.cooldown);
@@ -980,7 +980,7 @@ describe('steer — Catalyst バフ', () => {
     const e1 = spawnAt(1, 0, 50, 0);
     uCat.target = e1;
     buildHash();
-    steer(uCat, 1 / 30, rng);
+    steer(uCat, u1, 1 / 30, rng);
 
     // バフ無し
     const u2 = spawnAt(0, 0, 500, 500);
@@ -989,7 +989,7 @@ describe('steer — Catalyst バフ', () => {
     const e2 = spawnAt(1, 0, 550, 500);
     uRef.target = e2;
     buildHash();
-    steer(uRef, 1 / 30, rng);
+    steer(uRef, u2, 1 / 30, rng);
 
     expect(uCat.boostTimer).toBeCloseTo(boost.duration * CATALYST_BOOST_DUR_MULT);
     expect(uRef.boostTimer).toBeCloseTo(boost.duration);
@@ -1014,8 +1014,8 @@ describe('steer — Catalyst バフ', () => {
     uRef.target = enemy2;
 
     buildHash();
-    steer(uCat, 1 / 30, rng);
-    steer(uRef, 1 / 30, rng);
+    steer(uCat, u1, 1 / 30, rng);
+    steer(uRef, u2, 1 / 30, rng);
 
     expect(uCat.boostTimer).toBeGreaterThan(0); // バフ有り: 発動
     expect(uRef.boostTimer).toBe(0); // バフ無し: 範囲外
@@ -1030,7 +1030,7 @@ describe('steer — Catalyst バフ', () => {
     u.catalystTimer = 0;
     u.boostTimer = 0.02;
     buildHash();
-    steer(u, 1 / 30, rng);
+    steer(u, u1, 1 / 30, rng);
 
     // cooldown は通常値
     expect(u.boostCooldown).toBeCloseTo(boost.cooldown);
@@ -1060,7 +1060,7 @@ describe('steer — seek（敵重心への誘導）', () => {
     for (let i = 0; i < 100; i++) {
       buildHash();
       overrideCenters(u, [{ x: 1000, y: 0 }]);
-      steer(u, 0.016, rng);
+      steer(u, idx, 0.016, rng);
     }
 
     // seek により x 正方向（敵重心方向）へ移動
@@ -1078,7 +1078,7 @@ describe('steer — seek（敵重心への誘導）', () => {
     for (let i = 0; i < 100; i++) {
       buildHash();
       overrideCenters(uA, [{ x: 0, y: 1000 }]);
-      steer(uA, 0.016, rng);
+      steer(uA, idxA, 0.016, rng);
     }
     const yWithSeek = uA.y;
     resetPools();
@@ -1092,7 +1092,7 @@ describe('steer — seek（敵重心への誘導）', () => {
 
     for (let i = 0; i < 100; i++) {
       buildHash();
-      steer(uB, 0.016, rng);
+      steer(uB, idxB, 0.016, rng);
     }
     const yWithoutSeek = uB.y;
 
@@ -1112,7 +1112,7 @@ describe('steer — seek（敵重心への誘導）', () => {
         { x: 2000, y: 0 },
         { x: 500, y: 0 },
       ]);
-      steer(u, 0.016, rng);
+      steer(u, idx, 0.016, rng);
     }
 
     // 近い方（チーム 2、+500 方向）へ移動
@@ -1128,7 +1128,7 @@ describe('steer — seek（敵重心への誘導）', () => {
       buildHash();
       // 敵重心をユニットとほぼ同一座標に設定（距離² < SEEK_MIN_DIST_SQ = 1）
       overrideCenters(u, [{ x: 0.5, y: 0.5 }]);
-      steer(u, 0.016, rng);
+      steer(u, idx, 0.016, rng);
     }
 
     // ゼロ除算なく正常動作

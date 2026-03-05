@@ -4,6 +4,7 @@ import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
+import { computeSquadCohesion, computeSquadLeaderObjective } from './squad.ts';
 import { nearestEnemyCenter } from './team-center.ts';
 
 interface SteerForce {
@@ -17,6 +18,8 @@ const _boidsForce: SteerForce = { x: 0, y: 0 };
 const _engageForce: SteerForce = { x: 0, y: 0 };
 const _retreatForce: SteerForce = { x: 0, y: 0 };
 const _healForce: SteerForce = { x: 0, y: 0 };
+const _squadCohesionOut: SteerForce = { x: 0, y: 0 };
+const _squadObjOut: SteerForce = { x: 0, y: 0 };
 
 interface ResolveResult {
   readonly target: UnitIndex;
@@ -481,7 +484,7 @@ function resolveTarget(
   return _resolveResult;
 }
 
-export function steer(u: Unit, dt: number, rng: () => number) {
+export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) {
     applyKnockbackDrag(u, dt);
     return;
@@ -521,6 +524,16 @@ export function steer(u: Unit, dt: number, rng: () => number) {
     fx += heal.x * followWeight;
     fy += heal.y * followWeight;
   }
+
+  // 分隊追従力
+  computeSquadCohesion(u, ui, _squadCohesionOut);
+  fx += _squadCohesionOut.x;
+  fy += _squadCohesionOut.y;
+
+  // リーダーの非戦闘時: 分隊目標への seek 力
+  computeSquadLeaderObjective(u, ui, res.target !== NO_UNIT, t.speed, _squadObjOut);
+  fx += _squadObjOut.x;
+  fy += _squadObjOut.y;
 
   const m = WORLD_SIZE * BOUNDARY_MARGIN;
   if (u.x < -m) {

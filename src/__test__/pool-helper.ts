@@ -1,6 +1,6 @@
 import { _resetBattleTracker } from '../battle-tracker.ts';
 import { beams, clearBeamPools, trackingBeams } from '../beams.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_SQUADS, POOL_UNITS } from '../constants.ts';
 import { _resetMeleeTracker } from '../melee-tracker.ts';
 import {
   advanceParticleHWM,
@@ -16,6 +16,7 @@ import {
   setParticleCount,
   setProjectileCount,
   setUnitCount,
+  squad,
   unit,
 } from '../pools.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
@@ -25,7 +26,7 @@ import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { Team, UnitIndex } from '../types.ts';
-import { NO_UNIT } from '../types.ts';
+import { NO_SQUAD, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose.ts';
 import { _resetGameControl } from '../ui/game-control.ts';
 
@@ -80,6 +81,7 @@ export function resetPools() {
     u.ampBoostTimer = 0;
     u.scrambleTimer = 0;
     u.catalystTimer = 0;
+    u.squadIdx = NO_SQUAD;
   }
   for (let i = 0; i < pHwm; i++) {
     const p = particle(i);
@@ -117,6 +119,11 @@ export function resetPools() {
   }
   resetPoolCounts();
   resetHWM();
+  for (let i = 0; i < POOL_SQUADS; i++) {
+    const s = squad(i);
+    s.alive = false;
+    s.memberCount = 0;
+  }
   beams.length = 0;
   trackingBeams.length = 0;
   clearBeamPools();

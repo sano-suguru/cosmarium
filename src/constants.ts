@@ -4,11 +4,17 @@
 // 単一モジュール（+ そのテスト）でしか使わないロジック固有の倍率・閾値は、そのモジュール内に定義する。
 //   例: AMP_DAMAGE_MULT → combat.ts, SCRAMBLE_RADIUS → update.ts
 
+import { MAX_TEAMS } from './types.ts';
+
 export const POOL_UNITS = 1600;
 export const POOL_PARTICLES = 45000;
 export const POOL_PROJECTILES = 6000;
 export const POOL_TRACKING_BEAMS = 200;
 export const WORLD_SIZE = 4000;
+
+// ── Squad ──
+export const SQUADS_PER_TEAM = 4;
+export const POOL_SQUADS = SQUADS_PER_TEAM * MAX_TEAMS;
 
 /** ビーム消灯時の減衰速度（sweep / focus / flagship 共通） */
 export const BEAM_DECAY_RATE = 3;

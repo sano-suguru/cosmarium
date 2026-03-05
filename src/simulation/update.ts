@@ -11,6 +11,7 @@ import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { killParticle } from './spawn.ts';
+import { updateSquadObjectives } from './squad.ts';
 import { steer } from './steering.ts';
 import { applyShieldsAndFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
@@ -119,7 +120,7 @@ export function updateUnits(dt: number, now: number, rng: () => number) {
     rem--;
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
-    steer(u, dt, rng);
+    steer(u, i as UnitIndex, dt, rng);
     combat(u, i as UnitIndex, dt, now, rng);
     if (u.alive && u.hp < prevHp) {
       u.hitFlash = 1;
@@ -182,6 +183,7 @@ export function stepOnce(dt: number, now: number, rng: () => number, gameState: 
   buildHash(gameState.activeTeamCount);
   updateSwarmN();
   resetReflected();
+  updateSquadObjectives(dt, rng);
 
   updateUnits(dt, now, rng);
   // updateUnits で hitFlash=1 がセットされた後にディケイする（視覚効果のみ、ロジック影響なし）

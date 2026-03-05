@@ -1,11 +1,12 @@
 import { beams, clearBeamPools, trackingBeams } from './beams.ts';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
-import type { Particle, ParticleIndex, Projectile, Team, TeamCounts, Unit } from './types.ts';
-import { MAX_TEAMS, NO_PARTICLE, NO_UNIT } from './types.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_SQUADS, POOL_UNITS } from './constants.ts';
+import type { Particle, ParticleIndex, Projectile, Squad, Team, TeamCounts, Unit } from './types.ts';
+import { MAX_TEAMS, NO_PARTICLE, NO_SQUAD, NO_UNIT } from './types.ts';
 
 const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
 const projectilePool: Projectile[] = [];
+const squadPool: Squad[] = [];
 
 if (POOL_PARTICLES > 0xffff) {
   throw new RangeError('POOL_PARTICLES exceeds Uint16Array range (65535)');
@@ -192,6 +193,11 @@ export function clearAllPools() {
   for (let i = 0; i < _projectileHWM; i++) {
     projectile(i).alive = false;
   }
+  for (let i = 0; i < POOL_SQUADS; i++) {
+    const s = squad(i);
+    s.alive = false;
+    s.memberCount = 0;
+  }
   resetPoolCounts();
   resetHWM();
   beams.length = 0;
@@ -251,6 +257,14 @@ export function projectile(i: number): Projectile {
   return p;
 }
 
+export function squad(i: number): Squad {
+  const s = squadPool[i];
+  if (s === undefined) {
+    throw new RangeError(`Invalid squad index: ${i}`);
+  }
+  return s;
+}
+
 for (let i = 0; i < POOL_UNITS; i++) {
   unitPool[i] = {
     alive: false,
@@ -299,6 +313,18 @@ for (let i = 0; i < POOL_UNITS; i++) {
     ampBoostTimer: 0,
     scrambleTimer: 0,
     catalystTimer: 0,
+    squadIdx: NO_SQUAD,
+  };
+}
+for (let i = 0; i < POOL_SQUADS; i++) {
+  squadPool[i] = {
+    alive: false,
+    team: 0 as Team,
+    leader: NO_UNIT,
+    objectiveX: 0,
+    objectiveY: 0,
+    objectiveTimer: 0,
+    memberCount: 0,
   };
 }
 for (let i = 0; i < POOL_PARTICLES; i++) {

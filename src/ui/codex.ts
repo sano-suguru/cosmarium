@@ -18,6 +18,7 @@ import {
 import { demoFlag } from '../simulation/combat.ts';
 import { resetChains, restoreChains, snapshotChains } from '../simulation/effects.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
+import { restoreSquads, snapshotSquads } from '../simulation/squad.ts';
 import { state } from '../state.ts';
 import type { Beam, Particle, Projectile, TeamCounts, TrackingBeam, Unit } from '../types.ts';
 import { copyTeamCounts, NO_UNIT } from '../types.ts';
@@ -69,6 +70,7 @@ let poolSnapshot: PoolSnapshot | null = null;
 
 /** 全プール状態のスナップショット。全フィールドはプリミティブ型（検証済み）のため shallow copy で安全。新フィールド追加時は参照型でないことを確認すること */
 export function snapshotPools(): PoolSnapshot {
+  snapshotSquads();
   const unitHWM = getUnitHWM();
   const particleHWM = getParticleHWM();
   const projectileHWM = getProjectileHWM();
@@ -112,6 +114,7 @@ export function snapshotPools(): PoolSnapshot {
 
 export function restorePools(snapshot: PoolSnapshot) {
   clearAllPools();
+  restoreSquads();
   restoreChains(snapshot.pendingChains);
   for (const entry of snapshot.units) {
     Object.assign(unit(entry.index), entry.copy);

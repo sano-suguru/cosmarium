@@ -1,10 +1,11 @@
 import { TAU } from '../constants.ts';
-import { clearAllPools } from '../pools.ts';
+import { clearAllPools, getUnitHWM } from '../pools.ts';
 import type { FleetComposition, Team } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
 import { generateEnemyFleet } from './enemy-fleet.ts';
 import { spawnUnit } from './spawn.ts';
+import { formSquads } from './squad.ts';
 
 const BATTLE_SPAWN_X = 1200;
 const BATTLE_SPAWN_Y = 300;
@@ -62,6 +63,7 @@ export function initUnits(rng: () => number) {
         spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
       }
     }
+    formSquads(team, getUnitHWM());
   }
 }
 
@@ -81,6 +83,10 @@ export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetCompo
 
   spawn(0, playerFleet);
   spawn(1, enemyFleet);
+
+  const hwm = getUnitHWM();
+  formSquads(0 as Team, hwm);
+  formSquads(1 as Team, hwm);
 }
 
 const MELEE_SPAWN_RADIUS = 1200;
@@ -100,5 +106,6 @@ export function initMelee(numTeams: number, budget: number, rng: () => number) {
         spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
       }
     }
+    formSquads(team, getUnitHWM());
   }
 }

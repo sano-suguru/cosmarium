@@ -45,6 +45,17 @@ export interface Unit {
   ampBoostTimer: number;
   scrambleTimer: number;
   catalystTimer: number;
+  squadIdx: SquadIndex;
+}
+
+export interface Squad {
+  alive: boolean;
+  team: Team;
+  leader: UnitIndex;
+  objectiveX: number;
+  objectiveY: number;
+  objectiveTimer: number;
+  memberCount: number;
 }
 
 export interface Particle {
@@ -251,8 +262,10 @@ export function copyTeamCounts(src: Readonly<TeamCounts>): TeamCounts {
 export type UnitIndex = number & { readonly __brand: 'UnitIndex' };
 export type ParticleIndex = number & { readonly __brand: 'ParticleIndex' };
 export type ProjectileIndex = number & { readonly __brand: 'ProjectileIndex' };
+export type SquadIndex = number & { readonly __brand: 'SquadIndex' };
 
 /** ターゲットなし / スロットなしを示すセンチネル値 */
 export const NO_UNIT = -1 as UnitIndex;
 export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
+export const NO_SQUAD = -1 as SquadIndex;
