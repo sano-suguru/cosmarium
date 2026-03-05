@@ -4,7 +4,7 @@ import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
-import { computeSquadCohesion, computeSquadLeaderObjective } from './squad.ts';
+import { computeSquadCohesion, computeSquadLeaderObjective, computeSquadLeashFactor } from './squad.ts';
 import { nearestEnemyCenter } from './team-center.ts';
 
 interface SteerForce {
@@ -511,7 +511,8 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
 
   const engage = computeEngagementForce(u, res.target, t, dt, rng);
   const supportScale = 1 - t.supportFollow * 0.6;
-  const engageAtten = (1 - retreatUrgency) * supportScale;
+  const leashFactor = computeSquadLeashFactor(u, ui);
+  const engageAtten = (1 - retreatUrgency) * supportScale * leashFactor;
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
 

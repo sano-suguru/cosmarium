@@ -8,6 +8,7 @@ import { buildHash } from './spatial-hash.ts';
 import {
   assignToSquad,
   computeSquadCohesion,
+  computeSquadLeashFactor,
   formSquads,
   onUnitKilled,
   restoreSquads,
@@ -317,7 +318,7 @@ describe('computeSquadCohesion', () => {
 
   it('SQUAD_COHESION_DIST 以内では追従力はゼロ', () => {
     const leader = spawnAt(0 as Team, 0, 0, 0);
-    const member = spawnAt(0 as Team, 0, 50, 0); // 50 < SQUAD_COHESION_DIST(120)
+    const member = spawnAt(0 as Team, 0, 50, 0); // 50 < SQUAD_COHESION_DIST(80)
     setupColocatedSquad(leader, member);
 
     const out = { x: 0, y: 0 };
@@ -334,5 +335,80 @@ describe('computeSquadCohesion', () => {
     computeSquadCohesion(unit(u), u, out);
     expect(out.x).toBe(0);
     expect(out.y).toBe(0);
+  });
+
+  it('距離が離れるほど二次的に追従力が増大する', () => {
+    const leader = spawnAt(0 as Team, 0, 0, 0);
+    const memberNear = spawnAt(0 as Team, 0, 200, 0);
+    const memberFar = spawnAt(0 as Team, 0, 400, 0);
+
+    // 2体とも同じ分隊に配置（手動で分隊設定）
+    const si = 0 as SquadIndex;
+    const s = squad(si);
+    s.alive = true;
+    s.team = 0 as Team;
+    s.leader = leader;
+    s.objectiveTimer = 5;
+    s.memberCount = 3;
+    unit(leader).squadIdx = si;
+    unit(memberNear).squadIdx = si;
+    unit(memberFar).squadIdx = si;
+
+    const outNear = { x: 0, y: 0 };
+    computeSquadCohesion(unit(memberNear), memberNear, outNear);
+
+    const outFar = { x: 0, y: 0 };
+    computeSquadCohesion(unit(memberFar), memberFar, outFar);
+
+    // 遠い方が大幅に強い力を受ける（二次スケーリング）
+    const forceNear = Math.abs(outNear.x);
+    const forceFar = Math.abs(outFar.x);
+    expect(forceFar).toBeGreaterThan(forceNear * 3);
+  });
+});
+
+describe('computeSquadLeashFactor', () => {
+  it('リーシュ距離以内では 1 を返す', () => {
+    const leader = spawnAt(0 as Team, 0, 0, 0);
+    const member = spawnAt(0 as Team, 0, 200, 0);
+    setupColocatedSquad(leader, member);
+
+    const factor = computeSquadLeashFactor(unit(member), member);
+    expect(factor).toBe(1);
+  });
+
+  it('最大距離以上では 0 を返す', () => {
+    const leader = spawnAt(0 as Team, 0, 0, 0);
+    const member = spawnAt(0 as Team, 0, 600, 0);
+    setupColocatedSquad(leader, member);
+
+    const factor = computeSquadLeashFactor(unit(member), member);
+    expect(factor).toBe(0);
+  });
+
+  it('リーシュ距離〜最大距離間では 0〜1 の中間値を返す', () => {
+    const leader = spawnAt(0 as Team, 0, 0, 0);
+    const member = spawnAt(0 as Team, 0, 425, 0); // (350+500)/2 の中間
+    setupColocatedSquad(leader, member);
+
+    const factor = computeSquadLeashFactor(unit(member), member);
+    expect(factor).toBeGreaterThan(0);
+    expect(factor).toBeLessThan(1);
+    expect(factor).toBeCloseTo(0.5, 1);
+  });
+
+  it('リーダー自身は 1 を返す', () => {
+    const leader = spawnAt(0 as Team, 0, 0, 0);
+    const member = spawnAt(0 as Team, 0, 500, 0);
+    setupColocatedSquad(leader, member);
+
+    const factor = computeSquadLeashFactor(unit(leader), leader);
+    expect(factor).toBe(1);
+  });
+
+  it('未所属ユニットは 1 を返す', () => {
+    const u = spawnAt(0 as Team, 0, 0, 0);
+    const factor = computeSquadLeashFactor(unit(u), u);
+    expect(factor).toBe(1);
   });
 });

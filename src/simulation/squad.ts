@@ -1,8 +1,11 @@
 import { POOL_SQUADS, SQUADS_PER_TEAM } from '../constants.ts';
 
 const SQUAD_MAX_SIZE = 20;
-const SQUAD_COHESION_DIST = 120;
-const SQUAD_COHESION_WEIGHT = 0.4;
+const SQUAD_COHESION_DIST = 80;
+const SQUAD_COHESION_RANGE = 300;
+const SQUAD_COHESION_WEIGHT = 2.5;
+const SQUAD_LEASH_DIST = 350;
+const SQUAD_LEASH_MAX = 500;
 const SQUAD_OBJECTIVE_MIN = 5.0;
 const SQUAD_OBJECTIVE_MAX = 10.0;
 const SQUAD_OBJECTIVE_SCATTER = 200;
@@ -161,17 +164,28 @@ export function updateSquadObjectives(dt: number, rng: () => number): void {
   }
 }
 
-/** メンバー → リーダーへの追従力（デッドゾーン付き線形）。結果は out に書き込まれる */
-export function computeSquadCohesion(u: Unit, ui: UnitIndex, out: { x: number; y: number }): void {
+/** メンバーの分隊リーダー UnitIndex を返す。未所属・自身がリーダー・リーダー死亡時は NO_UNIT */
+function memberLeaderIdx(u: Unit, ui: UnitIndex): UnitIndex {
   const si = u.squadIdx;
-  const s = si !== NO_SQUAD ? squad(si) : null;
-  const leader = s?.alive && s.leader !== NO_UNIT && s.leader !== ui ? unit(s.leader) : null;
+  if (si === NO_SQUAD) {
+    return NO_UNIT;
+  }
+  const s = squad(si);
+  if (!s.alive || s.leader === NO_UNIT || s.leader === ui) {
+    return NO_UNIT;
+  }
+  return unit(s.leader).alive ? s.leader : NO_UNIT;
+}
 
-  if (!leader || !leader.alive) {
+/** メンバー → リーダーへの追従力（デッドゾーン付き二次）。結果は out に書き込まれる */
+export function computeSquadCohesion(u: Unit, ui: UnitIndex, out: { x: number; y: number }): void {
+  const li = memberLeaderIdx(u, ui);
+  if (li === NO_UNIT) {
     out.x = 0;
     out.y = 0;
     return;
   }
+  const leader = unit(li);
 
   const dx = leader.x - u.x;
   const dy = leader.y - u.y;
@@ -182,9 +196,31 @@ export function computeSquadCohesion(u: Unit, ui: UnitIndex, out: { x: number; y
     return;
   }
   const excess = dist - SQUAD_COHESION_DIST;
+  const t = Math.min(excess / (SQUAD_COHESION_RANGE - SQUAD_COHESION_DIST), 1);
+  const force = t * t * unitType(u.type).speed * SQUAD_COHESION_WEIGHT;
   const inv = 1 / dist;
-  out.x = dx * inv * excess * SQUAD_COHESION_WEIGHT;
-  out.y = dy * inv * excess * SQUAD_COHESION_WEIGHT;
+  out.x = dx * inv * force;
+  out.y = dy * inv * force;
+}
+
+/** リーダーからの距離に応じた交戦力減衰ファクター（0〜1）。リーシュ距離超過で減衰し、最大距離で 0 */
+export function computeSquadLeashFactor(u: Unit, ui: UnitIndex): number {
+  const li = memberLeaderIdx(u, ui);
+  if (li === NO_UNIT) {
+    return 1;
+  }
+  const leader = unit(li);
+
+  const dx = leader.x - u.x;
+  const dy = leader.y - u.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist <= SQUAD_LEASH_DIST) {
+    return 1;
+  }
+  if (dist >= SQUAD_LEASH_MAX) {
+    return 0;
+  }
+  return 1 - (dist - SQUAD_LEASH_DIST) / (SQUAD_LEASH_MAX - SQUAD_LEASH_DIST);
 }
 
 /** リーダーかつ非戦闘時に分隊目標への seek 力を out に書き込む */
@@ -244,16 +280,5 @@ export function restoreSquads(): void {
 
 /** テザー描画対象のリーダーを返す。リーダー自身・未所属・リーダー死亡時は NO_UNIT */
 export function getSquadTetherTarget(u: Unit, i: UnitIndex): UnitIndex {
-  if (u.squadIdx === NO_SQUAD) {
-    return NO_UNIT;
-  }
-  const s = squad(u.squadIdx);
-  if (!s.alive || s.leader === NO_UNIT || s.leader === i) {
-    return NO_UNIT;
-  }
-  const leader = unit(s.leader);
-  if (!leader.alive) {
-    return NO_UNIT;
-  }
-  return s.leader;
+  return memberLeaderIdx(u, i);
 }
