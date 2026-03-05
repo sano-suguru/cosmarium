@@ -43,6 +43,7 @@ void main(){
   float d=length(vU), a=0.0;
   int sh=clamp(vSh,0,NUM_SHAPES-1);
   vec3 col=vC.rgb; // デフォルト色。色カスタムが必要な分岐のみ上書き（else-if で排他）
+  // [SHAPE:0 Drone] ————————————————————————————
   if(sh==0){ vec2 p=vU*0.74; float t=vA+uTime;
     // Drone: SF UCAV — angular stealth drone with energy glow
     // 1. Fuselage (angular, faceted)
@@ -90,6 +91,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+glow*0.65+scan*0.45+(tipL+tipR)*0.55+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:1 Fighter] ————————————————————————————
   else if(sh==1){ vec2 p=vU*0.64; float t=vA+uTime;
     // Fighter: X-Wing blueprint — long fuselage, 4 splayed wings, 4 laser cannons, 4 engine pods
     // +X = forward (nose), -X = rear (engines)
@@ -173,6 +175,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.85+mFlash*0.25+r2Glow*0.45+cockGlow+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:2 Bomber] ————————————————————————————
   else if(sh==2){ vec2 p=vU*0.82; float t=vA+uTime;
     // B2 Spirit: Flying wing — sharp swept leading edge, W trailing edge
     // +X forward. Wingspan ~1.4, chord ~0.6
@@ -230,6 +233,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+eng*0.75+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:3 Cruiser] ————————————————————————————
   else if(sh==3){ vec2 p=vU*0.62; float t=vA+uTime;
     // Cruiser: Nebulon-B style dumbbell — hammerhead command + spine + engine block
     // 1. Forward command section (hammerhead)
@@ -291,6 +295,7 @@ void main(){
       trail=exp(-dy*10.0)*exp((p.x+0.46)*2.2)*eP*0.55;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:4 Flagship] ————————————————————————————
   else if(sh==4){ vec2 p=vU*0.84; float t=vA+uTime;
     // Flagship: Sleek catamaran battleship — tapered twin hulls
     // 1. Tapered twin hulls (sdTrapezoid via p.yx: stern wide, bow narrow)
@@ -339,6 +344,7 @@ void main(){
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(-0.85,-0.35,p.x);
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.60;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:5 Healer] ————————————————————————————
   else if(sh==5){ vec2 p=vU*0.55; float t=vA+uTime;
     // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
 
@@ -413,6 +419,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+crossGlow+reactor*0.50+rings+nacGlow*0.50+dFocus*0.40+eng*0.55+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:6 Reflector] ————————————————————————————
   else if(sh==6){ vec2 p=vU*0.54; float t=vA+uTime;
     // Prism Shield: compact hull behind massive front shield, swept fins
 
@@ -482,6 +489,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+shieldFx+shieldEdge+condFlow+nodes+core*0.45+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:7 Carrier] ————————————————————————————
   else if(sh==7){ vec2 p=vU*0.56; float t=vA+uTime;
     // Carrier: Lucrehulk-style crescent — drone bay arc with central core
     // 1. Main crescent hull (arc wraps around back, gap faces +X forward)
@@ -533,6 +541,7 @@ void main(){
       trail=exp(-dy*8.0)*exp((p.x+0.40)*1.8)*eP*0.5;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+hangarGlow+coreGlow*0.50+innerGlow+launchFlash+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:8 Sniper] ————————————————————————————
   else if(sh==8){ vec2 p=vU*0.72; float t=vA+uTime;
     // Sniper: Ultra-long railgun barrel, compact rear body, charge glow at tip
     // 1. Compact rear body (engine + power plant)
@@ -570,6 +579,7 @@ void main(){
     if(p.x<-0.48){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.48)*5.0)*pulse*0.2;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+muzzle*0.70+railFlow+scope+eng*0.35+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:9 Lancer] ————————————————————————————
   else if(sh==9){ vec2 p=vU*0.74; float t=vA+uTime;
     // Lancer: Star Destroyer wedge — heavy dagger silhouette
     // 1. Main wedge hull (trapezoid: wide stern → sharp bow)
@@ -618,6 +628,7 @@ void main(){
     float bridgeGlow=exp(-length(p-vec2(-0.22,0.0))*18.0)*0.25;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+tipGlow*0.50+eng*0.75+trail+bridgeGlow;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:10 Launcher] ————————————————————————————
   else if(sh==10){
     vec2 p=vU*0.67; float t=vA+uTime;
     // Launcher: Sleek Missile Frigate
@@ -678,6 +689,7 @@ void main(){
     a=hf*HF_WEIGHT[sh] + rim*RIM_WEIGHT[sh] + glow + trail + podGlow;
     a=1.1*tanh(a/1.1);
   }
+  // [SHAPE:11 Disruptor] ————————————————————————————
   else if(sh==11){ vec2 p=vU*0.64; float t=vA+uTime;
     // Disruptor: Radial antenna array, circular core, EMP ring emission
     // 1. Circular core body
@@ -717,6 +729,7 @@ void main(){
     float eng=exp(-length(p-vec2(-0.44,0.0))*8.0)*pulse;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+nodes+coreGlow*0.50+eng*0.30;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:12 Scorcher] ————————————————————————————
   else if(sh==12){ vec2 p=vU*0.68; float t=vA+uTime;
     // Scorcher: Forward focusing dish, beam emitter spine, charging anim
     // 1. Rear hull (compact engine block)
@@ -754,6 +767,7 @@ void main(){
     if(p.x<-0.46){float dy=abs(p.y);trail=exp(-dy*20.0)*exp((p.x+0.46)*4.5)*pulse*0.25;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+chanGlow+focus*0.65+eng*0.40+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:13 Teleporter] ————————————————————————————
   else if(sh==13){ vec2 p=vU*0.66; float t=vA+uTime;
     // Teleporter: Octagonal frame, hollow center, phase distortion ripple
     // 1. Outer octagonal frame (ring shape)
@@ -791,6 +805,7 @@ void main(){
     if(p.x<-0.44){float dy=abs(p.y);trail=exp(-dy*22.0)*exp((p.x+0.44)*4.0)*pulse*0.15;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+distortion+frameEdge+nodes+eng*0.25+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:14 Arcer] ————————————————————————————
   else if(sh==14){ vec2 p=vU*0.69; float t=vA+uTime;
     // Arcer: Tesla coil Y-shape, triple prongs, electrical arc discharge
     // 1. Central body (power generator)
@@ -833,6 +848,7 @@ void main(){
     if(p.x<-0.34){float dy=abs(p.y);trail=exp(-dy*6.0)*exp((p.x+0.34)*2.0)*pulse*0.6;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+arcGlow+coreGlow*0.45+eng*0.80+trail;
     a=1.2*tanh(a/1.2); }
+  // [SHAPE:15 Bastion] ————————————————————————————
   else if(sh==15){ vec2 p=vU*0.62; float t=vA+uTime;
     // Bastion: Type-10 Defender-style armored block — inverted trapezoid, angular fins, quad engines
 
@@ -917,7 +933,7 @@ void main(){
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.35+trail;
     a=1.2*tanh(a/1.2); }
-  // ── sh16: Amplifier — 前進翼・増幅戦闘艦 ──
+  // [SHAPE:16 Amplifier] ————————————————————————————
   else if(sh==16){ vec2 p=vU*0.58; float t=vA+uTime;
     // 1. Wedge hull (trapezoid: wide stern → sharp bow)
     float dHull=sdTrapezoid(p.yx-vec2(0.0,0.04),0.24,0.03,0.46);
@@ -982,7 +998,7 @@ void main(){
     col=mix(col,vec3(1.0,0.75,0.4),rings*0.30);
     a=1.2*tanh(a/1.2);
     }
-  // ── sh17: Scrambler — 電子戦妨害艦 ──
+  // [SHAPE:17 Scrambler] ————————————————————————————
   else if(sh==17){ vec2 p=vU*0.60; float t=vA+uTime;
     // 1. Central hub (disk)
     float dHub=length(p)-0.12;
@@ -1039,6 +1055,7 @@ void main(){
     col=mix(col,vec3(0.6,0.15,0.9),condFlow*0.40);
     a=1.2*tanh(a/1.2);
     }
+  // [SHAPE:18 Catalyst] ————————————————————————————
   else if(sh==18){ vec2 p=vU*0.58; float t=vA+uTime;
     // 1. Wedge fuselage (narrow nose → wide rear)
     float dFuse=sdTrapezoid(p,0.03,0.10,0.22);
@@ -1113,25 +1130,33 @@ void main(){
     col=mix(col,vec3(0.3,1.0,0.5),(exhaust+exTrail)*0.30);
     a=1.2*tanh(a/1.2);
     }
+  // [SHAPE:19 Circle] ————————————————————————————
   else if(sh==19){ // Circle (particles, AOE projectiles)
     a=smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
+  // [SHAPE:20 Diamond] ————————————————————————————
   else if(sh==20){ // Diamond (projectiles)
     float dd=abs(vU.x)+abs(vU.y);
     a=smoothstep(1.0,0.6,dd)+exp(-dd*2.0)*0.4; }
+  // [SHAPE:21 Homing] ————————————————————————————
   else if(sh==21){ // Homing missile (elongated diamond / arrowhead)
     float dd=abs(vU.x)*0.6+abs(vU.y);
     a=smoothstep(1.0,0.5,dd)+exp(-dd*2.5)*0.4; }
+  // [SHAPE:22 Beam] ————————————————————————————
   else if(sh==22){ float by=abs(vU.y),bx=abs(vU.x);
     float xf=smoothstep(1.0,0.4,bx);
     a=(exp(-by*6.0)*1.0+exp(-by*2.5)*0.4)*xf+exp(-d*1.5)*0.2; }
+  // [SHAPE:23 Lightning] ————————————————————————————
   else if(sh==23){ float by=abs(vU.y);
     float core=exp(-by*8.0)*1.3;
     float glow=exp(-by*2.5)*0.4;
     a=core+glow; }
+  // [SHAPE:24 ExplosionRing] ————————————————————————————
   else if(sh==24){ float ring=abs(d-0.75);
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
+  // [SHAPE:25 DiamondRing] ————————————————————————————
   else if(sh==25){ float dd=manDist(vU); float ring=abs(dd-0.65);
     a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
+  // [SHAPE:26 OctShield] ————————————————————————————
   else if(sh==26){ float od=octDist(vU);
     float edge=abs(od-0.75);
     a=smoothstep(0.06,0.01,edge)*0.7;
@@ -1149,6 +1174,7 @@ void main(){
     float n6=exp(-length(vU-v6)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+4.712)));
     float n7=exp(-length(vU-v7)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+5.498)));
     a+=n0+n1+n2+n3+n4+n5+n6+n7; }
+  // [SHAPE:27 ReflectField] ————————————————————————————
   else if(sh==27){ float hd=hexDist(vU);
     float edge=abs(hd-0.70);
     // Bright core ring + soft neon glow halo
@@ -1186,6 +1212,7 @@ void main(){
     // Soft inner ambient glow
     a+=exp(-hd*2.8)*0.18;
     }
+  // [SHAPE:28 Bar] ————————————————————————————
   else if(sh==28){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
   else { a=smoothstep(1.0,0.6,d); }
