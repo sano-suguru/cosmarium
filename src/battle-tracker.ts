@@ -27,8 +27,6 @@ export function setOnFinalize(cb: FinalizeCb) {
   onFinalize = cb;
 }
 
-// --- バトル追跡状態 ---
-
 let battleElapsed = 0;
 let initialPlayerUnits = 0;
 let playerEnemyKills = 0;
@@ -36,8 +34,6 @@ let battleEndTimer = -1;
 let battleWinner: Team | null = null;
 let snapshotSurvivors = 0;
 let snapshotEnemyKills = 0;
-
-// --- Public API ---
 
 export function resetBattleTracking() {
   battleElapsed = 0;

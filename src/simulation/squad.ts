@@ -13,8 +13,6 @@ import { NO_SQUAD, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { nearestEnemyCenter, teamCenterOf } from './team-center.ts';
 
-// ── Squad allocation ──
-
 /** チーム内で最少メンバーの分隊を返す（空きスロットは0メンバーとして扱い均等配分） */
 function findSquadForTeam(team: Team): SquadIndex {
   let minCount = SQUAD_MAX_SIZE;
@@ -67,7 +65,6 @@ export function assignToSquad(unitIdx: UnitIndex, team: Team): void {
 
 /** Battle/Melee 開始時: チームの全生存ユニットを分隊に均等配分する */
 export function formSquads(team: Team, unitHWM: number): void {
-  // まずチームの既存スクアッドをクリア
   const base = team * SQUADS_PER_TEAM;
   for (let i = 0; i < SQUADS_PER_TEAM; i++) {
     const s = squad(base + i);
@@ -83,8 +80,6 @@ export function formSquads(team: Team, unitHWM: number): void {
     assignToSquad(i as UnitIndex, team);
   }
 }
-
-// ── Leader succession ──
 
 /** リーダー死亡時に最大 mass の生存メンバーを新リーダーに昇格させる */
 export function succeedLeader(si: SquadIndex, unitHWM: number): void {
@@ -128,8 +123,6 @@ export function onUnitKilled(squadIdx: SquadIndex, victimIdx: UnitIndex, unitHWM
   }
 }
 
-// ── Objective update ──
-
 /** 全スクアッドの目標タイマーを更新し、期限切れなら新目標を設定する */
 export function updateSquadObjectives(dt: number, rng: () => number): void {
   for (let si = 0; si < POOL_SQUADS; si++) {
@@ -167,8 +160,6 @@ export function updateSquadObjectives(dt: number, rng: () => number): void {
     s.objectiveTimer = SQUAD_OBJECTIVE_MIN + rng() * (SQUAD_OBJECTIVE_MAX - SQUAD_OBJECTIVE_MIN);
   }
 }
-
-// ── Steering forces (called from steering.ts) ──
 
 /** メンバー → リーダーへの追従力（デッドゾーン付き線形）。結果は out に書き込まれる */
 export function computeSquadCohesion(u: Unit, ui: UnitIndex, out: { x: number; y: number }): void {
@@ -227,8 +218,6 @@ export function computeSquadLeaderObjective(
   out.x = dx * inv * speed;
   out.y = dy * inv * speed;
 }
-
-// ── Snapshot / restore helpers for Codex ──
 
 const _squadSnapshot: Squad[] = [];
 

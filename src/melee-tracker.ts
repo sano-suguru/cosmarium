@@ -42,7 +42,6 @@ let meleeEndTimer = -1;
 let meleeWinner: Team | 'draw' | undefined;
 let meleeNumTeams = 0;
 
-// --- データ収集用モジュール変数 ---
 const meleeKills: TeamCounts = [0, 0, 0, 0, 0];
 const meleeInitialUnits: TeamCounts = [0, 0, 0, 0, 0];
 const meleeEliminations: EliminationEvent[] = [];
@@ -72,7 +71,6 @@ export function resetMeleeTracking(numTeams: number, initialCounts: Readonly<Tea
   meleeWinner = undefined;
   meleeNumTeams = numTeams;
 
-  // データ収集リセット
   meleeKills.fill(0);
   meleeEliminations.length = 0;
   eliminated.fill(false);
@@ -88,12 +86,10 @@ export function resetMeleeTracking(numTeams: number, initialCounts: Readonly<Tea
   }
 
   unsubKillHook = onKillUnit((e) => {
-    // killerTeam のキル数をインクリメント
     if (e.killerTeam !== undefined) {
       meleeKills[e.killerTeam]++;
     }
 
-    // victimTeam の全滅チェック
     if (!eliminated[e.victimTeam] && e.victimTeamRemaining === 0) {
       eliminated[e.victimTeam] = true;
       meleeEliminations.push({ team: e.victimTeam, elapsed: meleeElapsed });
@@ -118,7 +114,6 @@ function finalizeMelee() {
     return;
   }
 
-  // teamStats を構築
   const teamStats: TeamStats[] = [];
   for (let i = 0; i < meleeNumTeams; i++) {
     teamStats.push({
@@ -136,7 +131,6 @@ function finalizeMelee() {
     eliminations: [...meleeEliminations],
   };
 
-  // hook を解除
   if (unsubKillHook) {
     unsubKillHook();
     unsubKillHook = null;

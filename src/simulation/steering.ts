@@ -78,7 +78,6 @@ function targetScore(ux: number, uy: number, o: Unit, massWeight: number): numbe
   return d2 / (vf * vf * mf * mf);
 }
 
-// findNearestGlobalEnemy: 全体スキャン版（スコアリングは同一）
 function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
   let bs = 1e18,
     bi: UnitIndex = NO_UNIT;
@@ -525,12 +524,10 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
     fy += heal.y * followWeight;
   }
 
-  // 分隊追従力
   computeSquadCohesion(u, ui, _squadCohesionOut);
   fx += _squadCohesionOut.x;
   fy += _squadCohesionOut.y;
 
-  // リーダーの非戦闘時: 分隊目標への seek 力
   computeSquadLeaderObjective(u, ui, res.target !== NO_UNIT, t.speed, _squadObjOut);
   fx += _squadObjOut.x;
   fy += _squadObjOut.y;

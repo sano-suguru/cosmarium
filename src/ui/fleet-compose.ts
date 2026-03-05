@@ -15,13 +15,9 @@ import {
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 
-// --- State ---
-
 const counts: number[] = TYPES.map(() => 0);
 let enemyFleet: FleetComposition = [];
 let enemyArchName = '';
-
-// --- Callbacks ---
 
 type LaunchCb = (playerFleet: FleetComposition) => void;
 type BackCb = () => void;
@@ -30,8 +26,6 @@ type CodexToggleCb = () => void;
 let onLaunch: LaunchCb = () => undefined;
 let onBack: BackCb = () => undefined;
 let onCodexToggle: CodexToggleCb = () => undefined;
-
-// --- DOM cache ---
 
 interface ComposeEls {
   readonly compose: HTMLElement;
@@ -52,8 +46,6 @@ function els(): ComposeEls {
   }
   return _els;
 }
-
-// --- Long-press auto-repeat (event delegation) ---
 
 const REPEAT_DELAY = 200;
 const REPEAT_INTERVAL = 40;
@@ -109,8 +101,6 @@ function setupGridDelegation(grid: HTMLElement) {
   document.addEventListener('pointercancel', stopRepeat);
 }
 
-// --- Card DOM cache ---
-
 interface CardRefs {
   readonly plus: HTMLButtonElement;
   readonly minus: HTMLButtonElement;
@@ -118,8 +108,6 @@ interface CardRefs {
 }
 
 const cardRefMap = new Map<number, CardRefs>();
-
-// --- Budget calculation ---
 
 function usedBudget(): number {
   let sum = 0;
@@ -160,8 +148,6 @@ function refreshUI() {
 
   refreshCardStates(remaining);
 }
-
-// --- Build grid ---
 
 function buildGrid() {
   const d = els();
@@ -219,8 +205,6 @@ function buildGrid() {
   }
 }
 
-// --- Enemy display ---
-
 function renderEnemyFleet() {
   const d = els();
   d.enemy.textContent = '';
@@ -246,8 +230,6 @@ function renderEnemyFleet() {
 
   d.enemy.append(archDiv, unitsDiv);
 }
-
-// --- Public API ---
 
 export function initComposeDOM(launchCb: LaunchCb, backCb: BackCb, codexToggleCb: CodexToggleCb) {
   onLaunch = launchCb;

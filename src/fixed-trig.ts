@@ -1,13 +1,10 @@
-// ── LUTベース三角関数 + sqrt (Q16.16) ──
 import type { FxQ16 } from './fixed-point.ts';
 import { FX_ONE, FX_SCALE, FX_ZERO, fxMul, toFx } from './fixed-point.ts';
 
-// ── 角度定数 ──
 export const FX_PI = toFx(Math.PI);
 export const FX_TAU = toFx(Math.PI * 2);
 export const FX_HALF_PI = toFx(Math.PI / 2);
 
-// ── LUT ──
 const LUT_SIZE = 4096;
 const LUT_MASK = LUT_SIZE - 1;
 
@@ -18,7 +15,6 @@ for (let i = 0; i < LUT_SIZE; i++) {
   SIN_LUT[i] = Math.round(Math.sin((i / LUT_SIZE) * Math.PI * 2) * FX_SCALE);
 }
 
-// ── 角度→LUTインデックス変換 ──
 const FX_TAU_NUM = FX_TAU as number;
 
 function angleToIndex(angle: FxQ16): number {
@@ -29,19 +25,16 @@ function angleToIndex(angle: FxQ16): number {
   return ((a * LUT_SIZE) / FX_TAU_NUM) & LUT_MASK;
 }
 
-// ── sin / cos ──
 export function fxSin(angle: FxQ16): FxQ16 {
   const idx = angleToIndex(angle);
   return (SIN_LUT[idx] ?? 0) as FxQ16;
 }
 
 export function fxCos(angle: FxQ16): FxQ16 {
-  // cos(x) = sin(x + π/2)
   const idx = (angleToIndex(angle) + (LUT_SIZE >> 2)) & LUT_MASK;
   return (SIN_LUT[idx] ?? 0) as FxQ16;
 }
 
-// ── atan2 ──
 // CORDIC-lite: 象限折り返し + LUT
 const ATAN_LUT_SIZE = 1024;
 const ATAN_LUT = new Int32Array(ATAN_LUT_SIZE + 1);
@@ -77,7 +70,6 @@ export function fxAtan2(y: FxQ16, x: FxQ16): FxQ16 {
   return angle as FxQ16;
 }
 
-// ── sqrt ──
 /**
  * Newton-Raphson。初期推定は float の Math.sqrt で算出し Q16.16 に変換。
  * 結果は固定小数点に丸められるため決定論的。
@@ -100,7 +92,6 @@ export function fxSqrt(a: FxQ16): FxQ16 {
   return x as FxQ16;
 }
 
-// ── hypot ──
 // fxSqrt(x*x + y*y) だと中間オーバーフローの恐れがあるため、
 // 大きい方でスケーリングして安全に計算
 export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
@@ -124,7 +115,6 @@ export function fxHypot(x: FxQ16, y: FxQ16): FxQ16 {
   return fxMul(big as FxQ16, sqrtVal);
 }
 
-// ── 指数減衰 ──
 /**
  * exp(lnBase * t) の多項式近似 (Taylor 4次)
  * 用途: 1 - base^(dt*REF_FPS) → 1 - exp(ln(base) * dt * REF_FPS)
@@ -159,7 +149,6 @@ export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
   return result as FxQ16;
 }
 
-// ── ユーティリティ: ln(x) の Q16.16 版 ──
 // base (0, 1) の定数に対して事前計算用
 export function fxLn(x: number): FxQ16 {
   return toFx(Math.log(x));

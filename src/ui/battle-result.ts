@@ -164,7 +164,6 @@ function buildScoreRow(
   row.className = `melee-score-row melee-rank-${rank + 1}`;
   row.style.animationDelay = `${rank * 0.1}s`;
 
-  // winner row gets subtle team-color background glow
   if (rank === 0) {
     row.style.background = `linear-gradient(90deg, ${hex}18, transparent 70%)`;
     row.style.color = hex;
@@ -178,7 +177,6 @@ function buildScoreRow(
   name.className = 'melee-team-name';
   name.textContent = `TEAM ${teamIdx + 1}`;
 
-  // kills with bar
   const killsWrap = document.createElement('span');
   killsWrap.className = 'melee-kills-wrap';
 
@@ -261,7 +259,6 @@ export function showMeleeResult(result: MeleeResult) {
   resetResultPanel();
   renderMeleeTitle(d.title, result);
 
-  // --- 基本情報 ---
   const infoRow = document.createElement('div');
   infoRow.className = 'melee-info';
 
@@ -280,7 +277,6 @@ export function showMeleeResult(result: MeleeResult) {
   infoRow.append(timeSpan, teamSpan);
   d.stats.appendChild(infoRow);
 
-  // --- スコアボード ---
   const elimMap = new Map<number, number>();
   for (const ev of result.eliminations) {
     elimMap.set(ev.team, ev.elapsed);
@@ -303,7 +299,6 @@ export function showMeleeResult(result: MeleeResult) {
     d.stats.appendChild(buildScoreRow(rank, teamIdx, stats, elimMap, maxKills));
   }
 
-  // --- タイムライン（全滅イベントが1件以上ある場合のみ） ---
   if (result.eliminations.length > 0) {
     const tlHeader = document.createElement('div');
     tlHeader.className = 'melee-section-header';

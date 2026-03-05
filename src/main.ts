@@ -17,6 +17,7 @@ import { drainAccumulator } from './drain-accumulator.ts';
 import { countFleetUnits, DEFAULT_BUDGET } from './fleet-cost.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
+import type { MeleeResult } from './melee-tracker.ts';
 import {
   advanceMeleeElapsed,
   advanceMeleeEndTimer,
@@ -37,6 +38,7 @@ import { onUnitKilled } from './simulation/squad.ts';
 import type { BattlePhase, GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
+import type { BattleResult } from './types.ts';
 import { copyTeamCounts } from './types.ts';
 import { initResultDOM } from './ui/battle-result.ts';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
@@ -69,8 +71,6 @@ addEventListener('resize', () => {
   createFBOs();
 });
 
-// --- Init UI ---
-
 initUI();
 initHUD();
 initKillFeed();
@@ -86,48 +86,47 @@ function generateAndCompose(preserveFleet: boolean) {
 
 initResultDOM(goToMenu, () => generateAndCompose(true), rematch);
 
-// battle → result 遷移コールバック
-setOnFinalize((result) => {
+function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';
   goToResult(result);
-});
+}
 
-// melee → result 遷移コールバック
-setOnMeleeFinalize((result) => {
+function handleMeleeFinalized(result: MeleeResult) {
   gameLoopState.battlePhase = 'aftermath';
   teardownMeleeHUD();
   goToMeleeResult(result);
-});
+}
 
-// START → compose: 敵を生成して編成画面へ
-setOnStartCompose(() => {
+function handleStartCompose() {
   generateAndCompose(false);
-});
+}
 
-// LAUNCH 後のバトル開始
-setOnBattleStart(() => {
+function handleBattleStart() {
   resetBattleTracking();
   const fleet = getPlayerFleet();
   setInitialPlayerUnits(countFleetUnits(fleet));
   gameLoopState.battlePhase = 'battle';
   gameLoopState.activeTeamCount = 2;
-});
+}
 
-// Spectate 開始: 増援を有効化
-setOnSpectateStart(() => {
+function handleSpectateStart() {
   gameLoopState.battlePhase = 'spectate';
   gameLoopState.activeTeamCount = 2;
-});
+}
 
-// MELEE 開始
-setOnMeleeStart((numTeams: number) => {
+function handleMeleeStart(numTeams: number) {
   resetMeleeTracking(numTeams, copyTeamCounts(teamUnitCounts));
   gameLoopState.battlePhase = 'melee';
   gameLoopState.activeTeamCount = numTeams;
   setupMeleeHUD(numTeams);
-});
+}
 
-// --- Kill tracking ---
+setOnFinalize(handleBattleFinalized);
+setOnMeleeFinalize(handleMeleeFinalized);
+setOnStartCompose(handleStartCompose);
+setOnBattleStart(handleBattleStart);
+setOnSpectateStart(handleSpectateStart);
+setOnMeleeStart(handleMeleeStart);
 
 onKillUnitPermanent((e) => {
   if (state.codexOpen || state.gameState !== 'play') {
@@ -141,8 +140,6 @@ onKillUnitPermanent((e) => {
   }
   onUnitKilled(e.victimSquadIdx, e.victim, getUnitHWM());
 });
-
-// --- Frame loop ---
 
 let lastTime = 0,
   frameCount = 0,
@@ -262,7 +259,6 @@ function frame(now: number) {
   } else if (state.gameState === 'play') {
     updatePlay(dt, t);
   } else if (state.gameState === 'result') {
-    // aftermath: スロー再生
     simAccumulator = drainAccumulator(simAccumulator + dt * AFTERMATH_SPEED * BASE_SPEED, () => {
       savePrevPositions();
       stepOnce(SIM_DT, t, rng, gameLoopState);

@@ -98,7 +98,6 @@ function fillRemaining(arch: Archetype, indices: number[], counts: number[], rem
     return rem;
   }
 
-  // 重み比例で配分（端数は切り捨て）
   for (const i of candidates) {
     const cost = costOf(i);
     const share = (weightOf(arch, i) / totalW) * rem;

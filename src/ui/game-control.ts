@@ -54,11 +54,9 @@ function setSpd(v: number) {
   els().spdValue.textContent = `${v}x`;
 }
 
-// --- 敵艦隊 state ---
 let currentEnemyFleet: FleetComposition = [];
 let currentEnemyArchName = '';
 
-// --- seed 一意性保証 ---
 let seedCounter = 0;
 /**
  * mulberry32 用の一意シードを生成する。
@@ -70,7 +68,6 @@ function uniqueSeed(): number {
   return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
 }
 
-// --- 外部コールバック ---
 type TransitionCb = () => void;
 type MeleeStartCb = (numTeams: number) => void;
 const throwBattleStart: TransitionCb = () => {
@@ -96,8 +93,6 @@ export function setOnSpectateStart(cb: TransitionCb) {
 export function setOnMeleeStart(cb: MeleeStartCb) {
   onMeleeStart = cb;
 }
-
-// --- 画面遷移 ---
 
 function showPlayUI() {
   const d = els();
@@ -225,8 +220,6 @@ export function _resetGameControl() {
   onMeleeStart = () => undefined;
 }
 
-// --- Codex toggle ---
-
 function onCodexToggle() {
   toggleCodex();
   if (state.gameState === 'menu') {
@@ -254,8 +247,6 @@ function onCodexToggle() {
     setAutoFollow(false);
   }
 }
-
-// --- Keyboard ---
 
 function onResultKeydown(e: KeyboardEvent) {
   if (e.code === 'Escape') {
@@ -309,8 +300,6 @@ function stepSpd(dir: number) {
     setSpd(speeds[i + 1] ?? unreachable(i + 1));
   }
 }
-
-// --- Init ---
 
 export function initUI() {
   _els = {

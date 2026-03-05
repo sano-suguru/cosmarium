@@ -72,7 +72,6 @@ function rebuildParticleFreeStack() {
   }
 }
 
-// ── High Water Mark 追跡 ──
 // リセット時に使用済みスロットのみ走査するための最高インデックス追跡
 let _unitHWM = 0;
 let _particleHWM = 0;

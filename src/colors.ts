@@ -1,4 +1,5 @@
 import type { Color3, Team, TeamTuple } from './types.ts';
+import { TYPES } from './unit-types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];
 const VERMILION: Color3 = [1.0, 0.35, 0.2];
@@ -31,46 +32,35 @@ interface UnitColorMod {
   readonly effectSat: number;
 }
 
-const UNIT_MODS: readonly UnitColorMod[] = [
-  // 0 Drone
-  { hue: -0.08, lum: 1.08, sat: 1.15, effectHue: -0.15, effectSat: 1.35 },
-  // 1 Fighter
-  { hue: -0.06, lum: 1.12, sat: 1.1, effectHue: -0.13, effectSat: 1.3 },
-  // 2 Bomber
-  { hue: -0.1, lum: 0.95, sat: 1.0, effectHue: -0.19, effectSat: 1.2 },
-  // 3 Cruiser
-  { hue: -0.12, lum: 0.88, sat: 0.78, effectHue: -0.22, effectSat: 1.05 },
-  // 4 Flagship
-  { hue: -0.14, lum: 0.85, sat: 0.72, effectHue: -0.24, effectSat: 1.05 },
-  // 5 Healer
-  { hue: 0.08, lum: 1.3, sat: 0.55, effectHue: 0.15, effectSat: 1.1 },
-  // 6 Reflector
-  { hue: 0.1, lum: 1.15, sat: 0.6, effectHue: 0.17, effectSat: 1.1 },
-  // 7 Carrier
-  { hue: 0.14, lum: 0.88, sat: 0.78, effectHue: 0.23, effectSat: 1.15 },
-  // 8 Sniper
-  { hue: 0.03, lum: 1.05, sat: 1.2, effectHue: 0.08, effectSat: 1.35 },
-  // 9 Lancer
-  { hue: -0.11, lum: 0.9, sat: 1.0, effectHue: -0.21, effectSat: 1.2 },
-  // 10 Launcher
-  { hue: 0.12, lum: 1.0, sat: 1.05, effectHue: 0.21, effectSat: 1.25 },
-  // 11 Disruptor
-  { hue: -0.04, lum: 1.1, sat: 1.15, effectHue: -0.1, effectSat: 1.35 },
-  // 12 Scorcher
-  { hue: 0.05, lum: 0.9, sat: 1.0, effectHue: 0.11, effectSat: 1.2 },
-  // 13 Teleporter
-  { hue: -0.09, lum: 1.15, sat: 1.2, effectHue: -0.17, effectSat: 1.4 },
-  // 14 Arcer
-  { hue: -0.15, lum: 1.1, sat: 1.1, effectHue: -0.25, effectSat: 1.3 },
-  // 15 Bastion
-  { hue: 0.06, lum: 1.0, sat: 0.55, effectHue: 0.13, effectSat: 1.05 },
-  // 16 Amplifier
-  { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
-  // 17 Scrambler
-  { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
-  // 18 Catalyst
-  { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
-];
+const UNIT_MOD_MAP: Readonly<Record<string, UnitColorMod>> = {
+  Drone: { hue: -0.08, lum: 1.08, sat: 1.15, effectHue: -0.15, effectSat: 1.35 },
+  Fighter: { hue: -0.06, lum: 1.12, sat: 1.1, effectHue: -0.13, effectSat: 1.3 },
+  Bomber: { hue: -0.1, lum: 0.95, sat: 1.0, effectHue: -0.19, effectSat: 1.2 },
+  Cruiser: { hue: -0.12, lum: 0.88, sat: 0.78, effectHue: -0.22, effectSat: 1.05 },
+  Flagship: { hue: -0.14, lum: 0.85, sat: 0.72, effectHue: -0.24, effectSat: 1.05 },
+  Healer: { hue: 0.08, lum: 1.3, sat: 0.55, effectHue: 0.15, effectSat: 1.1 },
+  Reflector: { hue: 0.1, lum: 1.15, sat: 0.6, effectHue: 0.17, effectSat: 1.1 },
+  Carrier: { hue: 0.14, lum: 0.88, sat: 0.78, effectHue: 0.23, effectSat: 1.15 },
+  Sniper: { hue: 0.03, lum: 1.05, sat: 1.2, effectHue: 0.08, effectSat: 1.35 },
+  Lancer: { hue: -0.11, lum: 0.9, sat: 1.0, effectHue: -0.21, effectSat: 1.2 },
+  Launcher: { hue: 0.12, lum: 1.0, sat: 1.05, effectHue: 0.21, effectSat: 1.25 },
+  Disruptor: { hue: -0.04, lum: 1.1, sat: 1.15, effectHue: -0.1, effectSat: 1.35 },
+  Scorcher: { hue: 0.05, lum: 0.9, sat: 1.0, effectHue: 0.11, effectSat: 1.2 },
+  Teleporter: { hue: -0.09, lum: 1.15, sat: 1.2, effectHue: -0.17, effectSat: 1.4 },
+  Arcer: { hue: -0.15, lum: 1.1, sat: 1.1, effectHue: -0.25, effectSat: 1.3 },
+  Bastion: { hue: 0.06, lum: 1.0, sat: 0.55, effectHue: 0.13, effectSat: 1.05 },
+  Amplifier: { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
+  Scrambler: { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
+  Catalyst: { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
+};
+
+const UNIT_MODS: readonly UnitColorMod[] = TYPES.map((t) => {
+  const mod = UNIT_MOD_MAP[t.name];
+  if (!mod) {
+    throw new Error(`Missing color mod: ${t.name}`);
+  }
+  return mod;
+});
 
 interface HslMod {
   readonly hue: number;

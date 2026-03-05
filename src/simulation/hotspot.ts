@@ -68,7 +68,6 @@ function pickBestCell(cells: Map<number, HotspotCell>): { key: number; cell: Hot
   let bestCell: HotspotCell | null = null;
   let bestScore = 0;
   for (const [key, cell] of cells) {
-    // 上位2チームを見つけてスコアリング
     let max1 = 0;
     let max2 = 0;
     for (const c of cell.teams) {

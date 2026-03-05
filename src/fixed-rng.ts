@@ -1,4 +1,3 @@
-// ── Q16.16 固定小数点乱数 ──
 import type { FxQ16 } from './fixed-point.ts';
 
 /**

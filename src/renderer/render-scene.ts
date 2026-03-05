@@ -26,7 +26,6 @@ import { unitType } from '../unit-types.ts';
 import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
 
 const VET_TINT_FACTOR = 0.15;
-// ── vet overlay ──────────────────────────────────────
 /** vet リングの基本サイズ倍率 */
 const VET_OVERLAY_BASE = 1.4;
 /** vet レベルあたりの追加サイズ倍率 */
@@ -61,7 +60,6 @@ const BUFF_OVERLAY_FACTOR = 1.7;
 /** catalyst パルスの振幅 (BUFF_OVERLAY_FACTOR × (1+AMP) = 1.904 ≤ OVERLAY_FACTOR) */
 const CATALYST_PULSE_AMP = 0.12;
 
-// ── shield / reflect field overlay ───────────────────
 /** アクティブシールドのサイズ倍率 */
 const SHIELD_ACTIVE_FACTOR = 1.5;
 /** シールドリンガーのサイズ倍率 */
@@ -69,7 +67,6 @@ const SHIELD_LINGER_FACTOR = 1.8;
 /** リフレクトフィールドのサイズ倍率 */
 const REFLECT_FIELD_FACTOR = 1.6;
 
-// ── HP bar / stun stars ──────────────────────────────
 /** HP バーの幅倍率 */
 const HP_BAR_WIDTH_FACTOR = 1.5;
 /** HP バーの Y オフセット倍率 */
@@ -79,13 +76,11 @@ const STUN_STAR_ORBIT_FACTOR = 0.7;
 /** スタンスターの固定サイズ (world units) */
 const STUN_STAR_SIZE = 2;
 
-// ── explosion ring particle ───────────────────────────
 /** 爆発リングの寿命初期サイズ倍率 */
 const EXPLOSION_RING_INITIAL_SCALE = 2.2;
 /** 爆発リングの寿命減衰係数 */
 const EXPLOSION_RING_DECAY = 1.7;
 
-// ── beam width ────────────────────────────────────────
 /** ライトニングビームの垂直逸脱倍率 */
 const LIGHTNING_DEVIATION_FACTOR = 4;
 /** 通常ビームの sin 振幅 */
