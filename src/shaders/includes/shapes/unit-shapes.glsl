@@ -191,24 +191,20 @@
   // [SHAPE:3 Cruiser] ————————————————————————————
   else if(sh==3){ vec2 p=vU*0.62; float t=vA+uTime;
     // Cruiser: Nebulon-B style dumbbell — hammerhead command + spine + engine block
+    // Y-axis mirror fold — symmetric hull geometry
+    vec2 pm=vec2(p.x,abs(p.y));
     // 1. Forward command section (hammerhead)
     float dCmd=sdRoundedBox(p-vec2(0.30,0.0),vec2(0.18,0.22),0.03);
-    // 2. Forward antenna prongs (aggressive forward sweep from command edges)
-    float dProngL=sdCapsule(p,vec2(0.42,0.18),vec2(0.54,0.10),0.020);
-    float dProngR=sdCapsule(p,vec2(0.42,-0.18),vec2(0.54,-0.10),0.020);
-    float dProngs=min(dProngL,dProngR);
+    // 2. Forward antenna prongs (folded to 1 via abs(p.y))
+    float dProngs=sdCapsule(pm,vec2(0.42,0.18),vec2(0.54,0.10),0.020);
     // 3. Thin spine/keel connecting sections
     float dSpine=sdCapsule(p,vec2(0.14,0.0),vec2(-0.16,0.0),0.030);
     // 4. Rear engine block (compact, taller)
     float dEngine=sdRoundedBox(p-vec2(-0.30,0.0),vec2(0.14,0.20),0.04);
-    // 5. Dorsal + ventral fins (symmetric pair at spine midpoint)
-    float dFinU=sdCapsule(p,vec2(0.02,0.05),vec2(0.02,0.26),0.020);
-    float dFinD=sdCapsule(p,vec2(0.02,-0.05),vec2(0.02,-0.26),0.020);
-    float dFin=min(dFinU,dFinD);
-    // 6. Rear stabilizer wings (swept far back past engines)
-    float dStabL=sdCapsule(p,vec2(-0.28,0.18),vec2(-0.58,0.34),0.020);
-    float dStabR=sdCapsule(p,vec2(-0.28,-0.18),vec2(-0.58,-0.34),0.020);
-    float dStabs=min(dStabL,dStabR);
+    // 5. Dorsal + ventral fins (folded to 1 via abs(p.y))
+    float dFin=sdCapsule(pm,vec2(0.02,0.05),vec2(0.02,0.26),0.020);
+    // 6. Rear stabilizer wings (folded to 1 via abs(p.y))
+    float dStabs=sdCapsule(pm,vec2(-0.28,0.18),vec2(-0.58,0.34),0.020);
     // Union
     float dBody=smin(dCmd,dProngs,0.03);
     dBody=smin(dBody,dSpine,0.04);
@@ -221,10 +217,9 @@
     // 8. Spine conduit groove
     float dConduit=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.16,0.012),0.004);
     dBody=max(dBody,-dConduit);
-    // 9. Engine exhaust port cutouts (visible nozzles)
-    float dNozL=sdRoundedBox(p-vec2(-0.44,0.08),vec2(0.02,0.03),0.008);
-    float dNozR=sdRoundedBox(p-vec2(-0.44,-0.08),vec2(0.02,0.03),0.008);
-    dBody=max(dBody,-min(dNozL,dNozR));
+    // 9. Engine exhaust port cutouts (folded to 1 via abs(p.y))
+    float dNoz=sdRoundedBox(pm-vec2(-0.44,0.08),vec2(0.02,0.03),0.008);
+    dBody=max(dBody,-dNoz);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -235,53 +230,50 @@
                     *(0.3+0.7*(0.5+0.5*sin(p.x*8.0-t*5.0)))*0.40;
     // 12. Bridge window lights (forward command section)
     float bridgeGlow=exp(-length(p-vec2(0.42,0.0))*16.0)*(0.5+0.5*sin(t*1.5));
-    // 13. Antenna tip sensors (alternating blink)
+    // 13. Antenna tip sensors (alternating blink — phase offset, cannot fold)
     float sensorL=exp(-length(p-vec2(0.56,0.10))*18.0)*(0.5+0.5*sin(t*4.0));
     float sensorR=exp(-length(p-vec2(0.56,-0.10))*18.0)*(0.5+0.5*sin(t*4.0+3.14));
     float sensors=(sensorL+sensorR)*0.45;
     // 14. Engine block reactor core glow
     float reactor=exp(-length(p-vec2(-0.30,0.0))*12.0)*(0.5+0.5*sin(t*3.5));
-    // 15. Twin engines + trail
+    // 15. Twin engines + trail (folded via abs(p.y))
     float eP=0.65+0.35*sin(t*5.0);
-    float dE1=length(p-vec2(-0.46,0.08)); float dE2=length(p-vec2(-0.46,-0.08));
-    float eng=exp(-min(dE1,dE2)*9.0)*eP;
+    float eng=exp(-length(pm-vec2(-0.46,0.08))*9.0)*eP;
     float trail=0.0;
-    if(p.x<-0.46){float dy=min(abs(p.y-0.08),abs(p.y+0.08));
+    if(p.x<-0.46){float dy=abs(pm.y-0.08);
       trail=exp(-dy*10.0)*exp((p.x+0.46)*2.2)*eP*0.55;}
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+turretGlow+spineFlow+bridgeGlow*0.35+sensors+reactor*0.30+eng*0.50+trail;
     a=1.2*tanh(a/1.2); }
   // [SHAPE:4 Flagship] ————————————————————————————
   else if(sh==4){ vec2 p=vU*0.84; float t=vA+uTime;
     // Flagship: Sleek catamaran battleship — tapered twin hulls
-    // 1. Tapered twin hulls (sdTrapezoid via p.yx: stern wide, bow narrow)
-    float dTop=sdTrapezoid(p.yx-vec2(0.28,-0.05),0.20,0.05,0.58);
-    float dBot=sdTrapezoid(p.yx-vec2(-0.28,-0.05),0.20,0.05,0.58);
+    // Y-axis mirror fold — symmetric twin hull geometry
+    vec2 pm=vec2(p.x,abs(p.y));
+    // 1. Tapered twin hulls (folded to 1 via abs(p.y))
+    float dHull=sdTrapezoid(pm.yx-vec2(0.28,-0.05),0.20,0.05,0.58);
     // 2. Bow turret bridge (connects twin hulls at front)
     float dBow=sdRoundedBox(p-vec2(0.46,0.0),vec2(0.12,0.22),0.05);
     // 3. Stern engineering section (wide rear connection)
     float dStern=sdRoundedBox(p-vec2(-0.68,0.0),vec2(0.10,0.38),0.06);
     // 4. Union hulls + bridge + stern
-    float dBody=smin(min(dTop,dBot),dBow,0.06);
+    float dBody=smin(dHull,dBow,0.06);
     dBody=smin(dBody,dStern,0.05);
     // 5. Center channel cutout (gap between twin hulls)
     dBody=max(dBody,-sdRoundedBox(p-vec2(-0.06,0.0),vec2(0.52,0.13),0.05));
     // 6. Stern engine bay cutout
     dBody=max(dBody,-sdRoundedBox(p-vec2(-0.68,0.0),vec2(0.14,0.14),0.04));
-    // 7. Hull notches (break smooth hull surface on each hull)
-    dBody=max(dBody,-min(sdRoundedBox(p-vec2(-0.10,0.28),vec2(0.22,0.05),0.02),
-                        sdRoundedBox(p-vec2(-0.10,-0.28),vec2(0.22,0.05),0.02)));
-    // 8. Dorsal keel ridges (armor plates along each hull)
-    float dKeelT=sdRoundedBox(p-vec2(0.05,0.28),vec2(0.30,0.015),0.005);
-    float dKeelB=sdRoundedBox(p-vec2(0.05,-0.28),vec2(0.30,0.015),0.005);
-    dBody=max(dBody,-min(dKeelT,dKeelB)+0.008);
+    // 7. Hull notches (folded to 1 via abs(p.y))
+    dBody=max(dBody,-sdRoundedBox(pm-vec2(-0.10,0.28),vec2(0.22,0.05),0.02));
+    // 8. Dorsal keel ridges (folded to 1 via abs(p.y))
+    float dKeel=sdRoundedBox(pm-vec2(0.05,0.28),vec2(0.30,0.015),0.005);
+    dBody=max(dBody,-dKeel+0.008);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
     float xSeg=p.x*7.0+0.2;
     float rib=(1.0-smoothstep(0.42,0.50,abs(fract(xSeg)-0.5)+fwidth(xSeg)*0.6))
               *smoothstep(-0.60,-0.10,p.x)*hf*0.16;
-    float lane=max(1.0-smoothstep(0.055,0.055+aa,abs(p.y-0.28)),
-                   1.0-smoothstep(0.055,0.055+aa,abs(p.y+0.28)));
+    float lane=1.0-smoothstep(0.055,0.055+aa,abs(pm.y-0.28));
     float wx=p.x*14.0+t*0.8;
     float win=(1.0-smoothstep(0.34,0.48,abs(fract(wx)-0.5)+fwidth(wx)*0.8))
               *smoothstep(-0.55,0.45,p.x)*lane*hf;
@@ -290,33 +282,30 @@
                   *(0.72+0.28*sin(t*2.4))*(1.0-smoothstep(0.0,aa,dCh))*hf;
     float engP=0.70+0.30*sin(t*7.0+p.y*4.0);
     float eR=0.07; float eF=24.0; float pF=150.0; float pD=10.0;
-    float e1=length(p-vec2(-0.80,0.18))-eR; float e2=length(p-vec2(-0.80,0.38))-eR;
-    float e3=length(p-vec2(-0.80,-0.18))-eR; float e4=length(p-vec2(-0.80,-0.38))-eR;
-    float engC=exp(-eF*max(min(min(min(e1,e2),e3),e4),0.0))*engP;
+    // Quad engines (folded to 2 via abs(p.y))
+    float e1=length(pm-vec2(-0.80,0.18))-eR; float e2=length(pm-vec2(-0.80,0.38))-eR;
+    float engC=exp(-eF*max(min(e1,e2),0.0))*engP;
     float plm=exp(-pD*max(-p.x-0.78,0.0))*(
-      exp(-pF*(p.y-0.18)*(p.y-0.18))+exp(-pF*(p.y-0.38)*(p.y-0.38))+
-      exp(-pF*(p.y+0.18)*(p.y+0.18))+exp(-pF*(p.y+0.38)*(p.y+0.38)));
+      exp(-pF*(pm.y-0.18)*(pm.y-0.18))+exp(-pF*(pm.y-0.38)*(pm.y-0.38)));
     float eng=(engC*0.85+plm*(0.55+0.45*engP)*0.45)*smoothstep(-0.85,-0.35,p.x);
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.22+reactor*0.55+eng*0.60;
     a=1.2*tanh(a/1.2); }
   // [SHAPE:5 Healer] ————————————————————————————
   else if(sh==5){ vec2 p=vU*0.55; float t=vA+uTime;
     // Medical Frigate: wide hull, nacelle wings, cross channel, healing rings
+    // Y-axis mirror fold — symmetric nacelle/arm/engine geometry
+    vec2 pm=vec2(p.x,abs(p.y));
 
     // 1. Wide oval hull (distinctly rounder/wider than combat ships)
     float dHull=sdRoundedBox(p,vec2(0.38,0.26),0.16);
 
-    // 2. Nacelle booms + pods (wide wingspan — medical sensor arrays)
-    float dBoomL=sdCapsule(p,vec2(-0.08,0.22),vec2(-0.08,0.52),0.06);
-    float dBoomR=sdCapsule(p,vec2(-0.08,-0.22),vec2(-0.08,-0.52),0.06);
-    float dPodL=sdRoundedBox(p-vec2(-0.08,0.52),vec2(0.13,0.07),0.04);
-    float dPodR=sdRoundedBox(p-vec2(-0.08,-0.52),vec2(0.13,0.07),0.04);
-    float dNac=min(min(dBoomL,dBoomR),min(dPodL,dPodR));
+    // 2. Nacelle booms + pods (folded to 1 via abs(p.y))
+    float dBoom=sdCapsule(pm,vec2(-0.08,0.22),vec2(-0.08,0.52),0.06);
+    float dPod=sdRoundedBox(pm-vec2(-0.08,0.52),vec2(0.13,0.07),0.04);
+    float dNac=min(dBoom,dPod);
 
-    // 3. Forward emitter dish (converging arms + concavity)
-    float dArmL=sdCapsule(p,vec2(0.22,0.18),vec2(0.48,0.04),0.05);
-    float dArmR=sdCapsule(p,vec2(0.22,-0.18),vec2(0.48,-0.04),0.05);
-    float dDish=smin(dArmL,dArmR,0.06);
+    // 3. Forward emitter dish (folded to 1 via abs(p.y))
+    float dDish=sdCapsule(pm,vec2(0.22,0.18),vec2(0.48,0.04),0.05);
 
     // Union all structure
     float dBody=smin(dHull,dNac,0.08);
@@ -330,10 +319,9 @@
     // 5. Dish concavity cutout
     dBody=max(dBody,-(length(p-vec2(0.52,0.0))-0.12));
 
-    // 6. Nacelle bay cutouts (sensor indentations)
-    float dBayL=sdRoundedBox(p-vec2(-0.08,0.52),vec2(0.06,0.03),0.01);
-    float dBayR=sdRoundedBox(p-vec2(-0.08,-0.52),vec2(0.06,0.03),0.01);
-    dBody=max(dBody,-min(dBayL,dBayR));
+    // 6. Nacelle bay cutouts (folded to 1 via abs(p.y))
+    float dBay=sdRoundedBox(pm-vec2(-0.08,0.52),vec2(0.06,0.03),0.01);
+    dBody=max(dBody,-dBay);
 
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
@@ -354,21 +342,19 @@
     float rA2=smoothstep(0.0,0.15,rT2)*smoothstep(0.9,0.45,rT2);
     float rings=(exp(-abs(d-rT1)*20.0)*rA1+exp(-abs(d-rT2)*20.0)*rA2)*0.25;
 
-    // 10. Nacelle tip glows (pulsing sensor lights)
+    // 10. Nacelle tip glows (folded via abs(p.y))
     float nP=0.5+0.5*sin(t*3.0);
-    float nacGlow=(exp(-length(p-vec2(-0.08,0.52))*14.0)+
-                   exp(-length(p-vec2(-0.08,-0.52))*14.0))*nP;
+    float nacGlow=exp(-length(pm-vec2(-0.08,0.52))*14.0)*nP;
 
     // 11. Dish focus glow (phase offset from cross for alternating pulse)
     float dFocus=exp(-length(p-vec2(0.46,0.0))*10.0)*(0.5+0.5*sin(t*2.5+1.57));
 
-    // 12. Twin engines + trails
+    // 12. Twin engines + trails (folded via abs(p.y))
     float eP=0.65+0.35*sin(t*5.0);
-    float dE1=length(p-vec2(-0.40,0.15)); float dE2=length(p-vec2(-0.40,-0.15));
-    float eng=exp(-min(dE1,dE2)*9.0)*eP;
+    float eng=exp(-length(pm-vec2(-0.40,0.15))*9.0)*eP;
     float trail=0.0;
     if(p.x<-0.40){
-      float dy=min(abs(p.y-0.15),abs(p.y+0.15));
+      float dy=abs(pm.y-0.15);
       trail=exp(-dy*12.0)*exp((p.x+0.40)*2.2)*eP*0.35;
     }
 
@@ -806,6 +792,8 @@
   // [SHAPE:15 Bastion] ————————————————————————————
   else if(sh==15){ vec2 p=vU*0.62; float t=vA+uTime;
     // Bastion: Type-10 Defender-style armored block — inverted trapezoid, angular fins, quad engines
+    // Y-axis mirror fold — symmetric fin/skirt/engine geometry
+    vec2 pm=vec2(p.x,abs(p.y));
 
     // 1. Main hull — inverted trapezoid (rear wide 0.26, front narrow 0.18)
     float dHull=sdTrapezoid(p.yx,0.26,0.18,0.38);
@@ -813,18 +801,14 @@
     // 2. Front armor plate (blunt angular wedge)
     float dProw=sdRoundedBox(p-vec2(0.36,0.0),vec2(0.10,0.20),0.02);
 
-    // 3. Rear angle fins (Type-10 stabilizers — diagonal outward from stern)
-    float dFinL=sdCapsule(p,vec2(-0.36,0.26),vec2(-0.48,0.36),0.025);
-    float dFinR=sdCapsule(p,vec2(-0.36,-0.26),vec2(-0.48,-0.36),0.025);
-    float dFins=min(dFinL,dFinR);
+    // 3. Rear angle fins (folded to 1 via abs(p.y))
+    float dFins=sdCapsule(pm,vec2(-0.36,0.26),vec2(-0.48,0.36),0.025);
 
     // 4. Rear engine block (wide, spans hull rear width)
     float dEngine=sdRoundedBox(p-vec2(-0.40,0.0),vec2(0.08,0.26),0.02);
 
-    // 5. Side armor skirts (flush extensions along hull flanks)
-    float dSkirtL=sdRoundedBox(p-vec2(-0.02,0.28),vec2(0.28,0.04),0.01);
-    float dSkirtR=sdRoundedBox(p-vec2(-0.02,-0.28),vec2(0.28,0.04),0.01);
-    float dSkirts=min(dSkirtL,dSkirtR);
+    // 5. Side armor skirts (folded to 1 via abs(p.y))
+    float dSkirts=sdRoundedBox(pm-vec2(-0.02,0.28),vec2(0.28,0.04),0.01);
 
     // Union with tight smin for angular look
     float dBody=smin(dHull,dProw,0.03);
@@ -839,25 +823,23 @@
     dBody=max(dBody,-dGH+0.008);
     dBody=max(dBody,-min(dGV1,dGV2)+0.008);
 
-    // Diagonal panel cuts at ±25deg (faceted armor, same technique as Reflector sh6)
+    // Diagonal panel cuts at ±25° (X-cross — cannot fold: both rotations cross y=0)
     float cs25=0.906; float sn25=0.423;
     vec2 pr1=vec2(p.x*cs25-p.y*sn25,p.x*sn25+p.y*cs25);
-    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.04,0.0),vec2(0.26,0.010),0.004));
     vec2 pr2=vec2(p.x*cs25+p.y*sn25,-p.x*sn25+p.y*cs25);
+    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.04,0.0),vec2(0.26,0.010),0.004));
     dBody=max(dBody,-sdRoundedBox(pr2-vec2(0.04,0.0),vec2(0.26,0.010),0.004));
 
-    // 7. Engine nozzle cutouts (4 thrusters at Y = ±0.14, ±0.05)
-    float dN1=sdRoundedBox(p-vec2(-0.49,0.14),vec2(0.02,0.035),0.008);
-    float dN2=sdRoundedBox(p-vec2(-0.49,-0.14),vec2(0.02,0.035),0.008);
-    float dN3=sdRoundedBox(p-vec2(-0.49,0.05),vec2(0.02,0.035),0.008);
-    float dN4=sdRoundedBox(p-vec2(-0.49,-0.05),vec2(0.02,0.035),0.008);
-    dBody=max(dBody,-min(min(dN1,dN2),min(dN3,dN4)));
+    // 7. Engine nozzle cutouts (folded to 2 via abs(p.y))
+    float dN1=sdRoundedBox(pm-vec2(-0.49,0.14),vec2(0.02,0.035),0.008);
+    float dN2=sdRoundedBox(pm-vec2(-0.49,0.05),vec2(0.02,0.035),0.008);
+    dBody=max(dBody,-min(dN1,dN2));
 
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
 
-    // 8. Tether nodes (4, embedded in skirts, phase-staggered)
+    // 8. Tether nodes (4, embedded in skirts, phase-staggered — cannot fold)
     float n0=exp(-length(p-vec2(0.14,0.30))*16.0)*(0.4+0.3*sin(t*3.0));
     float n1=exp(-length(p-vec2(0.14,-0.30))*16.0)*(0.4+0.3*sin(t*3.0+1.57));
     float n2=exp(-length(p-vec2(-0.18,0.30))*16.0)*(0.4+0.3*sin(t*3.0+3.14));
@@ -877,32 +859,30 @@
     float prowMask=smoothstep(0.06,0.0,dProw)*hf;
     float prowGlow=prowMask*(0.3+0.2*sin(p.y*18.0+t*2.0))*0.25;
 
-    // 12. Quad engines + trails
+    // 12. Quad engines + trails (folded to 2 via abs(p.y))
     float eP=0.65+0.35*sin(t*4.0);
-    float dE1=length(p-vec2(-0.50,0.14)); float dE2=length(p-vec2(-0.50,-0.14));
-    float dE3=length(p-vec2(-0.50,0.05)); float dE4=length(p-vec2(-0.50,-0.05));
-    float eng=exp(-min(min(dE1,dE2),min(dE3,dE4))*9.0)*eP;
+    float dE1=length(pm-vec2(-0.50,0.14)); float dE2=length(pm-vec2(-0.50,0.05));
+    float eng=exp(-min(dE1,dE2)*9.0)*eP;
     float trail=0.0;
-    if(p.x<-0.50){float dy=min(min(abs(p.y-0.14),abs(p.y+0.14)),min(abs(p.y-0.05),abs(p.y+0.05)));
+    if(p.x<-0.50){float dy=min(abs(pm.y-0.14),abs(pm.y-0.05));
       trail=exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.25;}
 
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+nodes+plateGlowH+plateGlowV+core*0.35+prowGlow+eng*0.35+trail;
     a=1.2*tanh(a/1.2); }
   // [SHAPE:16 Amplifier] ————————————————————————————
   else if(sh==16){ vec2 p=vU*0.58; float t=vA+uTime;
+    // Y-axis mirror fold — symmetric wing/conduit/engine geometry
+    vec2 pm=vec2(p.x,abs(p.y));
     // 1. Wedge hull (trapezoid: wide stern → sharp bow)
     float dHull=sdTrapezoid(p.yx-vec2(0.0,0.04),0.24,0.03,0.46);
-    // 2. Large forward-swept main wings (shoulder → front-outward)
-    float dWingM=sdCapsule(p,vec2(-0.08,0.12),vec2(0.28,0.42),0.045);
-    float dWingMR=sdCapsule(p,vec2(-0.08,-0.12),vec2(0.28,-0.42),0.045);
-    // 3. Secondary forward-swept wings (inner, shorter)
-    float dWingS=sdCapsule(p,vec2(-0.14,0.10),vec2(0.16,0.30),0.030);
-    float dWingSR=sdCapsule(p,vec2(-0.14,-0.10),vec2(0.16,-0.30),0.030);
-    float dWings=min(min(dWingM,dWingMR),min(dWingS,dWingSR));
-    // 4. Aggressive wing tips (forward-swept triangular ends)
-    float dTipL=sdTriangle(p,vec2(0.24,0.40),vec2(0.36,0.50),vec2(0.22,0.46));
-    float dTipR=sdTriangle(p,vec2(0.24,-0.40),vec2(0.36,-0.50),vec2(0.22,-0.46));
-    dWings=min(dWings,min(dTipL,dTipR));
+    // 2. Large forward-swept main wings (folded to 1 via abs(p.y))
+    float dWingM=sdCapsule(pm,vec2(-0.08,0.12),vec2(0.28,0.42),0.045);
+    // 3. Secondary forward-swept wings (folded to 1 via abs(p.y))
+    float dWingS=sdCapsule(pm,vec2(-0.14,0.10),vec2(0.16,0.30),0.030);
+    float dWings=min(dWingM,dWingS);
+    // 4. Aggressive wing tips (folded to 1 via abs(p.y))
+    float dTip=sdTriangle(pm,vec2(0.24,0.40),vec2(0.36,0.50),vec2(0.22,0.46));
+    dWings=min(dWings,dTip);
     // 5. Bow spike (amplifier focal point)
     float dSpike=sdCapsule(p,vec2(0.38,0.0),vec2(0.56,0.0),0.018);
     float dBody=smin(dHull,dWings,0.05);
@@ -910,20 +890,18 @@
     // 6. Panel grooves — horizontal centre line
     float dGH=sdRoundedBox(p,vec2(0.36,0.012),0.003);
     dBody=max(dBody,-dGH+0.008);
-    // 7. Wing conduit grooves (energy conduits along wings)
-    float dCondL=sdCapsule(p,vec2(-0.10,0.13),vec2(0.24,0.38),0.008);
-    float dCondR=sdCapsule(p,vec2(-0.10,-0.13),vec2(0.24,-0.38),0.008);
-    dBody=max(dBody,-min(dCondL,dCondR)+0.006);
-    // 8. Diagonal armor cuts at ±20deg
+    // 7. Wing conduit grooves (folded to 1 via abs(p.y))
+    float dCond=sdCapsule(pm,vec2(-0.10,0.13),vec2(0.24,0.38),0.008);
+    dBody=max(dBody,-dCond+0.006);
+    // 8. Diagonal armor cuts at ±20° (X-cross — cannot fold: both rotations cross y=0)
     float cs20=0.940; float sn20=0.342;
     vec2 pr1=vec2(p.x*cs20-p.y*sn20,p.x*sn20+p.y*cs20);
-    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.02,0.0),vec2(0.28,0.008),0.003));
     vec2 pr2=vec2(p.x*cs20+p.y*sn20,-p.x*sn20+p.y*cs20);
+    dBody=max(dBody,-sdRoundedBox(pr1-vec2(0.02,0.0),vec2(0.28,0.008),0.003));
     dBody=max(dBody,-sdRoundedBox(pr2-vec2(0.02,0.0),vec2(0.28,0.008),0.003));
-    // 9. Engine nozzle cutouts (twin)
-    float dN1=sdRoundedBox(p-vec2(-0.48,0.10),vec2(0.02,0.032),0.008);
-    float dN2=sdRoundedBox(p-vec2(-0.48,-0.10),vec2(0.02,0.032),0.008);
-    dBody=max(dBody,-min(dN1,dN2));
+    // 9. Engine nozzle cutouts (folded to 1 via abs(p.y))
+    float dN=sdRoundedBox(pm-vec2(-0.48,0.10),vec2(0.02,0.032),0.008);
+    dBody=max(dBody,-dN);
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     float rim=(1.0-smoothstep(RIM_THRESH[sh],RIM_THRESH[sh]+aa,abs(dBody)))*hf;
@@ -936,19 +914,18 @@
     // 11. Bow focal point glow
     float focalD=length(p-vec2(0.56,0.0));
     float focalGlow=exp(-focalD*14.0)*(0.5+0.4*sin(t*6.0));
-    // 12. Wing conduit energy flow
-    float condMaskL=1.0-smoothstep(0.0,aa*3.0,abs(dCondL));
-    float condMaskR=1.0-smoothstep(0.0,aa*3.0,abs(dCondR));
-    float condFlow=(condMaskL+condMaskR)*(0.3+0.7*(0.5+0.5*sin(p.x*12.0-t*6.0)))*0.35;
-    // 13. Twin engines + exhaust trail
+    // 12. Wing conduit energy flow (folded via abs(p.y))
+    float condMask=1.0-smoothstep(0.0,aa*3.0,abs(dCond));
+    float condFlow=condMask*(0.3+0.7*(0.5+0.5*sin(p.x*12.0-t*6.0)))*0.35;
+    // 13. Twin engines + exhaust trail (engines additive — keep unfolded; trail folded)
     float eP=0.65+0.35*sin(t*8.0);
     float eL=exp(-length(p-vec2(-0.50,0.10))*10.0);
     float eR=exp(-length(p-vec2(-0.50,-0.10))*10.0);
     float eng=(eL+eR)*eP;
-    float dy=min(abs(p.y-0.10),abs(p.y+0.10));
+    float dy=abs(pm.y-0.10);
     float trail=step(p.x,-0.50)*exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.30;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+focalGlow*0.50+condFlow+eng*0.45+trail;
-    col=mix(col,vec3(0.7,0.95,1.0),(condMaskL+condMaskR)*0.30);
+    col=mix(col,vec3(0.7,0.95,1.0),condMask*0.30);
     col=mix(col,vec3(1.0,0.95,0.85),exp(-focalD*10.0)*0.45);
     col=mix(col,vec3(1.0,0.75,0.4),rings*0.30);
     a=1.2*tanh(a/1.2);
@@ -1012,24 +989,20 @@
     }
   // [SHAPE:18 Catalyst] ————————————————————————————
   else if(sh==18){ vec2 p=vU*0.58; float t=vA+uTime;
+    // X-axis mirror fold — symmetric wing/conduit geometry
+    vec2 pm=vec2(abs(p.x),p.y);
     // 1. Wedge fuselage (narrow nose → wide rear)
     float dFuse=sdTrapezoid(p,0.03,0.10,0.22);
     // 2. Nose emitter spike
     float dNose=sdCapsule(p,vec2(0.0,0.22),vec2(0.0,0.30),0.012);
     // 3. Cockpit bulge
     float dCock=sdRoundedBox(p-vec2(0.0,0.12),vec2(0.028,0.04),0.015);
-    // 4. Swept delta wings (Y-mirrored)
-    float dWL=sdCapsule(p,vec2(-0.03,0.06),vec2(-0.32,-0.12),0.022);
-    float dWR=sdCapsule(p,vec2(0.03,0.06),vec2(0.32,-0.12),0.022);
-    float dWings=min(dWL,dWR);
-    // 5. Secondary inner wings
-    float dIW=min(
-      sdCapsule(p,vec2(-0.02,0.02),vec2(-0.18,-0.06),0.014),
-      sdCapsule(p,vec2(0.02,0.02),vec2(0.18,-0.06),0.014));
-    // 6. Wingtip energy node pods
-    float dNL=sdTriangle(p-vec2(-0.33,-0.13),vec2(0.0,0.025),vec2(-0.02,-0.02),vec2(0.02,-0.02));
-    float dNR=sdTriangle(p-vec2(0.33,-0.13),vec2(0.0,0.025),vec2(-0.02,-0.02),vec2(0.02,-0.02));
-    float dNodes=min(dNL,dNR);
+    // 4. Swept delta wings (folded to 1 via abs(p.x))
+    float dWings=sdCapsule(pm,vec2(0.03,0.06),vec2(0.32,-0.12),0.022);
+    // 5. Secondary inner wings (folded to 1 via abs(p.x))
+    float dIW=sdCapsule(pm,vec2(0.02,0.02),vec2(0.18,-0.06),0.014);
+    // 6. Wingtip energy node pods (folded to 1 via abs(p.x))
+    float dNodePod=sdTriangle(pm-vec2(0.33,-0.13),vec2(0.0,0.025),vec2(-0.02,-0.02),vec2(0.02,-0.02));
     // 7. Dorsal spine ridge
     float dSpine=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.012,0.14),0.006);
     // 8. Union
@@ -1037,18 +1010,13 @@
     dBody=smin(dBody,dCock,0.02);
     dBody=smin(dBody,dWings,0.025);
     dBody=smin(dBody,dIW,0.02);
-    dBody=smin(dBody,dNodes,0.015);
+    dBody=smin(dBody,dNodePod,0.015);
     dBody=smin(dBody,dSpine,0.02);
-    // 9. Panel grooves
-    float seam=exp(-abs(p.x)*50.0)*smoothstep(0.18,-0.10,p.y)*0.12;
-    float wGrooveL=exp(-abs(dot(p-vec2(-0.04,0.04),normalize(vec2(-0.30,-0.18))))*40.0)*0.08;
-    float wGrooveR=exp(-abs(dot(p-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*40.0)*0.08;
-    float diagL=exp(-abs(dot(p-vec2(-0.08,0.0),normalize(vec2(-1.0,-0.6))))*35.0)*0.06;
-    float diagR=exp(-abs(dot(p-vec2(0.08,0.0),normalize(vec2(1.0,-0.6))))*35.0)*0.06;
-    float grooves=seam+wGrooveL+wGrooveR+diagL+diagR;
-    // 10. Engine nozzle cutouts
-    float dEngL=sdRoundedBox(p-vec2(-0.06,-0.20),vec2(0.022,0.035),0.008);
-    float dEngR=sdRoundedBox(p-vec2(0.06,-0.20),vec2(0.022,0.035),0.008);
+    // 9. Panel grooves (folded via abs(p.x))
+    float seam=exp(-pm.x*50.0)*smoothstep(0.18,-0.10,p.y)*0.12;
+    float wGroove=exp(-abs(dot(pm-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*40.0)*0.08;
+    float diag=exp(-abs(dot(pm-vec2(0.08,0.0),normalize(vec2(1.0,-0.6))))*35.0)*0.06;
+    float grooves=seam+wGroove+diag;
     float aa=fwidth(dBody)*FWIDTH_MULT[sh];
     float hf=1.0-smoothstep(0.0,aa,dBody);
     hf-=grooves*hf;
@@ -1061,17 +1029,14 @@
     float rings=(ring1+ring2)*smoothstep(0.6,0.12,rd);
     // Nose emitter glow (green beacon)
     float noseGlow=exp(-length(p-vec2(0.0,0.30))*12.0)*(0.40+0.35*sin(t*7.0));
-    // Wing conduit energy flow (green animated)
-    float cFlowL=exp(-abs(dot(p-vec2(-0.04,0.04),normalize(vec2(-0.30,-0.18))))*25.0);
-    cFlowL*=0.20*(0.5+0.5*sin(dot(p,normalize(vec2(-0.30,-0.18)))*25.0-t*6.0));
-    float cFlowR=exp(-abs(dot(p-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*25.0);
-    cFlowR*=0.20*(0.5+0.5*sin(dot(p,normalize(vec2(0.30,-0.18)))*25.0-t*6.0));
-    float cFlow=cFlowL+cFlowR;
-    // Wingtip node pulse (green)
+    // Wing conduit energy flow (folded via abs(p.x))
+    float cDist=exp(-abs(dot(pm-vec2(0.04,0.04),normalize(vec2(0.30,-0.18))))*25.0);
+    float cFlow=cDist*0.20*(0.5+0.5*sin(dot(pm,normalize(vec2(0.30,-0.18)))*25.0-t*6.0));
+    // Wingtip node pulse (phase offset — cannot fold)
     float nodeL=exp(-length(p-vec2(-0.33,-0.13))*16.0)*(0.30+0.25*sin(t*5.0+1.5));
     float nodeR=exp(-length(p-vec2(0.33,-0.13))*16.0)*(0.30+0.25*sin(t*5.0));
     float nodePulse=nodeL+nodeR;
-    // Twin engines + exhaust trail (green-tinted)
+    // Twin engines + exhaust trail (additive sum — keep unfolded)
     float engL=exp(-length(p-vec2(-0.06,-0.24))*10.0)*0.30;
     float engR=exp(-length(p-vec2(0.06,-0.24))*10.0)*0.30;
     float exhaust=(engL+engR)*(0.7+0.3*sin(t*12.0));
