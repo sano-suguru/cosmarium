@@ -17,11 +17,15 @@ const mockWriteSlots = vi.fn();
 
 // vi.mock ホイスティングにより buffers.ts の実値を参照できないためリテラル指定
 // ⚠ MAX_INSTANCES は buffers.ts の値と一致させること
-vi.mock('./buffers.ts', () => ({
-  MAX_INSTANCES: 100_000,
-  instanceData: new Float32Array(100_000 * 9),
-  writeSlots: (...args: unknown[]) => mockWriteSlots(...args),
-}));
+vi.mock('./buffers.ts', () => {
+  const ab = new ArrayBuffer(100_000 * 9 * 4);
+  return {
+    MAX_INSTANCES: 100_000,
+    instanceData: new Float32Array(ab),
+    instanceDataI32: new Int32Array(ab),
+    writeSlots: (...args: unknown[]) => mockWriteSlots(...args),
+  };
+});
 
 vi.mock('../ui/dev-overlay.ts', () => ({
   devWarn: vi.fn(),
@@ -56,15 +60,15 @@ afterEach(() => {
 
 function getWriteCalls() {
   return mockWriteSlots.mock.calls.map((args: unknown[]) => ({
-    x: args[2] as number,
-    y: args[3] as number,
-    size: args[4] as number,
-    r: args[5] as number,
-    g: args[6] as number,
-    b: args[7] as number,
-    a: args[8] as number,
-    angle: args[9] as number,
-    shape: args[10] as number,
+    x: args[3] as number,
+    y: args[4] as number,
+    size: args[5] as number,
+    r: args[6] as number,
+    g: args[7] as number,
+    b: args[8] as number,
+    a: args[9] as number,
+    angle: args[10] as number,
+    shape: args[11] as number,
   }));
 }
 

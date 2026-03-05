@@ -4,7 +4,7 @@ import { cam, setAutoFollow } from '../input/camera.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import { unitType } from '../unit-types.ts';
-import { MINIMAP_MAX, minimapBuffer, minimapData, mmVAO, writeSlots } from './buffers.ts';
+import { MINIMAP_MAX, minimapBuffer, minimapData, minimapDataI32, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
@@ -25,7 +25,7 @@ function writeMinimap(
   if (minimapInstanceCount >= MINIMAP_MAX) {
     return;
   }
-  writeSlots(minimapData, minimapInstanceCount * 9, x, y, sizeX, r, g, b, a, sizeY, shape);
+  writeSlots(minimapData, minimapDataI32, minimapInstanceCount * 9, x, y, sizeX, r, g, b, a, sizeY, shape);
   minimapInstanceCount++;
 }
 

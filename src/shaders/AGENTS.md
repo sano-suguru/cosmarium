@@ -71,6 +71,5 @@
 
 ## Critical Gotchas
 
-- `int sh=int(vSh+0.5)` — floatからint変換の精度対策
 - `aSY`は`aA`スロット転用（minimap.vertのみ。バッファレイアウトは同一だが意味が異なる）
 - GLSL構文エラーはランタイムのみ検出（`gl.compileShader`失敗=黒画面）

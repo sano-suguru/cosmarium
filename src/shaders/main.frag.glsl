@@ -2,11 +2,11 @@
 precision mediump float;
 #include includes/sdf.glsl;
 #include includes/shape-count.glsl;
-in vec4 vC; in vec2 vU; in float vSh,vA;
+in vec4 vC; in vec2 vU; flat in int vSh; in float vA;
 uniform float uTime;
 out vec4 fragColor;
 // Per-unit rendering parameters indexed by shape ID (0..NUM_SHAPES-1)
-// Units 0-18, Effects 19-28 (stable IDs, append-only)
+// Units 0-18 で使用。Effects 19-28 はこれらの配列を参照しない（パディング値）
 const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.035,0.045,0.032,0.022,0.025, // 0-4  Drone,Fighter,Bomber,Cruiser,Flagship
   0.028,0.030,0.025,0.006,0.035, // 5-9  Healer,Reflector,Carrier,Sniper,Lancer
@@ -41,8 +41,8 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
 );
 void main(){
   float d=length(vU), a=0.0;
-  int sh=int(vSh+0.5);
-  sh=clamp(sh,0,NUM_SHAPES-1);
+  int sh=clamp(vSh,0,NUM_SHAPES-1);
+  vec3 col=vC.rgb; // デフォルト色。色カスタムが必要な分岐のみ上書き（else-if で排他）
   if(sh==0){ vec2 p=vU*0.74; float t=vA+uTime;
     // Drone: SF UCAV — angular stealth drone with energy glow
     // 1. Fuselage (angular, faceted)
@@ -977,12 +977,11 @@ void main(){
     float dy=min(abs(p.y-0.10),abs(p.y+0.10));
     float trail=step(p.x,-0.50)*exp(-dy*16.0)*exp((p.x+0.50)*3.0)*eP*0.30;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+focalGlow*0.50+condFlow+eng*0.45+trail;
-    vec3 col=vC.rgb;
     col=mix(col,vec3(0.7,0.95,1.0),(condMaskL+condMaskR)*0.30);
     col=mix(col,vec3(1.0,0.95,0.85),exp(-focalD*10.0)*0.45);
     col=mix(col,vec3(1.0,0.75,0.4),rings*0.30);
     a=1.2*tanh(a/1.2);
-    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+    }
   // ── sh17: Scrambler — 電子戦妨害艦 ──
   else if(sh==17){ vec2 p=vU*0.60; float t=vA+uTime;
     // 1. Central hub (disk)
@@ -1034,13 +1033,12 @@ void main(){
     // 9. Central hub glow
     float hubGlow=exp(-length(p)*8.0)*(0.3+0.3*sin(t*5.0));
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+flicker*0.40+noise+hubGlow+condFlow;
-    vec3 col=vC.rgb;
     col=mix(col,vec3(0.9,0.3,0.7),rings*0.35);
     col=mix(col,vec3(1.0,0.5,0.8),flicker*0.30);
     col=mix(col,vec3(0.8,0.2,0.6),noise*0.5);
     col=mix(col,vec3(0.6,0.15,0.9),condFlow*0.40);
     a=1.2*tanh(a/1.2);
-    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+    }
   else if(sh==18){ vec2 p=vU*0.58; float t=vA+uTime;
     // 1. Wedge fuselage (narrow nose → wide rear)
     float dFuse=sdTrapezoid(p,0.03,0.10,0.22);
@@ -1109,13 +1107,12 @@ void main(){
     exTrail+=exp(-abs(p.x-0.06)*20.0)*smoothstep(-0.24,-0.50,p.y)*0.15;
     exTrail*=(0.6+0.4*sin(p.y*30.0+t*8.0));
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rings+noseGlow*0.50+cFlow+nodePulse*0.45+exhaust+exTrail;
-    vec3 col=vC.rgb;
     col=mix(col,vec3(0.3,1.0,0.5),rings*0.40);
     col=mix(col,vec3(0.4,1.0,0.6),noseGlow*0.35);
     col=mix(col,vec3(0.2,0.9,0.4),(cFlow+nodePulse)*0.45);
     col=mix(col,vec3(0.3,1.0,0.5),(exhaust+exTrail)*0.30);
     a=1.2*tanh(a/1.2);
-    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+    }
   else if(sh==19){ // Circle (particles, AOE projectiles)
     a=smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
   else if(sh==20){ // Diamond (projectiles)
@@ -1160,7 +1157,7 @@ void main(){
     // Prismatic angular rainbow on ring — cosine palette
     float ang=atan(vU.y,vU.x);
     vec3 prism=0.55+0.45*cos(ang+t*0.8+vec3(0.0,2.094,4.189));
-    vec3 col=mix(vC.rgb,prism,exp(-edge*8.0)*0.5);
+    col=mix(col,prism,exp(-edge*8.0)*0.5);
     // 6 hex vertices — spectrally colored prism nodes
     vec2 v0=vec2(0.70,0.0);       vec2 v1=vec2(0.35,0.606);
     vec2 v2=vec2(-0.35,0.606);    vec2 v3=vec2(-0.70,0.0);
@@ -1188,9 +1185,9 @@ void main(){
     col=mix(col,ripC,innerMask*ripple*0.25);
     // Soft inner ambient glow
     a+=exp(-hd*2.8)*0.18;
-    fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0)); return; }
+    }
   else if(sh==28){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
   else { a=smoothstep(1.0,0.6,d); }
-  fragColor=vec4(vC.rgb*a, vC.a*clamp(a,0.0,1.0));
+  fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0));
 }

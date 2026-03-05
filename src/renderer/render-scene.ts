@@ -23,7 +23,7 @@ import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, pro
 import type { Beam, Color3, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay.ts';
 import { unitType } from '../unit-types.ts';
-import { instanceData, MAX_INSTANCES, writeSlots } from './buffers.ts';
+import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
 
 const VET_TINT_FACTOR = 0.15;
 // ── vet overlay ──────────────────────────────────────
@@ -116,7 +116,7 @@ function writeInstance(
   shape: number,
 ) {
   if (_writer.idx < MAX_INSTANCES) {
-    writeSlots(instanceData, _writer.idx * 9, x, y, size, r, g, b, a, angle, shape);
+    writeSlots(instanceData, instanceDataI32, _writer.idx * 9, x, y, size, r, g, b, a, angle, shape);
     _writer.idx++;
   } else if (!_writer.overflowWarned) {
     devWarn(`writeInstance: idx(${_writer.idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);

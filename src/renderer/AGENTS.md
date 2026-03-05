@@ -38,7 +38,7 @@
 - `attribDivisor(loc, 1)`必須。忘れると全instanceが同値に
 - `instanceData`は`subarray(0, ic*9)`で必要分のみ転送。全体送信しない
 - minimap描画後はscissor/viewport/blendをリストア必須
-- instance layout: 9 floats/stride=36bytes。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
+- instance layout: 9 slots/stride=36bytes。slot 8(shape ID)はint(`vertexAttribIPointer`)。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
 - `resize()`後に`createFBOs()`を再呼出し必須（FBOサイズはviewportに依存）
 - シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可
 

@@ -1,8 +1,9 @@
 #version 300 es
 in vec2 aP,aO;
-in float aS,aA,aSh;
+in float aS,aA;
+in int aSh;
 in vec4 aC;
-out vec4 vC; out vec2 vU; out float vSh,vA;
+out vec4 vC; out vec2 vU; flat out int vSh; out float vA;
 uniform vec2 uR,uCam; uniform float uZ;
 void main(){
   float c=cos(aA),s=sin(aA);

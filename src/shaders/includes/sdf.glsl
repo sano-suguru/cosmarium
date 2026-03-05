@@ -1,35 +1,35 @@
-// hexDist — hexagon distance (sh==20)
+// hexDist — hexagonal distance
 float hexDist(vec2 uv) {
   vec2 av = abs(uv);
   return max(av.x * 0.866 + av.y * 0.5, av.y);
 }
 
-// octDist — octagon distance (sh==22)
+// octDist — octagonal distance
 float octDist(vec2 uv) {
   vec2 av = abs(uv);
   // 0.7071 = 1/(1+tan(pi/8))
   return max(max(av.x, av.y), (av.x + av.y) * 0.7071);
 }
 
-// manDist — manhattan distance (currently unused; kept for future shapes)
+// manDist — manhattan distance
 float manDist(vec2 uv) {
   return abs(uv.x) + abs(uv.y);
 }
 
-// sdRoundedBox — signed distance to rounded rectangle (sh==24)
+// sdRoundedBox — signed distance to rounded rectangle
 float sdRoundedBox(vec2 p, vec2 b, float r) {
   vec2 dd = abs(p) - b;
   return length(max(dd, 0.0)) + min(max(dd.x, dd.y), 0.0) - r;
 }
 
-// sdCapsule — signed distance to line-segment capsule (sh==24)
+// sdCapsule — signed distance to line-segment capsule
 float sdCapsule(vec2 p, vec2 a, vec2 b, float r) {
   vec2 pa = p - a, ba = b - a;
   float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
   return length(pa - ba * h) - r;
 }
 
-// sdTrapezoid — signed distance to trapezoid (used by Lancer sh==9)
+// sdTrapezoid — signed distance to trapezoid
 // r1=bottom half-width, r2=top half-width, he=half-height
 // Oriented along Y axis: bottom at -he, top at +he
 float sdTrapezoid(in vec2 p, in float r1, in float r2, in float he) {
@@ -42,13 +42,13 @@ float sdTrapezoid(in vec2 p, in float r1, in float r2, in float he) {
   return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
 }
 
-// smin — smooth minimum / smooth union (sh==24). k must be > 0
+// smin — smooth minimum / smooth union. k must be > 0
 float smin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-// sdTriangle — signed distance to triangle (used by Fighter sh==1)
+// sdTriangle — signed distance to triangle
 float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   vec2 e0 = p1 - p0, e1 = p2 - p1, e2 = p0 - p2;
   vec2 v0 = p - p0, v1 = p - p1, v2 = p - p2;
@@ -62,7 +62,7 @@ float sdTriangle(in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2) {
   return -sqrt(d.x) * sign(d.y);
 }
 
-// sdArc — signed distance to arc (used by Carrier sh==7)
+// sdArc — signed distance to arc
 float sdArc(in vec2 p, in vec2 sc, in float ra, in float rb) {
   // sc is the sin/cos of the arc's aperture (half-angle)
   p.x = abs(p.x);
