@@ -10,11 +10,13 @@
 
 | ファイル | 役割 |
 |---------|------|
-| main.frag.glsl | 4配列(RIM_THRESH等) + main() + #include。76行 |
+| main.frag.glsl | #include + main()。shape-params.glslとshape-util.glslを読み込み |
+| includes/shape-params.glsl | 5配列(RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT, SOFT_LIMIT) |
 | includes/shapes/unit-shapes.glsl | ユニットshape SDF (sh==0〜18)。`[SHAPE:ID Name]`マーカー付き |
-| includes/shapes/effect-shapes.glsl | エフェクトshape SDF (sh==19〜28)。`[SHAPE:ID Name]`マーカー付き |
+| includes/shapes/effect-shapes.glsl | エフェクトshape SDF (sh==19〜29)。`[SHAPE:ID Name]`マーカー付き |
+| includes/shape-util.glsl | softClamp, shapeSoftClamp, shapeBase, shapeRim, shapeAA |
 | includes/sdf.glsl | hexDist, octDist, manDist |
-| includes/shape-count.glsl | `#define NUM_SHAPES 29` — 4配列サイズ+clampの一元管理 |
+| includes/shape-count.glsl | `#define NUM_SHAPES 30` — 配列サイズ+clampの一元管理 |
 | shape-sync.test.ts | NUM_SHAPES同期バリデーション（GLSL↔TS） |
 | main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
 | bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
@@ -27,7 +29,7 @@
 
 フラグメントシェーダ (`main.frag.glsl`) が整数shape IDでSDF描画を分岐する:
 
-安定ID運用（append-only）: 既存IDの変更・再利用は禁止。新ユニット/エフェクト追加時は末尾に追番。Units 0–18, Effects 19–28。
+安定ID運用（append-only）: 既存IDの変更・再利用は禁止。新ユニット/エフェクト追加時は末尾に追番。Units 0–18, Effects 19–29。
 
 | ID | Shape | Used by |
 |----|-------|---------|
@@ -60,6 +62,7 @@
 | 26 | Octagon Shield (SH_OCT_SHIELD) | shield linger, Bastion shield |
 | 27 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |
 | 28 | Bar (SH_BAR) | HPバー (背景+前景) |
+| 29 | Trail (SH_TRAIL) | ユニット軌跡エフェクト |
 
 ## セクションマーカー規約
 
@@ -71,12 +74,12 @@
 ```
 
 - `grep '\[SHAPE:13'` で該当shapeに即座にジャンプ可能
-- 4配列のコメントも `[ID:Name]` 形式で統一（例: `// [0:Drone] [1:Fighter] ...`）
+- 5配列のコメントも `[ID:Name]` 形式で統一（例: `// [0:Drone] [1:Fighter] ...`）
 
 ## 新Shape追加手順
 
 1. `includes/shape-count.glsl` の `NUM_SHAPES` を +1
-2. `main.frag.glsl` — 4配列（RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT）に要素を追加
+2. `includes/shape-params.glsl` — 5配列（RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT, SOFT_LIMIT）に要素を追加
 3. ユニットshapeなら `includes/shapes/unit-shapes.glsl`、エフェクトなら `includes/shapes/effect-shapes.glsl` に `else if(sh==次のID)` を追加。直前に `// [SHAPE:ID Name]` マーカーを付与
 4. SDF関数が必要なら`includes/sdf.glsl`に追加（既存: `hexDist`, `octDist`, `manDist`）
 5. `unit-types.ts` — 該当ユニットの`shape`に新IDを設定
