@@ -248,8 +248,8 @@ describe('steer — ヒーラー追従', () => {
     const healer = spawnAt(0, 5, 0, 0); // type 5 = Healer
     spawnAt(0, 4, 100, 0); // type 4 = Flagship (mass=30)
     spawnAt(0, 0, -100, 0); // type 0 = Drone (mass=1)
-    buildHash();
     for (let i = 0; i < 30; i++) {
+      buildHash();
       steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
@@ -262,8 +262,8 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, 4, 0, -100); // Flagship (mass=30, 満タン)
     const drone = spawnAt(0, 0, 0, 100); // Drone (mass=1)
     unit(drone).hp = unit(drone).maxHp * 0.5;
-    buildHash();
     for (let i = 0; i < 60; i++) {
+      buildHash();
       steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Drone (y=100) のHP減少スコアが高い → y正方向に移動
@@ -277,12 +277,50 @@ describe('steer — ヒーラー追従', () => {
     const flagship = spawnAt(0, 4, 0, 100); // Flagship (mass=30)
     unit(drone).hp = unit(drone).maxHp * 0.5;
     unit(flagship).hp = unit(flagship).maxHp * 0.5;
-    buildHash();
     for (let i = 0; i < 60; i++) {
+      buildHash();
       steer(unit(healer), healer as UnitIndex, 0.033, rng);
     }
     // Flagship (y=100) のmassタイブレーカーで勝つ → y正方向に移動
     expect(unit(healer).y).toBeGreaterThan(0);
+  });
+});
+
+describe('steer — サポート重心追従', () => {
+  it('味方の重心方向に移動する', () => {
+    const amp = spawnAt(0, 16, 0, 0); // type 16 = Amplifier
+    spawnAt(0, 0, 100, 100);
+    spawnAt(0, 0, -50, 100);
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+    }
+    // 味方重心は y 正方向
+    expect(unit(amp).y).toBeGreaterThan(0);
+  });
+
+  it('複数味方の重心が正しく反映される', () => {
+    seedRng(12345);
+    const amp = spawnAt(0, 16, 0, 0);
+    spawnAt(0, 0, 100, 0);
+    spawnAt(0, 0, 100, 100);
+    spawnAt(0, 0, 100, -100);
+    for (let i = 0; i < 60; i++) {
+      buildHash();
+      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+    }
+    // 重心は x 正方向
+    expect(unit(amp).x).toBeGreaterThan(0);
+  });
+
+  it('近隣に味方がいない場合 NaN にならない', () => {
+    const amp = spawnAt(0, 16, 0, 0);
+    for (let i = 0; i < 5; i++) {
+      buildHash();
+      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+    }
+    expect(unit(amp).x).not.toBeNaN();
+    expect(unit(amp).y).not.toBeNaN();
   });
 });
 

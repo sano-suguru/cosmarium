@@ -66,7 +66,7 @@ const RETREAT_SPEED_SCALE = 2.5;
 export const BOUNDARY_MARGIN = 0.8;
 const BOUNDARY_FORCE = 120;
 
-const HEALER_FOLLOW_WEIGHT = 0.15;
+const SUPPORT_FOLLOW_WEIGHT = 0.15;
 const MASS_TIEBREAK_FACTOR = 0.01;
 
 const VET_TARGET_WEIGHT = 0.3;
@@ -331,6 +331,38 @@ function computeHealerFollow(u: Unit, nn: number, t: UnitType): SteerForce {
   return _healForce;
 }
 
+const _centroidForce: SteerForce = { x: 0, y: 0 };
+
+/** 近隣味方の重心に向かう力を返す（Amplifier/Catalyst 用） */
+function computeAllyCentroidFollow(u: Unit, nn: number, t: UnitType): SteerForce {
+  let cx = 0,
+    cy = 0,
+    count = 0;
+  for (let i = 0; i < nn; i++) {
+    const oi = getNeighborAt(i),
+      o = unit(oi);
+    if (o.team !== u.team || !o.alive || o === u) {
+      continue;
+    }
+    cx += o.x;
+    cy += o.y;
+    count++;
+  }
+  if (count > 0) {
+    cx /= count;
+    cy /= count;
+    const dx = cx - u.x;
+    const dy = cy - u.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    _centroidForce.x = (dx / d) * t.speed;
+    _centroidForce.y = (dy / d) * t.speed;
+    return _centroidForce;
+  }
+  _centroidForce.x = 0;
+  _centroidForce.y = 0;
+  return _centroidForce;
+}
+
 // 再利用ブースト速度バッファ — tickBoost が上書きして返却する
 const _boostVel = { vx: 0, vy: 0 };
 
@@ -521,10 +553,10 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
   fy += retreat.y;
 
   if (isSupportType(t)) {
-    const heal = computeHealerFollow(u, nn, t);
-    const followWeight = HEALER_FOLLOW_WEIGHT * t.supportFollow;
-    fx += heal.x * followWeight;
-    fy += heal.y * followWeight;
+    const follow = t.heals ? computeHealerFollow(u, nn, t) : computeAllyCentroidFollow(u, nn, t);
+    const followWeight = SUPPORT_FOLLOW_WEIGHT * t.supportFollow;
+    fx += follow.x * followWeight;
+    fy += follow.y * followWeight;
   }
 
   computeSquadronCohesion(u, ui, _squadronCohesionOut);
