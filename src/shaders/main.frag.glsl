@@ -6,7 +6,7 @@ in vec4 vC; in vec2 vU; flat in int vSh; in float vA;
 uniform float uTime;
 out vec4 fragColor;
 // Per-unit rendering parameters indexed by shape ID (0..NUM_SHAPES-1)
-// Units 0-18 で使用。Effects 19-28 はこれらの配列を参照しない（パディング値）
+// Units 0-18 で使用。Effects 19-29 はこれらの配列を参照しない（パディング値）
 const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   // [0:Drone] [1:Fighter] [2:Bomber] [3:Cruiser] [4:Flagship]
   0.035, 0.045, 0.032, 0.022, 0.025,
@@ -77,7 +77,7 @@ void main(){
   vec3 col=vC.rgb; // デフォルト色。色カスタムが必要な分岐のみ上書き（else-if で排他）
   // ── Unit Shapes (0-18) ──────────────────────
 #include includes/shapes/unit-shapes.glsl;
-  // ── Effect Shapes (19-28) ───────────────────
+  // ── Effect Shapes (19-29) ───────────────────
 #include includes/shapes/effect-shapes.glsl;
   else { a=smoothstep(1.0,0.6,d); }
   fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0));
