@@ -1,0 +1,27 @@
+---
+paths:
+  - "src/**/*.ts"
+---
+
+# Performance Patterns & Critical Gotchas
+
+## Object Pooling
+
+Pre-allocated arrays + `.alive` flag. Unit/Projectile: linear scan for first dead slot. Particle: LIFO free stack (Uint16Array) for fast allocation. All kill functions have double-kill guard.
+
+## Instanced Rendering
+
+`drawArraysInstanced()` + VAO. Instance buffer: 9 floats `[x,y,size,r,g,b,alpha,angle,shapeID]` (stride 36B)
+
+## Spatial Hash
+
+`buildHash()` rebuilds every frame. `getNeighbors()` results in shared `neighborBuffer` — use immediately, do not copy. Only valid after `buildHash()`.
+
+## Critical Gotchas
+
+| Issue | Details |
+|-------|---------|
+| `destroyUnit()` vs `killUnit()` | Always use `destroyUnit()` for unit kill + explosion combo — it takes a snapshot internally. `killUnit()` returns a snapshot (safe to use after call). For particle/projectile, save values to locals **before** `kill()` — kill may reuse the slot immediately. |
+| `neighborBuffer` | Shared buffer updated by `getNeighbors()`. Use immediately, do not copy. |
+| Pool mutation | Never directly assign `poolCounts`. Use spawn/kill functions only. |
+| `codex.ts` → `game-control.ts` | Reverse import is circular dependency — forbidden. |
