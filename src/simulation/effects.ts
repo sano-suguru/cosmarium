@@ -2,6 +2,7 @@ import { effectColor, trailColor } from '../colors.ts';
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
+import { addAberration, addFreeze } from '../screen-effects.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -12,8 +13,9 @@ import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
 
-function spawnExplosionDebris(x: number, y: number, size: number, c: Color3, rng: () => number) {
-  const cnt = Math.min((18 + size * 3) | 0, 50);
+function spawnExplosionDebris(x: number, y: number, size: number, cost: number, c: Color3, rng: () => number) {
+  // 上限 80: explosion 1回の最大パーティクル数を制限（pool容量 45,000 に対して十分余裕あり）
+  const cnt = Math.min(80, Math.max(18, cost * 4 + size));
   for (let i = 0; i < cnt; i++) {
     const a = rng() * 6.283;
     const sp = 40 + rng() * 200 * (size / 10);
@@ -33,8 +35,9 @@ function spawnExplosionDebris(x: number, y: number, size: number, c: Color3, rng
   }
 }
 
-function spawnExplosionFlash(x: number, y: number, size: number, rng: () => number) {
-  for (let i = 0; i < 5; i++) {
+function spawnExplosionFlash(x: number, y: number, size: number, cost: number, rng: () => number) {
+  const count = cost >= 12 ? 10 : 5;
+  for (let i = 0; i < count; i++) {
     const a = rng() * 6.283;
     spawnParticle(
       x,
@@ -85,11 +88,13 @@ function updateKillerVet(killer: Killer) {
 }
 
 export function explosion(x: number, y: number, team: Team, type: number, rng: () => number) {
-  const size = unitType(type).size;
+  const ut = unitType(type);
+  const size = ut.size;
+  const cost = ut.cost;
   const c = effectColor(type, team);
 
-  spawnExplosionDebris(x, y, size, c, rng);
-  spawnExplosionFlash(x, y, size, rng);
+  spawnExplosionDebris(x, y, size, cost, c, rng);
+  spawnExplosionFlash(x, y, size, cost, rng);
 
   const dc = Math.min((size * 2) | 0, 14);
   for (let i = 0; i < dc; i++) {
@@ -101,7 +106,19 @@ export function explosion(x: number, y: number, team: Team, type: number, rng: (
   spawnParticle(x, y, 0, 0, 0.15, size * 1.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(x, y, 0, 0, 0.2, size * 1.8, c[0], c[1], c[2], SH_EXPLOSION_RING);
 
-  if (size >= 14) {
+  if (cost >= 8) {
+    spawnParticle(x, y, 0, 0, 0.55, size * 2.5 * 1.3, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, SH_EXPLOSION_RING);
+    spawnParticle(x, y, 0, 0, 0.3, size * 1.8 * 1.3, c[0], c[1], c[2], SH_EXPLOSION_RING);
+    addShake(size * 1.2, x, y);
+    addAberration(cost / 30);
+    if (cost >= 20) {
+      addFreeze(0.07);
+    } else if (cost >= 12) {
+      addFreeze(0.05);
+    } else {
+      addFreeze(0.03);
+    }
+  } else if (size >= 14) {
     addShake(size * 0.8, x, y);
   }
 
@@ -306,16 +323,16 @@ export function updateChains(dt: number, rng: () => number) {
 }
 
 function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Color3, rng: () => number) {
-  addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.3, 2.5, false, 1, true);
-  const pCount = 6 + ((rng() * 3) | 0);
+  addBeam(fx, fy, tx, ty, col[0], col[1], col[2], 0.45, 3.5, false, 1, true);
+  const pCount = 8 + ((rng() * 4) | 0);
   for (let i = 0; i < pCount; i++) {
     spawnParticle(
       tx + (rng() - 0.5) * 8,
       ty + (rng() - 0.5) * 8,
-      (rng() - 0.5) * 80,
-      (rng() - 0.5) * 80,
+      (rng() - 0.5) * 120,
+      (rng() - 0.5) * 120,
       0.15,
-      2.5,
+      3.0,
       col[0],
       col[1],
       col[2],

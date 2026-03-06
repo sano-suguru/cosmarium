@@ -12,6 +12,11 @@ import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
 
+const TRAIL_SPIRAL_SPEED = 8;
+const SPIRAL_OFFSET_SPEED = 15;
+const HIT_SPARK_SPEED_MULT = 1.3;
+const HEAVY_PROJECTILE_SIZE = 7;
+
 function steerHomingProjectile(p: Projectile, dt: number) {
   const tg = unit(p.target);
   if (tg.alive) {
@@ -70,6 +75,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
     );
   }
   spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
+  spawnParticle(p.x, p.y, 0, 0, 0.45, p.aoe * 0.9 * 1.3, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
   addShake(3, p.x, p.y);
 }
 
@@ -91,9 +97,10 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
 
 function hitSparkFx(p: Projectile, rng: () => number) {
   const pAng = Math.atan2(p.vy, p.vx);
-  for (let k = 0; k < 2; k++) {
+  const count = 2 + ((rng() * 2) | 0);
+  for (let k = 0; k < count; k++) {
     const sA = pAng + (rng() - 0.5) * 1.4;
-    const sSpd = 60 + rng() * 100;
+    const sSpd = (60 + rng() * 100) * HIT_SPARK_SPEED_MULT;
     spawnParticle(
       p.x,
       p.y,
@@ -155,11 +162,17 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
       spawnParticle(p.x, p.y, (rng() - 0.5) * 12, (rng() - 0.5) * 12, 0.3, 3.0, 0.5, 0.5, 0.5, SH_CIRCLE);
     }
     if (rng() < prob) {
+      const angle = Math.atan2(p.vy, p.vx);
+      const spiralAngle = angle + p.life * TRAIL_SPIRAL_SPEED;
+      let vx = (rng() - 0.5) * 8;
+      let vy = (rng() - 0.5) * 8;
+      vx += Math.cos(spiralAngle) * SPIRAL_OFFSET_SPEED;
+      vy += Math.sin(spiralAngle) * SPIRAL_OFFSET_SPEED;
       spawnParticle(
         p.x,
         p.y,
-        (rng() - 0.5) * 8,
-        (rng() - 0.5) * 8,
+        vx,
+        vy,
         0.15,
         p.size * 1.2,
         Math.min(1, p.r * 1.4),
@@ -169,18 +182,35 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
       );
     }
   } else if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
-    spawnParticle(
-      p.x,
-      p.y,
-      (rng() - 0.5) * 10,
-      (rng() - 0.5) * 10,
-      0.04,
-      p.size * 0.5,
-      p.r * 0.6,
-      p.g * 0.6,
-      p.b * 0.6,
-      SH_CIRCLE,
-    );
+    if (p.size >= HEAVY_PROJECTILE_SIZE) {
+      for (let t = 0; t < 2; t++) {
+        spawnParticle(
+          p.x,
+          p.y,
+          (rng() - 0.5) * 10,
+          (rng() - 0.5) * 10,
+          0.12,
+          2.5,
+          p.r * 0.9,
+          p.g * 0.9,
+          p.b * 0.9,
+          SH_CIRCLE,
+        );
+      }
+    } else {
+      spawnParticle(
+        p.x,
+        p.y,
+        (rng() - 0.5) * 10,
+        (rng() - 0.5) * 10,
+        0.08,
+        1.5,
+        p.r * 0.8,
+        p.g * 0.8,
+        p.b * 0.8,
+        SH_CIRCLE,
+      );
+    }
   }
 }
 
