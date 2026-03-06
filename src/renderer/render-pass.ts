@@ -4,11 +4,14 @@ import { state } from '../state.ts';
 import type { FBO } from '../types.ts';
 import { required } from './assert.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
+import type { BloomScales } from './fbo.ts';
 import { fbos } from './fbo.ts';
 import { renderScene, WRAP_PERIOD } from './render-scene.ts';
 import {
   bloomLocations,
   bloomProgram,
+  brightPassLocations,
+  brightPassProgram,
   compositeLocations,
   compositeProgram,
   mainLocations,
@@ -47,25 +50,49 @@ function renderScenePass(sceneFBO: FBO, W: number, H: number, cx: number, cy: nu
   }
 }
 
-function renderBloomPass(sceneFBO: FBO, bloomFBO1: FBO, bloomFBO2: FBO) {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFBO1.framebuffer);
-  gl.viewport(0, 0, bloomFBO1.width, bloomFBO1.height);
-  gl.useProgram(bloomProgram);
+function brightPass(src: FBO, dst: FBO, threshold: number) {
+  gl.useProgram(brightPassProgram);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst.framebuffer);
+  gl.viewport(0, 0, dst.width, dst.height);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, sceneFBO.texture);
-  gl.uniform1i(bloomLocations.uT, 0);
-  gl.uniform2f(bloomLocations.uD, 2.5, 0);
-  gl.uniform2f(bloomLocations.uR, bloomFBO1.width, bloomFBO1.height);
-  drawQuad();
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFBO2.framebuffer);
-  gl.viewport(0, 0, bloomFBO2.width, bloomFBO2.height);
-  gl.bindTexture(gl.TEXTURE_2D, bloomFBO1.texture);
-  gl.uniform2f(bloomLocations.uD, 0, 2.5);
+  gl.bindTexture(gl.TEXTURE_2D, src.texture);
+  gl.uniform1i(brightPassLocations.uT, 0);
+  gl.uniform1f(brightPassLocations.uTh, threshold);
   drawQuad();
 }
 
-function renderCompositePass(sceneFBO: FBO, bloomFBO2: FBO, W: number, H: number) {
+function blurPass(src: FBO, tmp: FBO, dst: FBO, radius: number) {
+  gl.useProgram(bloomProgram);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(bloomLocations.uT, 0);
+
+  // Horizontal
+  gl.bindFramebuffer(gl.FRAMEBUFFER, tmp.framebuffer);
+  gl.viewport(0, 0, tmp.width, tmp.height);
+  gl.bindTexture(gl.TEXTURE_2D, src.texture);
+  gl.uniform2f(bloomLocations.uD, radius, 0);
+  gl.uniform2f(bloomLocations.uR, tmp.width, tmp.height);
+  drawQuad();
+
+  // Vertical
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst.framebuffer);
+  gl.viewport(0, 0, dst.width, dst.height);
+  gl.bindTexture(gl.TEXTURE_2D, tmp.texture);
+  gl.uniform2f(bloomLocations.uD, 0, radius);
+  drawQuad();
+}
+
+const BRIGHT_THRESHOLD = 0.18;
+const BLUR_RADIUS = 2.5;
+
+function renderBloomPass(sceneFBO: FBO, brightFBO: FBO, bloom: BloomScales) {
+  brightPass(sceneFBO, brightFBO, BRIGHT_THRESHOLD);
+  blurPass(brightFBO, bloom[0].tmp, bloom[0].result, BLUR_RADIUS);
+  blurPass(bloom[0].result, bloom[1].tmp, bloom[1].result, BLUR_RADIUS);
+  blurPass(bloom[1].result, bloom[2].tmp, bloom[2].result, BLUR_RADIUS);
+}
+
+function renderCompositePass(sceneFBO: FBO, bloom: BloomScales, W: number, H: number) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, W, H);
   gl.useProgram(compositeProgram);
@@ -73,17 +100,24 @@ function renderCompositePass(sceneFBO: FBO, bloomFBO2: FBO, W: number, H: number
   gl.bindTexture(gl.TEXTURE_2D, sceneFBO.texture);
   gl.uniform1i(compositeLocations.uS, 0);
   gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, bloomFBO2.texture);
-  gl.uniform1i(compositeLocations.uB, 1);
+  gl.bindTexture(gl.TEXTURE_2D, bloom[0].result.texture);
+  gl.uniform1i(compositeLocations.uB1, 1);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, bloom[1].result.texture);
+  gl.uniform1i(compositeLocations.uB2, 2);
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, bloom[2].result.texture);
+  gl.uniform1i(compositeLocations.uB3, 3);
   gl.uniform1f(compositeLocations.uAberration, screenEffects.aberrationIntensity);
+  gl.uniform1f(compositeLocations.uFlash, screenEffects.flashIntensity);
   drawQuad();
   gl.activeTexture(gl.TEXTURE0);
 }
 
 export function renderFrame(now: number) {
   const sceneFBO = required(fbos.scene, 'fbos.scene');
-  const bloomFBO1 = required(fbos.bloom1, 'fbos.bloom1');
-  const bloomFBO2 = required(fbos.bloom2, 'fbos.bloom2');
+  const brightFBO = required(fbos.bright, 'fbos.bright');
+  const bloom = required(fbos.bloom, 'fbos.bloom');
   const W = viewport.W,
     H = viewport.H;
 
@@ -92,6 +126,6 @@ export function renderFrame(now: number) {
   const cz = cam.z;
 
   renderScenePass(sceneFBO, W, H, cx, cy, cz, now);
-  renderBloomPass(sceneFBO, bloomFBO1, bloomFBO2);
-  renderCompositePass(sceneFBO, bloomFBO2, W, H);
+  renderBloomPass(sceneFBO, brightFBO, bloom);
+  renderCompositePass(sceneFBO, bloom, W, H);
 }

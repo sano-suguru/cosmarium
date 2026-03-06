@@ -20,6 +20,7 @@ vi.mock('../input/camera.ts', () => ({
 
 vi.mock('../screen-effects.ts', () => ({
   addAberration: vi.fn(),
+  addFlash: vi.fn(),
   addFreeze: vi.fn(),
 }));
 

@@ -15,6 +15,7 @@ import {
   SH_LIGHTNING,
   SH_OCT_SHIELD,
   SH_REFLECT_FIELD,
+  SH_TRAIL,
   TAU,
   WORLD_SIZE,
 } from '../constants.ts';
@@ -121,8 +122,18 @@ function writeOverlay(x: number, y: number, size: number, r: number, g: number, 
   writeInstance(x, y, size, r, g, b, a, 0, shape);
 }
 
-function writeParticle(x: number, y: number, size: number, r: number, g: number, b: number, a: number, shape: number) {
-  writeInstance(x, y, size, r, g, b, a, 0, shape);
+function writeParticle(
+  x: number,
+  y: number,
+  size: number,
+  r: number,
+  g: number,
+  b: number,
+  a: number,
+  angle: number,
+  shape: number,
+) {
+  writeInstance(x, y, size, r, g, b, a, angle, shape);
 }
 
 function writeBeam(
@@ -394,7 +405,8 @@ function renderParticles() {
     if (!isCircleVisible(px, py, size)) {
       continue;
     }
-    writeParticle(px, py, size, p.r * al, p.g * al, p.b * al, al * 0.8, shape);
+    const angle = shape === SH_TRAIL ? Math.atan2(p.vy, p.vx) : 0;
+    writeParticle(px, py, size, p.r * al, p.g * al, p.b * al, al * 0.8, angle, shape);
   }
 }
 

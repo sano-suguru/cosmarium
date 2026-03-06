@@ -1,8 +1,8 @@
 import { effectColor, trailColor } from '../colors.ts';
-import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
+import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, SH_TRAIL, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
-import { addAberration, addFreeze } from '../screen-effects.ts';
+import { addAberration, addFlash, addFreeze } from '../screen-effects.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -111,6 +111,9 @@ export function explosion(x: number, y: number, team: Team, type: number, rng: (
     spawnParticle(x, y, 0, 0, 0.3, size * 1.8 * 1.3, c[0], c[1], c[2], SH_EXPLOSION_RING);
     addShake(size * 1.2, x, y);
     addAberration(cost / 30);
+    if (cost >= 12) {
+      addFlash(cost / 25);
+    }
     if (cost >= 20) {
       addFreeze(0.07);
     } else if (cost >= 12) {
@@ -208,7 +211,7 @@ export function trail(u: Unit, rng: () => number) {
     c[0],
     c[1],
     c[2],
-    SH_CIRCLE,
+    SH_TRAIL,
   );
 }
 
@@ -238,7 +241,7 @@ export function flagshipTrail(u: Unit, rng: () => number) {
         c[0],
         c[1],
         c[2],
-        SH_CIRCLE,
+        SH_TRAIL,
       );
     }
   }

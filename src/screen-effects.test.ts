@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { addAberration, addFreeze, decayScreenEffects, resetScreenEffects, screenEffects } from './screen-effects.ts';
+import {
+  addAberration,
+  addFlash,
+  addFreeze,
+  decayScreenEffects,
+  resetScreenEffects,
+  screenEffects,
+} from './screen-effects.ts';
 
 afterEach(() => {
   resetScreenEffects();
@@ -15,6 +22,29 @@ describe('addAberration', () => {
     addAberration(0.7);
     addAberration(0.2);
     expect(screenEffects.aberrationIntensity).toBe(0.7);
+  });
+
+  it('MAX_ABERRATION (1.0) で上限クリップする', () => {
+    addAberration(2.0);
+    expect(screenEffects.aberrationIntensity).toBe(1.0);
+  });
+});
+
+describe('addFlash', () => {
+  it('強度を設定する', () => {
+    addFlash(0.5);
+    expect(screenEffects.flashIntensity).toBe(0.5);
+  });
+
+  it('より大きい強度のみ上書きする', () => {
+    addFlash(0.8);
+    addFlash(0.3);
+    expect(screenEffects.flashIntensity).toBe(0.8);
+  });
+
+  it('MAX_FLASH (1.0) で上限クリップする', () => {
+    addFlash(1.5);
+    expect(screenEffects.flashIntensity).toBe(1.0);
   });
 });
 
@@ -50,6 +80,19 @@ describe('decayScreenEffects', () => {
     expect(screenEffects.aberrationIntensity).toBe(0);
   });
 
+  it('flashIntensity を指数減衰させる', () => {
+    addFlash(1.0);
+    decayScreenEffects(0.1);
+    expect(screenEffects.flashIntensity).toBeLessThan(1.0);
+    expect(screenEffects.flashIntensity).toBeGreaterThan(0);
+  });
+
+  it('flashIntensity が閾値 (0.01) 以下でゼロにクリアする', () => {
+    addFlash(0.005);
+    decayScreenEffects(0.001);
+    expect(screenEffects.flashIntensity).toBe(0);
+  });
+
   it('freezeTimer を線形減衰させる', () => {
     addFreeze(0.05);
     decayScreenEffects(0.02);
@@ -66,9 +109,11 @@ describe('decayScreenEffects', () => {
 describe('resetScreenEffects', () => {
   it('全値を初期状態に戻す', () => {
     addAberration(0.6);
+    addFlash(0.5);
     addFreeze(0.05);
     resetScreenEffects();
     expect(screenEffects.aberrationIntensity).toBe(0);
+    expect(screenEffects.flashIntensity).toBe(0);
     expect(screenEffects.freezeTimer).toBe(0);
   });
 });

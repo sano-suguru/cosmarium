@@ -19,7 +19,9 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   // [19:Circle] [20:Diamond] [21:Homing] [22:Beam] [23:Lightning]
   0.020, 0.020, 0.020, 0.020, 0.020,
   // [24:ExplosionRing] [25:DiamondRing] [26:OctShield] [27:ReflectField] [28:Bar]
-  0.020, 0.020, 0.020, 0.020, 0.020
+  0.020, 0.020, 0.020, 0.020, 0.020,
+  // [29:Trail]
+  0.020
 );
 const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // [0:Drone] [1:Fighter] [2:Bomber] [3:Cruiser] [4:Flagship]
@@ -33,7 +35,9 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // [19:Circle] [20:Diamond] [21:Homing] [22:Beam] [23:Lightning]
   0.38, 0.38, 0.38, 0.38, 0.38,
   // [24:ExplosionRing] [25:DiamondRing] [26:OctShield] [27:ReflectField] [28:Bar]
-  0.38, 0.38, 0.38, 0.38, 0.38
+  0.38, 0.38, 0.38, 0.38, 0.38,
+  // [29:Trail]
+  0.38
 );
 const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // [0:Drone] [1:Fighter] [2:Bomber] [3:Cruiser] [4:Flagship]
@@ -47,7 +51,9 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // [19:Circle] [20:Diamond] [21:Homing] [22:Beam] [23:Lightning]
   0.48, 0.48, 0.48, 0.48, 0.48,
   // [24:ExplosionRing] [25:DiamondRing] [26:OctShield] [27:ReflectField] [28:Bar]
-  0.48, 0.48, 0.48, 0.48, 0.48
+  0.48, 0.48, 0.48, 0.48, 0.48,
+  // [29:Trail]
+  0.48
 );
 const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   // [0:Drone] [1:Fighter] [2:Bomber] [3:Cruiser] [4:Flagship]
@@ -61,7 +67,9 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   // [19:Circle] [20:Diamond] [21:Homing] [22:Beam] [23:Lightning]
   1.5, 1.5, 1.5, 1.5, 1.5,
   // [24:ExplosionRing] [25:DiamondRing] [26:OctShield] [27:ReflectField] [28:Bar]
-  1.5, 1.5, 1.5, 1.5, 1.5
+  1.5, 1.5, 1.5, 1.5, 1.5,
+  // [29:Trail]
+  1.5
 );
 void main(){
   float d=length(vU), a=0.0;

@@ -12,6 +12,7 @@ import {
   SH_LIGHTNING,
   SH_OCT_SHIELD,
   SH_REFLECT_FIELD,
+  SH_TRAIL,
 } from '../constants.ts';
 import { TYPES } from '../unit-types.ts';
 
@@ -39,6 +40,7 @@ const EFFECT_SHAPE_IDS = [
   SH_OCT_SHIELD,
   SH_REFLECT_FIELD,
   SH_BAR,
+  SH_TRAIL,
 ] as const;
 
 describe('GLSL ↔ TypeScript shape sync', () => {
@@ -57,7 +59,7 @@ describe('GLSL ↔ TypeScript shape sync', () => {
   test('effect shape IDs are sequential from TYPES.length', () => {
     const firstEffectId = TYPES.length;
     expect(SH_CIRCLE).toBe(firstEffectId);
-    expect(SH_BAR).toBe(NUM_SHAPES - 1);
+    expect(SH_TRAIL).toBe(NUM_SHAPES - 1);
     for (let i = 0; i < EFFECT_SHAPE_IDS.length; i++) {
       expect(EFFECT_SHAPE_IDS[i]).toBe(firstEffectId + i);
     }

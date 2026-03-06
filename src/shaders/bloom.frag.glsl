@@ -7,7 +7,8 @@ void main(){
   for(int i=1;i<5;i++){
     float w = i==1?0.195 : i==2?0.122 : i==3?0.054 : 0.016;
     vec2 o=uD*float(i)/uR;
-    s+=texture(uT,vU+o)*w; s+=texture(uT,vU-o)*w;
+    s+=texture(uT,vU+o)*w;
+    s+=texture(uT,vU-o)*w;
   }
   fragColor=s;
 }

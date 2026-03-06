@@ -83,3 +83,10 @@
   // [SHAPE:28 Bar] ————————————————————————————
   else if(sh==28){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
+  // [SHAPE:29 Trail] ————————————————————————————
+  else if(sh==29){
+    // Elongated capsule along vU.x with soft gradient (bright head → dim tail)
+    float bx=vU.x*0.4, by=vU.y;
+    float cd=length(vec2(max(abs(bx)-0.3,0.0),by));
+    float grad=smoothstep(-1.0,0.8,vU.x)*0.6+0.4;
+    a=(smoothstep(0.5,0.1,cd)+exp(-cd*4.0)*0.3)*grad; }

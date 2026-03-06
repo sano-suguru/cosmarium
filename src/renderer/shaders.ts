@@ -1,4 +1,5 @@
 import bloomFragSrc from '../shaders/bloom.frag.glsl';
+import brightPassFragSrc from '../shaders/bright-pass.frag.glsl';
 import compositeFragSrc from '../shaders/composite.frag.glsl';
 import mainFragSrc from '../shaders/main.frag.glsl';
 import mainVertSrc from '../shaders/main.vert.glsl';
@@ -10,6 +11,7 @@ import { required } from './assert.ts';
 import { gl } from './webgl-setup.ts';
 
 export let mainProgram: WebGLProgram;
+export let brightPassProgram: WebGLProgram;
 export let bloomProgram: WebGLProgram;
 export let compositeProgram: WebGLProgram;
 export let minimapProgram: WebGLProgram;
@@ -36,6 +38,11 @@ export let minimapLocations: {
   aSh: number;
 };
 
+export let brightPassLocations: {
+  uT: WebGLUniformLocation | null;
+  uTh: WebGLUniformLocation | null;
+};
+
 export let bloomLocations: {
   uT: WebGLUniformLocation | null;
   uD: WebGLUniformLocation | null;
@@ -44,8 +51,11 @@ export let bloomLocations: {
 
 export let compositeLocations: {
   uS: WebGLUniformLocation | null;
-  uB: WebGLUniformLocation | null;
+  uB1: WebGLUniformLocation | null;
+  uB2: WebGLUniformLocation | null;
+  uB3: WebGLUniformLocation | null;
   uAberration: WebGLUniformLocation | null;
+  uFlash: WebGLUniformLocation | null;
 };
 
 function compileShader(s: string, t: number) {
@@ -75,6 +85,7 @@ function createProgram(v: string, f: string) {
 
 export function initShaders() {
   mainProgram = createProgram(mainVertSrc, mainFragSrc);
+  brightPassProgram = createProgram(quadVertSrc, brightPassFragSrc);
   bloomProgram = createProgram(quadVertSrc, bloomFragSrc);
   compositeProgram = createProgram(quadVertSrc, compositeFragSrc);
   minimapProgram = createProgram(minimapVertSrc, minimapFragSrc);
@@ -101,6 +112,11 @@ export function initShaders() {
     aSh: gl.getAttribLocation(minimapProgram, 'aSh'),
   };
 
+  brightPassLocations = {
+    uT: gl.getUniformLocation(brightPassProgram, 'uT'),
+    uTh: gl.getUniformLocation(brightPassProgram, 'uTh'),
+  };
+
   bloomLocations = {
     uT: gl.getUniformLocation(bloomProgram, 'uT'),
     uD: gl.getUniformLocation(bloomProgram, 'uD'),
@@ -109,8 +125,11 @@ export function initShaders() {
 
   compositeLocations = {
     uS: gl.getUniformLocation(compositeProgram, 'uS'),
-    uB: gl.getUniformLocation(compositeProgram, 'uB'),
+    uB1: gl.getUniformLocation(compositeProgram, 'uB1'),
+    uB2: gl.getUniformLocation(compositeProgram, 'uB2'),
+    uB3: gl.getUniformLocation(compositeProgram, 'uB3'),
     uAberration: gl.getUniformLocation(compositeProgram, 'uAberration'),
+    uFlash: gl.getUniformLocation(compositeProgram, 'uFlash'),
   };
 
   if (import.meta.env.DEV) {
@@ -119,12 +138,17 @@ export function initShaders() {
       'mainLocations.uCam': mainLocations.uCam,
       'mainLocations.uZ': mainLocations.uZ,
       'mainLocations.uTime': mainLocations.uTime,
+      'brightPassLocations.uT': brightPassLocations.uT,
+      'brightPassLocations.uTh': brightPassLocations.uTh,
       'bloomLocations.uT': bloomLocations.uT,
       'bloomLocations.uD': bloomLocations.uD,
       'bloomLocations.uR': bloomLocations.uR,
       'compositeLocations.uS': compositeLocations.uS,
-      'compositeLocations.uB': compositeLocations.uB,
+      'compositeLocations.uB1': compositeLocations.uB1,
+      'compositeLocations.uB2': compositeLocations.uB2,
+      'compositeLocations.uB3': compositeLocations.uB3,
       'compositeLocations.uAberration': compositeLocations.uAberration,
+      'compositeLocations.uFlash': compositeLocations.uFlash,
     };
     for (const name in locs) {
       if (locs[name] === null) {

@@ -38,6 +38,7 @@ export const SH_DIAMOND_RING = 25;
 export const SH_OCT_SHIELD = 26;
 export const SH_REFLECT_FIELD = 27;
 export const SH_BAR = 28;
+export const SH_TRAIL = 29;
 
 export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;
