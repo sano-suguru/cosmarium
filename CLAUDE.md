@@ -45,7 +45,12 @@ bun run check        # All checks (typecheck + biome ci + knip + cpd + similarit
 - Line width 120, single quotes, always semicolons
 - `src/shaders/**` excluded from lint/format (GLSL)
 
-**Testing**: Vitest (`src/**/*.test.ts`). Helpers in `src/__test__/pool-helper.ts`. Standard afterEach: `resetPools(); resetState(); vi.restoreAllMocks();`
+**Testing**: Vitest (`src/**/*.test.ts`). Helpers in `src/__test__/pool-helper.ts`:
+- `resetPools()` / `resetState()` — reset pools/state to defaults
+- `spawnAt(team, type, x, y)` — mock `Math.random` for deterministic spawning
+- `fillUnitPool()` — fill entire unit pool
+- `makeGameLoopState()` — create `GameLoopState` for testing
+- Standard afterEach: `resetPools(); resetState(); vi.restoreAllMocks();`
 
 **PRNG**: `rng()` (`state.ts`) — deterministic mulberry32. Fix seed with `seedRng(seed)` in tests. Camera shake uses `Math.random()` (not seeded). Codex demo uses `demoRng` (`Math.random`-based, intentionally non-deterministic).
 
@@ -61,6 +66,10 @@ src/
   beams.ts           # beam/trackingBeam dynamic arrays
   colors.ts          # Team/trail color tables
   unit-types.ts      # Unit type definitions
+  fleet-cost.ts      # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
+  battle-tracker.ts  # Battle mode elapsed/win/result aggregation
+  melee-tracker.ts   # Melee mode (N-team) elapsed/win/result aggregation
+  screen-effects.ts  # Post-process screen effect parameters
   shaders/           # GLSL (vite-plugin-glsl, #include)
   renderer/          # WebGL 2 rendering pipeline
   simulation/        # Game logic (spatial hash, combat-*, steering)
@@ -91,6 +100,33 @@ frame() → dt clamp(0.05) → camera update + decay
 ### codexOpen State
 
 Affects 4 layers when toggled: simulation (skip steer/combat for non-demo units, skip reinforce), renderer (lock camera), input (disable controls), main (hide HUD). Codex spawns real units via `spawnUnit()` — uses snapshot/restore (`snapshotPools`/`restorePools`) to save and restore pool state.
+
+### Game Modes & BattlePhase
+
+`GameState`: `'menu' | 'compose' | 'play' | 'result'` — UI-level state in `state.ts`.
+
+`BattlePhase` (in `GameLoopState`, passed to `stepOnce()`): `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`
+- **Spectate**: AI vs AI, no player fleet
+- **Battle**: Player fleet (team 0) vs enemy (team 1), budget-limited (`DEFAULT_BUDGET = 200`)
+- **Melee**: N-team free-for-all (2–5 teams via `activeTeamCount`), uses `melee-tracker.ts`
+
+Phase transitions: `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`
+
+## Change Guides
+
+### Add a New Unit Type
+`unit-types.ts` → `types.ts` (if new flags) → `colors.ts` → `simulation/combat.ts` → `simulation/steering.ts` (if special movement) → `simulation/spawn.ts` (if new properties) → `ui/codex.ts` → `src/shaders/main.frag.glsl` (new shape)
+
+### Add a New Shape
+Shape IDs are **append-only** — never reuse or reassign existing IDs. Units 0–18, Effects 19+.
+1. `includes/shape-count.glsl`: increment `NUM_SHAPES`
+2. `main.frag.glsl`: add entry to 4 arrays (RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT)
+3. Add SDF in `unit-shapes.glsl` or `effect-shapes.glsl` with `// [SHAPE:ID Name]` marker
+4. `unit-types.ts`: set `shape` to new ID
+5. Verify: `bunx vitest run src/shaders/shape-sync.test.ts` + browser visual check
+
+### Add an Effect
+Add function to `simulation/effects.ts` → import at call site.
 
 ## Change Philosophy
 
@@ -144,7 +180,7 @@ No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. R
 
 | Issue | Details |
 |-------|---------|
-| `destroyUnit()` vs `killUnit()` | Always use `destroyUnit()` for unit kill + explosion combo — it takes a snapshot internally. `killUnit()` alone requires manually saving values before calling. |
+| `destroyUnit()` vs `killUnit()` | Always use `destroyUnit()` for unit kill + explosion combo — it takes a snapshot internally. `killUnit()` returns a snapshot (safe to use after call). For particle/projectile, save values to locals **before** `kill()` — kill may reuse the slot immediately. |
 | `neighborBuffer` | Shared buffer updated by `getNeighbors()`. Use immediately, do not copy. |
 | GLSL compilation | GPU-only, runtime only. No CI validation. Test shader changes in browser. |
 | Pool mutation | Never directly assign `poolCounts`. Use spawn/kill functions only. |
