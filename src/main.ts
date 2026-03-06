@@ -31,6 +31,7 @@ import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
+import { decayScreenEffects, resetScreenEffects, screenEffects } from './screen-effects.ts';
 import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
@@ -103,6 +104,7 @@ function handleStartCompose() {
 
 function handleBattleStart() {
   resetBattleTracking();
+  resetScreenEffects();
   const fleet = getPlayerFleet();
   setInitialPlayerUnits(countFleetUnits(fleet));
   gameLoopState.battlePhase = 'battle';
@@ -110,12 +112,14 @@ function handleBattleStart() {
 }
 
 function handleSpectateStart() {
+  resetScreenEffects();
   gameLoopState.battlePhase = 'spectate';
   gameLoopState.activeTeamCount = 2;
 }
 
 function handleMeleeStart(numTeams: number) {
   resetMeleeTracking(numTeams, copyTeamCounts(teamUnitCounts));
+  resetScreenEffects();
   gameLoopState.battlePhase = 'melee';
   gameLoopState.activeTeamCount = numTeams;
   setupMeleeHUD(numTeams);
@@ -170,10 +174,17 @@ const gameLoopState: GameLoopState = {
 };
 
 function updatePlay(dt: number, t: number) {
+  // フリーズタイマーを実 dt で減衰（シミュレーション停止中も進行する）
+  decayScreenEffects(dt);
+
+  // フリーズは accumulator のみに作用: シミュレーション時間を蓄積しない。
+  // レンダリング・カメラ補間・エフェクト減衰（decayScreenEffects）は通常 dt で継続。
+  const effectiveDt = screenEffects.freezeTimer > 0 ? 0 : dt;
+
   // drainAccumulator は同期ループ: 最初の勝者検知でスナップショットを確定し、
   // battlePhase を 'battleEnding'/'meleeEnding' に遷移。後続 substep での追加キルはスナップショットに反映しない。
   // onBattleEnd / onMeleeEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
-  simAccumulator = drainAccumulator(simAccumulator + dt * state.timeScale * BASE_SPEED, () => {
+  simAccumulator = drainAccumulator(simAccumulator + effectiveDt * state.timeScale * BASE_SPEED, () => {
     savePrevPositions();
     if (gameLoopState.battlePhase === 'battle') {
       advanceBattleElapsed(SIM_DT);

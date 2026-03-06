@@ -45,6 +45,7 @@ export let bloomLocations: {
 export let compositeLocations: {
   uS: WebGLUniformLocation | null;
   uB: WebGLUniformLocation | null;
+  uAberration: WebGLUniformLocation | null;
 };
 
 function compileShader(s: string, t: number) {
@@ -109,6 +110,7 @@ export function initShaders() {
   compositeLocations = {
     uS: gl.getUniformLocation(compositeProgram, 'uS'),
     uB: gl.getUniformLocation(compositeProgram, 'uB'),
+    uAberration: gl.getUniformLocation(compositeProgram, 'uAberration'),
   };
 
   if (import.meta.env.DEV) {
@@ -122,6 +124,7 @@ export function initShaders() {
       'bloomLocations.uR': bloomLocations.uR,
       'compositeLocations.uS': compositeLocations.uS,
       'compositeLocations.uB': compositeLocations.uB,
+      'compositeLocations.uAberration': compositeLocations.uAberration,
     };
     for (const name in locs) {
       if (locs[name] === null) {

@@ -18,7 +18,13 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
+vi.mock('../screen-effects.ts', () => ({
+  addAberration: vi.fn(),
+  addFreeze: vi.fn(),
+}));
+
 import { addShake } from '../input/camera.ts';
+import { addAberration, addFreeze } from '../screen-effects.ts';
 import {
   boostBurst,
   boostTrail,
@@ -48,14 +54,14 @@ describe('explosion', () => {
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 
-  it('大型ユニット (size>=14) → addShake が呼ばれる', () => {
+  it('大型/高コストユニット (cost>=8 or size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const cruiserType = unitType(3);
     explosion(0, 0, 0, 3, rng);
-    expect(addShake).toHaveBeenCalledWith(cruiserType.size * 0.8, 0, 0);
+    expect(addShake).toHaveBeenCalledWith(cruiserType.size * 1.2, 0, 0);
   });
 
-  it('小型ユニット (size<14) → addShake が呼ばれない', () => {
+  it('小型低コストユニット (cost<8 and size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 0 (Drone) は size=4
     explosion(0, 0, 0, 0, rng);
@@ -111,6 +117,38 @@ describe('explosion', () => {
     // killer=-1 でエラーが起きないことを確認
     explosion(0, 0, 0, 0, rng);
     expect(poolCounts.particles).toBeGreaterThan(0);
+  });
+
+  it('cost >= 8 (Cruiser, type=3) → addAberration + addFreeze(0.03)', () => {
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    explosion(0, 0, 0, 3, rng);
+    expect(addAberration).toHaveBeenCalledWith(8 / 30);
+    expect(addFreeze).toHaveBeenCalledWith(0.03);
+  });
+
+  it('cost >= 12 (Carrier, type=7) → addAberration + addFreeze(0.05)', () => {
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    explosion(0, 0, 0, 7, rng);
+    expect(addAberration).toHaveBeenCalledWith(12 / 30);
+    expect(addFreeze).toHaveBeenCalledWith(0.05);
+  });
+
+  it('cost >= 20 (Flagship, type=4) → addAberration + addFreeze(0.07)', () => {
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    explosion(0, 0, 0, 4, rng);
+    expect(addAberration).toHaveBeenCalledWith(20 / 30);
+    expect(addFreeze).toHaveBeenCalledWith(0.07);
+  });
+
+  it('cost < 8 (Drone, type=0) → addAberration/addFreeze 呼ばれない', () => {
+    buildHash();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    explosion(0, 0, 0, 0, rng);
+    expect(addAberration).not.toHaveBeenCalled();
+    expect(addFreeze).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,5 @@
 import { cam } from '../input/camera.ts';
+import { screenEffects } from '../screen-effects.ts';
 import { state } from '../state.ts';
 import type { FBO } from '../types.ts';
 import { required } from './assert.ts';
@@ -74,6 +75,7 @@ function renderCompositePass(sceneFBO: FBO, bloomFBO2: FBO, W: number, H: number
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, bloomFBO2.texture);
   gl.uniform1i(compositeLocations.uB, 1);
+  gl.uniform1f(compositeLocations.uAberration, screenEffects.aberrationIntensity);
   drawQuad();
   gl.activeTexture(gl.TEXTURE0);
 }
