@@ -87,9 +87,11 @@ const BLUR_RADIUS = 2.5;
 
 function renderBloomPass(sceneFBO: FBO, brightFBO: FBO, bloom: BloomScales) {
   brightPass(sceneFBO, brightFBO, BRIGHT_THRESHOLD);
-  blurPass(brightFBO, bloom[0].tmp, bloom[0].result, BLUR_RADIUS);
-  blurPass(bloom[0].result, bloom[1].tmp, bloom[1].result, BLUR_RADIUS);
-  blurPass(bloom[1].result, bloom[2].tmp, bloom[2].result, BLUR_RADIUS);
+  let src: FBO = brightFBO;
+  for (const scale of bloom) {
+    blurPass(src, scale.tmp, scale.result, BLUR_RADIUS);
+    src = scale.result;
+  }
 }
 
 function renderCompositePass(sceneFBO: FBO, bloom: BloomScales, W: number, H: number) {
