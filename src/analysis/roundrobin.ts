@@ -59,6 +59,7 @@ interface RoundRobinConfig {
 
 // ─── Core ─────────────────────────────────────────────────────────
 
+/** 指定予算内でモノタイプ艦隊を構築。cost <= 0 または購入不可なら null */
 function buildMonoFleet(typeIndex: number, budget: number): { type: number; count: number }[] | null {
   const t = TYPES[typeIndex];
   if (!t || t.cost <= 0) {
@@ -71,6 +72,7 @@ function buildMonoFleet(typeIndex: number, budget: number): { type: number; coun
   return [{ type: typeIndex, count }];
 }
 
+/** 2つのユニットタイプの全試行を実行し勝敗を集計する */
 function runMatchup(typeA: number, typeB: number, config: RoundRobinConfig, matchIndex: number): MatchupResult | null {
   const fleetA = buildMonoFleet(typeA, config.budget);
   const fleetB = buildMonoFleet(typeB, config.budget);
@@ -182,6 +184,7 @@ function classifyAffinities(aff: Map<number, number>): { strongAgainst: string[]
   return { strongAgainst, weakAgainst };
 }
 
+/** 全対戦結果をユニットタイプ別の勝率ランキングに集約する */
 function computeRankings(matchups: readonly MatchupResult[]): RoundRobinRanking[] {
   const { stats, affinities } = aggregateMatchups(matchups);
 
@@ -207,6 +210,7 @@ function computeRankings(matchups: readonly MatchupResult[]): RoundRobinRanking[
   return rankings;
 }
 
+/** 全ユニットタイプの総当たり対戦を実行し、勝率ランキングと相性データを返す */
 export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
   const types = SORTED_TYPE_INDICES;
   const matchups: MatchupResult[] = [];

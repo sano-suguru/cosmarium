@@ -15,6 +15,12 @@
 
 import { SIM_DT, WORLD_SIZE } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
+
+/** 3 分 @ 60fps */
+const DEFAULT_MAX_STEPS = 10800;
+/** 1 秒ごと */
+const DEFAULT_SNAPSHOT_INTERVAL = 60;
+
 import { getUnitHWM, teamUnitCounts, unit } from '../pools.ts';
 import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
 import { setCurrentSimTime } from '../simulation/hooks.ts';
@@ -538,8 +544,8 @@ function parseArgs(argv: readonly string[], createRng: (seed: number) => () => n
     teams: parseIntArg(pairs, '--teams', 3),
     seed: parseIntArg(pairs, '--seed', 12345),
     budget: parseIntArg(pairs, '--budget', DEFAULT_BUDGET),
-    maxSteps: parseIntArg(pairs, '--maxSteps', 10800), // 3 分 @ 60fps
-    snapshotInterval: parseIntArg(pairs, '--interval', 60), // 1 秒ごと
+    maxSteps: parseIntArg(pairs, '--maxSteps', DEFAULT_MAX_STEPS),
+    snapshotInterval: parseIntArg(pairs, '--interval', DEFAULT_SNAPSHOT_INTERVAL),
     outFile: pairs.get('--out') ?? null,
     createRng,
   };

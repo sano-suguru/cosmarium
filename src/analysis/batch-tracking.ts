@@ -20,9 +20,7 @@ import type {
 import { typeName } from './batch-types.ts';
 
 // ─── TypedArray Helpers ──────────────────────────────────────────
-// noUncheckedIndexedAccess により TypedArray の indexed access も number | undefined
-// となるため、アクセスパターンをここに集約する。
-// TypedArray は範囲内アクセスで常に number を返すため ?? 0 は実行時に作用しない。
+// noUncheckedIndexedAccess 対策: TypedArray の範囲内アクセスは常に number なので ?? 0 は安全
 
 function at(arr: Int32Array | Float64Array, idx: number): number {
   return arr[idx] ?? 0;

@@ -144,7 +144,6 @@ describe('runBatch', () => {
       expect(us.survivalRate).toBeLessThanOrEqual(1);
     }
 
-    // 各試合のunitStatsにもsurvivedフィールドがある
     for (const trial of summary.trials) {
       for (const us of trial.unitStats) {
         expect(us.survived).toBeGreaterThanOrEqual(0);
@@ -170,17 +169,14 @@ describe('runBatch', () => {
   it('キルマトリクスが集計される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // BatchSummary にキルマトリクスが存在する
     expect(summary.killMatrix).toBeDefined();
     expect(summary.killMatrix.data.length).toBe(summary.killMatrix.size);
 
-    // 各試合にもキルマトリクスがある
     for (const trial of summary.trials) {
       expect(trial.killMatrix).toBeDefined();
       expect(trial.killMatrix.data.length).toBe(trial.killMatrix.size);
     }
 
-    // topVictimType / topThreatType が設定されている
     for (const us of summary.unitSummary) {
       if (us.totalKills > 0) {
         expect(us.topVictimType).not.toBeNull();
@@ -191,21 +187,18 @@ describe('runBatch', () => {
   it('ダメージ統計が集計される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // 各試合にダメージ統計がある
     for (const trial of summary.trials) {
       expect(trial.damageStats).toBeDefined();
       expect(trial.damageStats.dealtByType.length).toBeGreaterThan(0);
       expect(trial.damageStats.receivedByType.length).toBeGreaterThan(0);
     }
 
-    // UnitSummary にダメージメトリクスが含まれる
     for (const us of summary.unitSummary) {
       expect(us.totalDamageDealt).toBeGreaterThanOrEqual(0);
       expect(us.totalDamageReceived).toBeGreaterThanOrEqual(0);
       expect(us.damagePerCost).toBeGreaterThanOrEqual(0);
     }
 
-    // 戦闘が発生していればダメージがある
     const totalDealt = summary.unitSummary.reduce((s, u) => s + u.totalDamageDealt, 0);
     expect(totalDealt).toBeGreaterThan(0);
   });
@@ -213,7 +206,6 @@ describe('runBatch', () => {
   it('サポート統計が集計される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // 各試合にサポート統計がある
     for (const trial of summary.trials) {
       expect(trial.supportStats).toBeDefined();
       expect(trial.supportStats.healingByType.length).toBeGreaterThan(0);
@@ -222,7 +214,6 @@ describe('runBatch', () => {
       expect(trial.supportStats.catalystApplications.length).toBeGreaterThan(0);
     }
 
-    // UnitSummary にサポートメトリクスが含まれる
     for (const us of summary.unitSummary) {
       expect(us.totalHealing).toBeGreaterThanOrEqual(0);
       expect(us.supportScore).toBeGreaterThanOrEqual(0);
@@ -232,25 +223,21 @@ describe('runBatch', () => {
   it('キルシーケンスエントロピーが計算される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // 各試合にキルシーケンスエントロピーがある
     for (const trial of summary.trials) {
       expect(trial.killSequenceEntropy).toBeGreaterThanOrEqual(0);
     }
 
-    // サマリーに平均値がある
     expect(summary.stats.avgKillSequenceEntropy).toBeGreaterThanOrEqual(0);
   });
 
   it('生存時間分布が計算される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // 各試合にlifespanStatsがある
     for (const trial of summary.trials) {
       expect(trial.lifespanStats).toBeDefined();
       expect(trial.lifespanStats.totalLifespan.length).toBeGreaterThan(0);
     }
 
-    // UnitSummary に avgLifespan がある
     for (const us of summary.unitSummary) {
       expect(us.avgLifespan).toBeGreaterThanOrEqual(0);
     }
@@ -259,13 +246,11 @@ describe('runBatch', () => {
   it('死因内訳が記録される', () => {
     const summary = runBatch(makeTestConfig());
 
-    // 各試合に killContextStats がある
     for (const trial of summary.trials) {
       expect(trial.killContextStats).toBeDefined();
       expect(trial.killContextStats.contextCounts.length).toBeGreaterThan(0);
     }
 
-    // UnitSummary に deathsByContext がある（6要素）
     for (const us of summary.unitSummary) {
       expect(us.deathsByContext).toBeDefined();
       expect(us.deathsByContext.length).toBe(6);
@@ -278,7 +263,6 @@ describe('runBatch', () => {
   it('シナジーペアが計算される', () => {
     const summary = runBatch(makeTestConfig({ trials: 10, snapshotInterval: 600 }));
 
-    // synergyPairs が存在する（サンプル数不足の場合は空配列）
     expect(summary.synergyPairs).toBeDefined();
     expect(Array.isArray(summary.synergyPairs)).toBe(true);
 
