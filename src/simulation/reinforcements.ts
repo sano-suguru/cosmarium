@@ -88,6 +88,13 @@ export interface ReinforcementState {
 
 export const REINFORCE_INTERVAL = 2.5;
 export const REINFORCE_UNIT_CAP = 250;
+/**
+ * ユニット数比率 (myCnt/enemyCnt) の閾値。
+ * - ratio >= 1.3 → 優勢側の増援スキップ（30%以上多い＝十分優勢）
+ * - ratio <= 1/1.3 ≈ 0.77 → 劣勢側にボーナス2ウェーブ（23%以上少ない＝苦戦中）
+ * - 中間 → 通常1ウェーブ
+ */
+export const RUBBER_BAND_RATIO = 1.3;
 
 const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
@@ -111,11 +118,31 @@ export function reinforce(dt: number, rng: () => number, rs: ReinforcementState)
     }
   }
 
+  reinforceWaves(rng);
+}
+
+function reinforceWaves(rng: () => number) {
   const lim = REINFORCE_UNIT_CAP;
+  const bonusThreshold = 1 / RUBBER_BAND_RATIO;
+  // ループ前にスナップショット — team0のスポーンがteam1の比率計算に影響しないようにする
+  const snapped = [teamUnitCounts[0], teamUnitCounts[1]] as const;
   for (const team of [0, 1] as const) {
-    const cnt = teamUnitCounts[team];
-    if (cnt < lim) {
-      spawnWave(team, cnt, rng);
+    const myCnt = snapped[team];
+    if (myCnt >= lim) {
+      continue;
+    }
+
+    const enemyCnt = snapped[team === 0 ? 1 : 0];
+    const ratio = enemyCnt > 0 ? myCnt / enemyCnt : 1.0;
+
+    if (ratio >= RUBBER_BAND_RATIO) {
+      continue;
+    }
+
+    spawnWave(team, snapped[team], rng);
+
+    if (ratio <= bonusThreshold) {
+      spawnWave(team, snapped[team], rng);
     }
   }
 }

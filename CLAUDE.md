@@ -102,6 +102,7 @@ Phase transitions: `main.ts` callbacks → `battle-tracker`/`melee-tracker` → 
 - **`types.ts` / `state.ts` changes cascade everywhere** — always validate with `bun run typecheck`
 - **GLSL** — GPU-only compilation, no CI validation, test in browser
 - **Japanese UI** — menu descriptions and unit abilities in Japanese
+- **Serena (MCP)** — コード分析・編集は Serena の LSP ツール優先（`find_symbol`, `get_symbols_overview`, `replace_symbol_body` 等）。Grep/Glob は文字列検索・非コードファイル用
 
 Coding conventions, TypeScript strict settings, Biome rules → `.claude/rules/coding.md`
 Testing helpers, PRNG → `.claude/rules/testing.md`
