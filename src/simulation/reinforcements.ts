@@ -57,6 +57,8 @@ export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: AMPLIFIER, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
   { type: SCRAMBLER, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
   { type: CATALYST, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
+  { type: DISRUPTOR, spread: 60, condition: (r, cnt) => cnt < 35 && r < 0.6 }, // 劣勢時60%
+  { type: BOMBER, spread: 80, condition: (r, cnt) => cnt < 35 && r > 0.4 }, // 劣勢時60%
 ];
 
 function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {

@@ -86,10 +86,7 @@ function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
   if (o.reflectFieldHp <= 0) {
     return false;
   }
-  o.reflectFieldHp -= p.damage;
-  if (o.reflectFieldHp <= 0) {
-    o.reflectFieldHp = 0;
-  }
+  o.reflectFieldHp = Math.max(0, o.reflectFieldHp - p.damage);
   const c: Color3 = effectColor(o.type, o.team);
   reflectProjectile(rng, o.x, o.y, p, o.team, c);
   return true;

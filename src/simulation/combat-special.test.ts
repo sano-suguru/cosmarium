@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { POOL_UNITS } from '../constants.ts';
+import { POOL_UNITS, REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe('combat — LANCER', () => {
-  it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass)', () => {
+  it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass×2)', () => {
     const lancerType = unitType(9);
     const fighterType = unitType(1);
     const lancer = spawnAt(0, 9, 0, 0);
@@ -40,7 +40,7 @@ describe('combat — LANCER', () => {
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // size合計 > distance=5 → 衝突, vet=0 → vd=1
     expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 3 * 1));
-    expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass));
+    expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass * 2));
   });
 
   it('衝突でノックバック発生', () => {
@@ -71,6 +71,52 @@ describe('combat — LANCER', () => {
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
     expect(unit(lancer).alive).toBe(false);
+  });
+
+  it('フィールド持ち相手に ram ダメージ半減', () => {
+    const lancer = spawnAt(0, 9, 0, 0); // Lancer (mass=12)
+    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
+    const enemyHpBefore = unit(enemy).hp;
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    // ramDmg = ceil(12 * 3 * 1 * 0.5) = 18
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 3 * 1 * 0.5));
+  });
+
+  it('reflectFieldHp が ramDmg 分減少', () => {
+    const lancer = spawnAt(0, 9, 0, 0);
+    const enemy = spawnAt(1, 6, 5, 0);
+    unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    const ramDmg = Math.ceil(12 * 3 * 1 * 0.5);
+    expect(unit(enemy).reflectFieldHp).toBe(Math.max(0, REFLECT_FIELD_MAX_HP - ramDmg));
+  });
+
+  it('フィールド持ち相手で自傷 1.5 倍', () => {
+    const lancer = spawnAt(0, 9, 0, 0);
+    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
+    const lancerHpBefore = unit(lancer).hp;
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    // selfDmg = ceil(3 * 2 * 1.5) = 9
+    expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(3 * 2 * 1.5));
+  });
+
+  it('reflectFieldHp=0 なら通常ダメージ', () => {
+    const lancer = spawnAt(0, 9, 0, 0);
+    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    unit(enemy).reflectFieldHp = 0; // フィールド枯渇
+    const enemyHpBefore = unit(enemy).hp;
+    const lancerHpBefore = unit(lancer).hp;
+    buildHash();
+    combat(unit(lancer), lancer, 0.016, 0, rng);
+    // ramDmg = ceil(12 * 3 * 1) = 36 (フルダメージ)
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 3 * 1));
+    // selfDmg = ceil(3 * 2 * 1) = 6 (通常)
+    expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(3 * 2 * 1));
   });
 });
 

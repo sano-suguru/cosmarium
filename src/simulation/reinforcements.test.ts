@@ -68,7 +68,7 @@ describe('reinforce', () => {
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
     reinforce(0.1, rng, rs);
-    expect(poolCounts.units).toBe(22 + MOTHERSHIP_PAIR);
+    expect(poolCounts.units).toBe(24 + MOTHERSHIP_PAIR);
   });
 
   it('r < 0.1 かつ cnt < 50 で Flagship がスポーンする', () => {
@@ -76,7 +76,7 @@ describe('reinforce', () => {
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.05;
     reinforce(0.1, rng, rs);
-    expect(poolCounts.units).toBe(28 + MOTHERSHIP_PAIR);
+    expect(poolCounts.units).toBe(30 + MOTHERSHIP_PAIR);
     let hasFlagship = false;
     for (let i = 0; i < POOL_UNITS; i++) {
       if (unit(i).alive && unit(i).type === 4) {
@@ -95,8 +95,8 @@ describe('reinforce', () => {
       spawnAt(0, 0, i * 20, 0);
     }
     reinforce(0.1, rng, rs);
-    // team0: 250体で cap 超え → スキップ, team1: 劣勢(ratio≈0.004)で2ウェーブ=22体
-    expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 22 + MOTHERSHIP_PAIR);
+    // team0: 250体で cap 超え → スキップ, team1: 劣勢(ratio≈0.004)で2ウェーブ=24体(cnt<35で+1/wave@r=0.99)
+    expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 24 + MOTHERSHIP_PAIR);
   });
 
   it('両チーム同数の場合、両チームに均等にスポーンされる', () => {
@@ -171,8 +171,8 @@ describe('rubber band reinforcements', () => {
     state.rng = () => 0.99;
     reinforce(0.1, rng, rs);
     const [after0] = countByTeam();
-    // team0: 30 + 母艦1 + 2ウェーブ(各11体@r=0.99) = 30 + 1 + 22 = 53
-    expect(after0).toBe(30 + 1 + 22);
+    // team0: 30 + 母艦1 + 2ウェーブ(各12体@r=0.99,cnt<35) = 30 + 1 + 24 = 55
+    expect(after0).toBe(30 + 1 + 24);
   });
 
   it('均衡時 (1/RUBBER_BAND_RATIO < ratio < RUBBER_BAND_RATIO) は従来通り1ウェーブ', () => {
@@ -292,28 +292,47 @@ describe('REINFORCEMENT_TABLE — overlap snapshot', () => {
 
   it('既知の重複ペアと一致（ユニット追加時はスナップショット更新）', () => {
     expect(detectOverlaps()).toEqual([
+      'Amplifier × Bomber',
+      'Amplifier × Disruptor',
       'Amplifier × Lancer',
       'Amplifier × Sniper',
+      'Arcer × Bomber',
       'Arcer × Catalyst',
       'Bastion × Bomber',
+      'Bastion × Disruptor',
       'Bastion × Reflector',
       'Bastion × Sniper',
+      'Bomber × Bomber',
       'Bomber × Carrier',
+      'Bomber × Catalyst',
       'Bomber × Cruiser',
+      'Bomber × Disruptor',
       'Bomber × Flagship',
       'Bomber × Healer',
+      'Bomber × Lancer',
       'Bomber × Launcher',
       'Bomber × Reflector',
       'Bomber × Scorcher',
+      'Bomber × Scrambler',
+      'Bomber × Sniper',
+      'Bomber × Teleporter',
       'Carrier × Cruiser',
+      'Carrier × Disruptor',
       'Carrier × Flagship',
       'Carrier × Scorcher',
       'Catalyst × Teleporter',
+      'Cruiser × Disruptor',
       'Cruiser × Flagship',
       'Cruiser × Healer',
       'Cruiser × Launcher',
       'Cruiser × Reflector',
       'Cruiser × Scorcher',
+      'Disruptor × Flagship',
+      'Disruptor × Healer',
+      'Disruptor × Launcher',
+      'Disruptor × Reflector',
+      'Disruptor × Scorcher',
+      'Disruptor × Sniper',
       'Healer × Launcher',
       'Healer × Scorcher',
       'Lancer × Scrambler',
