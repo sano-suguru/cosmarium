@@ -19,36 +19,44 @@ import type {
 } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
+// ─── TypedArray Helpers ──────────────────────────────────────────
+// noUncheckedIndexedAccess により TypedArray の indexed access も number | undefined
+// となるため、アクセスパターンをここに集約する。
+// TypedArray は範囲内アクセスで常に number を返すため ?? 0 は実行時に作用しない。
+
+function at(arr: Int32Array | Float64Array, idx: number): number {
+  return arr[idx] ?? 0;
+}
+
+function accum(arr: Int32Array | Float64Array, idx: number, delta: number): void {
+  arr[idx] = (arr[idx] ?? 0) + delta;
+}
+
 // ─── Kill Tracking ───────────────────────────────────────────────
 
 export function createKillTracker(): KillTracker {
   const size = TYPES.length;
-  const killMatrix: number[][] = [];
+  const killMatrix: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
-    killMatrix.push(new Array(size).fill(0));
+    killMatrix.push(new Int32Array(size));
   }
   return {
-    teamKills: new Array(MAX_TEAMS).fill(0),
-    killsByType: new Array(size).fill(0),
-    deathsByType: new Array(size).fill(0),
+    teamKills: new Int32Array(MAX_TEAMS),
+    killsByType: new Int32Array(size),
+    deathsByType: new Int32Array(size),
     killMatrix,
   };
 }
 
 export function installKillHook(tracker: KillTracker): () => void {
   return onKillUnit((e) => {
-    const prev = tracker.deathsByType[e.victimType] as number;
-    tracker.deathsByType[e.victimType] = prev + 1;
+    accum(tracker.deathsByType, e.victimType, 1);
     if (e.killer !== NO_UNIT && e.killerType !== undefined && e.killerTeam !== undefined) {
-      const kPrev = tracker.killsByType[e.killerType] as number;
-      tracker.killsByType[e.killerType] = kPrev + 1;
-      const tPrev = tracker.teamKills[e.killerTeam] as number;
-      tracker.teamKills[e.killerTeam] = tPrev + 1;
-      // Kill Matrix
+      accum(tracker.killsByType, e.killerType, 1);
+      accum(tracker.teamKills, e.killerTeam, 1);
       const row = tracker.killMatrix[e.killerType];
       if (row) {
-        const mPrev = row[e.victimType] as number;
-        row[e.victimType] = mPrev + 1;
+        accum(row, e.victimType, 1);
       }
     }
   });
@@ -59,17 +67,15 @@ export function installKillHook(tracker: KillTracker): () => void {
 export function createDamageTracker(): DamageTracker {
   const size = TYPES.length;
   return {
-    dealtByType: new Array(size).fill(0),
-    receivedByType: new Array(size).fill(0),
+    dealtByType: new Float64Array(size),
+    receivedByType: new Float64Array(size),
   };
 }
 
 export function installDamageHook(tracker: DamageTracker): () => void {
   return onDamageUnit((e) => {
-    const dPrev = tracker.dealtByType[e.attackerType] as number;
-    tracker.dealtByType[e.attackerType] = dPrev + e.amount;
-    const rPrev = tracker.receivedByType[e.victimType] as number;
-    tracker.receivedByType[e.victimType] = rPrev + e.amount;
+    accum(tracker.dealtByType, e.attackerType, e.amount);
+    accum(tracker.receivedByType, e.victimType, e.amount);
   });
 }
 
@@ -78,10 +84,10 @@ export function installDamageHook(tracker: DamageTracker): () => void {
 export function createSupportTracker(): SupportTracker {
   const size = TYPES.length;
   return {
-    healingByType: new Array(size).fill(0),
-    ampApplications: new Array(size).fill(0),
-    scrambleApplications: new Array(size).fill(0),
-    catalystApplications: new Array(size).fill(0),
+    healingByType: new Float64Array(size),
+    ampApplications: new Float64Array(size),
+    scrambleApplications: new Float64Array(size),
+    catalystApplications: new Float64Array(size),
   };
 }
 
@@ -89,23 +95,19 @@ export function installSupportHook(tracker: SupportTracker): () => void {
   return onSupportEffect((e) => {
     switch (e.kind) {
       case 'heal': {
-        const prev = tracker.healingByType[e.casterType] as number;
-        tracker.healingByType[e.casterType] = prev + e.amount;
+        accum(tracker.healingByType, e.casterType, e.amount);
         break;
       }
       case 'amp': {
-        const prev = tracker.ampApplications[e.casterType] as number;
-        tracker.ampApplications[e.casterType] = prev + e.amount;
+        accum(tracker.ampApplications, e.casterType, e.amount);
         break;
       }
       case 'scramble': {
-        const prev = tracker.scrambleApplications[e.casterType] as number;
-        tracker.scrambleApplications[e.casterType] = prev + e.amount;
+        accum(tracker.scrambleApplications, e.casterType, e.amount);
         break;
       }
       case 'catalyst': {
-        const prev = tracker.catalystApplications[e.casterType] as number;
-        tracker.catalystApplications[e.casterType] = prev + e.amount;
+        accum(tracker.catalystApplications, e.casterType, e.amount);
         break;
       }
     }
@@ -129,7 +131,7 @@ export function installKillSequenceHook(tracker: KillSequenceTracker): () => voi
 export function createLifespanTracker(): LifespanTracker {
   const size = TYPES.length;
   return {
-    totalLifespan: new Array(size).fill(0),
+    totalLifespan: new Float64Array(size),
     spawnTimes: new Map(),
   };
 }
@@ -138,8 +140,7 @@ export function installLifespanKillHook(tracker: LifespanTracker): () => void {
   return onKillUnit((e) => {
     const spawnTime = tracker.spawnTimes.get(e.victim) ?? 0;
     const lifespan = getCurrentSimTime() - spawnTime;
-    const prev = tracker.totalLifespan[e.victimType] as number;
-    tracker.totalLifespan[e.victimType] = prev + lifespan;
+    accum(tracker.totalLifespan, e.victimType, lifespan);
     tracker.spawnTimes.delete(e.victim);
   });
 }
@@ -148,9 +149,9 @@ export function installLifespanKillHook(tracker: LifespanTracker): () => void {
 
 export function createKillContextTracker(): KillContextTracker {
   const size = TYPES.length;
-  const contextCounts: number[][] = [];
+  const contextCounts: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
-    contextCounts.push(new Array(KILL_CONTEXT_COUNT).fill(0));
+    contextCounts.push(new Int32Array(KILL_CONTEXT_COUNT));
   }
   return { contextCounts };
 }
@@ -159,8 +160,7 @@ export function installKillContextHook(tracker: KillContextTracker): () => void 
   return onKillUnit((e) => {
     const row = tracker.contextCounts[e.victimType];
     if (row) {
-      const prev = row[e.killContext] as number;
-      row[e.killContext] = prev + 1;
+      accum(row, e.killContext, 1);
     }
   });
 }
@@ -172,7 +172,7 @@ export function aggregateLifespan(trials: readonly TrialResult[]): Map<number, n
   for (const trial of trials) {
     const ls = trial.lifespanStats;
     for (let i = 0; i < ls.totalLifespan.length; i++) {
-      const v = ls.totalLifespan[i] as number;
+      const v = at(ls.totalLifespan, i);
       if (v > 0) {
         totalLifespan.set(i, (totalLifespan.get(i) ?? 0) + v);
       }
@@ -181,17 +181,14 @@ export function aggregateLifespan(trials: readonly TrialResult[]): Map<number, n
   return totalLifespan;
 }
 
-function addContextRow(agg: number[], row: readonly number[]) {
+function addContextRow(agg: Int32Array, row: Int32Array) {
   for (let j = 0; j < KILL_CONTEXT_COUNT; j++) {
-    const v = row[j];
-    if (v) {
-      (agg[j] as number) += v;
-    }
+    accum(agg, j, at(row, j));
   }
 }
 
-export function aggregateKillContext(trials: readonly TrialResult[]): Map<number, number[]> {
-  const result = new Map<number, number[]>();
+export function aggregateKillContext(trials: readonly TrialResult[]): Map<number, Int32Array> {
+  const result = new Map<number, Int32Array>();
   for (const trial of trials) {
     const cc = trial.killContextStats.contextCounts;
     for (let i = 0; i < cc.length; i++) {
@@ -201,7 +198,7 @@ export function aggregateKillContext(trials: readonly TrialResult[]): Map<number
       }
       let agg = result.get(i);
       if (!agg) {
-        agg = new Array(KILL_CONTEXT_COUNT).fill(0);
+        agg = new Int32Array(KILL_CONTEXT_COUNT);
         result.set(i, agg);
       }
       addContextRow(agg, row);
@@ -213,16 +210,16 @@ export function aggregateKillContext(trials: readonly TrialResult[]): Map<number
 // ─── Unit Stats Collection ───────────────────────────────────────
 
 export function collectUnitStats(
-  spawnedByType: number[],
-  survivorsByType: number[],
+  spawnedByType: Int32Array,
+  survivorsByType: Int32Array,
   tracker: KillTracker,
 ): UnitTypeStats[] {
   const unitStats: UnitTypeStats[] = [];
   for (let i = 0; i < TYPES.length; i++) {
-    const spawned = spawnedByType[i] as number;
-    const kills = tracker.killsByType[i] as number;
-    const deaths = tracker.deathsByType[i] as number;
-    const survived = survivorsByType[i] as number;
+    const spawned = at(spawnedByType, i);
+    const kills = at(tracker.killsByType, i);
+    const deaths = at(tracker.deathsByType, i);
+    const survived = at(survivorsByType, i);
     if (spawned > 0 || kills > 0 || deaths > 0) {
       unitStats.push({ typeIndex: i, name: typeName(i), spawned, kills, deaths, survived });
     }

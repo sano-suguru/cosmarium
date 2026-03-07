@@ -1,5 +1,8 @@
 /**
  * ダメージ/サポートイベントフック — onKillUnit と同パターン
+ *
+ * 【制約】フックに渡されるイベントオブジェクトは GC 回避のため再利用される。
+ * フック内でイベントの参照を保持してはならない。値が必要な場合は即座にコピーすること。
  */
 
 import { unit } from '../pools.ts';
@@ -30,7 +33,7 @@ const _dmgEvent: DamageEvent = {
   kind: 'direct',
 };
 
-type DamageHook = (e: DamageEvent) => void;
+type DamageHook = (e: Readonly<DamageEvent>) => void;
 const damageHooks: DamageHook[] = [];
 
 type Unsubscribe = () => void;
@@ -111,7 +114,7 @@ const _supEvent: SupportEvent = {
   amount: 0,
 };
 
-type SupportHook = (e: SupportEvent) => void;
+type SupportHook = (e: Readonly<SupportEvent>) => void;
 const supportHooks: SupportHook[] = [];
 
 export function onSupportEffect(hook: SupportHook): Unsubscribe {

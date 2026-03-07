@@ -9,7 +9,7 @@ import { typeName } from './batch-types.ts';
 
 // ─── Presence Tracking (batch.ts から移動) ────────────────────────
 
-export function isBattleWithWinner(trial: TrialResult): boolean {
+export function isBattleWithWinner(trial: TrialResult): trial is TrialResult & { readonly winner: number } {
   return trial.fleetCompositions.length === 2 && trial.winner !== null && trial.winner !== 'draw';
 }
 
@@ -43,7 +43,7 @@ function forEachBattleFleet(
     if (!isBattleWithWinner(trial)) {
       continue;
     }
-    const winnerTeam = trial.winner as number;
+    const winnerTeam = trial.winner;
     for (let teamIdx = 0; teamIdx < 2; teamIdx++) {
       const fleet = trial.fleetCompositions[teamIdx];
       if (!fleet) {
@@ -120,7 +120,12 @@ function recordFleetSynergy(
   }
   for (let i = 0; i < typeArr.length; i++) {
     for (let j = i + 1; j < typeArr.length; j++) {
-      const key = pairKey(typeArr[i] as number, typeArr[j] as number);
+      const a = typeArr[i];
+      const b = typeArr[j];
+      if (a === undefined || b === undefined) {
+        continue;
+      }
+      const key = pairKey(a, b);
       incrementStats(ensurePairStats(coStats, key), isWinner);
     }
   }

@@ -271,7 +271,7 @@ function formatKillContextTable(unitSummary: readonly UnitTypeSummary[]): string
   lines.push(`  ----------------|${KILL_CONTEXT_LABEL_LIST.map(() => '--------').join('|')}`);
   for (const us of active) {
     const name = us.name.padEnd(16);
-    const counts = us.deathsByContext.map((c) => String(c).padStart(6)).join(' | ');
+    const counts = Array.from(us.deathsByContext, (c) => String(c).padStart(6)).join(' | ');
     lines.push(`  ${name}| ${counts}`);
   }
 

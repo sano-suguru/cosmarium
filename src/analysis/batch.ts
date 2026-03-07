@@ -22,7 +22,7 @@ import { initBattle, initMelee } from '../simulation/init.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { stepOnce } from '../simulation/update.ts';
-import { seedRng, state } from '../state.ts';
+
 import type { FleetComposition, Team } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
@@ -72,10 +72,10 @@ function collectPositions(activeTeams: number): number[] {
   return positions;
 }
 
-function collectTeamCounts(activeTeams: number): number[] {
-  const counts: number[] = [];
+function collectTeamCounts(activeTeams: number): Int32Array {
+  const counts = new Int32Array(activeTeams);
   for (let t = 0; t < activeTeams; t++) {
-    counts.push(teamUnitCounts[t as Team] ?? 0);
+    counts[t] = teamUnitCounts[t as Team] ?? 0;
   }
   return counts;
 }
@@ -97,14 +97,13 @@ function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracke
 // ─── Unit Count by Type ──────────────────────────────────────────
 
 /** 初期ユニット数カウント + lifespan 登録を1回のプール走査で行う */
-function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanTracker): number[] {
-  const counts = new Array(TYPES.length).fill(0);
+function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanTracker): Int32Array {
+  const counts = new Int32Array(TYPES.length);
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);
     if (u.team < activeTeams) {
-      const prev = counts[u.type] as number;
-      counts[u.type] = prev + 1;
+      counts[u.type] = (counts[u.type] ?? 0) + 1;
       if (u.alive) {
         lifespanTracker.spawnTimes.set(i, 0);
       }
@@ -113,14 +112,13 @@ function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanT
   return counts;
 }
 
-function countSurvivorsByType(activeTeams: number): number[] {
-  const counts = new Array(TYPES.length).fill(0);
+function countSurvivorsByType(activeTeams: number): Int32Array {
+  const counts = new Int32Array(TYPES.length);
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);
     if (u.team < activeTeams && u.alive) {
-      const prev = counts[u.type] as number;
-      counts[u.type] = prev + 1;
+      counts[u.type] = (counts[u.type] ?? 0) + 1;
     }
   }
   return counts;
@@ -129,16 +127,17 @@ function countSurvivorsByType(activeTeams: number): number[] {
 // ─── Trial Execution ──────────────────────────────────────────────
 
 function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): GameLoopState {
+  let reinforcementTimer = 0;
   return {
     codexOpen: false,
     battlePhase: mode === 'battle' ? 'battle' : 'melee',
     activeTeamCount: activeTeams,
     updateCodexDemo: () => undefined,
     get reinforcementTimer() {
-      return state.reinforcementTimer;
+      return reinforcementTimer;
     },
     set reinforcementTimer(v: number) {
-      state.reinforcementTimer = v;
+      reinforcementTimer = v;
     },
   };
 }
@@ -171,8 +170,7 @@ function setupFleets(
 
 export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const trialSeed = config.seed + trialIndex;
-  seedRng(trialSeed);
-  const rng = state.rng;
+  const rng = config.createRng(trialSeed);
 
   const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
 
@@ -283,9 +281,9 @@ function computeKD(kills: number, deaths: number): number {
 
 function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
   const size = TYPES.length;
-  const data: number[][] = [];
+  const data: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
-    data.push(new Array(size).fill(0));
+    data.push(new Int32Array(size));
   }
   for (const trial of trials) {
     for (let k = 0; k < size; k++) {
@@ -295,19 +293,16 @@ function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
         continue;
       }
       for (let v = 0; v < size; v++) {
-        const val = row[v];
-        if (val) {
-          (agg[v] as number) += val;
-        }
+        agg[v] = (agg[v] ?? 0) + (row[v] ?? 0);
       }
     }
   }
   return { data, size };
 }
 
-function accumulateArray(map: Map<number, number>, arr: readonly number[]) {
+function accumulateTypedArray(map: Map<number, number>, arr: Float64Array) {
   for (let i = 0; i < arr.length; i++) {
-    const v = arr[i] as number;
+    const v = arr[i] ?? 0;
     if (v > 0) {
       map.set(i, (map.get(i) ?? 0) + v);
     }
@@ -325,16 +320,14 @@ function aggregateDamageAndSupport(trials: readonly TrialResult[]): {
   const healing = new Map<number, number>();
   const support = new Map<number, number>();
   for (const trial of trials) {
-    accumulateArray(dmgDealt, trial.damageStats.dealtByType);
-    accumulateArray(dmgReceived, trial.damageStats.receivedByType);
-    accumulateArray(healing, trial.supportStats.healingByType);
+    accumulateTypedArray(dmgDealt, trial.damageStats.dealtByType);
+    accumulateTypedArray(dmgReceived, trial.damageStats.receivedByType);
+    accumulateTypedArray(healing, trial.supportStats.healingByType);
     // support = amp + scramble + catalyst の合算
     const sup = trial.supportStats;
     for (let i = 0; i < TYPES.length; i++) {
       const total =
-        (sup.ampApplications[i] as number) +
-        (sup.scrambleApplications[i] as number) +
-        (sup.catalystApplications[i] as number);
+        (sup.ampApplications[i] ?? 0) + (sup.scrambleApplications[i] ?? 0) + (sup.catalystApplications[i] ?? 0);
       if (total > 0) {
         support.set(i, (support.get(i) ?? 0) + total);
       }
@@ -378,14 +371,14 @@ interface UnitSummaryContext {
   readonly healing: Map<number, number>;
   readonly support: Map<number, number>;
   readonly totalLifespan: Map<number, number>;
-  readonly killContextAgg: Map<number, number[]>;
+  readonly killContextAgg: Map<number, Int32Array>;
 }
 
 function buildUnitSummaryEntry(
   typeIdx: number,
   t: { spawned: number; kills: number; deaths: number; survived: number },
   ctx: UnitSummaryContext,
-  deathsByContext: readonly number[],
+  deathsByContext: Int32Array,
 ): UnitTypeSummary {
   const { presenceWins, totalBattleTrials, killMatrix, dmgDealt, dmgReceived, healing, support } = ctx;
   const typeInfo = TYPES[typeIdx];
@@ -433,7 +426,7 @@ function computeUnitSummary(trials: readonly TrialResult[], killMatrix: KillMatr
   const { dmgDealt, dmgReceived, healing, support } = aggregateDamageAndSupport(trials);
   const totalLifespan = aggregateLifespan(trials);
   const killContextAgg = aggregateKillContext(trials);
-  const emptyCtx = new Array(KILL_CONTEXT_COUNT).fill(0) as number[];
+  const emptyCtx = new Int32Array(KILL_CONTEXT_COUNT);
 
   const ctx: UnitSummaryContext = {
     presenceWins,
@@ -533,7 +526,7 @@ function parseFleetArg(value: string): FleetComposition {
   return entries;
 }
 
-function parseArgs(argv: readonly string[]): BatchConfig {
+function parseArgs(argv: readonly string[], createRng: (seed: number) => () => number): BatchConfig {
   const pairs = collectArgPairs(argv);
 
   const fleet0 = pairs.get('--fleet0');
@@ -548,6 +541,7 @@ function parseArgs(argv: readonly string[]): BatchConfig {
     maxSteps: parseIntArg(pairs, '--maxSteps', 10800), // 3 分 @ 60fps
     snapshotInterval: parseIntArg(pairs, '--interval', 60), // 1 秒ごと
     outFile: pairs.get('--out') ?? null,
+    createRng,
   };
 
   if (fleet0 || fleet1) {
@@ -581,15 +575,21 @@ export function runBatch(config: BatchConfig): BatchSummary {
 
 // CLI エントリポイント（bun run src/analysis/batch.ts で直接実行時のみ動作）
 if (typeof process !== 'undefined' && process.argv[1]?.includes('batch')) {
-  const config = parseArgs(process.argv.slice(2));
-  const summary = runBatch(config);
+  (async () => {
+    const { seedRng, state } = await import('../state.ts');
+    const createRng = (seed: number) => {
+      seedRng(seed);
+      return state.rng;
+    };
+    const config = parseArgs(process.argv.slice(2), createRng);
+    const summary = runBatch(config);
 
-  if (config.outFile) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { writeFileSync } = require('node:fs') as typeof import('node:fs');
-    writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
-    console.error(`結果を ${config.outFile} に保存しました`);
-  } else {
-    console.error(formatSummary(summary));
-  }
+    if (config.outFile) {
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
+      console.error(`結果を ${config.outFile} に保存しました`);
+    } else {
+      console.error(formatSummary(summary));
+    }
+  })();
 }

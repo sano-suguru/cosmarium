@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
 import { runBatch } from './batch.ts';
 import type { BatchConfig } from './batch-types.ts';
+
+function testCreateRng(seed: number): () => number {
+  seedRng(seed);
+  return state.rng;
+}
 
 function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
   return {
@@ -14,6 +20,7 @@ function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
     maxSteps: 600,
     snapshotInterval: 300,
     outFile: null,
+    createRng: testCreateRng,
     ...overrides,
   };
 }

@@ -22,6 +22,8 @@ export interface BatchConfig {
   readonly outFile: string | null;
   /** 指定時はランダム生成の代わりにこの構成を使用。teams 分の配列 */
   readonly fleets?: readonly FleetComposition[] | undefined;
+  /** シード値から RNG 関数を生成するファクトリ */
+  readonly createRng: (seed: number) => () => number;
 }
 
 // ─── Trial ───────────────────────────────────────────────────────
@@ -29,8 +31,8 @@ export interface BatchConfig {
 export interface TrialSnapshot {
   readonly step: number;
   readonly elapsed: number;
-  readonly teamCounts: readonly number[];
-  readonly teamKills: readonly number[];
+  readonly teamCounts: Int32Array;
+  readonly teamKills: Int32Array;
   readonly spatial: number;
   readonly positionRle: number;
 }
@@ -100,7 +102,7 @@ export interface UnitTypeSummary {
   /** 平均生存時間（秒） */
   readonly avgLifespan: number;
   /** 死因別カウント [Direct, AoE, Beam, Ram, Chain, Sweep] */
-  readonly deathsByContext: readonly number[];
+  readonly deathsByContext: Int32Array;
 }
 
 export interface BatchSummary {
@@ -122,33 +124,33 @@ export interface BatchSummary {
 
 export interface KillMatrix {
   /** matrix[killerType][victimType] = count */
-  readonly data: number[][];
+  readonly data: Int32Array[];
   readonly size: number;
 }
 
 // ─── Kill Tracking ───────────────────────────────────────────────
 
 export interface KillTracker {
-  readonly teamKills: number[];
-  readonly killsByType: number[];
-  readonly deathsByType: number[];
-  readonly killMatrix: number[][];
+  readonly teamKills: Int32Array;
+  readonly killsByType: Int32Array;
+  readonly deathsByType: Int32Array;
+  readonly killMatrix: Int32Array[];
 }
 
 // ─── Damage Tracking ─────────────────────────────────────────────
 
 export interface DamageTracker {
-  readonly dealtByType: number[];
-  readonly receivedByType: number[];
+  readonly dealtByType: Float64Array;
+  readonly receivedByType: Float64Array;
 }
 
 // ─── Support Tracking ────────────────────────────────────────────
 
 export interface SupportTracker {
-  readonly healingByType: number[];
-  readonly ampApplications: number[];
-  readonly scrambleApplications: number[];
-  readonly catalystApplications: number[];
+  readonly healingByType: Float64Array;
+  readonly ampApplications: Float64Array;
+  readonly scrambleApplications: Float64Array;
+  readonly catalystApplications: Float64Array;
 }
 
 // ─── Kill Sequence Tracking ─────────────────────────────────────
@@ -160,18 +162,18 @@ export interface KillSequenceTracker {
 // ─── Lifespan Tracking ──────────────────────────────────────────
 
 export interface LifespanTracker {
-  readonly totalLifespan: number[];
+  readonly totalLifespan: Float64Array;
   readonly spawnTimes: Map<number, number>;
 }
 
 export interface LifespanStats {
-  readonly totalLifespan: readonly number[];
+  readonly totalLifespan: Float64Array;
 }
 
 // ─── Kill Context Tracking ──────────────────────────────────────
 
 export interface KillContextTracker {
-  readonly contextCounts: number[][];
+  readonly contextCounts: Int32Array[];
 }
 
 // ─── Synergy ────────────────────────────────────────────────────

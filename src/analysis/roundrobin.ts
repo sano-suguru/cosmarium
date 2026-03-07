@@ -54,6 +54,7 @@ interface RoundRobinConfig {
   readonly seed: number;
   readonly maxSteps: number;
   readonly outFile: string | null;
+  readonly createRng: (seed: number) => () => number;
 }
 
 // ─── Core ─────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ function runMatchup(typeA: number, typeB: number, config: RoundRobinConfig, matc
       snapshotInterval: config.maxSteps, // スナップショット不要（最小限に）
       outFile: null,
       fleets: [fleetA, fleetB],
+      createRng: config.createRng,
     };
 
     const result = runTrial(0, batchConfig);
@@ -213,8 +215,11 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
 
   for (let i = 0; i < types.length; i++) {
     for (let j = i + 1; j < types.length; j++) {
-      const typeA = types[i] as number;
-      const typeB = types[j] as number;
+      const typeA = types[i];
+      const typeB = types[j];
+      if (typeA === undefined || typeB === undefined) {
+        continue;
+      }
       const result = runMatchup(typeA, typeB, config, matchIndex);
       matchIndex++;
       if (!result) {
@@ -268,7 +273,7 @@ function formatRoundRobin(summary: RoundRobinSummary): string {
 
 // ─── CLI ──────────────────────────────────────────────────────────
 
-function parseRoundRobinArgs(argv: readonly string[]): RoundRobinConfig {
+function parseRoundRobinArgs(argv: readonly string[], createRng: (seed: number) => () => number): RoundRobinConfig {
   const pairs = collectArgPairs(argv);
 
   return {
@@ -277,19 +282,26 @@ function parseRoundRobinArgs(argv: readonly string[]): RoundRobinConfig {
     seed: parseIntArg(pairs, '--seed', 42),
     maxSteps: parseIntArg(pairs, '--maxSteps', 10800),
     outFile: pairs.get('--out') ?? null,
+    createRng,
   };
 }
 
 if (typeof process !== 'undefined' && process.argv[1]?.includes('roundrobin')) {
-  const config = parseRoundRobinArgs(process.argv.slice(2));
-  const summary = runRoundRobin(config);
+  (async () => {
+    const { seedRng, state } = await import('../state.ts');
+    const createRng = (seed: number) => {
+      seedRng(seed);
+      return state.rng;
+    };
+    const config = parseRoundRobinArgs(process.argv.slice(2), createRng);
+    const summary = runRoundRobin(config);
 
-  if (config.outFile) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { writeFileSync } = require('node:fs') as typeof import('node:fs');
-    writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
-    console.error(`結果を ${config.outFile} に保存しました`);
-  } else {
-    console.error(formatRoundRobin(summary));
-  }
+    if (config.outFile) {
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
+      console.error(`結果を ${config.outFile} に保存しました`);
+    } else {
+      console.error(formatRoundRobin(summary));
+    }
+  })();
 }

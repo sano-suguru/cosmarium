@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { seedRng, state } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
 import { runRoundRobin } from './roundrobin.ts';
+
+function testCreateRng(seed: number): () => number {
+  seedRng(seed);
+  return state.rng;
+}
 
 afterEach(() => {
   resetPools();
@@ -17,6 +23,7 @@ describe('runRoundRobin', () => {
       seed: 42,
       maxSteps: 300,
       outFile: null,
+      createRng: testCreateRng,
     });
 
     // cost <= 3 のユニットのみ実際に対戦可能（budget=3 で1体以上購入できるもの）
@@ -46,6 +53,7 @@ describe('runRoundRobin', () => {
       seed: 99,
       maxSteps: 300,
       outFile: null,
+      createRng: testCreateRng,
     });
 
     for (let i = 1; i < summary.rankings.length; i++) {
@@ -66,6 +74,7 @@ describe('runRoundRobin', () => {
       seed: 42,
       maxSteps: 300,
       outFile: null,
+      createRng: testCreateRng,
     });
 
     for (const r of summary.rankings) {

@@ -221,19 +221,23 @@ describe('spatialEntropy', () => {
 describe('battleComplexity', () => {
   it('returns 0 for insufficient snapshots', () => {
     expect(battleComplexity([])).toBe(0);
-    expect(battleComplexity([{ teamCounts: [10, 10], teamKills: [0, 0], spatialEntropy: 0.5 }])).toBe(0);
+    expect(
+      battleComplexity([
+        { teamCounts: Int32Array.from([10, 10]), teamKills: Int32Array.from([0, 0]), spatialEntropy: 0.5 },
+      ]),
+    ).toBe(0);
   });
 
   it('returns higher complexity for dynamic battle', () => {
     const boring: BattleStateSnapshot[] = Array.from({ length: 20 }, () => ({
-      teamCounts: [10, 10],
-      teamKills: [0, 0],
+      teamCounts: Int32Array.from([10, 10]),
+      teamKills: Int32Array.from([0, 0]),
       spatialEntropy: 0.5,
     }));
 
     const dynamic: BattleStateSnapshot[] = Array.from({ length: 20 }, (_, i) => ({
-      teamCounts: [10 - Math.floor(i / 4), 10 - Math.floor(i / 3)],
-      teamKills: [Math.floor(i / 3), Math.floor(i / 4)],
+      teamCounts: Int32Array.from([10 - Math.floor(i / 4), 10 - Math.floor(i / 3)]),
+      teamKills: Int32Array.from([Math.floor(i / 3), Math.floor(i / 4)]),
       spatialEntropy: 0.3 + 0.4 * Math.sin(i * 0.5),
     }));
 
@@ -242,8 +246,8 @@ describe('battleComplexity', () => {
 
   it('returns value between 0 and 1', () => {
     const snapshots: BattleStateSnapshot[] = Array.from({ length: 10 }, (_, i) => ({
-      teamCounts: [10 - i, 10],
-      teamKills: [0, i],
+      teamCounts: Int32Array.from([10 - i, 10]),
+      teamKills: Int32Array.from([0, i]),
       spatialEntropy: 0.5 + i * 0.05,
     }));
     const c = battleComplexity(snapshots);

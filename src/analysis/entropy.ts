@@ -207,9 +207,9 @@ export function spatialEntropy(positions: readonly number[], worldSize: number, 
 
 export interface BattleStateSnapshot {
   /** チームごとの生存ユニット数 */
-  readonly teamCounts: readonly number[];
+  readonly teamCounts: Int32Array;
   /** チームごとの累計キル数 */
-  readonly teamKills: readonly number[];
+  readonly teamKills: Int32Array;
   /** ユニットの空間エントロピー */
   readonly spatialEntropy: number;
 }
