@@ -1,0 +1,164 @@
+/**
+ * ダメージ/サポートイベントフック — onKillUnit と同パターン
+ */
+
+import { unit } from '../pools.ts';
+import type { Team, UnitIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
+
+type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect';
+type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
+
+// ─── Damage Hook ─────────────────────────────────────────────────
+
+interface DamageEvent {
+  attackerType: number;
+  attackerTeam: Team;
+  victimType: number;
+  victimTeam: Team;
+  amount: number;
+  kind: DamageKind;
+}
+
+// GC回避: 事前確保オブジェクトを再利用
+const _dmgEvent: DamageEvent = {
+  attackerType: 0,
+  attackerTeam: 0 as Team,
+  victimType: 0,
+  victimTeam: 0 as Team,
+  amount: 0,
+  kind: 'direct',
+};
+
+type DamageHook = (e: DamageEvent) => void;
+const damageHooks: DamageHook[] = [];
+
+type Unsubscribe = () => void;
+
+export function onDamageUnit(hook: DamageHook): Unsubscribe {
+  damageHooks.push(hook);
+  return () => {
+    const idx = damageHooks.indexOf(hook);
+    if (idx !== -1) {
+      damageHooks.splice(idx, 1);
+    }
+  };
+}
+
+export function emitDamage(
+  attackerType: number,
+  attackerTeam: Team,
+  victimType: number,
+  victimTeam: Team,
+  amount: number,
+  kind: DamageKind,
+): void {
+  if (damageHooks.length === 0) {
+    return;
+  }
+  _dmgEvent.attackerType = attackerType;
+  _dmgEvent.attackerTeam = attackerTeam;
+  _dmgEvent.victimType = victimType;
+  _dmgEvent.victimTeam = victimTeam;
+  _dmgEvent.amount = amount;
+  _dmgEvent.kind = kind;
+  for (const h of damageHooks) {
+    h(_dmgEvent);
+  }
+}
+
+export function _resetDamageHooks(): void {
+  damageHooks.length = 0;
+}
+
+/**
+ * sourceUnit が NO_UNIT でなく alive であれば emitDamage を発火する共通ヘルパー。
+ * emitTetherDamage / emitProjectileDamage の重複パターンを統合。
+ */
+export function emitDamageFrom(
+  sourceIndex: UnitIndex,
+  victimType: number,
+  victimTeam: Team,
+  amount: number,
+  kind: DamageKind,
+): void {
+  if (sourceIndex === NO_UNIT) {
+    return;
+  }
+  const src = unit(sourceIndex);
+  if (src.alive) {
+    emitDamage(src.type, src.team, victimType, victimTeam, amount, kind);
+  }
+}
+
+// ─── Support Hook ────────────────────────────────────────────────
+
+interface SupportEvent {
+  casterType: number;
+  casterTeam: Team;
+  targetType: number;
+  targetTeam: Team;
+  kind: SupportKind;
+  amount: number;
+}
+
+const _supEvent: SupportEvent = {
+  casterType: 0,
+  casterTeam: 0 as Team,
+  targetType: 0,
+  targetTeam: 0 as Team,
+  kind: 'heal',
+  amount: 0,
+};
+
+type SupportHook = (e: SupportEvent) => void;
+const supportHooks: SupportHook[] = [];
+
+export function onSupportEffect(hook: SupportHook): Unsubscribe {
+  supportHooks.push(hook);
+  return () => {
+    const idx = supportHooks.indexOf(hook);
+    if (idx !== -1) {
+      supportHooks.splice(idx, 1);
+    }
+  };
+}
+
+export function emitSupport(
+  casterType: number,
+  casterTeam: Team,
+  targetType: number,
+  targetTeam: Team,
+  kind: SupportKind,
+  amount: number,
+): void {
+  if (supportHooks.length === 0) {
+    return;
+  }
+  _supEvent.casterType = casterType;
+  _supEvent.casterTeam = casterTeam;
+  _supEvent.targetType = targetType;
+  _supEvent.targetTeam = targetTeam;
+  _supEvent.kind = kind;
+  _supEvent.amount = amount;
+  for (const h of supportHooks) {
+    h(_supEvent);
+  }
+}
+
+export function _resetSupportHooks(): void {
+  supportHooks.length = 0;
+}
+
+// ─── Sim Time ─────────────────────────────────────────────────────
+
+let _currentSimTime = 0;
+export function setCurrentSimTime(t: number): void {
+  _currentSimTime = t;
+}
+export function getCurrentSimTime(): number {
+  return _currentSimTime;
+}
+export function _resetSimTime(): void {
+  _currentSimTime = 0;
+}

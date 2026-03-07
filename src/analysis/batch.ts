@@ -1,5 +1,5 @@
 /**
- * 自動対戦バッチスクリプト — エントロピー時系列データ収集
+ * 自動対戦バッチスクリプト — エントロピー時系列データ収集 + ユニット別戦績分析
  *
  * 使い方:
  *   bun run src/analysis/batch.ts                         # デフォルト 10 試合
@@ -10,63 +10,53 @@
  *   bun run src/analysis/batch.ts --budget 100            # 予算指定
  *   bun run src/analysis/batch.ts --maxSteps 5000         # 最大ステップ数
  *
- * 出力: 各試合の時系列スナップショット + サマリー統計を stdout or JSON ファイルに出力
+ * 出力: 各試合の時系列スナップショット + サマリー統計 + ユニット別戦績を stdout or JSON ファイルに出力
  */
 
 import { SIM_DT, WORLD_SIZE } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { getUnitHWM, teamUnitCounts, unit } from '../pools.ts';
 import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
+import { setCurrentSimTime } from '../simulation/hooks.ts';
 import { initBattle, initMelee } from '../simulation/init.ts';
+import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { stepOnce } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
-import type { Team } from '../types.ts';
+import type { FleetComposition, Team } from '../types.ts';
+import { TYPES } from '../unit-types.ts';
+import { formatSummary } from './batch-format.ts';
+import { aggregatePresenceWins, computeSynergyPairs, isBattleWithWinner } from './batch-synergy.ts';
+import {
+  aggregateKillContext,
+  aggregateLifespan,
+  collectUnitStats,
+  createDamageTracker,
+  createKillContextTracker,
+  createKillSequenceTracker,
+  createKillTracker,
+  createLifespanTracker,
+  createSupportTracker,
+  installDamageHook,
+  installKillContextHook,
+  installKillHook,
+  installKillSequenceHook,
+  installLifespanKillHook,
+  installSupportHook,
+} from './batch-tracking.ts';
+import type {
+  BatchConfig,
+  BatchSummary,
+  KillMatrix,
+  KillTracker,
+  LifespanTracker,
+  TrialResult,
+  TrialSnapshot,
+  UnitTypeSummary,
+} from './batch-types.ts';
+import { typeName } from './batch-types.ts';
 import type { BattleStateSnapshot } from './entropy.ts';
-import { battleComplexity, fleetDiversity, rleCompressionRatio, spatialEntropy } from './entropy.ts';
-
-// ─── Types ────────────────────────────────────────────────────────
-
-interface BatchConfig {
-  readonly trials: number;
-  readonly mode: 'battle' | 'melee';
-  readonly teams: number;
-  readonly seed: number;
-  readonly budget: number;
-  readonly maxSteps: number;
-  readonly snapshotInterval: number;
-  readonly outFile: string | null;
-}
-
-interface TrialSnapshot {
-  readonly step: number;
-  readonly elapsed: number;
-  readonly teamCounts: readonly number[];
-  readonly spatial: number;
-  readonly positionRle: number;
-}
-
-interface TrialResult {
-  readonly trialIndex: number;
-  readonly seed: number;
-  readonly winner: number | 'draw' | null;
-  readonly steps: number;
-  readonly elapsed: number;
-  readonly fleetDiversities: readonly number[];
-  readonly snapshots: readonly TrialSnapshot[];
-  readonly complexity: number;
-}
-
-interface BatchSummary {
-  readonly config: BatchConfig;
-  readonly trials: readonly TrialResult[];
-  readonly stats: {
-    readonly avgSteps: number;
-    readonly avgComplexity: number;
-    readonly winRates: Record<string, number>;
-    readonly avgSpatialEntropy: number;
-  };
-}
+import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } from './entropy.ts';
 
 // ─── Snapshot Collection ──────────────────────────────────────────
 
@@ -90,7 +80,7 @@ function collectTeamCounts(activeTeams: number): number[] {
   return counts;
 }
 
-function takeSnapshot(step: number, elapsed: number, activeTeams: number): TrialSnapshot {
+function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracker: KillTracker): TrialSnapshot {
   const positions = collectPositions(activeTeams);
   const spatial = spatialEntropy(positions, WORLD_SIZE, 8);
   const positionRle = rleCompressionRatio(positions, 0.01);
@@ -98,9 +88,42 @@ function takeSnapshot(step: number, elapsed: number, activeTeams: number): Trial
     step,
     elapsed,
     teamCounts: collectTeamCounts(activeTeams),
+    teamKills: tracker.teamKills.slice(0, activeTeams),
     spatial,
     positionRle,
   };
+}
+
+// ─── Unit Count by Type ──────────────────────────────────────────
+
+/** 初期ユニット数カウント + lifespan 登録を1回のプール走査で行う */
+function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanTracker): number[] {
+  const counts = new Array(TYPES.length).fill(0);
+  const hwm = getUnitHWM();
+  for (let i = 0; i < hwm; i++) {
+    const u = unit(i);
+    if (u.team < activeTeams) {
+      const prev = counts[u.type] as number;
+      counts[u.type] = prev + 1;
+      if (u.alive) {
+        lifespanTracker.spawnTimes.set(i, 0);
+      }
+    }
+  }
+  return counts;
+}
+
+function countSurvivorsByType(activeTeams: number): number[] {
+  const counts = new Array(TYPES.length).fill(0);
+  const hwm = getUnitHWM();
+  for (let i = 0; i < hwm; i++) {
+    const u = unit(i);
+    if (u.team < activeTeams && u.alive) {
+      const prev = counts[u.type] as number;
+      counts[u.type] = prev + 1;
+    }
+  }
+  return counts;
 }
 
 // ─── Trial Execution ──────────────────────────────────────────────
@@ -120,22 +143,52 @@ function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): 
   };
 }
 
-function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
+function setupFleets(
+  config: BatchConfig,
+  rng: () => number,
+): { fleetDiversities: number[]; fleetCompositions: FleetComposition[]; activeTeams: number } {
+  const activeTeams = config.mode === 'battle' ? 2 : config.teams;
+  const fleetDiversities: number[] = [];
+  const fleetCompositions: FleetComposition[] = [];
+
+  if (config.mode === 'battle') {
+    const playerFleet = config.fleets?.[0] ?? generateEnemyFleet(config.budget, rng).fleet;
+    const enemyFleet = config.fleets?.[1] ?? generateEnemyFleet(config.budget, rng).fleet;
+    fleetDiversities.push(fleetDiversity(playerFleet), fleetDiversity(enemyFleet));
+    fleetCompositions.push(playerFleet, enemyFleet);
+    initBattle(playerFleet, enemyFleet, rng);
+  } else {
+    for (let t = 0; t < activeTeams; t++) {
+      const fleet = config.fleets?.[t] ?? generateEnemyFleet(config.budget, rng).fleet;
+      fleetDiversities.push(fleetDiversity(fleet));
+      fleetCompositions.push(fleet);
+    }
+    initMelee(activeTeams, config.budget, rng);
+  }
+
+  return { fleetDiversities, fleetCompositions, activeTeams };
+}
+
+export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const trialSeed = config.seed + trialIndex;
   seedRng(trialSeed);
   const rng = state.rng;
 
-  const activeTeams = config.mode === 'battle' ? 2 : config.teams;
-  const fleetDiversities: number[] = [];
+  const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
 
-  if (config.mode === 'battle') {
-    const { fleet: playerFleet } = generateEnemyFleet(config.budget, rng);
-    const { fleet: enemyFleet } = generateEnemyFleet(config.budget, rng);
-    fleetDiversities.push(fleetDiversity(playerFleet), fleetDiversity(enemyFleet));
-    initBattle(playerFleet, enemyFleet, rng);
-  } else {
-    initMelee(activeTeams, config.budget, rng);
-  }
+  const tracker = createKillTracker();
+  const unsubKill = installKillHook(tracker);
+  const dmgTracker = createDamageTracker();
+  const unsubDmg = installDamageHook(dmgTracker);
+  const supTracker = createSupportTracker();
+  const unsubSup = installSupportHook(supTracker);
+  const seqTracker = createKillSequenceTracker();
+  const unsubSeq = installKillSequenceHook(seqTracker);
+  const lifespanTracker = createLifespanTracker();
+  const unsubLifespan = installLifespanKillHook(lifespanTracker);
+  const ctxTracker = createKillContextTracker();
+  const unsubCtx = installKillContextHook(ctxTracker);
+  const spawnedByType = countSpawnedAndRegister(activeTeams, lifespanTracker);
 
   const gs = makeBatchGameLoopState(config.mode, activeTeams);
   const snapshots: TrialSnapshot[] = [];
@@ -144,26 +197,36 @@ function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
 
   for (; step < config.maxSteps; step++) {
     const now = step * SIM_DT;
+    setCurrentSimTime(now);
     const result = stepOnce(SIM_DT, now, rng, gs);
 
     if (step % config.snapshotInterval === 0) {
-      snapshots.push(takeSnapshot(step, now, activeTeams));
+      snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
     }
 
     if (result !== null) {
       winner = result;
-      snapshots.push(takeSnapshot(step, now, activeTeams));
+      snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
       break;
     }
   }
 
-  // battleComplexity 用の BattleStateSnapshot 変換
+  unsubKill();
+  unsubDmg();
+  unsubSup();
+  unsubSeq();
+  unsubLifespan();
+  unsubCtx();
+
+  const survivorsByType = countSurvivorsByType(activeTeams);
+
   const battleSnapshots: BattleStateSnapshot[] = snapshots.map((s) => ({
     teamCounts: s.teamCounts,
-    teamKills: [], // バッチではキルログ未追跡（将来拡張可能）
+    teamKills: s.teamKills,
     spatialEntropy: s.spatial,
   }));
 
+  const size = TYPES.length;
   return {
     trialIndex,
     seed: trialSeed,
@@ -171,12 +234,227 @@ function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     steps: step,
     elapsed: step * SIM_DT,
     fleetDiversities,
+    fleetCompositions,
     snapshots,
     complexity: battleComplexity(battleSnapshots),
+    unitStats: collectUnitStats(spawnedByType, survivorsByType, tracker),
+    killMatrix: { data: tracker.killMatrix, size },
+    damageStats: { dealtByType: dmgTracker.dealtByType, receivedByType: dmgTracker.receivedByType },
+    supportStats: {
+      healingByType: supTracker.healingByType,
+      ampApplications: supTracker.ampApplications,
+      scrambleApplications: supTracker.scrambleApplications,
+      catalystApplications: supTracker.catalystApplications,
+    },
+    killSequenceEntropy: ngramEntropy(seqTracker.sequence, 2),
+    killContextStats: { contextCounts: ctxTracker.contextCounts },
+    lifespanStats: { totalLifespan: lifespanTracker.totalLifespan },
   };
 }
 
 // ─── Summary Statistics ───────────────────────────────────────────
+
+function aggregateKD(
+  trials: readonly TrialResult[],
+): Map<number, { spawned: number; kills: number; deaths: number; survived: number }> {
+  const totals = new Map<number, { spawned: number; kills: number; deaths: number; survived: number }>();
+  for (const trial of trials) {
+    for (const us of trial.unitStats) {
+      let t = totals.get(us.typeIndex);
+      if (!t) {
+        t = { spawned: 0, kills: 0, deaths: 0, survived: 0 };
+        totals.set(us.typeIndex, t);
+      }
+      t.spawned += us.spawned;
+      t.kills += us.kills;
+      t.deaths += us.deaths;
+      t.survived += us.survived;
+    }
+  }
+  return totals;
+}
+
+function computeKD(kills: number, deaths: number): number {
+  if (deaths > 0) {
+    return kills / deaths;
+  }
+  return kills > 0 ? kills : 0;
+}
+
+function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
+  const size = TYPES.length;
+  const data: number[][] = [];
+  for (let i = 0; i < size; i++) {
+    data.push(new Array(size).fill(0));
+  }
+  for (const trial of trials) {
+    for (let k = 0; k < size; k++) {
+      const row = trial.killMatrix.data[k];
+      const agg = data[k];
+      if (!row || !agg) {
+        continue;
+      }
+      for (let v = 0; v < size; v++) {
+        const val = row[v];
+        if (val) {
+          (agg[v] as number) += val;
+        }
+      }
+    }
+  }
+  return { data, size };
+}
+
+function accumulateArray(map: Map<number, number>, arr: readonly number[]) {
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i] as number;
+    if (v > 0) {
+      map.set(i, (map.get(i) ?? 0) + v);
+    }
+  }
+}
+
+function aggregateDamageAndSupport(trials: readonly TrialResult[]): {
+  dmgDealt: Map<number, number>;
+  dmgReceived: Map<number, number>;
+  healing: Map<number, number>;
+  support: Map<number, number>;
+} {
+  const dmgDealt = new Map<number, number>();
+  const dmgReceived = new Map<number, number>();
+  const healing = new Map<number, number>();
+  const support = new Map<number, number>();
+  for (const trial of trials) {
+    accumulateArray(dmgDealt, trial.damageStats.dealtByType);
+    accumulateArray(dmgReceived, trial.damageStats.receivedByType);
+    accumulateArray(healing, trial.supportStats.healingByType);
+    // support = amp + scramble + catalyst の合算
+    const sup = trial.supportStats;
+    for (let i = 0; i < TYPES.length; i++) {
+      const total =
+        (sup.ampApplications[i] as number) +
+        (sup.scrambleApplications[i] as number) +
+        (sup.catalystApplications[i] as number);
+      if (total > 0) {
+        support.set(i, (support.get(i) ?? 0) + total);
+      }
+    }
+  }
+  return { dmgDealt, dmgReceived, healing, support };
+}
+
+function findTopIndex(matrix: KillMatrix, typeIdx: number, mode: 'victim' | 'threat'): number | null {
+  let best = 0;
+  let bestIdx: number | null = null;
+  for (let i = 0; i < matrix.size; i++) {
+    let val: number;
+    if (mode === 'victim') {
+      val = matrix.data[typeIdx]?.[i] ?? 0;
+    } else {
+      val = matrix.data[i]?.[typeIdx] ?? 0;
+    }
+    if (val > best) {
+      best = val;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function safeRate(numerator: number, denominator: number): number {
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
+function perCost(value: number, spawned: number, cost: number): number {
+  return cost > 0 && spawned > 0 ? value / (spawned * cost) : 0;
+}
+
+interface UnitSummaryContext {
+  readonly presenceWins: Map<number, { wins: number; total: number }>;
+  readonly totalBattleTrials: number;
+  readonly killMatrix: KillMatrix;
+  readonly dmgDealt: Map<number, number>;
+  readonly dmgReceived: Map<number, number>;
+  readonly healing: Map<number, number>;
+  readonly support: Map<number, number>;
+  readonly totalLifespan: Map<number, number>;
+  readonly killContextAgg: Map<number, number[]>;
+}
+
+function buildUnitSummaryEntry(
+  typeIdx: number,
+  t: { spawned: number; kills: number; deaths: number; survived: number },
+  ctx: UnitSummaryContext,
+  deathsByContext: readonly number[],
+): UnitTypeSummary {
+  const { presenceWins, totalBattleTrials, killMatrix, dmgDealt, dmgReceived, healing, support } = ctx;
+  const typeInfo = TYPES[typeIdx];
+  const pw = presenceWins.get(typeIdx);
+  const presenceTotal = pw?.total ?? 0;
+  const presenceWinCount = pw?.wins ?? 0;
+  const absenceTotal = totalBattleTrials * 2 - presenceTotal;
+  const absenceWinCount = totalBattleTrials - presenceWinCount;
+  const cost = typeInfo?.cost ?? 0;
+  const totalDamageDealt = dmgDealt.get(typeIdx) ?? 0;
+  const totalHealing = healing.get(typeIdx) ?? 0;
+  const wrPresent = safeRate(presenceWinCount, presenceTotal);
+  const wrAbsent = safeRate(absenceWinCount, absenceTotal);
+
+  return {
+    typeIndex: typeIdx,
+    name: typeName(typeIdx),
+    totalSpawned: t.spawned,
+    totalKills: t.kills,
+    totalDeaths: t.deaths,
+    totalSurvived: t.survived,
+    survivalRate: safeRate(t.survived, t.spawned),
+    kd: computeKD(t.kills, t.deaths),
+    cost,
+    killsPerCost: perCost(t.kills, t.spawned, cost),
+    winRateWhenPresent: wrPresent,
+    winRateWhenAbsent: wrAbsent,
+    winDelta: presenceTotal > 0 ? wrPresent - wrAbsent : 0,
+    topVictimType: findTopIndex(killMatrix, typeIdx, 'victim'),
+    topThreatType: findTopIndex(killMatrix, typeIdx, 'threat'),
+    totalDamageDealt,
+    totalDamageReceived: dmgReceived.get(typeIdx) ?? 0,
+    damagePerCost: perCost(totalDamageDealt, t.spawned, cost),
+    totalHealing,
+    supportScore: totalHealing + (support.get(typeIdx) ?? 0),
+    avgLifespan: t.deaths > 0 ? (ctx.totalLifespan.get(typeIdx) ?? 0) / t.deaths : 0,
+    deathsByContext,
+  };
+}
+
+function computeUnitSummary(trials: readonly TrialResult[], killMatrix: KillMatrix): UnitTypeSummary[] {
+  const totals = aggregateKD(trials);
+  const presenceWins = aggregatePresenceWins(trials);
+  const totalBattleTrials = trials.filter(isBattleWithWinner).length;
+  const { dmgDealt, dmgReceived, healing, support } = aggregateDamageAndSupport(trials);
+  const totalLifespan = aggregateLifespan(trials);
+  const killContextAgg = aggregateKillContext(trials);
+  const emptyCtx = new Array(KILL_CONTEXT_COUNT).fill(0) as number[];
+
+  const ctx: UnitSummaryContext = {
+    presenceWins,
+    totalBattleTrials,
+    killMatrix,
+    dmgDealt,
+    dmgReceived,
+    healing,
+    support,
+    totalLifespan,
+    killContextAgg,
+  };
+
+  const result: UnitTypeSummary[] = [];
+  for (const [typeIdx, t] of totals) {
+    result.push(buildUnitSummaryEntry(typeIdx, t, ctx, killContextAgg.get(typeIdx) ?? emptyCtx));
+  }
+
+  result.sort((a, b) => b.kd - a.kd);
+  return result;
+}
 
 function computeSummary(config: BatchConfig, trials: readonly TrialResult[]): BatchSummary {
   const winCounts: Record<string, number> = {};
@@ -184,10 +462,12 @@ function computeSummary(config: BatchConfig, trials: readonly TrialResult[]): Ba
   let totalComplexity = 0;
   let totalSpatial = 0;
   let spatialCount = 0;
+  let totalKillSeqEntropy = 0;
 
   for (const t of trials) {
     totalSteps += t.steps;
     totalComplexity += t.complexity;
+    totalKillSeqEntropy += t.killSequenceEntropy;
 
     const key = t.winner === null ? 'timeout' : String(t.winner);
     winCounts[key] = (winCounts[key] ?? 0) + 1;
@@ -199,6 +479,7 @@ function computeSummary(config: BatchConfig, trials: readonly TrialResult[]): Ba
   }
 
   const n = trials.length || 1;
+  const killMatrix = aggregateKillMatrix(trials);
   return {
     config,
     trials,
@@ -207,13 +488,17 @@ function computeSummary(config: BatchConfig, trials: readonly TrialResult[]): Ba
       avgComplexity: totalComplexity / n,
       winRates: Object.fromEntries(Object.entries(winCounts).map(([k, v]) => [k, v / n])),
       avgSpatialEntropy: spatialCount > 0 ? totalSpatial / spatialCount : 0,
+      avgKillSequenceEntropy: totalKillSeqEntropy / n,
     },
+    unitSummary: computeUnitSummary(trials, killMatrix),
+    killMatrix,
+    synergyPairs: computeSynergyPairs(trials),
   };
 }
 
 // ─── CLI ──────────────────────────────────────────────────────────
 
-function collectArgPairs(argv: readonly string[]): Map<string, string> {
+export function collectArgPairs(argv: readonly string[]): Map<string, string> {
   const pairs = new Map<string, string>();
   for (let i = 0; i < argv.length - 1; i++) {
     const arg = argv[i];
@@ -226,60 +511,57 @@ function collectArgPairs(argv: readonly string[]): Map<string, string> {
   return pairs;
 }
 
-function parseArgs(argv: readonly string[]): BatchConfig {
-  const pairs = collectArgPairs(argv);
-  const int = (key: string, fallback: number) => {
-    const v = pairs.get(key);
-    return v ? Number.parseInt(v, 10) : fallback;
-  };
-
-  return {
-    trials: int('--trials', 10),
-    mode: pairs.get('--mode') === 'melee' ? 'melee' : 'battle',
-    teams: int('--teams', 3),
-    seed: int('--seed', 12345),
-    budget: int('--budget', DEFAULT_BUDGET),
-    maxSteps: int('--maxSteps', 10800), // 3 分 @ 60fps
-    snapshotInterval: int('--interval', 60), // 1 秒ごと
-    outFile: pairs.get('--out') ?? null,
-  };
+export function parseIntArg(pairs: Map<string, string>, key: string, fallback: number): number {
+  const v = pairs.get(key);
+  return v ? Number.parseInt(v, 10) : fallback;
 }
 
-function formatSummary(summary: BatchSummary): string {
-  const lines: string[] = [];
-  lines.push('═══════════════════════════════════════════════════');
-  lines.push(`  COSMARIUM バッチ対戦分析`);
-  lines.push('═══════════════════════════════════════════════════');
-  lines.push(`  モード: ${summary.config.mode} | 試合数: ${summary.config.trials} | 予算: ${summary.config.budget}`);
-  lines.push(`  シード: ${summary.config.seed} | 最大ステップ: ${summary.config.maxSteps}`);
-  lines.push('───────────────────────────────────────────────────');
-  lines.push(`  平均ステップ数:     ${summary.stats.avgSteps.toFixed(1)}`);
-  lines.push(`  平均複雑性スコア:   ${summary.stats.avgComplexity.toFixed(4)}`);
-  lines.push(`  平均空間エントロピー: ${summary.stats.avgSpatialEntropy.toFixed(4)}`);
-  lines.push('───────────────────────────────────────────────────');
-  lines.push('  勝率:');
-  for (const [key, rate] of Object.entries(summary.stats.winRates)) {
-    const LABELS: Record<string, string> = { draw: '引分', timeout: '時間切' };
-    const label = LABELS[key] ?? `チーム${key}`;
-    lines.push(`    ${label}: ${(rate * 100).toFixed(1)}%`);
-  }
-  lines.push('───────────────────────────────────────────────────');
-
-  for (const trial of summary.trials) {
-    let winLabel = `チーム${trial.winner}勝利`;
-    if (trial.winner === null) {
-      winLabel = '時間切';
-    } else if (trial.winner === 'draw') {
-      winLabel = '引分';
+function parseFleetArg(value: string): FleetComposition {
+  // フォーマット: "Fighter:10,Cruiser:5,Healer:3"
+  const entries: { type: number; count: number }[] = [];
+  for (const part of value.split(',')) {
+    const [name, countStr] = part.split(':');
+    if (!name || !countStr) {
+      continue;
     }
-    const divStr = trial.fleetDiversities.length > 0 ? trial.fleetDiversities.map((d) => d.toFixed(3)).join('/') : '-';
-    lines.push(
-      `  #${String(trial.trialIndex).padStart(3, '0')} | ${winLabel.padEnd(10)} | ${trial.steps.toString().padStart(5)}歩 | 複雑性=${trial.complexity.toFixed(3)} | 多様性=${divStr}`,
-    );
+    const typeIdx = TYPES.findIndex((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (typeIdx === -1) {
+      continue;
+    }
+    entries.push({ type: typeIdx, count: Number.parseInt(countStr, 10) });
+  }
+  return entries;
+}
+
+function parseArgs(argv: readonly string[]): BatchConfig {
+  const pairs = collectArgPairs(argv);
+
+  const fleet0 = pairs.get('--fleet0');
+  const fleet1 = pairs.get('--fleet1');
+
+  const config: BatchConfig = {
+    trials: parseIntArg(pairs, '--trials', 10),
+    mode: pairs.get('--mode') === 'melee' ? 'melee' : 'battle',
+    teams: parseIntArg(pairs, '--teams', 3),
+    seed: parseIntArg(pairs, '--seed', 12345),
+    budget: parseIntArg(pairs, '--budget', DEFAULT_BUDGET),
+    maxSteps: parseIntArg(pairs, '--maxSteps', 10800), // 3 分 @ 60fps
+    snapshotInterval: parseIntArg(pairs, '--interval', 60), // 1 秒ごと
+    outFile: pairs.get('--out') ?? null,
+  };
+
+  if (fleet0 || fleet1) {
+    const fleets: FleetComposition[] = [];
+    if (fleet0) {
+      fleets.push(parseFleetArg(fleet0));
+    }
+    if (fleet1) {
+      fleets.push(parseFleetArg(fleet1));
+    }
+    return { ...config, fleets };
   }
 
-  lines.push('═══════════════════════════════════════════════════');
-  return lines.join('\n');
+  return config;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────

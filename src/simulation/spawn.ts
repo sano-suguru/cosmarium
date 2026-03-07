@@ -21,6 +21,7 @@ import {
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
+import type { KillContext } from './on-kill-effects.ts';
 
 const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
@@ -52,6 +53,7 @@ type KillEvent = {
   victimSquadronIdx: SquadronIndex;
   /** decUnits 後の victimTeam の残存ユニット数。0 なら全滅。 */
   victimTeamRemaining: number;
+  killContext: KillContext;
 } & (
   | { killer: UnitIndex; killerTeam: Team; killerType: number }
   | { killer: typeof NO_UNIT; killerTeam?: undefined; killerType?: undefined }
@@ -158,6 +160,7 @@ const _keWK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killerTeam
   victimType: 0,
   victimSquadronIdx: NO_SQUADRON,
   victimTeamRemaining: 0,
+  killContext: 0,
   killer: 0 as UnitIndex,
   killerTeam: TEAM0,
   killerType: 0,
@@ -168,11 +171,12 @@ const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: ty
   victimType: 0,
   victimSquadronIdx: NO_SQUADRON,
   victimTeamRemaining: 0,
+  killContext: 0,
   killer: NO_UNIT,
 }));
 let _keDepth = 0;
 
-export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | undefined {
+export function killUnit(i: UnitIndex, killer?: Killer, killContext?: KillContext): KilledUnitSnapshot | undefined {
   const u = unit(i);
   if (u.alive) {
     const snap: KilledUnitSnapshot = { x: u.x, y: u.y, team: u.team, type: u.type };
@@ -188,6 +192,7 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
     // GC回避: 深度インデックスド・スタックから取得（再入安全）
     const d = _keDepth++;
     let e: KillEvent;
+    const ctx = killContext ?? 0;
     if (killer) {
       const ke = _keAt(_keWK, d);
       ke.victim = i;
@@ -195,6 +200,7 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
       ke.victimType = u.type;
       ke.victimSquadronIdx = squadronIdx;
       ke.victimTeamRemaining = teamUnitCounts[u.team];
+      ke.killContext = ctx;
       ke.killer = killer.index;
       ke.killerTeam = killer.team;
       ke.killerType = killer.type;
@@ -206,6 +212,7 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
       ke.victimType = u.type;
       ke.victimSquadronIdx = squadronIdx;
       ke.victimTeamRemaining = teamUnitCounts[u.team];
+      ke.killContext = ctx;
       e = ke;
     }
     for (const hook of killUnitHooks) {

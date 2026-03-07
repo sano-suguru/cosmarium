@@ -3,6 +3,7 @@ import { AMP_BOOST_LINGER, CATALYST_BOOST_LINGER, REFLECT_FIELD_MAX_HP, SCRAMBLE
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-types.ts';
+import { emitSupport } from './hooks.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { addTrackingBeam } from './spawn.ts';
 
@@ -111,16 +112,16 @@ function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
 const _tetherOi = new Int32Array(BASTION_MAX_TETHERS);
 const _tetherDist = new Float64Array(BASTION_MAX_TETHERS);
 
-/** 固定サイズ (BASTION_MAX_TETHERS=4) のため挿入ソートで十分 */
-function tetherBubbleInsert(start: number, oi: number, d: number) {
+/** 固定サイズバッファへの挿入ソート（tether/amp共用） */
+function bubbleInsert(oiArr: Int32Array, distArr: Float64Array, start: number, oi: number, d: number) {
   let p = start;
-  while (p > 0 && (_tetherDist[p - 1] ?? 0) > d) {
-    _tetherOi[p] = _tetherOi[p - 1] ?? 0;
-    _tetherDist[p] = _tetherDist[p - 1] ?? 0;
+  while (p > 0 && (distArr[p - 1] ?? 0) > d) {
+    oiArr[p] = oiArr[p - 1] ?? 0;
+    distArr[p] = distArr[p - 1] ?? 0;
     p--;
   }
-  _tetherOi[p] = oi;
-  _tetherDist[p] = d;
+  oiArr[p] = oi;
+  distArr[p] = d;
 }
 
 function tetherNearbyAllies(u: Unit, i: number) {
@@ -136,10 +137,10 @@ function tetherNearbyAllies(u: Unit, i: number) {
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
     if (count < BASTION_MAX_TETHERS) {
-      tetherBubbleInsert(count, oi, d);
+      bubbleInsert(_tetherOi, _tetherDist, count, oi, d);
       count++;
     } else if (d < (_tetherDist[count - 1] ?? 0)) {
-      tetherBubbleInsert(count - 1, oi, d);
+      bubbleInsert(_tetherOi, _tetherDist, count - 1, oi, d);
     }
   }
   for (let j = 0; j < count; j++) {
@@ -157,17 +158,6 @@ function tetherNearbyAllies(u: Unit, i: number) {
 const _ampOi = new Int32Array(AMP_MAX_TETHERS);
 const _ampDist = new Float64Array(AMP_MAX_TETHERS);
 
-function ampBubbleInsert(start: number, oi: number, d: number) {
-  let p = start;
-  while (p > 0 && (_ampDist[p - 1] ?? 0) > d) {
-    _ampOi[p] = _ampOi[p - 1] ?? 0;
-    _ampDist[p] = _ampDist[p - 1] ?? 0;
-    p--;
-  }
-  _ampOi[p] = oi;
-  _ampDist[p] = d;
-}
-
 function amplifyNearbyAllies(u: Unit, i: number) {
   const nn = getNeighbors(u.x, u.y, AMP_RADIUS);
   let count = 0;
@@ -184,10 +174,10 @@ function amplifyNearbyAllies(u: Unit, i: number) {
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
     if (count < AMP_MAX_TETHERS) {
-      ampBubbleInsert(count, oi, d);
+      bubbleInsert(_ampOi, _ampDist, count, oi, d);
       count++;
     } else if (d < (_ampDist[count - 1] ?? 0)) {
-      ampBubbleInsert(count - 1, oi, d);
+      bubbleInsert(_ampOi, _ampDist, count - 1, oi, d);
     }
   }
   for (let j = 0; j < count; j++) {
@@ -197,6 +187,7 @@ function amplifyNearbyAllies(u: Unit, i: number) {
       addTrackingBeam(i as UnitIndex, oi, 1.0, 0.6, 0.15, AMP_TETHER_BEAM_LIFE, 1.5);
     }
     o.ampBoostTimer = AMP_BOOST_LINGER;
+    emitSupport(u.type, u.team, o.type, o.team, 'amp', 1);
   }
 }
 
@@ -212,6 +203,7 @@ function scrambleNearbyEnemies(u: Unit, i: number) {
       continue;
     }
     o.scrambleTimer = SCRAMBLE_BOOST_LINGER;
+    emitSupport(u.type, u.team, o.type, o.team, 'scramble', 1);
   }
 }
 
@@ -227,6 +219,7 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
       continue;
     }
     o.catalystTimer = CATALYST_BOOST_LINGER;
+    emitSupport(u.type, u.team, o.type, o.team, 'catalyst', 1);
   }
 }
 

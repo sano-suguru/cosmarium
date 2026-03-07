@@ -16,6 +16,25 @@ export const KILL_CONTEXT = {
 
 export type KillContext = (typeof KILL_CONTEXT)[keyof typeof KILL_CONTEXT];
 
+export const KILL_CONTEXT_COUNT = Object.keys(KILL_CONTEXT).length;
+
+/** 各 KillContext に対応する日本語ラベル。キーの過不足はコンパイルエラーで検出される */
+const KILL_CONTEXT_LABELS: { readonly [K in keyof typeof KILL_CONTEXT]: string } = {
+  ProjectileDirect: '直撃',
+  ProjectileAoe: 'AoE',
+  Beam: 'ビーム',
+  Ram: 'ラム',
+  ChainLightning: 'チェイン',
+  SweepBeam: '掃射',
+};
+
+/** KillContext の数値順（0, 1, 2, …）に並んだラベル配列 */
+export const KILL_CONTEXT_LABEL_LIST: readonly string[] = (
+  Object.entries(KILL_CONTEXT) as [keyof typeof KILL_CONTEXT, number][]
+)
+  .sort(([, a], [, b]) => a - b)
+  .map(([key]) => KILL_CONTEXT_LABELS[key]);
+
 function shouldApplyCooldownReset(ctx: KillContext): boolean {
   switch (ctx) {
     case KILL_CONTEXT.ProjectileDirect:

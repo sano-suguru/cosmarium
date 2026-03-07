@@ -21,6 +21,7 @@ import {
 } from '../pools.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { resetChains } from '../simulation/effects.ts';
+import { _resetDamageHooks, _resetSimTime, _resetSupportHooks } from '../simulation/hooks.ts';
 import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
 import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
@@ -129,11 +130,14 @@ export function resetPools() {
   clearBeamPools();
   _resetSweepHits();
   _resetKillUnitHooks();
+  _resetDamageHooks();
+  _resetSupportHooks();
   _resetBattleTracker();
   _resetMeleeTracker();
   _resetFleetCompose();
   _resetGameControl();
   resetTeamCenters();
+  _resetSimTime();
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */

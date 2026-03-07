@@ -8,6 +8,7 @@ import { unitType } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
 import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
+import { emitDamageFrom } from './hooks.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
@@ -51,8 +52,10 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       ddy = o.y - p.y;
     if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
       const dd = Math.sqrt(ddx * ddx + ddy * ddy);
-      o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
+      const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
+      o.hp -= aoeDmg;
       o.hitFlash = 1;
+      emitDamageFrom(p.sourceUnit, o.type, o.team, aoeDmg, 'aoe');
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
         destroyUnit(oi, p.sourceUnit, rng, KILL_CONTEXT.ProjectileAoe);
@@ -122,6 +125,7 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
+  emitDamageFrom(p.sourceUnit, o.type, o.team, dmg, 'direct');
   hitSparkFx(p, rng);
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);

@@ -5,6 +5,7 @@ import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { destroyUnit } from './effects.ts';
+import { emitDamage, emitDamageFrom } from './hooks.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
 import { addBeam, spawnParticle } from './spawn.ts';
@@ -67,6 +68,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   attacker.hp -= reflectDmg;
   attacker.hitFlash = 1;
   knockback(killerIndex, n.x, n.y, reflectDmg * 5);
+  emitDamage(n.type, n.team, attacker.type, attacker.team, reflectDmg, 'reflect');
 
   for (let j = 0; j < 4; j++) {
     spawnParticle(
@@ -138,9 +140,11 @@ export function applyTetherAbsorb(
   if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
     const src = unit(n.shieldSourceUnit);
     if (src.alive && unitType(src.type).shields) {
-      src.hp -= dmg * BASTION_ABSORB_RATIO;
+      const bastionDmg = dmg * BASTION_ABSORB_RATIO;
+      src.hp -= bastionDmg;
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
+      emitDamageFrom(killerIndex, src.type, src.team, bastionDmg, 'direct');
       if (src.hp <= 0) {
         destroyUnit(n.shieldSourceUnit, killerIndex, rng, KILL_CONTEXT.Beam);
         n.shieldSourceUnit = NO_UNIT;
