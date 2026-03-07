@@ -194,17 +194,11 @@ describe('spatialEntropy', () => {
   });
 
   it('returns high entropy for units spread across cells', () => {
-    // 4つのユニットが4つの異なるセルに分散
-    const positions = [
-      100,
-      100, // cell (0,0)
-      600,
-      100, // cell (4,0)
-      100,
-      600, // cell (0,4)
-      600,
-      600, // cell (4,4)
-    ];
+    const topLeft = [100, 100];
+    const topRight = [600, 100];
+    const bottomLeft = [100, 600];
+    const bottomRight = [600, 600];
+    const positions = [...topLeft, ...topRight, ...bottomLeft, ...bottomRight];
     const e = spatialEntropy(positions, 1000, 8);
     expect(e).toBeGreaterThan(0.9);
   });

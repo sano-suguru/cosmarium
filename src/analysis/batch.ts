@@ -518,8 +518,8 @@ export function parseIntArg(pairs: Map<string, string>, key: string, fallback: n
   return v ? Number.parseInt(v, 10) : fallback;
 }
 
+/** @example parseFleetSpec("Fighter:10,Cruiser:5,Healer:3") */
 function parseFleetArg(value: string): FleetComposition {
-  // フォーマット: "Fighter:10,Cruiser:5,Healer:3"
   const entries: { type: number; count: number }[] = [];
   for (const part of value.split(',')) {
     const [name, countStr] = part.split(':');
@@ -567,6 +567,10 @@ function parseArgs(argv: readonly string[], createRng: (seed: number) => () => n
   return config;
 }
 
+function logProgress(i: number, total: number, result: TrialResult): void {
+  console.error(`  [${i + 1}/${total}] seed=${result.seed} winner=${result.winner} steps=${result.steps}`);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────
 
 export function runBatch(config: BatchConfig): BatchSummary {
@@ -575,8 +579,7 @@ export function runBatch(config: BatchConfig): BatchSummary {
   for (let i = 0; i < config.trials; i++) {
     const result = runTrial(i, config);
     trials.push(result);
-    // 進捗表示（stderr に出力してパイプを汚さない）
-    console.error(`  [${i + 1}/${config.trials}] seed=${result.seed} winner=${result.winner} steps=${result.steps}`);
+    logProgress(i, config.trials, result);
   }
 
   return computeSummary(config, trials);

@@ -86,6 +86,7 @@ function runMatchup(typeA: number, typeB: number, config: RoundRobinConfig, matc
   let draws = 0;
 
   for (let t = 0; t < config.trials; t++) {
+    const noSnapshots = config.maxSteps;
     const batchConfig: BatchConfig = {
       trials: 1,
       mode: 'battle',
@@ -93,7 +94,7 @@ function runMatchup(typeA: number, typeB: number, config: RoundRobinConfig, matc
       seed: config.seed + matchIndex * config.trials + t,
       budget: config.budget,
       maxSteps: config.maxSteps,
-      snapshotInterval: config.maxSteps, // スナップショット不要（最小限に）
+      snapshotInterval: noSnapshots,
       outFile: null,
       fleets: [fleetA, fleetB],
       createRng: config.createRng,
