@@ -56,6 +56,7 @@ import type {
   KillMatrix,
   KillTracker,
   LifespanTracker,
+  SupportTracker,
   TrialResult,
   TrialSnapshot,
   UnitTypeSummary,
@@ -315,6 +316,16 @@ function accumulateTypedArray(map: Map<number, number>, arr: Float64Array) {
   }
 }
 
+function accumulateSupportScore(map: Map<number, number>, sup: SupportTracker) {
+  for (let i = 0; i < TYPES.length; i++) {
+    const total =
+      (sup.ampApplications[i] ?? 0) + (sup.scrambleApplications[i] ?? 0) + (sup.catalystApplications[i] ?? 0);
+    if (total > 0) {
+      map.set(i, (map.get(i) ?? 0) + total);
+    }
+  }
+}
+
 function aggregateDamageAndSupport(trials: readonly TrialResult[]): {
   dmgDealt: Map<number, number>;
   dmgReceived: Map<number, number>;
@@ -329,15 +340,7 @@ function aggregateDamageAndSupport(trials: readonly TrialResult[]): {
     accumulateTypedArray(dmgDealt, trial.damageStats.dealtByType);
     accumulateTypedArray(dmgReceived, trial.damageStats.receivedByType);
     accumulateTypedArray(healing, trial.supportStats.healingByType);
-    // support = amp + scramble + catalyst の合算
-    const sup = trial.supportStats;
-    for (let i = 0; i < TYPES.length; i++) {
-      const total =
-        (sup.ampApplications[i] ?? 0) + (sup.scrambleApplications[i] ?? 0) + (sup.catalystApplications[i] ?? 0);
-      if (total > 0) {
-        support.set(i, (support.get(i) ?? 0) + total);
-      }
-    }
+    accumulateSupportScore(support, trial.supportStats);
   }
   return { dmgDealt, dmgReceived, healing, support };
 }

@@ -23,8 +23,7 @@ interface DamageEvent {
   kind: DamageKind;
 }
 
-// GC回避: 事前確保オブジェクトを再利用
-const _dmgEvent: DamageEvent = {
+const _pooledDmgEvent: DamageEvent = {
   attackerType: 0,
   attackerTeam: 0 as Team,
   victimType: 0,
@@ -59,14 +58,14 @@ export function emitDamage(
   if (damageHooks.length === 0) {
     return;
   }
-  _dmgEvent.attackerType = attackerType;
-  _dmgEvent.attackerTeam = attackerTeam;
-  _dmgEvent.victimType = victimType;
-  _dmgEvent.victimTeam = victimTeam;
-  _dmgEvent.amount = amount;
-  _dmgEvent.kind = kind;
+  _pooledDmgEvent.attackerType = attackerType;
+  _pooledDmgEvent.attackerTeam = attackerTeam;
+  _pooledDmgEvent.victimType = victimType;
+  _pooledDmgEvent.victimTeam = victimTeam;
+  _pooledDmgEvent.amount = amount;
+  _pooledDmgEvent.kind = kind;
   for (const h of damageHooks) {
-    h(_dmgEvent);
+    h(_pooledDmgEvent);
   }
 }
 
@@ -105,7 +104,7 @@ interface SupportEvent {
   amount: number;
 }
 
-const _supEvent: SupportEvent = {
+const _pooledSupEvent: SupportEvent = {
   casterType: 0,
   casterTeam: 0 as Team,
   targetType: 0,
@@ -138,14 +137,14 @@ export function emitSupport(
   if (supportHooks.length === 0) {
     return;
   }
-  _supEvent.casterType = casterType;
-  _supEvent.casterTeam = casterTeam;
-  _supEvent.targetType = targetType;
-  _supEvent.targetTeam = targetTeam;
-  _supEvent.kind = kind;
-  _supEvent.amount = amount;
+  _pooledSupEvent.casterType = casterType;
+  _pooledSupEvent.casterTeam = casterTeam;
+  _pooledSupEvent.targetType = targetType;
+  _pooledSupEvent.targetTeam = targetTeam;
+  _pooledSupEvent.kind = kind;
+  _pooledSupEvent.amount = amount;
   for (const h of supportHooks) {
-    h(_supEvent);
+    h(_pooledSupEvent);
   }
 }
 

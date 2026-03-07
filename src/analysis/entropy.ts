@@ -121,29 +121,26 @@ export function lzComplexity(sequence: readonly number[]): number {
     return 0;
   }
 
-  // Lempel-Ziv complexity: 新しい語彙の数をカウント
   const s = `${sequence.join(',')},`;
   const n = s.length;
-  let complexity = 1;
+  let novelPhrases = 1;
   let i = 0;
   let iLen = 1;
 
   while (i + iLen <= n) {
-    // s[i..i+iLen) が s[0..i) に含まれるか
     const sub = s.substring(i, i + iLen);
-    const searchEnd = i + iLen - 1; // 自身を除く範囲で検索
-    if (s.substring(0, searchEnd).includes(sub)) {
+    const searchBoundary = i + iLen - 1;
+    if (s.substring(0, searchBoundary).includes(sub)) {
       iLen++;
     } else {
-      complexity++;
+      novelPhrases++;
       i += iLen;
       iLen = 1;
     }
   }
 
-  // 正規化: 理論上限 n/log2(n) に対する比率
-  const bound = n / Math.max(1, Math.log2(n));
-  return Math.min(1, complexity / bound);
+  const theoreticalBound = n / Math.max(1, Math.log2(n));
+  return Math.min(1, novelPhrases / theoreticalBound);
 }
 
 /**
@@ -157,7 +154,6 @@ export function rleCompressionRatio(data: readonly number[], precision: number =
     return 0;
   }
 
-  // 精度で量子化して RLE
   const quantized = data.map((v) => Math.round(v * precision));
   let runs = 1;
   for (let i = 1; i < quantized.length; i++) {
@@ -228,11 +224,19 @@ export function battleComplexity(snapshots: readonly BattleStateSnapshot[]): num
     return 0;
   }
 
-  // 空間エントロピーの標準偏差
-  const spatials = snapshots.map((s) => s.spatialEntropy);
-  const spatialStd = standardDeviation(spatials);
+  const spatialDynamics = spatialEntropyVolatility(snapshots);
+  const countPredictability = unitCountComplexity(snapshots);
+  const killBalance = killDiffCompression(snapshots);
 
-  // 総ユニット数の変化系列 → LZ 複雑性
+  return spatialDynamics * 0.3 + countPredictability * 0.4 + killBalance * 0.3;
+}
+
+function spatialEntropyVolatility(snapshots: readonly BattleStateSnapshot[]): number {
+  const spatials = snapshots.map((s) => s.spatialEntropy);
+  return Math.min(1, standardDeviation(spatials) * 2);
+}
+
+function unitCountComplexity(snapshots: readonly BattleStateSnapshot[]): number {
   const totalCounts = snapshots.map((s) => {
     let sum = 0;
     for (const c of s.teamCounts) {
@@ -240,9 +244,10 @@ export function battleComplexity(snapshots: readonly BattleStateSnapshot[]): num
     }
     return sum;
   });
-  const countComplexity = lzComplexity(totalCounts);
+  return lzComplexity(totalCounts);
+}
 
-  // キル差の変化系列 → RLE 圧縮率（拮抗度）
+function killDiffCompression(snapshots: readonly BattleStateSnapshot[]): number {
   const killDiffs = snapshots.map((s) => {
     const kills = s.teamKills;
     if (kills.length < 2) {
@@ -250,10 +255,7 @@ export function battleComplexity(snapshots: readonly BattleStateSnapshot[]): num
     }
     return (kills[0] ?? 0) - (kills[1] ?? 0);
   });
-  const killVariance = rleCompressionRatio(killDiffs, 0.1);
-
-  // 重み付き統合（各成分 0～1 にクリップ）
-  return Math.min(1, spatialStd * 2) * 0.3 + countComplexity * 0.4 + killVariance * 0.3;
+  return rleCompressionRatio(killDiffs, 0.1);
 }
 
 // ─── Utility ───────────────────────────────────────────────────────
