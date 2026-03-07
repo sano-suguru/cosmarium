@@ -1,12 +1,15 @@
 import { beams, trackingBeams } from '../beams.ts';
 import { color } from '../colors.ts';
+import { isPurchasable } from '../fleet-cost.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../input/camera.ts';
+import type { PoolCountsState } from '../pools.ts';
 import {
   clearAllPools,
   getParticleHWM,
   getProjectileHWM,
   getUnitHWM,
+  mothershipIdx,
   particle,
   poolCounts,
   projectile,
@@ -20,8 +23,8 @@ import { resetChains, restoreChains, snapshotChains } from '../simulation/effect
 import { spawnUnit } from '../simulation/spawn.ts';
 import { restoreSquadrons, snapshotSquadrons } from '../simulation/squadron.ts';
 import { state } from '../state.ts';
-import type { Beam, Particle, Projectile, TeamCounts, TrackingBeam, Unit } from '../types.ts';
-import { copyTeamCounts, NO_UNIT } from '../types.ts';
+import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex } from '../types.ts';
+import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../types.ts';
 import { TYPES, unitType } from '../unit-types.ts';
 import { demoByFlag, demoDefault, demoRng } from './codex-demos.ts';
 import {
@@ -62,7 +65,7 @@ interface PoolSnapshot {
   beams: Beam[];
   trackingBeams: TrackingBeam[];
   pendingChains: ReturnType<typeof snapshotChains>;
-  counts: { units: number; particles: number; projectiles: number; teamUnits: TeamCounts };
+  counts: PoolCountsState;
   hwm: { units: number; particles: number; projectiles: number };
 }
 
@@ -107,6 +110,7 @@ export function snapshotPools(): PoolSnapshot {
       particles: poolCounts.particles,
       projectiles: poolCounts.projectiles,
       teamUnits: copyTeamCounts(teamUnitCounts),
+      mothershipIndices: copyTeamTuple<UnitIndex>(mothershipIdx),
     },
     hwm: { units: unitHWM, particles: particleHWM, projectiles: projectileHWM },
   };
@@ -131,12 +135,7 @@ export function restorePools(snapshot: PoolSnapshot) {
   for (const tb of snapshot.trackingBeams) {
     trackingBeams.push(tb);
   }
-  setPoolCounts(
-    snapshot.counts.units,
-    snapshot.counts.particles,
-    snapshot.counts.projectiles,
-    snapshot.counts.teamUnits,
-  );
+  setPoolCounts(snapshot.counts);
   restoreHWM(snapshot.hwm.units, snapshot.hwm.particles, snapshot.hwm.projectiles);
 }
 
@@ -336,6 +335,9 @@ function buildCodexUI() {
     if (!t) {
       continue;
     }
+    if (!isPurchasable(i)) {
+      continue;
+    }
     const entry = document.createElement('div');
     entry.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
     const c = color(i, 0);
@@ -379,6 +381,9 @@ export function toggleCodex() {
     poolSnapshot = snapshotPools();
     state.codexOpen = true;
     els().codex.classList.add('open');
+    if (!isPurchasable(state.codexSelected)) {
+      state.codexSelected = 0;
+    }
     buildCodexUI();
     updateCodexPanel();
     setupCodexDemo(state.codexSelected);

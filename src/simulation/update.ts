@@ -1,8 +1,9 @@
 import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
 import { REF_FPS } from '../constants.ts';
-import { getParticleHWM, getUnitHWM, particle, poolCounts, teamUnitCounts, unit } from '../pools.ts';
+import { getParticleHWM, getUnitHWM, mothershipIdx, particle, poolCounts, unit } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
-import type { ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
+import type { BattlePhase, ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
+import { NO_UNIT, TEAM0, TEAM1, TEAMS } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { resetReflected } from './combat-reflect.ts';
@@ -102,9 +103,10 @@ export function updateSwarmN() {
 }
 
 const FLAGSHIP = unitTypeIndex('Flagship');
+const MOTHERSHIP = unitTypeIndex('Mothership');
 
 function emitTrail(u: Unit, rng: () => number) {
-  if (u.type === FLAGSHIP) {
+  if (u.type === FLAGSHIP || u.type === MOTHERSHIP) {
     flagshipTrail(u, rng);
   } else {
     trail(u, rng);
@@ -139,8 +141,6 @@ export function updateUnits(dt: number, now: number, rng: () => number) {
   }
 }
 
-export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath';
-
 export interface GameLoopState extends ReinforcementState {
   codexOpen: boolean;
   battlePhase: BattlePhase;
@@ -148,25 +148,32 @@ export interface GameLoopState extends ReinforcementState {
   updateCodexDemo: (dt: number) => void;
 }
 
-/** BATTLE 勝敗判定: 先に team 0 全滅を判定するため相互全滅は DEFEAT 扱い */
+/**
+ * BATTLE 勝敗判定: 母艦撃沈で決着。先に team 0 母艦を判定するため相互撃沈は DEFEAT 扱い。
+ * 残存ユニットは ending フェーズ中に演出として戦闘を継続する（一括除去しない）
+ */
 function checkBattleWin(): Team | null {
-  if (teamUnitCounts[0] === 0) {
-    return 1 as Team;
+  if (mothershipIdx[0] === NO_UNIT) {
+    return TEAM1;
   }
-  if (teamUnitCounts[1] === 0) {
-    return 0 as Team;
+  if (mothershipIdx[1] === NO_UNIT) {
+    return TEAM0;
   }
   return null;
 }
 
-/** MELEE 勝敗判定: 残存1勢力で勝利、全滅で draw、2勢力以上生存で null（継続） */
+/**
+ * MELEE 勝敗判定: 母艦残存1勢力で勝利、全滅で draw、2勢力以上生存で null（継続）。
+ * 残存ユニットは ending フェーズ中に演出として戦闘を継続する（一括除去しない）
+ */
 function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
   let alive = 0;
-  let last: Team = 0;
-  for (let t = 0; t < activeTeamCount; t++) {
-    if (teamUnitCounts[t as Team] > 0) {
+  let last: Team = TEAM0;
+  for (let i = 0; i < activeTeamCount; i++) {
+    const t = TEAMS[i];
+    if (t !== undefined && mothershipIdx[t] !== NO_UNIT) {
       alive++;
-      last = t as Team;
+      last = t;
     }
   }
   if (alive === 0) {

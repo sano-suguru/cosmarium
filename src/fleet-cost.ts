@@ -4,12 +4,19 @@ import { TYPES } from './unit-types.ts';
 /** プレイヤーの初期予算 */
 export const DEFAULT_BUDGET = 200;
 
-/** コスト昇順 → 同コストはTYPES配列順でソートしたインデックス配列 */
-export const SORTED_TYPE_INDICES: readonly number[] = TYPES.map((_, i) => i).sort((a, b) => {
-  const ca = TYPES[a]?.cost ?? 0;
-  const cb = TYPES[b]?.cost ?? 0;
-  return ca !== cb ? ca - cb : a - b;
-});
+/** 購入可能なユニットタイプか（cost > 0） */
+export function isPurchasable(typeIdx: number): boolean {
+  return (TYPES[typeIdx]?.cost ?? 0) > 0;
+}
+
+/** コスト昇順 → 同コストはTYPES配列順でソート。購入不可タイプは除外 */
+export const SORTED_TYPE_INDICES: readonly number[] = TYPES.map((_, i) => i)
+  .filter(isPurchasable)
+  .sort((a, b) => {
+    const ca = TYPES[a]?.cost ?? 0;
+    const cb = TYPES[b]?.cost ?? 0;
+    return ca !== cb ? ca - cb : a - b;
+  });
 
 export function countFleetUnits(fleet: FleetComposition): number {
   let n = 0;

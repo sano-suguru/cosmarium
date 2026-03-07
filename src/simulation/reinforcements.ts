@@ -1,9 +1,9 @@
-import { WORLD_SIZE } from '../constants.ts';
-import { teamUnitCounts } from '../pools.ts';
-import type { Team } from '../types.ts';
+import { incMotherships, mothershipIdx, teamUnitCounts } from '../pools.ts';
+import type { BattleTeam } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
+import { battleOrigin, reinforcementOrigin } from './spawn-coordinates.ts';
 import { assignToSquadron } from './squadron.ts';
 
 // Reinforcement spawn probability distribution:
@@ -59,9 +59,8 @@ export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
   { type: CATALYST, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
 ];
 
-function spawnWave(team: Team, cnt: number, rng: () => number) {
-  const cx = team === 0 ? -WORLD_SIZE * 0.6 : WORLD_SIZE * 0.6;
-  const cy = (rng() - 0.5) * WORLD_SIZE;
+function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {
+  const [cx, cy] = reinforcementOrigin(team, rng);
   const r = rng();
   const s = (tp: number, spread: number) => {
     const idx = spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
@@ -90,16 +89,30 @@ export interface ReinforcementState {
 export const REINFORCE_INTERVAL = 2.5;
 export const REINFORCE_UNIT_CAP = 250;
 
+const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
+
+/** spectate 専用の増援スポーン。battle/melee では stepOnce の switch で呼ばれない */
 export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {
   rs.reinforcementTimer += dt;
   if (rs.reinforcementTimer < REINFORCE_INTERVAL) {
     return;
   }
   rs.reinforcementTimer = 0;
+
+  // spectate 専用: 撃沈された母艦を reinforce サイクルで復活
+  // プール満杯時は復活できないが、spectate には勝敗判定がないため影響なし
+  for (const team of [0, 1] as const) {
+    if (mothershipIdx[team] === NO_UNIT) {
+      const [cx, cy] = battleOrigin(team);
+      const idx = spawnUnit(team, MOTHERSHIP_TYPE, cx, cy, rng);
+      if (idx !== NO_UNIT) {
+        incMotherships(team, idx);
+      }
+    }
+  }
+
   const lim = REINFORCE_UNIT_CAP;
-  const SPECTATE_TEAMS = 2;
-  for (let ti = 0; ti < SPECTATE_TEAMS; ti++) {
-    const team = ti as Team;
+  for (const team of [0, 1] as const) {
     const cnt = teamUnitCounts[team];
     if (cnt < lim) {
       spawnWave(team, cnt, rng);

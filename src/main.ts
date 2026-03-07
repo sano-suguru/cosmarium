@@ -36,10 +36,10 @@ import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
 import { onUnitKilled } from './simulation/squadron.ts';
-import type { BattlePhase, GameLoopState } from './simulation/update.ts';
+import type { GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import type { BattleResult } from './types.ts';
+import type { BattlePhase, BattleResult } from './types.ts';
 import { copyTeamCounts } from './types.ts';
 import { initResultDOM } from './ui/battle-result.ts';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
@@ -58,7 +58,14 @@ import {
   setOnSpectateStart,
   setOnStartCompose,
 } from './ui/game-control.ts';
-import { initHUD, setupMeleeHUD, teardownMeleeHUD, updateHUD } from './ui/hud.ts';
+import {
+  hideMothershipHpBar,
+  initHUD,
+  setupMeleeHUD,
+  showMothershipHpBar,
+  teardownMeleeHUD,
+  updateHUD,
+} from './ui/hud.ts';
 import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
 const BASE_SPEED = 0.55;
@@ -89,11 +96,13 @@ initResultDOM(goToMenu, () => generateAndCompose(true), rematch);
 
 function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';
+  hideMothershipHpBar();
   goToResult(result);
 }
 
 function handleMeleeFinalized(result: MeleeResult) {
   gameLoopState.battlePhase = 'aftermath';
+  hideMothershipHpBar();
   teardownMeleeHUD();
   goToMeleeResult(result);
 }
@@ -109,12 +118,14 @@ function handleBattleStart() {
   setInitialPlayerUnits(countFleetUnits(fleet));
   gameLoopState.battlePhase = 'battle';
   gameLoopState.activeTeamCount = 2;
+  showMothershipHpBar(2);
 }
 
 function handleSpectateStart() {
   resetScreenEffects();
   gameLoopState.battlePhase = 'spectate';
   gameLoopState.activeTeamCount = 2;
+  showMothershipHpBar(2);
 }
 
 function handleMeleeStart(numTeams: number) {
@@ -123,6 +134,7 @@ function handleMeleeStart(numTeams: number) {
   gameLoopState.battlePhase = 'melee';
   gameLoopState.activeTeamCount = numTeams;
   setupMeleeHUD(numTeams);
+  showMothershipHpBar(numTeams);
 }
 
 setOnFinalize(handleBattleFinalized);

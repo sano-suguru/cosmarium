@@ -5,6 +5,7 @@ import {
   advanceProjectileHWM,
   advanceUnitHWM,
   allocParticleSlot,
+  decMotherships,
   decParticles,
   decProjectiles,
   decUnits,
@@ -18,8 +19,10 @@ import {
   unit,
 } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
+import { unitType, unitTypeIndex } from '../unit-types.ts';
+
+const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
 export interface Killer {
   index: UnitIndex;
@@ -151,17 +154,17 @@ function _keAt<T>(stack: T[], d: number): T {
 }
 const _keWK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killerTeam: Team; killerType: number } => ({
   victim: 0 as UnitIndex,
-  victimTeam: 0 as Team,
+  victimTeam: TEAM0,
   victimType: 0,
   victimSquadronIdx: NO_SQUADRON,
   victimTeamRemaining: 0,
   killer: 0 as UnitIndex,
-  killerTeam: 0 as Team,
+  killerTeam: TEAM0,
   killerType: 0,
 }));
 const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
   victim: 0 as UnitIndex,
-  victimTeam: 0 as Team,
+  victimTeam: TEAM0,
   victimType: 0,
   victimSquadronIdx: NO_SQUADRON,
   victimTeamRemaining: 0,
@@ -175,8 +178,13 @@ export function killUnit(i: UnitIndex, killer?: Killer): KilledUnitSnapshot | un
     const snap: KilledUnitSnapshot = { x: u.x, y: u.y, team: u.team, type: u.type };
     const squadronIdx = u.squadronIdx;
     u.alive = false;
-    // decUnits → hook の順序を保証: hook 内で victimTeamRemaining を参照可能
+    // 実行順序契約: alive=false → decUnits → decMotherships → hook
+    // hook 内では teamUnitCounts・mothershipIdx ともに減算/更新済み。
+    // 母艦 kill 時は mothershipIdx[victimTeam] === NO_UNIT が保証される。
     decUnits(u.team);
+    if (u.type === MOTHERSHIP_TYPE) {
+      decMotherships(u.team);
+    }
     // GC回避: 深度インデックスド・スタックから取得（再入安全）
     const d = _keDepth++;
     let e: KillEvent;

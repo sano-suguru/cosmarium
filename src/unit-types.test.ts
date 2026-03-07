@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
-  it('要素数が19', () => {
-    expect(TYPES).toHaveLength(19);
+  it('要素数が20', () => {
+    expect(TYPES).toHaveLength(20);
   });
 
   it('全タイプに必須プロパティが存在する', () => {
@@ -29,6 +29,12 @@ describe('TYPES 配列', () => {
     }
   });
 
+  it('shape === index 規約: unitType(i).shape === i', () => {
+    for (let i = 0; i < TYPES.length; i++) {
+      expect(unitType(i).shape).toBe(i);
+    }
+  });
+
   it('nm が全て一意', () => {
     const names = TYPES.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
@@ -40,17 +46,9 @@ describe('TYPES 配列', () => {
       expect(t.speed).toBeGreaterThan(0);
       expect(t.mass).toBeGreaterThan(0);
       expect(t.size).toBeGreaterThan(0);
-      expect(t.shape).toBeGreaterThanOrEqual(0);
-      expect(t.shape % 1).toBe(0); // 整数
-      expect(t.shape).toBeLessThanOrEqual(28);
       expect(t.trailInterval).toBeGreaterThan(0);
       expect(t.fireRate).toBeGreaterThan(0);
     }
-  });
-
-  it('shape が全て一意', () => {
-    const shapes = TYPES.map((t) => t.shape);
-    expect(new Set(shapes).size).toBe(shapes.length);
   });
 
   it('特殊フラグ: idx 2 (Bomber) は aoe を持つ', () => {

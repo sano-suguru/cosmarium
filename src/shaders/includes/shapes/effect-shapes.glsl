@@ -1,31 +1,31 @@
-  // [SHAPE:19 Circle] ————————————————————————————
-  else if(sh==19){ // Circle (particles, AOE projectiles)
+  // [SHAPE:32 Circle] ————————————————————————————
+  else if(sh==32){ // Circle (particles, AOE projectiles)
     a=smoothstep(1.0,0.6,d)+exp(-d*2.0)*0.4; }
-  // [SHAPE:20 Diamond] ————————————————————————————
-  else if(sh==20){ // Diamond (projectiles)
+  // [SHAPE:33 Diamond] ————————————————————————————
+  else if(sh==33){ // Diamond (projectiles)
     float dd=abs(vU.x)+abs(vU.y);
     a=smoothstep(1.0,0.6,dd)+exp(-dd*2.0)*0.4; }
-  // [SHAPE:21 Homing] ————————————————————————————
-  else if(sh==21){ // Homing missile (elongated diamond / arrowhead)
+  // [SHAPE:34 Homing] ————————————————————————————
+  else if(sh==34){ // Homing missile (elongated diamond / arrowhead)
     float dd=abs(vU.x)*0.6+abs(vU.y);
     a=smoothstep(1.0,0.5,dd)+exp(-dd*2.5)*0.4; }
-  // [SHAPE:22 Beam] ————————————————————————————
-  else if(sh==22){ float by=abs(vU.y),bx=abs(vU.x);
+  // [SHAPE:35 Beam] ————————————————————————————
+  else if(sh==35){ float by=abs(vU.y),bx=abs(vU.x);
     float xf=smoothstep(1.0,0.4,bx);
     a=(exp(-by*6.0)*1.0+exp(-by*2.5)*0.4)*xf+exp(-d*1.5)*0.2; }
-  // [SHAPE:23 Lightning] ————————————————————————————
-  else if(sh==23){ float by=abs(vU.y);
+  // [SHAPE:36 Lightning] ————————————————————————————
+  else if(sh==36){ float by=abs(vU.y);
     float core=exp(-by*8.0)*1.3;
     float glow=exp(-by*2.5)*0.4;
     a=core+glow; }
-  // [SHAPE:24 ExplosionRing] ————————————————————————————
-  else if(sh==24){ float ring=abs(d-0.75);
+  // [SHAPE:37 ExplosionRing] ————————————————————————————
+  else if(sh==37){ float ring=abs(d-0.75);
     a=exp(-ring*8.0)*0.6+exp(-d*1.0)*0.08; }
-  // [SHAPE:25 DiamondRing] ————————————————————————————
-  else if(sh==25){ float dd=manDist(vU); float ring=abs(dd-0.65);
+  // [SHAPE:38 DiamondRing] ————————————————————————————
+  else if(sh==38){ float dd=manDist(vU); float ring=abs(dd-0.65);
     a=exp(-ring*10.0)*0.7+exp(-dd*1.2)*0.1; }
-  // [SHAPE:26 OctShield] ————————————————————————————
-  else if(sh==26){ float od=octDist(vU);
+  // [SHAPE:39 OctShield] ————————————————————————————
+  else if(sh==39){ float od=octDist(vU);
     float edge=abs(od-0.75);
     a=smoothstep(0.06,0.01,edge)*0.7;
     float t=vA*4.0+uTime;
@@ -42,8 +42,8 @@
     float n6=exp(-length(vU-v6)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+4.712)));
     float n7=exp(-length(vU-v7)*22.0)*(0.3+0.7*(0.5+0.5*sin(t+5.498)));
     a+=n0+n1+n2+n3+n4+n5+n6+n7; }
-  // [SHAPE:27 ReflectField] ————————————————————————————
-  else if(sh==27){ float hd=hexDist(vU);
+  // [SHAPE:40 ReflectField] ————————————————————————————
+  else if(sh==40){ float hd=hexDist(vU);
     float edge=abs(hd-0.70);
     // Bright core ring + soft neon glow halo
     a=smoothstep(0.06,0.005,edge)*0.85+exp(-edge*12.0)*0.45;
@@ -80,11 +80,11 @@
     // Soft inner ambient glow
     a+=exp(-hd*2.8)*0.18;
     }
-  // [SHAPE:28 Bar] ————————————————————————————
-  else if(sh==28){ float bx=abs(vU.x),by=abs(vU.y);
+  // [SHAPE:41 Bar] ————————————————————————————
+  else if(sh==41){ float bx=abs(vU.x),by=abs(vU.y);
     a=smoothstep(1.0,0.95,bx)*smoothstep(0.18,0.1,by)+exp(-by*14.0)*0.06; }
-  // [SHAPE:29 Trail] ————————————————————————————
-  else if(sh==29){
+  // [SHAPE:42 Trail] ————————————————————————————
+  else if(sh==42){
     // Elongated capsule along vU.x with soft gradient (bright head → dim tail)
     float bx=vU.x*0.4, by=vU.y;
     float cd=length(vec2(max(abs(bx)-0.3,0.0),by));

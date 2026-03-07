@@ -533,6 +533,30 @@ export const TYPES: UnitType[] = [
     description: '味方艦の機動力と発射速度を底上げするフィールド触媒支援艦。範囲内の味方は加速・旋回・射撃が向上する。',
     attackDesc: '加速フィールド（味方バフ）＋通常射撃',
   }),
+  resolve({
+    name: 'Mothership',
+    cost: 0,
+    size: 45,
+    hp: 500,
+    speed: 35,
+    turnRate: 0.3,
+    fireRate: NO_FIRE,
+    range: 0,
+    damage: 0,
+    shape: 19,
+    trailInterval: 1.5,
+    mass: 50,
+    accel: 1.5,
+    drag: 0.5,
+    leadAccuracy: 0,
+    // steering の computeEngageForce() が参照し、敵との距離 300-1000 を保つ回避行動に使用。
+    // 武装なし（fireRate=NO_FIRE）だが操舵には必要
+    engageMin: 300,
+    engageMax: 1000,
+    // 撃沈＝敗北。残存ユニットの一括除去は行わない（ending フェーズで演出として戦闘継続）
+    description: '艦隊の中核たる母艦。この艦が撃沈されると敗北となる。',
+    attackDesc: 'なし',
+  }),
 ];
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));

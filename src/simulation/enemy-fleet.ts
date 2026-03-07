@@ -1,3 +1,4 @@
+import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import type { FleetComposition, FleetEntry } from '../types.ts';
 import { TYPES, unitTypeIndex } from '../unit-types.ts';
 
@@ -150,7 +151,7 @@ export function generateEnemyFleet(
   const arch = pickArchetype(rng);
   const totalWeight = arch.weights.reduce((s, v) => s + v, 0);
   const counts = new Array<number>(NUM_TYPES).fill(0);
-  const indices = TYPES.map((_, i) => i);
+  const indices = [...SORTED_TYPE_INDICES];
   shuffle(indices, rng);
 
   const remaining = allocateByWeight(arch, budget, totalWeight, indices, counts, rng);

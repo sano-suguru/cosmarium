@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
-import { particle, poolCounts, projectile, unit } from '../pools.ts';
+import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType, unitTypeIndex } from '../unit-types.ts';
 import {
   addBeam,
   captureKiller,
@@ -214,6 +214,34 @@ describe('killUnit', () => {
     expect(snap1).not.toBe(snap2);
     expect(snap1?.x).toBe(10);
     expect(snap2?.x).toBe(30);
+  });
+
+  it('Mothership kill で mothershipIdx が NO_UNIT になる', () => {
+    const mothershipType = unitTypeIndex('Mothership');
+    const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    incMotherships(0, idx);
+    expect(mothershipIdx[0]).toBe(idx);
+    killUnit(idx);
+    expect(mothershipIdx[0]).toBe(NO_UNIT);
+  });
+
+  it('通常ユニット kill で mothershipIdx が変化しない', () => {
+    const mothershipType = unitTypeIndex('Mothership');
+    const msIdx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    incMotherships(0, msIdx);
+    const fighterIdx = spawnUnit(0, 1, 100, 100, testRng);
+    killUnit(fighterIdx);
+    expect(mothershipIdx[0]).toBe(msIdx);
+  });
+
+  it('Mothership 二重 kill で decMotherships エラーにならない', () => {
+    const mothershipType = unitTypeIndex('Mothership');
+    const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    incMotherships(0, idx);
+    killUnit(idx);
+    // 二重 kill: alive ガードにより decMotherships は呼ばれない
+    expect(() => killUnit(idx)).not.toThrow();
+    expect(mothershipIdx[0]).toBe(NO_UNIT);
   });
 });
 

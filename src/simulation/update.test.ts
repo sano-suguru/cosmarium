@@ -11,9 +11,9 @@ import {
   SH_CIRCLE,
   SIM_DT,
 } from '../constants.ts';
-import { decUnits, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { decMotherships, decUnits, incMotherships, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { NO_UNIT } from '../types.ts';
+import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAMS } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import {
   BASTION_ABSORB_RATIO,
@@ -1161,44 +1161,40 @@ describe('stepOnce 勝敗判定', () => {
     return gs;
   }
 
-  it('相互全滅: team 1 の勝利（DEFEAT）を返す', () => {
+  it('相互母艦撃沈: team 0 母艦を先に判定するため team 1 の勝利（DEFEAT）', () => {
     const a = spawnAt(0, 0, 0, 0);
     const b = spawnAt(1, 0, 100, 0);
-    unit(a).trailTimer = 99;
-    unit(b).trailTimer = 99;
-    // 両方を殺して全滅状態にする
-    unit(a).alive = false;
-    decUnits(0);
-    unit(b).alive = false;
-    decUnits(1);
-
+    incMotherships(0, a);
+    incMotherships(1, b);
+    decMotherships(TEAM0);
+    decMotherships(TEAM1);
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(1);
   });
 
-  it('敵のみ全滅: team 0 の勝利（VICTORY）を返す', () => {
-    spawnAt(0, 0, 0, 0);
-    const b = spawnAt(1, 0, 100, 0);
-    unit(b).alive = false;
-    decUnits(1);
+  it('敵母艦撃沈: team 0 の勝利（VICTORY）を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    spawnAt(1, 0, 100, 0);
+    incMotherships(0, a);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(0);
   });
 
-  it('自軍のみ全滅: team 1 の勝利（DEFEAT）を返す', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    spawnAt(1, 0, 100, 0);
-    unit(a).alive = false;
-    decUnits(0);
+  it('自軍母艦撃沈: team 1 の勝利（DEFEAT）を返す', () => {
+    spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    incMotherships(1, b);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBe(1);
   });
 
-  it('両チーム生存時は null を返す', () => {
-    spawnAt(0, 0, 0, 0);
-    spawnAt(1, 0, 100, 0);
+  it('両チーム母艦生存時は null を返す', () => {
+    const a = spawnAt(0, 0, 0, 0);
+    const b = spawnAt(1, 0, 100, 0);
+    incMotherships(0, a);
+    incMotherships(1, b);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
     expect(result).toBeNull();
@@ -1249,7 +1245,7 @@ describe('stepOnce 勝敗判定', () => {
 // ============================================================
 // stepOnce MELEE 勝敗判定
 // ============================================================
-describe('stepOnce MELEE 勝敗判定', () => {
+describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
   function meleeGameLoopState(numTeams: number) {
     const gs = makeGameLoopState(mockUpdateCodexDemo);
     gs.battlePhase = 'melee';
@@ -1257,74 +1253,69 @@ describe('stepOnce MELEE 勝敗判定', () => {
     return gs;
   }
 
-  it('残存1勢力で勝者を返す（3勢力 melee）', () => {
-    // team 0,1,2 にスポーン
-    spawnAt(0, 0, 0, 0);
-    const b = spawnAt(1, 0, 100, 0);
-    const c = spawnAt(2, 0, 200, 0);
-    // team 1, 2 を全滅
-    unit(b).alive = false;
-    decUnits(1);
-    unit(c).alive = false;
-    decUnits(2);
+  const MOTHERSHIP_T = unitTypeIndex('Mothership');
+
+  function spawnMeleeTeams(numTeams: number) {
+    for (let t = 0; t < numTeams; t++) {
+      const team = TEAMS[t] ?? TEAM0;
+      const idx = spawnAt(team, MOTHERSHIP_T, t * 100, 0);
+      incMotherships(team, idx);
+      spawnAt(team, 0, t * 100, 50);
+    }
+  }
+
+  it('複数勢力の母艦生存中は null を返す（3勢力）', () => {
+    spawnMeleeTeams(3);
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
+    expect(result).toBeNull();
+  });
+
+  it('母艦撃沈でチーム脱落、残存1勢力で勝者を返す', () => {
+    spawnMeleeTeams(3);
+    decMotherships(TEAM1);
+    decMotherships(TEAM2);
 
     const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
     expect(result).toBe(0);
   });
 
-  it('全勢力全滅: draw を返す', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(1, 0, 100, 0);
-    unit(a).trailTimer = 99;
-    unit(b).trailTimer = 99;
-    unit(a).alive = false;
-    decUnits(0);
-    unit(b).alive = false;
-    decUnits(1);
+  it('全母艦撃沈: draw を返す', () => {
+    spawnMeleeTeams(2);
+    decMotherships(TEAM0);
+    decMotherships(TEAM1);
 
     const result = tick(SIM_DT, 0, rng, meleeGameLoopState(2));
     expect(result).toBe('draw');
   });
 
-  it('3勢力で全滅 → draw を返す', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(1, 0, 100, 0);
-    const c = spawnAt(2, 0, 200, 0);
-    for (const idx of [a, b, c]) {
-      unit(idx).alive = false;
-    }
-    decUnits(0);
-    decUnits(1);
-    decUnits(2);
+  it('3勢力で全母艦撃沈 → draw を返す', () => {
+    spawnMeleeTeams(3);
+    decMotherships(TEAM0);
+    decMotherships(TEAM1);
+    decMotherships(TEAM2);
 
     const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
     expect(result).toBe('draw');
   });
 
-  it('複数勢力生存中は null を返す', () => {
-    spawnAt(0, 0, 0, 0);
-    spawnAt(1, 0, 100, 0);
-    spawnAt(2, 0, 200, 0);
-
-    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(3));
-    expect(result).toBeNull();
-  });
-
-  it('5勢力で team 4 のみ残存 → team 4 が勝者', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(1, 0, 100, 0);
-    const c = spawnAt(2, 0, 200, 0);
-    const d = spawnAt(3, 0, 300, 0);
-    spawnAt(4, 0, 400, 0);
-    for (const idx of [a, b, c, d]) {
-      unit(idx).alive = false;
-    }
-    decUnits(0);
-    decUnits(1);
-    decUnits(2);
-    decUnits(3);
+  it('5勢力で team 4 の母艦のみ残存 → team 4 が勝者', () => {
+    spawnMeleeTeams(5);
+    decMotherships(TEAM0);
+    decMotherships(TEAM1);
+    decMotherships(TEAM2);
+    decMotherships(TEAM3);
 
     const result = tick(SIM_DT, 0, rng, meleeGameLoopState(5));
     expect(result).toBe(4);
+  });
+
+  it('母艦生存中はユニット全滅でも脱落しない', () => {
+    spawnMeleeTeams(2);
+    const u1 = spawnAt(1, 0, 100, 100);
+    unit(u1).alive = false;
+    decUnits(TEAM1);
+
+    const result = tick(SIM_DT, 0, rng, meleeGameLoopState(2));
+    expect(result).toBeNull();
   });
 });

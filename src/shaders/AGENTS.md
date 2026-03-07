@@ -12,11 +12,11 @@
 |---------|------|
 | main.frag.glsl | #include + main()。shape-params.glslとshape-util.glslを読み込み |
 | includes/shape-params.glsl | 5配列(RIM_THRESH, RIM_WEIGHT, HF_WEIGHT, FWIDTH_MULT, SOFT_LIMIT) |
-| includes/shapes/unit-shapes.glsl | ユニットshape SDF (sh==0〜18)。`[SHAPE:ID Name]`マーカー付き |
-| includes/shapes/effect-shapes.glsl | エフェクトshape SDF (sh==19〜29)。`[SHAPE:ID Name]`マーカー付き |
+| includes/shapes/unit-shapes.glsl | ユニットshape SDF (sh==0〜19)。`[SHAPE:ID Name]`マーカー付き |
+| includes/shapes/effect-shapes.glsl | エフェクトshape SDF (sh==32〜42)。`[SHAPE:ID Name]`マーカー付き |
 | includes/shape-util.glsl | softClamp, shapeSoftClamp, shapeBase, shapeRim, shapeAA |
 | includes/sdf.glsl | hexDist, octDist, manDist |
-| includes/shape-count.glsl | `#define NUM_SHAPES 30` — 配列サイズ+clampの一元管理 |
+| includes/shape-count.glsl | `#define NUM_SHAPES 43` — 配列サイズ+clampの一元管理 |
 | shape-sync.test.ts | NUM_SHAPES同期バリデーション（GLSL↔TS） |
 | main.vert.glsl | インスタンス頂点シェーダ。aP/aO/aS/aA/aSh/aCを受取 |
 | bloom.frag.glsl | H/Vガウス畳み込み。uT,uD,uR |
@@ -29,7 +29,7 @@
 
 フラグメントシェーダ (`main.frag.glsl`) が整数shape IDでSDF描画を分岐する:
 
-安定ID運用（append-only）: 既存IDの変更・再利用は禁止。新ユニット/エフェクト追加時は末尾に追番。Units 0–18, Effects 19–29。
+ユニットシェイプ = TYPES配列インデックス (0–19)、エフェクト = `EFFECT_SHAPE_BASE` (32) から連番 (32–42)。20–31 は将来のユニット用に予約。`shape-sync.test.ts` が検証。IDの再利用禁止。ユニット追加してもエフェクトIDは不変。
 
 | ID | Shape | Used by |
 |----|-------|---------|
@@ -52,17 +52,19 @@
 | 16 | Amplifier | unit |
 | 17 | Scrambler | unit |
 | 18 | Catalyst | unit |
-| 19 | Circle (SH_CIRCLE) | particle, projectile(aoe), stun spark |
-| 20 | Diamond (SH_DIAMOND) | projectile(通常弾) |
-| 21 | Homing (SH_HOMING) | homing projectile |
-| 22 | Beam (SH_BEAM) | beam segments |
-| 23 | Lightning (SH_LIGHTNING) | チェーンライトニングのビームセグメント |
-| 24 | Explosion Ring (SH_EXPLOSION_RING) | explosion ring, vet glow, EMP ring, shield aura |
-| 25 | Diamond Ring (SH_DIAMOND_RING) | scramble debuff overlay |
-| 26 | Octagon Shield (SH_OCT_SHIELD) | shield linger, Bastion shield |
-| 27 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |
-| 28 | Bar (SH_BAR) | HPバー (背景+前景) |
-| 29 | Trail (SH_TRAIL) | ユニット軌跡エフェクト |
+| 19 | Mothership | unit |
+| 20–31 | (reserved) | 将来のユニット用 |
+| 32 | Circle (SH_CIRCLE) | particle, projectile(aoe), stun spark |
+| 33 | Diamond (SH_DIAMOND) | projectile(通常弾) |
+| 34 | Homing (SH_HOMING) | homing projectile |
+| 35 | Beam (SH_BEAM) | beam segments |
+| 36 | Lightning (SH_LIGHTNING) | チェーンライトニングのビームセグメント |
+| 37 | Explosion Ring (SH_EXPLOSION_RING) | explosion ring, vet glow, EMP ring, shield aura |
+| 38 | Diamond Ring (SH_DIAMOND_RING) | scramble debuff overlay |
+| 39 | Octagon Shield (SH_OCT_SHIELD) | shield linger, Bastion shield |
+| 40 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |
+| 41 | Bar (SH_BAR) | HPバー (背景+前景) |
+| 42 | Trail (SH_TRAIL) | ユニット軌跡エフェクト |
 
 ## セクションマーカー規約
 

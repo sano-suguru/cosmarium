@@ -11,10 +11,10 @@ void main(){
   float d=length(vU), a=0.0;
   int sh=clamp(vSh,0,NUM_SHAPES-1);
   vec3 col=vC.rgb; // デフォルト色。色カスタムが必要な分岐のみ上書き（else-if で排他）
-  // ── Unit Shapes (0-18) ──────────────────────
+  // ── Unit Shapes (0-19) ──────────────────────
 #include includes/shapes/unit-shapes.glsl;
-  // ── Effect Shapes (19-29) ───────────────────
+  // ── Effect Shapes (32-42) ───────────────────
 #include includes/shapes/effect-shapes.glsl;
-  else { a=smoothstep(1.0,0.6,d); }
+  else { a=smoothstep(1.0,0.6,d); } // fallback: 予約ID(20-31)・未定義shape用
   fragColor=vec4(col*a, vC.a*clamp(a,0.0,1.0));
 }

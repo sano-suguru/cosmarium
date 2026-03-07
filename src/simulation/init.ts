@@ -1,14 +1,13 @@
-import { TAU } from '../constants.ts';
-import { clearAllPools, getUnitHWM } from '../pools.ts';
-import type { FleetComposition, Team } from '../types.ts';
+import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx } from '../pools.ts';
+import type { BattleTeam, FleetComposition, Team } from '../types.ts';
+import { NO_UNIT, TEAM0, TEAM1, teamsOf } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
 import { generateEnemyFleet } from './enemy-fleet.ts';
 import { spawnUnit } from './spawn.ts';
+import { battleOrigin, meleeOrigin } from './spawn-coordinates.ts';
 import { formSquadrons } from './squadron.ts';
 
-const BATTLE_SPAWN_X = 1200;
-const BATTLE_SPAWN_Y = 300;
 const BATTLE_SPREAD_BASE = 400;
 const BATTLE_SPREAD_PER_UNIT = 4;
 
@@ -19,6 +18,7 @@ interface InitSpawn {
 }
 
 const T = unitTypeIndex;
+const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
 export const INIT_SPAWNS: readonly InitSpawn[] = [
   { type: T('Flagship'), count: 2, spread: 200 },
@@ -47,17 +47,12 @@ function resetField() {
   resetChains();
 }
 
-function teamOrigin(team: Team): [number, number] {
-  const sign = team === 0 ? -1 : 1;
-  return [sign * BATTLE_SPAWN_X, sign * BATTLE_SPAWN_Y];
-}
-
 export function initUnits(rng: () => number) {
   resetField();
 
-  for (let ti = 0; ti < 2; ti++) {
-    const team = ti as Team;
-    const [cx, cy] = teamOrigin(team);
+  for (const team of [0, 1] as const) {
+    const [cx, cy] = battleOrigin(team);
+    spawnMothership(team, cx, cy, rng);
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
         spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
@@ -67,12 +62,28 @@ export function initUnits(rng: () => number) {
   }
 }
 
+function spawnMothership(team: Team, cx: number, cy: number, rng: () => number) {
+  if (mothershipIdx[team] !== NO_UNIT) {
+    return;
+  }
+  const idx = spawnUnit(team, MOTHERSHIP_TYPE, cx, cy, rng);
+  if (idx === NO_UNIT) {
+    throw new RangeError(`Failed to spawn mothership for team ${team}: unit pool exhausted`);
+  }
+  incMotherships(team, idx);
+}
+
 /** FleetComposition ベースで両チームをスポーンする（バトルモード用） */
 export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetComposition, rng: () => number) {
   resetField();
 
-  const spawn = (team: Team, fleet: FleetComposition) => {
-    const [cx, cy] = teamOrigin(team);
+  for (const team of [0, 1] as const) {
+    const [cx, cy] = battleOrigin(team);
+    spawnMothership(team, cx, cy, rng);
+  }
+
+  const spawn = (team: BattleTeam, fleet: FleetComposition) => {
+    const [cx, cy] = battleOrigin(team);
     for (const { type, count } of fleet) {
       const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
       for (let j = 0; j < count; j++) {
@@ -85,20 +96,16 @@ export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetCompo
   spawn(1, enemyFleet);
 
   const hwm = getUnitHWM();
-  formSquadrons(0 as Team, hwm);
-  formSquadrons(1 as Team, hwm);
+  formSquadrons(TEAM0, hwm);
+  formSquadrons(TEAM1, hwm);
 }
-
-const MELEE_SPAWN_RADIUS = 1200;
 
 /** N勢力を円周配置でスポーンする（MELEEモード用） */
 export function initMelee(numTeams: number, budget: number, rng: () => number) {
   resetField();
-  for (let t = 0; t < numTeams; t++) {
-    const angle = (t / numTeams) * TAU;
-    const cx = Math.cos(angle) * MELEE_SPAWN_RADIUS;
-    const cy = Math.sin(angle) * MELEE_SPAWN_RADIUS;
-    const team = t as Team;
+  for (const team of teamsOf(numTeams)) {
+    const [cx, cy] = meleeOrigin(team, numTeams);
+    spawnMothership(team, cx, cy, rng);
     const { fleet } = generateEnemyFleet(budget, rng);
     for (const { type, count } of fleet) {
       const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;

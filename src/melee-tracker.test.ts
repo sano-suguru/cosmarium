@@ -10,7 +10,7 @@ import {
 } from './melee-tracker.ts';
 import { teamUnitCounts } from './pools.ts';
 import { captureKiller, killUnit } from './simulation/spawn.ts';
-import type { Team, TeamCounts } from './types.ts';
+import type { TeamCounts } from './types.ts';
 import { copyTeamCounts } from './types.ts';
 
 /** ユニット未スポーン時用のゼロカウント */
@@ -148,10 +148,10 @@ describe('resetMeleeTracking', () => {
 describe('kill hook — チーム別キル数', () => {
   it('killerTeam のキル数が正しく加算される', () => {
     // Team 0: 2 units, Team 1: 2 units
-    spawnAt(0 as Team, 0, 100, 100);
-    const t0b = spawnAt(0 as Team, 0, 120, 100);
-    const t1a = spawnAt(1 as Team, 0, 200, 100);
-    spawnAt(1 as Team, 0, 220, 100);
+    spawnAt(0, 0, 100, 100);
+    const t0b = spawnAt(0, 0, 120, 100);
+    const t1a = spawnAt(1, 0, 200, 100);
+    spawnAt(1, 0, 220, 100);
 
     resetMeleeTracking(2, counts());
 
@@ -174,9 +174,9 @@ describe('kill hook — チーム別キル数', () => {
 
 describe('全滅イベント', () => {
   it('チームが全滅したとき EliminationEvent が記録される', () => {
-    const t0a = spawnAt(0 as Team, 0, 100, 100);
-    spawnAt(1 as Team, 0, 200, 100);
-    const t1b = spawnAt(1 as Team, 0, 220, 100);
+    const t0a = spawnAt(0, 0, 100, 100);
+    spawnAt(1, 0, 200, 100);
+    const t1b = spawnAt(1, 0, 220, 100);
 
     resetMeleeTracking(2, counts());
 
@@ -199,9 +199,9 @@ describe('全滅イベント', () => {
 
   it('全滅は1チームにつき1回だけ記録される', () => {
     // Team 0: 2 units
-    const t0a = spawnAt(0 as Team, 0, 100, 100);
-    const t0b = spawnAt(0 as Team, 0, 120, 100);
-    const t1a = spawnAt(1 as Team, 0, 200, 100);
+    const t0a = spawnAt(0, 0, 100, 100);
+    const t0b = spawnAt(0, 0, 120, 100);
+    const t1a = spawnAt(1, 0, 200, 100);
 
     resetMeleeTracking(2, counts());
 
@@ -223,11 +223,11 @@ describe('全滅イベント', () => {
 describe('initialUnits スナップショット', () => {
   it('resetMeleeTracking 時に teamUnitCounts が initialUnits にスナップショットされる', () => {
     // Team 0: 3 units, Team 1: 2 units
-    spawnAt(0 as Team, 0, 100, 100);
-    spawnAt(0 as Team, 0, 120, 100);
-    spawnAt(0 as Team, 0, 140, 100);
-    spawnAt(1 as Team, 0, 200, 100);
-    spawnAt(1 as Team, 0, 220, 100);
+    spawnAt(0, 0, 100, 100);
+    spawnAt(0, 0, 120, 100);
+    spawnAt(0, 0, 140, 100);
+    spawnAt(1, 0, 200, 100);
+    spawnAt(1, 0, 220, 100);
 
     expect(teamUnitCounts[0]).toBe(3);
     expect(teamUnitCounts[1]).toBe(2);
@@ -248,9 +248,9 @@ describe('initialUnits スナップショット', () => {
 
 describe('finalize 後の hook unsubscribe', () => {
   it('finalizeMelee 後に kill hook が unsubscribe される', () => {
-    const t0a = spawnAt(0 as Team, 0, 100, 100);
-    spawnAt(1 as Team, 0, 200, 100);
-    const t1b = spawnAt(1 as Team, 0, 220, 100);
+    const t0a = spawnAt(0, 0, 100, 100);
+    spawnAt(1, 0, 200, 100);
+    const t1b = spawnAt(1, 0, 220, 100);
 
     resetMeleeTracking(2, counts());
 
@@ -281,10 +281,10 @@ describe('finalize 後の hook unsubscribe', () => {
 
 describe('2回目の reset でデータクリア', () => {
   it('resetMeleeTracking で前回のキル数・全滅イベントがクリアされる', () => {
-    const t0a = spawnAt(0 as Team, 0, 100, 100);
-    spawnAt(0 as Team, 0, 120, 100);
-    const t1a = spawnAt(1 as Team, 0, 200, 100);
-    spawnAt(1 as Team, 0, 220, 100);
+    const t0a = spawnAt(0, 0, 100, 100);
+    spawnAt(0, 0, 120, 100);
+    const t1a = spawnAt(1, 0, 200, 100);
+    spawnAt(1, 0, 220, 100);
 
     resetMeleeTracking(2, counts());
 

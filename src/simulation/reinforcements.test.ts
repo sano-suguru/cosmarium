@@ -1,15 +1,28 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { incMotherships, poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { TYPES } from '../unit-types.ts';
+import { TYPES, unitTypeIndex } from '../unit-types.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { REINFORCE_INTERVAL, REINFORCE_UNIT_CAP, REINFORCEMENT_TABLE, reinforce } from './reinforcements.ts';
+
+const MOTHERSHIP_T = unitTypeIndex('Mothership');
 
 function makeRS(timer = 0): ReinforcementState {
   return { reinforcementTimer: timer };
 }
+
+/** 両チームに母艦をスポーン済みの状態にする（reinforce の母艦再スポーンを抑止） */
+function spawnMotherships() {
+  for (const team of [0, 1] as const) {
+    const idx = spawnAt(team, MOTHERSHIP_T, team * 500, 0);
+    incMotherships(team, idx);
+  }
+}
+
+/** spawnMotherships() がスポーンする母艦の数（両チーム分） */
+const MOTHERSHIP_PAIR = 2;
 
 afterEach(() => {
   resetPools();
@@ -45,17 +58,19 @@ describe('reinforce', () => {
   });
 
   it('最低 Drone×8 + Fighter×2 が両チームにスポーン (r=0.99)', () => {
+    spawnMotherships();
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
     reinforce(0.1, rng, rs);
-    expect(poolCounts.units).toBe(22);
+    expect(poolCounts.units).toBe(22 + MOTHERSHIP_PAIR);
   });
 
   it('r < 0.1 かつ cnt < 50 で Flagship がスポーンする', () => {
+    spawnMotherships();
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.05;
     reinforce(0.1, rng, rs);
-    expect(poolCounts.units).toBe(28);
+    expect(poolCounts.units).toBe(28 + MOTHERSHIP_PAIR);
     let hasFlagship = false;
     for (let i = 0; i < POOL_UNITS; i++) {
       if (unit(i).alive && unit(i).type === 4) {
@@ -67,13 +82,14 @@ describe('reinforce', () => {
   });
 
   it(`閾値${REINFORCE_UNIT_CAP}体以上でスポーンなし`, () => {
+    spawnMotherships();
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
     for (let i = 0; i < REINFORCE_UNIT_CAP; i++) {
       spawnAt(0, 0, i * 20, 0);
     }
     reinforce(0.1, rng, rs);
-    expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 11);
+    expect(poolCounts.units).toBe(REINFORCE_UNIT_CAP + 11 + MOTHERSHIP_PAIR);
   });
 
   it('両チーム (0, 1) にそれぞれスポーンされる', () => {

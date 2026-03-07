@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import type { Team } from '../types.ts';
-import { MAX_TEAMS } from '../types.ts';
+import { MAX_TEAMS, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
 import {
   accumulateUnit,
   beginTeamCenterUpdate,
@@ -28,8 +28,8 @@ function placeUnit(team: Team, x: number, y: number) {
 describe('updateTeamCenters', () => {
   it('ユニットなしの場合すべてのチームが null を返す', () => {
     updateTeamCenters(MAX_TEAMS);
-    for (let t = 0; t < 5; t++) {
-      expect(teamCenterOf(t as Team)).toBeNull();
+    for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
+      expect(teamCenterOf(t)).toBeNull();
     }
   });
 
@@ -124,11 +124,11 @@ describe('3フェーズAPI', () => {
     beginTeamCenterUpdate();
     accumulateUnit(3, 999, 999);
     endTeamCenterUpdate(MAX_TEAMS);
-    expect(teamCenterOf(3 as Team)).not.toBeNull();
+    expect(teamCenterOf(TEAM3)).not.toBeNull();
     // 再度 begin → チーム3もリセットされる
     beginTeamCenterUpdate();
     endTeamCenterUpdate(2); // activeTeamCount=2 でもリセットは MAX_TEAMS 分
-    expect(teamCenterOf(3 as Team)).toBeNull();
+    expect(teamCenterOf(TEAM3)).toBeNull();
   });
 
   it('activeTeamCount 外チームのユニットを蓄積してもstaleデータにならない', () => {
@@ -137,12 +137,12 @@ describe('3フェーズAPI', () => {
     accumulateUnit(3, 500, 500);
     endTeamCenterUpdate(2);
     // チーム3はクエリで null（activeTeamCount 外）
-    expect(teamCenterOf(3 as Team)).toBeNull();
+    expect(teamCenterOf(TEAM3)).toBeNull();
     // 次フレーム: begin でリセットされるのでstaleデータなし
     beginTeamCenterUpdate();
     endTeamCenterUpdate(MAX_TEAMS);
     // チーム3はリセット済み → count=0 → null
-    expect(teamCenterOf(3 as Team)).toBeNull();
+    expect(teamCenterOf(TEAM3)).toBeNull();
   });
 });
 
@@ -154,7 +154,7 @@ describe('activeTeamCount による制限', () => {
     updateTeamCenters(2); // チーム 0, 1 のみ
     expect(teamCenterOf(0)?.x).toBeCloseTo(10);
     expect(teamCenterOf(1)?.x).toBeCloseTo(100);
-    expect(teamCenterOf(2 as Team)).toBeNull();
+    expect(teamCenterOf(TEAM2)).toBeNull();
   });
 
   it('activeTeamCount 外のチームは nearestEnemyCenter で無視される', () => {

@@ -1,4 +1,5 @@
 import type { Color3, Team, TeamTuple } from './types.ts';
+import { mapTeamTuple } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];
@@ -14,7 +15,7 @@ function color3ToHex(c: Color3): string {
   const b = Math.round(c[2] * 255);
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
-export const TEAM_HEX_COLORS: Readonly<TeamTuple<string>> = TEAM_BASE.map(color3ToHex) as TeamTuple<string>;
+export const TEAM_HEX_COLORS: Readonly<TeamTuple<string>> = mapTeamTuple(TEAM_BASE, color3ToHex);
 
 /** UI 用パステルネオンパレット — 明度↑ 彩度↓ で暗背景のグロー向き */
 function pastelNeon(c: Color3): string {
@@ -22,7 +23,7 @@ function pastelNeon(c: Color3): string {
   const [r, g, b] = hslToRgb(h, clamp01(s * 0.8), clamp01(l * 0.35 + 0.5));
   return color3ToHex([clamp01(r), clamp01(g), clamp01(b)]);
 }
-export const TEAM_UI_HEX_COLORS: Readonly<TeamTuple<string>> = TEAM_BASE.map(pastelNeon) as TeamTuple<string>;
+export const TEAM_UI_HEX_COLORS: Readonly<TeamTuple<string>> = mapTeamTuple(TEAM_BASE, pastelNeon);
 
 /** 分隊テザー等で使用するチーム基本色 */
 export function teamBaseColor(tm: Team): Readonly<Color3> {
@@ -57,6 +58,7 @@ const UNIT_MOD_MAP: Readonly<Record<string, UnitColorMod>> = {
   Amplifier: { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
   Scrambler: { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
   Catalyst: { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
+  Mothership: { hue: -0.16, lum: 0.82, sat: 0.65, effectHue: -0.26, effectSat: 1.0 },
 };
 
 const UNIT_MODS: readonly UnitColorMod[] = TYPES.map((t) => {

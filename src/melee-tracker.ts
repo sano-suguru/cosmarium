@@ -9,7 +9,7 @@
 import { teamUnitCounts } from './pools.ts';
 import { onKillUnit } from './simulation/spawn.ts';
 import type { Team, TeamCounts, TeamTuple } from './types.ts';
-import { MAX_TEAMS } from './types.ts';
+import { TEAMS, teamsOf } from './types.ts';
 
 export interface EliminationEvent {
   readonly team: Team;
@@ -75,8 +75,8 @@ export function resetMeleeTracking(numTeams: number, initialCounts: Readonly<Tea
   meleeEliminations.length = 0;
   eliminated.fill(false);
 
-  for (let i = 0; i < MAX_TEAMS; i++) {
-    meleeInitialUnits[i as Team] = initialCounts[i as Team];
+  for (const t of TEAMS) {
+    meleeInitialUnits[t] = initialCounts[t];
   }
 
   // 前回のhookを解除してから新しいhookを登録
@@ -115,11 +115,11 @@ function finalizeMelee() {
   }
 
   const teamStats: TeamStats[] = [];
-  for (let i = 0; i < meleeNumTeams; i++) {
+  for (const t of teamsOf(meleeNumTeams)) {
     teamStats.push({
-      kills: meleeKills[i as Team],
-      survivors: teamUnitCounts[i as Team],
-      initialUnits: meleeInitialUnits[i as Team],
+      kills: meleeKills[t],
+      survivors: teamUnitCounts[t],
+      initialUnits: meleeInitialUnits[t],
     });
   }
 

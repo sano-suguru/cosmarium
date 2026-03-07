@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import {
+  EFFECT_SHAPE_BASE,
   SH_BAR,
   SH_BEAM,
   SH_CIRCLE,
@@ -44,8 +45,8 @@ const EFFECT_SHAPE_IDS = [
 ] as const;
 
 describe('GLSL ↔ TypeScript shape sync', () => {
-  test('NUM_SHAPES = TYPES.length + effect shape count', () => {
-    expect(NUM_SHAPES).toBe(TYPES.length + EFFECT_SHAPE_IDS.length);
+  test('NUM_SHAPES = EFFECT_SHAPE_BASE + effect shape count', () => {
+    expect(NUM_SHAPES).toBe(EFFECT_SHAPE_BASE + EFFECT_SHAPE_IDS.length);
   });
 
   test('unit shape IDs are 0 to TYPES.length-1 sequential', () => {
@@ -56,31 +57,45 @@ describe('GLSL ↔ TypeScript shape sync', () => {
     }
   });
 
-  test('effect shape IDs are sequential from TYPES.length', () => {
-    const firstEffectId = TYPES.length;
-    expect(SH_CIRCLE).toBe(firstEffectId);
+  test('effect shape IDs are sequential from EFFECT_SHAPE_BASE', () => {
+    expect(SH_CIRCLE).toBe(EFFECT_SHAPE_BASE);
     expect(SH_TRAIL).toBe(NUM_SHAPES - 1);
     for (let i = 0; i < EFFECT_SHAPE_IDS.length; i++) {
-      expect(EFFECT_SHAPE_IDS[i]).toBe(firstEffectId + i);
+      expect(EFFECT_SHAPE_IDS[i]).toBe(EFFECT_SHAPE_BASE + i);
     }
   });
 
-  test('[SHAPE:] marker count matches NUM_SHAPES', () => {
+  test('EFFECT_SHAPE_BASE > max unit shape ID (no overlap)', () => {
+    for (let i = 0; i < TYPES.length; i++) {
+      const t = TYPES[i];
+      expect(t).toBeDefined();
+      expect(t?.shape).toBeLessThan(EFFECT_SHAPE_BASE);
+    }
+  });
+
+  test('[SHAPE:] marker count matches unit + effect shapes', () => {
     const markerPattern = /\[SHAPE:\d+\s+\w+\]/g;
     const unitMarkers = unitShapesSrc.match(markerPattern) ?? [];
     const effectMarkers = effectShapesSrc.match(markerPattern) ?? [];
-    const totalMarkers = unitMarkers.length + effectMarkers.length;
-    expect(totalMarkers).toBe(NUM_SHAPES);
+    expect(unitMarkers.length).toBe(TYPES.length);
+    expect(effectMarkers.length).toBe(EFFECT_SHAPE_IDS.length);
   });
 
-  test('[SHAPE:] marker IDs are 0 to NUM_SHAPES-1 in order', () => {
+  test('[SHAPE:] marker IDs are sequential within unit and effect ranges', () => {
     const markerPattern = /\[SHAPE:(\d+)\s+\w+\]/g;
-    const allSrc = unitShapesSrc + effectShapesSrc;
-    const ids: number[] = [];
+
+    const unitIds: number[] = [];
     let match: RegExpExecArray | null;
-    while ((match = markerPattern.exec(allSrc)) !== null) {
-      ids.push(Number(match[1]));
+    while ((match = markerPattern.exec(unitShapesSrc)) !== null) {
+      unitIds.push(Number(match[1]));
     }
-    expect(ids).toEqual(Array.from({ length: NUM_SHAPES }, (_, i) => i));
+    expect(unitIds).toEqual(Array.from({ length: TYPES.length }, (_, i) => i));
+
+    const effectIds: number[] = [];
+    const effectPattern = /\[SHAPE:(\d+)\s+\w+\]/g;
+    while ((match = effectPattern.exec(effectShapesSrc)) !== null) {
+      effectIds.push(Number(match[1]));
+    }
+    expect(effectIds).toEqual(Array.from({ length: EFFECT_SHAPE_IDS.length }, (_, i) => EFFECT_SHAPE_BASE + i));
   });
 });

@@ -3,9 +3,10 @@ import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } 
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
-import { particle, poolCounts, projectile, teamUnitCounts, unit } from '../pools.ts';
+import { getUnitHWM, mothershipIdx, particle, poolCounts, projectile, teamUnitCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
-import type { Team } from '../types.ts';
+import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
+import { unitTypeIndex } from '../unit-types.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -13,7 +14,7 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { INIT_SPAWNS, initMelee, initUnits } from './init.ts';
+import { INIT_SPAWNS, initBattle, initMelee, initUnits } from './init.ts';
 
 afterEach(() => {
   resetPools();
@@ -74,9 +75,9 @@ describe('initUnits', () => {
     expect(beams).toHaveLength(0);
   });
 
-  it('両チーム合計 n合計 × 2チーム ユニットを生成する', () => {
+  it('両チーム合計 (n合計+母艦) × 2チーム ユニットを生成する', () => {
     initUnits(rng);
-    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
+    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0) + 1; // +1 for Mothership
     expect(poolCounts.units).toBe(perTeam * 2);
   });
 
@@ -88,7 +89,7 @@ describe('initUnits', () => {
         aliveCount++;
       }
     }
-    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
+    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0) + 1; // +1 for Mothership
     expect(aliveCount).toBe(perTeam * 2);
   });
 
@@ -107,7 +108,7 @@ describe('initUnits', () => {
         team1++;
       }
     }
-    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0);
+    const perTeam = INIT_SPAWNS.reduce((a, s) => a + s.count, 0) + 1; // +1 for Mothership
     expect(team0).toBe(perTeam);
     expect(team1).toBe(perTeam);
   });
@@ -124,8 +125,8 @@ describe('initMelee', () => {
   it('5勢力で全チームにユニットがスポーンされる', () => {
     initMelee(5, DEFAULT_BUDGET, rng);
     expect(poolCounts.units).toBeGreaterThan(0);
-    for (let t = 0; t < 5; t++) {
-      expect(teamUnitCounts[t as Team]).toBeGreaterThan(0);
+    for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
+      expect(teamUnitCounts[t]).toBeGreaterThan(0);
     }
   });
 
@@ -149,5 +150,62 @@ describe('initMelee', () => {
     const diff01 = Math.abs((avgX[0] ?? 0) - (avgX[1] ?? 0));
     const diff02 = Math.abs((avgX[0] ?? 0) - (avgX[2] ?? 0));
     expect(diff01 + diff02).toBeGreaterThan(100);
+  });
+});
+
+describe('initBattle — 母艦自動配備', () => {
+  const MOTHERSHIP = unitTypeIndex('Mothership');
+  const playerFleet = [{ type: 0, count: 5 }];
+  const enemyFleet = [{ type: 0, count: 5 }];
+
+  it('各チームに Mothership タイプのユニットが1体存在する', () => {
+    initBattle(playerFleet, enemyFleet, rng);
+    for (let t = 0; t < 2; t++) {
+      let mothershipCount = 0;
+      for (let i = 0; i < getUnitHWM(); i++) {
+        const u = unit(i);
+        if (u.alive && u.team === t && u.type === MOTHERSHIP) {
+          mothershipCount++;
+        }
+      }
+      expect(mothershipCount).toBe(1);
+    }
+  });
+
+  it('mothershipIdx が各チームで有効値', () => {
+    initBattle(playerFleet, enemyFleet, rng);
+    expect(mothershipIdx[0]).not.toBe(NO_UNIT);
+    expect(mothershipIdx[1]).not.toBe(NO_UNIT);
+  });
+
+  it('SPECTATE (initUnits) でも各チームに母艦がスポーンされる', () => {
+    initUnits(rng);
+    expect(mothershipIdx[0]).not.toBe(NO_UNIT);
+    expect(mothershipIdx[1]).not.toBe(NO_UNIT);
+    let mothershipCount = 0;
+    for (let i = 0; i < getUnitHWM(); i++) {
+      if (unit(i).alive && unit(i).type === MOTHERSHIP) {
+        mothershipCount++;
+      }
+    }
+    expect(mothershipCount).toBe(2);
+  });
+
+  it('MELEE (initMelee) で各チームに母艦がスポーンされる', () => {
+    initMelee(3, DEFAULT_BUDGET, rng);
+    for (const t of [TEAM0, TEAM1, TEAM2]) {
+      expect(mothershipIdx[t]).not.toBe(NO_UNIT);
+    }
+    // Mothership タイプのユニットがチームごとに1体
+    for (let t = 0; t < 3; t++) {
+      let mothershipCount = 0;
+      for (let i = 0; i < getUnitHWM(); i++) {
+        const u = unit(i);
+        if (u.alive && u.team === t && u.type === MOTHERSHIP) {
+          mothershipCount++;
+        }
+      }
+      expect(mothershipCount).toBe(1);
+    }
   });
 });

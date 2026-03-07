@@ -1009,3 +1009,44 @@
     col=mix(col,vec3(0.3,1.0,0.5),(exhaust+exTrail)*0.30);
     a=shapeSoftClamp(a, sh);
     }
+  // [SHAPE:19 Mothership] ————————————————————————————
+  else if(sh==19){ vec2 p=vU*0.88; float t=vA+uTime;
+    vec2 pm=vec2(p.x,abs(p.y));
+    float dHull=sdTrapezoid(pm.yx-vec2(0.0,-0.08),0.32,0.12,0.62);
+    float dBow=sdRoundedBox(p-vec2(0.52,0.0),vec2(0.16,0.28),0.10);
+    float dStern=sdRoundedBox(p-vec2(-0.72,0.0),vec2(0.14,0.42),0.08);
+    float dBody=smin(dHull,dBow,0.08);
+    dBody=smin(dBody,dStern,0.06);
+    float dDeck=sdRoundedBox(pm-vec2(0.10,0.22),vec2(0.35,0.04),0.02);
+    dBody=smin(dBody,dDeck,0.04);
+    float dHangarCut=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.30,0.10),0.04);
+    dBody=max(dBody,-dHangarCut);
+    float dEngineCut=sdRoundedBox(p-vec2(-0.72,0.0),vec2(0.16,0.18),0.05);
+    dBody=max(dBody,-dEngineCut);
+    float dGroove=sdRoundedBox(pm-vec2(-0.15,0.24),vec2(0.25,0.03),0.01);
+    dBody=max(dBody,-dGroove);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    float xSeg=p.x*5.0+0.3;
+    float rib=(1.0-smoothstep(0.40,0.50,abs(fract(xSeg)-0.5)+fwidth(xSeg)*0.6))
+              *smoothstep(-0.65,-0.10,p.x)*hf*0.12;
+    float lane=1.0-smoothstep(0.060,0.060+aa,abs(pm.y-0.22));
+    float wx=p.x*10.0+t*0.5;
+    float win=(1.0-smoothstep(0.32,0.48,abs(fract(wx)-0.5)+fwidth(wx)*0.8))
+              *smoothstep(-0.60,0.40,p.x)*lane*hf;
+    float dHangar=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.30,0.10),0.04);
+    float reactor=exp(-14.0*max(length(p-vec2(0.05,0.0))-0.14,0.0))
+                  *(0.65+0.35*sin(t*1.8))*(1.0-smoothstep(0.0,aa,dHangar))*hf;
+    float engP=0.60+0.40*sin(t*5.0+p.y*3.0);
+    float eR=0.06; float eF=22.0; float pF=120.0; float pD=8.0;
+    float e1=length(pm-vec2(-0.86,0.12))-eR;
+    float e2=length(pm-vec2(-0.86,0.28))-eR;
+    float e3=length(pm-vec2(-0.86,0.42))-eR;
+    float engC=exp(-eF*max(min(min(e1,e2),e3),0.0))*engP;
+    float plm=exp(-pD*max(-p.x-0.84,0.0))*(
+      exp(-pF*(pm.y-0.12)*(pm.y-0.12))
+      +exp(-pF*(pm.y-0.28)*(pm.y-0.28))
+      +exp(-pF*(pm.y-0.42)*(pm.y-0.42)));
+    float eng=(engC*0.80+plm*(0.50+0.50*engP)*0.40)*smoothstep(-0.90,-0.40,p.x);
+    float shimmer=exp(-abs(dBody)*8.0)*0.08*(0.5+0.5*sin(t*2.0+p.x*6.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.20+reactor*0.50+eng*0.55+shimmer;
+    a=shapeSoftClamp(a, sh); }

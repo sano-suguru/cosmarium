@@ -1,6 +1,6 @@
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
-import type { Team, TeamCounts } from '../types.ts';
-import { MAX_TEAMS } from '../types.ts';
+import type { TeamCounts } from '../types.ts';
+import { TEAMS } from '../types.ts';
 
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;
@@ -18,8 +18,8 @@ const ZERO_TEAMS: Readonly<TeamCounts> = [0, 0, 0, 0, 0];
 function acquireCell(): HotspotCell {
   if (_cellPoolIdx < _cellPool.length) {
     const c = _cellPool[_cellPoolIdx++] as HotspotCell;
-    for (let i = 0; i < MAX_TEAMS; i++) {
-      c.teams[i as Team] = 0;
+    for (const t of TEAMS) {
+      c.teams[t] = 0;
     }
     c.sx = 0;
     c.sy = 0;

@@ -43,3 +43,5 @@ export const DOM_ID_RESULT_REMATCH = 'resultRematch';
 
 export const DOM_ID_BTN_MELEE = 'btnMelee';
 export const DOM_ID_MELEE_TEAMS = 'meleeTeams';
+
+export const DOM_ID_MOTHERSHIP_HP = 'mothershipHp';

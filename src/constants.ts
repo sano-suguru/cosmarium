@@ -27,18 +27,22 @@ export const REF_FPS = 60;
 /** 固定シミュレーションステップ (1/REF_FPS ≈ 0.0167秒) */
 export const SIM_DT = 1 / REF_FPS;
 
-// Units 0–18, Effects 19–28 (stable IDs, append-only — 既存IDの変更・再利用禁止)
-export const SH_CIRCLE = 19;
-export const SH_DIAMOND = 20;
-export const SH_HOMING = 21;
-export const SH_BEAM = 22;
-export const SH_LIGHTNING = 23;
-export const SH_EXPLOSION_RING = 24;
-export const SH_DIAMOND_RING = 25;
-export const SH_OCT_SHIELD = 26;
-export const SH_REFLECT_FIELD = 27;
-export const SH_BAR = 28;
-export const SH_TRAIL = 29;
+// ユニットシェイプ = TYPES配列インデックス (0–19)
+// エフェクト = EFFECT_SHAPE_BASE (32) から連番。20–31 は将来のユニット用に予約
+// 予約枠により、ユニット追加時にエフェクトIDの再番号付けが不要になる
+// shape-sync.test.ts が検証。IDの再利用禁止
+export const EFFECT_SHAPE_BASE = 32;
+export const SH_CIRCLE = EFFECT_SHAPE_BASE + 0;
+export const SH_DIAMOND = EFFECT_SHAPE_BASE + 1;
+export const SH_HOMING = EFFECT_SHAPE_BASE + 2;
+export const SH_BEAM = EFFECT_SHAPE_BASE + 3;
+export const SH_LIGHTNING = EFFECT_SHAPE_BASE + 4;
+export const SH_EXPLOSION_RING = EFFECT_SHAPE_BASE + 5;
+export const SH_DIAMOND_RING = EFFECT_SHAPE_BASE + 6;
+export const SH_OCT_SHIELD = EFFECT_SHAPE_BASE + 7;
+export const SH_REFLECT_FIELD = EFFECT_SHAPE_BASE + 8;
+export const SH_BAR = EFFECT_SHAPE_BASE + 9;
+export const SH_TRAIL = EFFECT_SHAPE_BASE + 10;
 
 export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;
