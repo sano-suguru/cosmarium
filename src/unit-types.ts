@@ -292,7 +292,7 @@ export const TYPES: UnitType[] = [
     name: 'Lancer',
     cost: 6,
     size: 12,
-    hp: 65,
+    hp: 55,
     speed: 260,
     turnRate: 2,
     fireRate: NO_FIRE,

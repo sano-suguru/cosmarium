@@ -25,6 +25,7 @@ const ARCHETYPES: readonly Archetype[] = [
   { name: '重装型', weights: w(1, { Flagship: 8, Cruiser: 7, Bastion: 6, Carrier: 5, Bomber: 4 }) },
   { name: '奇襲型', weights: w(1, { Teleporter: 8, Lancer: 7, Sniper: 7, Disruptor: 5, Scrambler: 4 }) },
   { name: '支援型', weights: w(2, { Healer: 8, Amplifier: 7, Catalyst: 7, Bastion: 5, Fighter: 5, Cruiser: 4 }) },
+  { name: '防壁型', weights: w(1, { Reflector: 8, Disruptor: 7, Bomber: 6, Bastion: 6, Cruiser: 5 }) },
   { name: '混成型', weights: w(3, {}) },
 ];
 

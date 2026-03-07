@@ -1,6 +1,7 @@
 import { SH_CIRCLE, SH_DIAMOND_RING, SH_EXPLOSION_RING } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
+import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { aimAt, tgtDistOrClear } from './combat-aim.ts';
@@ -28,50 +29,67 @@ const BLINK_IMPACT_RADIUS = 80;
 const BLINK_IMPACT_KNOCKBACK = 200;
 const BLINK_IMPACT_STUN = 0.25;
 
+function ramCollisionSparks(x: number, y: number, rng: () => number) {
+  for (let k = 0; k < 10; k++) {
+    const a = rng() * 6.283;
+    spawnParticle(
+      x,
+      y,
+      Math.cos(a) * (80 + rng() * 160),
+      Math.sin(a) * (80 + rng() * 160),
+      0.15,
+      2 + rng() * 2,
+      1,
+      0.9,
+      0.4,
+      SH_CIRCLE,
+    );
+  }
+}
+
+function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitType) {
+  const { u, ui, vd } = ctx;
+  const hasField = o.reflectFieldHp > 0;
+  const fieldMul = hasField ? 0.5 : 1;
+  const ramDmg = Math.ceil(u.mass * 3 * vd * fieldMul);
+  o.hp -= ramDmg;
+  if (hasField) {
+    o.reflectFieldHp = Math.max(0, o.reflectFieldHp - ramDmg);
+  }
+  o.hitFlash = 1;
+  knockback(oi, u.x, u.y, u.mass * 55);
+  u.hp -= Math.ceil(oType.mass * 2 * (hasField ? 1.5 : 1));
+  ramCollisionSparks((u.x + o.x) / 2, (u.y + o.y) / 2, ctx.rng);
+  if (o.hp <= 0 && u.hp <= 0) {
+    destroyMutualKill(ui, oi, true, true, ctx.rng, KILL_CONTEXT.Ram);
+    return true;
+  }
+  if (o.hp <= 0) {
+    destroyUnit(oi, ui, ctx.rng, KILL_CONTEXT.Ram);
+  } else if (u.hp <= 0) {
+    destroyUnit(ui, oi, ctx.rng, KILL_CONTEXT.Ram);
+    return true;
+  }
+  return false;
+}
+
 export function ramTarget(ctx: CombatContext) {
-  const { u, ui, t, vd } = ctx;
+  const { u, t } = ctx;
   const nn = getNeighbors(u.x, u.y, t.size * 2);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
       o = unit(oi);
-    const oType = unitType(o.type);
     if (!o.alive || o.team === u.team) {
       continue;
     }
+    const oType = unitType(o.type);
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d >= t.size + oType.size) {
       continue;
     }
-    o.hp -= Math.ceil(u.mass * 3 * vd);
-    o.hitFlash = 1;
-    knockback(oi, u.x, u.y, u.mass * 55);
-    u.hp -= Math.ceil(oType.mass);
-    for (let k = 0; k < 10; k++) {
-      const a = ctx.rng() * 6.283;
-      spawnParticle(
-        (u.x + o.x) / 2,
-        (u.y + o.y) / 2,
-        Math.cos(a) * (80 + ctx.rng() * 160),
-        Math.sin(a) * (80 + ctx.rng() * 160),
-        0.15,
-        2 + ctx.rng() * 2,
-        1,
-        0.9,
-        0.4,
-        SH_CIRCLE,
-      );
-    }
-    if (o.hp <= 0 && u.hp <= 0) {
-      destroyMutualKill(ui, oi, true, true, ctx.rng, KILL_CONTEXT.Ram);
-      return;
-    }
-    if (o.hp <= 0) {
-      destroyUnit(oi, ui, ctx.rng, KILL_CONTEXT.Ram);
-    }
-    if (u.hp <= 0) {
-      destroyUnit(ui, oi, ctx.rng, KILL_CONTEXT.Ram);
+    if (applyRamDamage(ctx, oi, o, oType)) {
       return;
     }
   }
