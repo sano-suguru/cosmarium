@@ -151,16 +151,3 @@ export function emitSupport(
 export function _resetSupportHooks(): void {
   supportHooks.length = 0;
 }
-
-// ─── Sim Time ─────────────────────────────────────────────────────
-
-let _currentSimTime = 0;
-export function setCurrentSimTime(t: number): void {
-  _currentSimTime = t;
-}
-export function getCurrentSimTime(): number {
-  return _currentSimTime;
-}
-export function _resetSimTime(): void {
-  _currentSimTime = 0;
-}

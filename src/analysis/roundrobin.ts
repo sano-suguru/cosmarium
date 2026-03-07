@@ -55,6 +55,8 @@ interface RoundRobinConfig {
   readonly maxSteps: number;
   readonly outFile: string | null;
   readonly createRng: (seed: number) => () => number;
+  /** 進捗ログ出力関数。デフォルトは console.error */
+  readonly logger?: ((msg: string) => void) | undefined;
 }
 
 // ─── Core ─────────────────────────────────────────────────────────
@@ -217,6 +219,7 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
   const matchups: MatchupResult[] = [];
   let matchIndex = 0;
   const totalMatchups = (types.length * (types.length - 1)) / 2;
+  const log = config.logger ?? console.error;
 
   for (let i = 0; i < types.length; i++) {
     for (let j = i + 1; j < types.length; j++) {
@@ -231,7 +234,7 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
         continue;
       }
       matchups.push(result);
-      console.error(
+      log(
         `  [${matchups.length}/${totalMatchups}] ${result.nameA} vs ${result.nameB}: ${result.winsA}-${result.winsB}-${result.draws}`,
       );
     }
@@ -291,7 +294,7 @@ function parseRoundRobinArgs(argv: readonly string[], createRng: (seed: number) 
   };
 }
 
-if (typeof process !== 'undefined' && process.argv[1]?.includes('roundrobin')) {
+if (import.meta.main) {
   (async () => {
     const { seedRng, state } = await import('../state.ts');
     const createRng = (seed: number) => {

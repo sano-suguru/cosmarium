@@ -2,7 +2,7 @@
  * バッチ対戦システム — トラッカー生成・フック登録ロジック
  */
 
-import { getCurrentSimTime, onDamageUnit, onSupportEffect } from '../simulation/hooks.ts';
+import { onDamageUnit, onSupportEffect } from '../simulation/hooks.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import { onKillUnit } from '../simulation/spawn.ts';
 import { MAX_TEAMS, NO_UNIT } from '../types.ts';
@@ -133,10 +133,10 @@ export function createLifespanTracker(): LifespanTracker {
   };
 }
 
-export function installLifespanKillHook(tracker: LifespanTracker): () => void {
+export function installLifespanKillHook(tracker: LifespanTracker, getTime: () => number): () => void {
   return onKillUnit((e) => {
     const spawnTime = tracker.spawnTimes.get(e.victim) ?? 0;
-    const lifespan = getCurrentSimTime() - spawnTime;
+    const lifespan = getTime() - spawnTime;
     accum(tracker.totalLifespan, e.victimType, lifespan);
     tracker.spawnTimes.delete(e.victim);
   });

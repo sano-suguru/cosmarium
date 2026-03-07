@@ -24,6 +24,8 @@ export interface BatchConfig {
   readonly fleets?: readonly FleetComposition[] | undefined;
   /** シード値から RNG 関数を生成するファクトリ */
   readonly createRng: (seed: number) => () => number;
+  /** 進捗ログ出力関数。デフォルトは console.error */
+  readonly logger?: ((msg: string) => void) | undefined;
 }
 
 // ─── Trial ───────────────────────────────────────────────────────

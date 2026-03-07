@@ -24,6 +24,7 @@ describe('runRoundRobin', () => {
       maxSteps: 300,
       outFile: null,
       createRng: testCreateRng,
+      logger: () => undefined,
     });
 
     // cost <= 3 のユニットのみ実際に対戦可能（budget=3 で1体以上購入できるもの）
@@ -54,6 +55,7 @@ describe('runRoundRobin', () => {
       maxSteps: 300,
       outFile: null,
       createRng: testCreateRng,
+      logger: () => undefined,
     });
 
     for (let i = 1; i < summary.rankings.length; i++) {
@@ -75,6 +77,7 @@ describe('runRoundRobin', () => {
       maxSteps: 300,
       outFile: null,
       createRng: testCreateRng,
+      logger: () => undefined,
     });
 
     for (const r of summary.rankings) {

@@ -21,6 +21,7 @@ function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
     snapshotInterval: 300,
     outFile: null,
     createRng: testCreateRng,
+    logger: () => undefined,
     ...overrides,
   };
 }

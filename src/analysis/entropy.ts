@@ -26,8 +26,10 @@ export function shannonEntropy(counts: readonly number[]): number {
 }
 
 /**
- * 正規化エントロピー H / log2(n)。0～1 にスケーリング。
- * n=1 の場合は 0 を返す（多様性なし）。
+ * 正規化エントロピー H / log2(k)。0～1 にスケーリング。
+ * k は非ゼロ要素数（全カテゴリ数ではなく、観測されたカテゴリ数で正規化）。
+ * これにより「使用中のカテゴリ間の均等性」を測定する。
+ * k ≤ 1 の場合は 0 を返す（多様性なし）。
  */
 export function normalizedEntropy(counts: readonly number[]): number {
   const nonZero = counts.filter((c) => c > 0).length;
@@ -110,37 +112,48 @@ export function ngramEntropy(sequence: readonly number[], n: number): number {
 // ─── Compression Ratio (Kolmogorov Complexity Approximation) ───────
 
 /**
- * LZ77 風の簡易圧縮率でコルモゴロフ複雑性を近似。
- * 数値シーケンスを文字列化し、繰り返しパターンの検出でデータの「複雑さ」を推定。
+ * LZ76 アルゴリズムによるコルモゴロフ複雑性の近似。
+ * 数値配列を直接操作し、既出部分列を探索。
  *
- * 戻り値: 0～1 の圧縮率（低い → 高い圧縮性 → パターンが単純、
- *         高い → 圧縮困難 → パターンが複雑/ランダム）
+ * 戻り値: 0～1 の複雑性スコア（低い → パターンが単純、
+ *         高い → パターンが複雑/ランダム）
  */
 export function lzComplexity(sequence: readonly number[]): number {
-  if (sequence.length === 0) {
+  const n = sequence.length;
+  if (n === 0) {
     return 0;
   }
 
-  const s = `${sequence.join(',')},`;
-  const n = s.length;
   let novelPhrases = 1;
   let i = 0;
-  let iLen = 1;
+  let phraseLen = 1;
 
-  while (i + iLen <= n) {
-    const sub = s.substring(i, i + iLen);
-    const searchBoundary = i + iLen - 1;
-    if (s.substring(0, searchBoundary).includes(sub)) {
-      iLen++;
+  while (i + phraseLen <= n) {
+    if (findInHistory(sequence, i, phraseLen)) {
+      phraseLen++;
     } else {
       novelPhrases++;
-      i += iLen;
-      iLen = 1;
+      i += phraseLen;
+      phraseLen = 1;
     }
   }
 
   const theoreticalBound = n / Math.max(1, Math.log2(n));
   return Math.min(1, novelPhrases / theoreticalBound);
+}
+
+/** sequence[start..start+len) が sequence[0..start+len-1) 内に存在するか判定 */
+function findInHistory(sequence: readonly number[], start: number, len: number): boolean {
+  const boundary = start + len - 1;
+  outer: for (let h = 0; h <= boundary - len; h++) {
+    for (let k = 0; k < len; k++) {
+      if (sequence[h + k] !== sequence[start + k]) {
+        continue outer;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 /**

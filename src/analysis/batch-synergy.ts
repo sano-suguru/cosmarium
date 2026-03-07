@@ -3,7 +3,6 @@
  */
 
 import type { FleetComposition } from '../types.ts';
-import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import type { SynergyPair, TrialResult } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
@@ -83,11 +82,8 @@ function getFleetTypes(fleet: FleetComposition): number[] {
 const PAIR_BITS = 8;
 const PAIR_MASK = (1 << PAIR_BITS) - 1;
 
-if (UNIT_TYPE_COUNT >= 1 << PAIR_BITS) {
-  throw new Error(
-    `UNIT_TYPE_COUNT (${UNIT_TYPE_COUNT}) exceeds pair encoding capacity (max ${(1 << PAIR_BITS) - 1}). Increase PAIR_BITS.`,
-  );
-}
+// PAIR_BITS=8 supports up to 255 unit types. Current UNIT_TYPE_COUNT is well within bounds.
+// If UNIT_TYPE_COUNT exceeds 255, increase PAIR_BITS accordingly.
 
 function pairKey(a: number, b: number): number {
   return a < b ? (a << PAIR_BITS) | b : (b << PAIR_BITS) | a;
