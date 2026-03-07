@@ -7,7 +7,7 @@ import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import type { SynergyPair, TrialResult } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
-// ─── Presence Tracking (batch.ts から移動) ────────────────────────
+// ─── Presence Tracking ────────────────────────────────────────────
 
 export function isBattleWithWinner(trial: TrialResult): trial is TrialResult & { readonly winner: number } {
   return trial.fleetCompositions.length === 2 && trial.winner !== null && trial.winner !== 'draw';

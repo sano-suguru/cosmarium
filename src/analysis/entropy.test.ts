@@ -102,8 +102,8 @@ describe('fleetCostEntropy', () => {
     // count分布: [10, 1] → 非常に偏り → 低いエントロピー
     // cost分布: [10, 20] → より均衡 → 高いエントロピー
     const fleet: FleetComposition = [
-      { type: 0, count: 10 }, // Drone cost 1 → total 10
-      { type: 4, count: 1 }, // Flagship cost 20 → total 20
+      { type: 0, count: 10 },
+      { type: 4, count: 1 },
     ];
     const countDiv = fleetDiversity(fleet);
     const costDiv = fleetCostEntropy(fleet);

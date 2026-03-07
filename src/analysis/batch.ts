@@ -582,7 +582,6 @@ export function runBatch(config: BatchConfig): BatchSummary {
   return computeSummary(config, trials);
 }
 
-// CLI エントリポイント（bun run src/analysis/batch.ts で直接実行時のみ動作）
 if (typeof process !== 'undefined' && process.argv[1]?.includes('batch')) {
   (async () => {
     const { seedRng, state } = await import('../state.ts');
