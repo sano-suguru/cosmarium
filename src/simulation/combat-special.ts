@@ -7,6 +7,7 @@ import { unitType } from '../unit-types.ts';
 import { aimAt, tgtDistOrClear } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
 import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
+import { emitDamage, emitSupport } from './hooks.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, captureKiller, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
@@ -53,12 +54,15 @@ function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitT
   const fieldMul = hasField ? 0.5 : 1;
   const ramDmg = Math.ceil(u.mass * 3 * vd * fieldMul);
   o.hp -= ramDmg;
+  emitDamage(u.type, u.team, o.type, o.team, ramDmg, 'ram');
   if (hasField) {
     o.reflectFieldHp = Math.max(0, o.reflectFieldHp - ramDmg);
   }
   o.hitFlash = 1;
   knockback(oi, u.x, u.y, u.mass * 55);
-  u.hp -= Math.ceil(oType.mass * 2 * (hasField ? 1.5 : 1));
+  const selfDmg = Math.ceil(oType.mass * 2 * (hasField ? 1.5 : 1));
+  u.hp -= selfDmg;
+  emitDamage(o.type, o.team, u.type, u.team, selfDmg, 'ram');
   ramCollisionSparks((u.x + o.x) / 2, (u.y + o.y) / 2, ctx.rng);
   if (o.hp <= 0 && u.hp <= 0) {
     destroyMutualKill(ui, oi, true, true, ctx.rng, KILL_CONTEXT.Ram);
@@ -106,8 +110,10 @@ export function healAllies(ctx: CombatContext) {
       continue;
     }
     if (o.hp < o.maxHp) {
+      const healAmount = Math.min(HEALER_AMOUNT, o.maxHp - o.hp);
       o.hp = Math.min(o.maxHp, o.hp + HEALER_AMOUNT);
       addBeam(u.x, u.y, o.x, o.y, 0.2, 1, 0.5, 0.12, 2.5);
+      emitSupport(u.type, u.team, o.type, o.team, 'heal', healAmount);
     }
   }
   spawnParticle(u.x, u.y, 0, 0, 0.2, 20, 0.2, 1, 0.4, SH_EXPLOSION_RING);
@@ -158,6 +164,7 @@ export function dischargeEmp(ctx: CombatContext) {
       oo.stun = 1.5;
       oo.hp -= t.damage;
       oo.hitFlash = 1;
+      emitDamage(u.type, u.team, oo.type, oo.team, t.damage, 'emp');
       if (oo.hp <= 0) {
         destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.Beam);
       }

@@ -559,6 +559,8 @@ export const TYPES: UnitType[] = [
   }),
 ];
 
+export const UNIT_TYPE_COUNT = TYPES.length;
+
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));
 
 export function unitType(id: number): UnitType {

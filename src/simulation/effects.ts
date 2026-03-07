@@ -7,6 +7,7 @@ import { swapRemove } from '../swap-remove.ts';
 import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
+import { emitDamage } from './hooks.ts';
 import type { KillContext } from './on-kill-effects.ts';
 import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
@@ -145,7 +146,7 @@ export function destroyUnit(
   } else {
     resolved = killer.index === NO_UNIT ? undefined : killer;
   }
-  const snap = killUnit(i, resolved);
+  const snap = killUnit(i, resolved, killContext);
   if (snap) {
     explosion(snap.x, snap.y, snap.team, snap.type, rng);
     if (resolved) {
@@ -169,10 +170,10 @@ export function destroyMutualKill(
   let snapB: ReturnType<typeof killUnit>;
   let snapA: ReturnType<typeof killUnit>;
   if (bHpDepleted) {
-    snapB = killUnit(b, killerA);
+    snapB = killUnit(b, killerA, killContext);
   }
   if (aHpDepleted) {
-    snapA = killUnit(a, killerB);
+    snapA = killUnit(a, killerB, killContext);
   }
 
   if (snapB) {
@@ -356,6 +357,7 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     o.hp -= hop.damage;
     o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
+    emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, hop.damage, 'chain');
     if (o.hp <= 0) {
       destroyUnit(hop.targetIndex, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
     }
@@ -400,6 +402,7 @@ function applyChainHit(
   o.hp -= dd;
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
+  emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, dd, 'chain');
   if (o.hp <= 0) {
     destroyUnit(bi, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
   }
