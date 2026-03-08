@@ -3,7 +3,6 @@ import type { BattleTeam, FleetComposition, Team } from '../types.ts';
 import { NO_UNIT, TEAM0, TEAM1, teamsOf } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
-import { generateEnemyFleet } from './enemy-fleet.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, meleeOrigin } from './spawn-coordinates.ts';
 import { formSquadrons } from './squadron.ts';
@@ -101,12 +100,16 @@ export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetCompo
 }
 
 /** N勢力を円周配置でスポーンする（MELEEモード用） */
-export function initMelee(numTeams: number, budget: number, rng: () => number) {
+export function initMelee(fleets: readonly FleetComposition[], rng: () => number) {
   resetField();
+  const numTeams = fleets.length;
   for (const team of teamsOf(numTeams)) {
     const [cx, cy] = meleeOrigin(team, numTeams);
     spawnMothership(team, cx, cy, rng);
-    const { fleet } = generateEnemyFleet(budget, rng);
+    const fleet = fleets[team];
+    if (!fleet) {
+      continue;
+    }
     for (const { type, count } of fleet) {
       const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
       for (let j = 0; j < count; j++) {

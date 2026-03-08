@@ -161,7 +161,7 @@ function setupFleets(
       fleetDiversities.push(fleetDiversity(fleet));
       fleetCompositions.push(fleet);
     }
-    initMelee(activeTeams, config.budget, rng);
+    initMelee(fleetCompositions, rng);
   }
 
   return { fleetDiversities, fleetCompositions, activeTeams };

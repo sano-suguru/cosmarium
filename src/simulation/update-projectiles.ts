@@ -2,13 +2,13 @@ import { effectColor } from '../colors.ts';
 import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
-import { NO_UNIT } from '../types.ts';
+import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex } from '../types.ts';
+import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
 import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
-import { emitDamageFrom } from './hooks.ts';
+import { emitDamage } from './hooks.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
@@ -37,6 +37,18 @@ function steerHomingProjectile(p: Projectile, dt: number) {
   }
 }
 
+function emitProjectileDamage(
+  p: Projectile,
+  victimType: number,
+  victimTeam: Team,
+  amount: number,
+  kind: 'direct' | 'aoe',
+): void {
+  if (p.sourceType !== NO_SOURCE_TYPE) {
+    emitDamage(p.sourceType, p.team, victimType, victimTeam, amount, kind);
+  }
+}
+
 function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
@@ -55,7 +67,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
       o.hp -= aoeDmg;
       o.hitFlash = 1;
-      emitDamageFrom(p.sourceUnit, o.type, o.team, aoeDmg, 'aoe');
+      emitProjectileDamage(p, o.type, o.team, aoeDmg, 'aoe');
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
         destroyUnit(oi, p.sourceUnit, rng, KILL_CONTEXT.ProjectileAoe);
@@ -125,7 +137,7 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
-  emitDamageFrom(p.sourceUnit, o.type, o.team, dmg, 'direct');
+  emitProjectileDamage(p, o.type, o.team, dmg, 'direct');
   hitSparkFx(p, rng);
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);

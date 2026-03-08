@@ -94,6 +94,7 @@ export interface Projectile {
   aoe: number;
   target: UnitIndex;
   sourceUnit: UnitIndex;
+  sourceType: number;
 }
 
 export interface UnitType {
@@ -310,3 +311,4 @@ export const NO_UNIT = -1 as UnitIndex;
 export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
 export const NO_SQUADRON = -1 as SquadronIndex;
+export const NO_SOURCE_TYPE = -1;

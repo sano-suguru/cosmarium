@@ -132,6 +132,10 @@ export function reflectProjectiles(ctx: CombatContext) {
           c[0],
           c[1],
           c[2],
+          false,
+          0,
+          NO_UNIT,
+          ctx.ui,
         );
       }
     }

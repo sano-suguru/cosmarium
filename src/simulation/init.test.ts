@@ -14,7 +14,12 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
+import { generateEnemyFleet } from './enemy-fleet.ts';
 import { INIT_SPAWNS, initBattle, initMelee, initUnits } from './init.ts';
+
+function generateFleets(numTeams: number, budget: number): ReturnType<typeof generateEnemyFleet>['fleet'][] {
+  return Array.from({ length: numTeams }, () => generateEnemyFleet(budget, rng).fleet);
+}
 
 afterEach(() => {
   resetPools();
@@ -116,14 +121,14 @@ describe('initUnits', () => {
 
 describe('initMelee', () => {
   it('2勢力で各チームにユニットがスポーンされる', () => {
-    initMelee(2, DEFAULT_BUDGET, rng);
+    initMelee(generateFleets(2, DEFAULT_BUDGET), rng);
     expect(poolCounts.units).toBeGreaterThan(0);
     expect(teamUnitCounts[0]).toBeGreaterThan(0);
     expect(teamUnitCounts[1]).toBeGreaterThan(0);
   });
 
   it('5勢力で全チームにユニットがスポーンされる', () => {
-    initMelee(5, DEFAULT_BUDGET, rng);
+    initMelee(generateFleets(5, DEFAULT_BUDGET), rng);
     expect(poolCounts.units).toBeGreaterThan(0);
     for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
       expect(teamUnitCounts[t]).toBeGreaterThan(0);
@@ -131,7 +136,7 @@ describe('initMelee', () => {
   });
 
   it('各チームのユニット配置が異なる中心位置を持つ', () => {
-    initMelee(3, DEFAULT_BUDGET, rng);
+    initMelee(generateFleets(3, DEFAULT_BUDGET), rng);
     // チーム別の平均位置を計算
     const cx = [0, 0, 0];
     const counts = [0, 0, 0];
@@ -192,7 +197,7 @@ describe('initBattle — 母艦自動配備', () => {
   });
 
   it('MELEE (initMelee) で各チームに母艦がスポーンされる', () => {
-    initMelee(3, DEFAULT_BUDGET, rng);
+    initMelee(generateFleets(3, DEFAULT_BUDGET), rng);
     for (const t of [TEAM0, TEAM1, TEAM2]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);
     }

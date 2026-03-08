@@ -11,7 +11,7 @@ import type {
   Unit,
   UnitIndex,
 } from './types.ts';
-import { assignTeamTuple, NO_PARTICLE, NO_SQUADRON, NO_UNIT, TEAM0, TEAMS } from './types.ts';
+import { assignTeamTuple, NO_PARTICLE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0, TEAMS } from './types.ts';
 
 const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
@@ -417,5 +417,6 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     aoe: 0,
     target: NO_UNIT,
     sourceUnit: NO_UNIT,
+    sourceType: NO_SOURCE_TYPE,
   };
 }

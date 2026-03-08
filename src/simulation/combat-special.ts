@@ -264,7 +264,7 @@ function blinkArrive(ctx: CombatContext) {
           c[2],
           false,
           0,
-          undefined,
+          NO_UNIT,
           ctx.ui,
         );
       }

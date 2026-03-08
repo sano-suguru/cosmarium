@@ -6,6 +6,7 @@ import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit }
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
+import { KILL_CONTEXT } from './on-kill-effects.ts';
 import {
   addBeam,
   captureKiller,
@@ -122,7 +123,7 @@ describe('spawnUnit', () => {
   it('dead スロットを再利用する', () => {
     spawnUnit(0, 0, 0, 0, testRng);
     spawnUnit(0, 0, 0, 0, testRng);
-    killUnit(0 as UnitIndex);
+    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     const reused = spawnUnit(1, 1, 50, 50, testRng);
     expect(reused).toBe(0);
     expect(unit(0).team).toBe(1);
@@ -134,15 +135,15 @@ describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
     spawnUnit(0, 0, 0, 0, testRng);
     expect(poolCounts.units).toBe(1);
-    killUnit(0 as UnitIndex);
+    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(unit(0).alive).toBe(false);
     expect(poolCounts.units).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnUnit(0, 0, 0, 0, testRng);
-    killUnit(0 as UnitIndex);
-    killUnit(0 as UnitIndex);
+    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(poolCounts.units).toBe(0);
   });
 
@@ -153,7 +154,7 @@ describe('killUnit', () => {
     });
     spawnUnit(0, 0, 0, 0, testRng);
     spawnUnit(1, 1, 100, 100, testRng);
-    killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex));
+    killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex), KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.victim).toBe(0);
     expect(calls[0]?.killer).toBe(1);
@@ -169,8 +170,8 @@ describe('killUnit', () => {
     // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
     const killer0 = captureKiller(0 as UnitIndex);
     const killer1 = captureKiller(1 as UnitIndex);
-    killUnit(0 as UnitIndex, killer1);
-    killUnit(1 as UnitIndex, killer0);
+    killUnit(0 as UnitIndex, killer1, KILL_CONTEXT.ProjectileDirect);
+    killUnit(1 as UnitIndex, killer0, KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(2);
     // 2回目: victim=team1, killer=team0（killerFrom で事前キャプチャ済み）
     expect(calls[1]?.victimTeam).toBe(1);
@@ -183,14 +184,14 @@ describe('killUnit', () => {
       calls.push({ victim: e.victim, killer: e.killer });
     });
     spawnUnit(0, 0, 0, 0, testRng);
-    killUnit(0 as UnitIndex);
+    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.killer).toBe(NO_UNIT);
   });
 
   it('alive ユニットの KilledUnitSnapshot を正しく返す', () => {
     spawnUnit(1, 2, 100, 200, testRng);
-    const snap = killUnit(0 as UnitIndex);
+    const snap = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap).toBeDefined();
     expect(snap?.x).toBe(100);
     expect(snap?.y).toBe(200);
@@ -200,8 +201,8 @@ describe('killUnit', () => {
 
   it('二重 kill は undefined を返す', () => {
     spawnUnit(0, 1, 50, 60, testRng);
-    const first = killUnit(0 as UnitIndex);
-    const second = killUnit(0 as UnitIndex);
+    const first = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    const second = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(first).toBeDefined();
     expect(second).toBeUndefined();
   });
@@ -209,8 +210,8 @@ describe('killUnit', () => {
   it('返り値は独立オブジェクトで、2回 kill しても互いに影響しない', () => {
     spawnUnit(0, 1, 10, 20, testRng);
     spawnUnit(1, 2, 30, 40, testRng);
-    const snap1 = killUnit(0 as UnitIndex);
-    const snap2 = killUnit(1 as UnitIndex);
+    const snap1 = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    const snap2 = killUnit(1 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap1).not.toBe(snap2);
     expect(snap1?.x).toBe(10);
     expect(snap2?.x).toBe(30);
@@ -221,7 +222,7 @@ describe('killUnit', () => {
     const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
     incMotherships(0, idx);
     expect(mothershipIdx[0]).toBe(idx);
-    killUnit(idx);
+    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(mothershipIdx[0]).toBe(NO_UNIT);
   });
 
@@ -230,7 +231,7 @@ describe('killUnit', () => {
     const msIdx = spawnUnit(0, mothershipType, 0, 0, testRng);
     incMotherships(0, msIdx);
     const fighterIdx = spawnUnit(0, 1, 100, 100, testRng);
-    killUnit(fighterIdx);
+    killUnit(fighterIdx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(mothershipIdx[0]).toBe(msIdx);
   });
 
@@ -238,9 +239,9 @@ describe('killUnit', () => {
     const mothershipType = unitTypeIndex('Mothership');
     const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
     incMotherships(0, idx);
-    killUnit(idx);
+    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
     // 二重 kill: alive ガードにより decMotherships は呼ばれない
-    expect(() => killUnit(idx)).not.toThrow();
+    expect(() => killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect)).not.toThrow();
     expect(mothershipIdx[0]).toBe(NO_UNIT);
   });
 });
@@ -293,7 +294,7 @@ describe('captureKiller', () => {
 
   it('dead ユニットに対して undefined を返す', () => {
     const idx = spawnUnit(0, 1, 50, 50, testRng);
-    killUnit(idx);
+    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(captureKiller(idx)).toBeUndefined();
   });
 });

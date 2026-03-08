@@ -19,7 +19,7 @@ import {
   unit,
 } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
 import type { KillContext } from './on-kill-effects.ts';
 
@@ -176,7 +176,11 @@ const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: ty
 }));
 let _keDepth = 0;
 
-export function killUnit(i: UnitIndex, killer?: Killer, killContext?: KillContext): KilledUnitSnapshot | undefined {
+export function killUnit(
+  i: UnitIndex,
+  killer: Killer | undefined,
+  killContext: KillContext,
+): KilledUnitSnapshot | undefined {
   const u = unit(i);
   if (u.alive) {
     const snap: KilledUnitSnapshot = { x: u.x, y: u.y, team: u.team, type: u.type };
@@ -192,7 +196,7 @@ export function killUnit(i: UnitIndex, killer?: Killer, killContext?: KillContex
     // GC回避: 深度インデックスド・スタックから取得（再入安全）
     const d = _keDepth++;
     let e: KillEvent;
-    const ctx = killContext ?? 0;
+    const ctx = killContext;
     if (killer) {
       const ke = _keAt(_keWK, d);
       ke.victim = i;
@@ -318,6 +322,7 @@ export function spawnProjectile(
       p.aoe = aoe;
       p.target = target;
       p.sourceUnit = sourceUnit;
+      p.sourceType = sourceUnit !== NO_UNIT ? unit(sourceUnit).type : NO_SOURCE_TYPE;
       advanceProjectileHWM(i);
       incProjectiles();
       return i as ProjectileIndex;

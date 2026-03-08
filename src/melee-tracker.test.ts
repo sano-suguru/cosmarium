@@ -9,6 +9,7 @@ import {
   setOnMeleeFinalize,
 } from './melee-tracker.ts';
 import { teamUnitCounts } from './pools.ts';
+import { KILL_CONTEXT } from './simulation/on-kill-effects.ts';
 import { captureKiller, killUnit } from './simulation/spawn.ts';
 import type { TeamCounts } from './types.ts';
 import { copyTeamCounts } from './types.ts';
@@ -157,7 +158,7 @@ describe('kill hook — チーム別キル数', () => {
 
     // Team 0 のユニットが Team 1 のユニットをキル
     const killer = captureKiller(t0b);
-    killUnit(t1a, killer);
+    killUnit(t1a, killer, KILL_CONTEXT.ProjectileDirect);
 
     // finalize して結果を確認
     const cb = vi.fn<(result: MeleeResult) => void>();
@@ -183,7 +184,7 @@ describe('全滅イベント', () => {
     // Team 0 の唯一のユニットをキル → Team 0 全滅
     const killer = captureKiller(t1b);
     advanceMeleeElapsed(1.5);
-    killUnit(t0a, killer);
+    killUnit(t0a, killer, KILL_CONTEXT.ProjectileDirect);
 
     const cb = vi.fn<(result: MeleeResult) => void>();
     setOnMeleeFinalize(cb);
@@ -206,8 +207,8 @@ describe('全滅イベント', () => {
     resetMeleeTracking(2, counts());
 
     const killer = captureKiller(t1a);
-    killUnit(t0a, killer);
-    killUnit(t0b, killer); // 2体目キルで全滅確定
+    killUnit(t0a, killer, KILL_CONTEXT.ProjectileDirect);
+    killUnit(t0b, killer, KILL_CONTEXT.ProjectileDirect); // 2体目キルで全滅確定
 
     const cb = vi.fn<(result: MeleeResult) => void>();
     setOnMeleeFinalize(cb);
@@ -264,7 +265,7 @@ describe('finalize 後の hook unsubscribe', () => {
 
     // finalize 後のキルは反映されないはず（hook は解除済み）
     const killer = captureKiller(t1b);
-    killUnit(t0a, killer);
+    killUnit(t0a, killer, KILL_CONTEXT.ProjectileDirect);
 
     // 2回目の melee を開始して確認
     resetMeleeTracking(2, counts());
@@ -290,7 +291,7 @@ describe('2回目の reset でデータクリア', () => {
 
     // Team 1 が Team 0 のユニットをキル
     const killer = captureKiller(t1a);
-    killUnit(t0a, killer);
+    killUnit(t0a, killer, KILL_CONTEXT.ProjectileDirect);
     advanceMeleeElapsed(1.0);
 
     const cb = vi.fn<(result: MeleeResult) => void>();
