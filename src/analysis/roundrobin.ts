@@ -17,7 +17,7 @@ import { typeName } from './batch-types.ts';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export interface MatchupResult {
+interface MatchupResult {
   readonly typeA: number;
   readonly typeB: number;
   readonly nameA: string;
@@ -28,7 +28,7 @@ export interface MatchupResult {
   readonly trials: number;
 }
 
-export interface RoundRobinRanking {
+interface RoundRobinRanking {
   readonly typeIndex: number;
   readonly name: string;
   readonly totalWins: number;
@@ -40,7 +40,7 @@ export interface RoundRobinRanking {
   readonly weakAgainst: readonly string[];
 }
 
-export interface RoundRobinSummary {
+interface RoundRobinSummary {
   readonly budget: number;
   readonly trialsPerMatchup: number;
   readonly seed: number;
@@ -48,7 +48,7 @@ export interface RoundRobinSummary {
   readonly rankings: readonly RoundRobinRanking[];
 }
 
-export interface RoundRobinConfig {
+interface RoundRobinConfig {
   readonly budget: number;
   readonly trials: number;
   readonly seed: number;
@@ -311,5 +311,8 @@ if (import.meta.main) {
     } else {
       console.error(formatRoundRobin(summary));
     }
-  })();
+  })().catch((e: unknown) => {
+    console.error(e);
+    process.exitCode = 1;
+  });
 }

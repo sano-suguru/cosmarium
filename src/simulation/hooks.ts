@@ -8,7 +8,7 @@
 import type { Team } from '../types.ts';
 import { stackAt, subscribe } from './hook-utils.ts';
 
-type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect';
+type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';
 type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
 
 // ─── Damage Hook ─────────────────────────────────────────────────

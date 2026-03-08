@@ -146,7 +146,7 @@ export function applyTetherAbsorb(
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
       if (killerIndex !== NO_UNIT) {
         const killer = unit(killerIndex);
-        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, 'direct');
+        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, 'tether');
       }
       if (src.hp <= 0) {
         destroyUnit(n.shieldSourceUnit, killerIndex, rng, KILL_CONTEXT.Beam);

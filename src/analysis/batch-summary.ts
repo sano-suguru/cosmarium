@@ -42,7 +42,7 @@ function computeKD(kills: number, deaths: number): number {
   if (deaths > 0) {
     return kills / deaths;
   }
-  return kills > 0 ? kills : 0;
+  return kills > 0 ? Number.POSITIVE_INFINITY : 0;
 }
 
 function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
@@ -218,7 +218,19 @@ function computeUnitSummary(trials: readonly TrialResult[], killMatrix: KillMatr
     result.push(buildUnitSummaryEntry(typeIdx, t, ctx, killContextAgg.get(typeIdx) ?? emptyCtx));
   }
 
-  result.sort((a, b) => b.kd - a.kd);
+  result.sort((a, b) => {
+    // Infinity - Infinity === NaN を回避する比較
+    if (a.kd === b.kd) {
+      return 0;
+    }
+    if (a.kd === Number.POSITIVE_INFINITY) {
+      return -1;
+    }
+    if (b.kd === Number.POSITIVE_INFINITY) {
+      return 1;
+    }
+    return b.kd - a.kd;
+  });
   return result;
 }
 

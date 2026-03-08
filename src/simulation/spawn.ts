@@ -21,6 +21,7 @@ import {
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
 import { unitType, unitTypeIndex } from '../unit-types.ts';
+import { stackAt, subscribe } from './hook-utils.ts';
 import type { KillContext } from './on-kill-effects.ts';
 
 const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
@@ -62,16 +63,9 @@ type KillEvent = {
 type KillUnitHook = (e: KillEvent) => void;
 const killUnitHooks: KillUnitHook[] = [];
 const permanentKillUnitHooks: KillUnitHook[] = [];
-type Unsubscribe = () => void;
 /** hookを登録し、登録解除用のunsubscribe関数を返す。呼び出し元がライフサイクルを管理すること */
-export function onKillUnit(hook: KillUnitHook): Unsubscribe {
-  killUnitHooks.push(hook);
-  return () => {
-    const idx = killUnitHooks.indexOf(hook);
-    if (idx !== -1) {
-      killUnitHooks.splice(idx, 1);
-    }
-  };
+export function onKillUnit(hook: KillUnitHook): () => void {
+  return subscribe(killUnitHooks, hook);
 }
 
 /** 永続フック登録。モジュール/アプリ初期化時に使用（unsubscribe不要、テストリセット対象外） */
@@ -147,13 +141,6 @@ export function spawnUnit(team: Team, type: number, x: number, y: number, rng: (
 
 // GC回避: KillEvent 深度インデックスド・スタック（再入安全・hookは参照保存しない前提）
 const _KE_MAX_DEPTH = 4;
-function _keAt<T>(stack: T[], d: number): T {
-  const e = stack[d];
-  if (!e) {
-    throw new Error('KillEvent stack overflow');
-  }
-  return e;
-}
 const _keWK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killerTeam: Team; killerType: number } => ({
   victim: 0 as UnitIndex,
   victimTeam: TEAM0,
@@ -198,7 +185,7 @@ export function killUnit(
     let e: KillEvent;
     const ctx = killContext;
     if (killer) {
-      const ke = _keAt(_keWK, d);
+      const ke = stackAt(_keWK, d);
       ke.victim = i;
       ke.victimTeam = u.team;
       ke.victimType = u.type;
@@ -210,7 +197,7 @@ export function killUnit(
       ke.killerType = killer.type;
       e = ke;
     } else {
-      const ke = _keAt(_keNK, d);
+      const ke = stackAt(_keNK, d);
       ke.victim = i;
       ke.victimTeam = u.team;
       ke.victimType = u.type;

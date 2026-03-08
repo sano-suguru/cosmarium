@@ -59,9 +59,14 @@ import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, sp
 
 // ─── Snapshot Collection ──────────────────────────────────────────
 
+/**
+ * 座標収集用の再利用バッファ。`collectPositions` が毎回 `.length = 0` でリセットし
+ * push で書き込む。返り値はこの配列自体への参照であり、次の `collectPositions` 呼び出しで
+ * 内容が上書きされるため、呼び出し元は即座に消費するか、必要ならコピーすること。
+ */
 const _posBuf: number[] = [];
 
-/** 座標を再利用バッファ `_posBuf` に収集。返り値は次の呼び出しで上書きされる */
+/** 座標を再利用バッファ `_posBuf` に収集。返り値は `_posBuf` 自体の参照であり、次の呼び出しで上書きされる */
 function collectPositions(activeTeams: number): number[] {
   _posBuf.length = 0;
   const hwm = getUnitHWM();
@@ -352,10 +357,14 @@ if (import.meta.main) {
 
     if (config.outFile) {
       const { writeFileSync } = await import('node:fs');
-      writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
+      const replacer = (_key: string, value: unknown) => (value === Number.POSITIVE_INFINITY ? 'Infinity' : value);
+      writeFileSync(config.outFile, JSON.stringify(summary, replacer, 2));
       console.error(`結果を ${config.outFile} に保存しました`);
     } else {
       console.error(formatSummary(summary));
     }
-  })();
+  })().catch((e: unknown) => {
+    console.error(e);
+    process.exitCode = 1;
+  });
 }

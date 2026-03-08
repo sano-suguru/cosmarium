@@ -185,20 +185,21 @@ function findInHistory(sequence: readonly number[], start: number, len: number):
  *
  * 戻り値: 圧縮後サイズ / 元サイズ（0～1。低い → 繰り返しが多い）
  *
- * @param precision 量子化スケール。`Math.round(v * precision)` で離散化する。
+ * @param quantizeScale 量子化スケール。値を `quantizeScale` 倍してから丸める。
+ *   大きい値ほど近い値が同一ランとみなされにくい（精度が上がる）。
  *   - `1`（デフォルト）: 整数丸め。整数列やインデックス列向け。
  *   - `0.1`: 小数点第1位まで保持。座標差分など浮動小数点データ向け。
  *   - `100`: 小数点第2位まで保持（百分率等）。
  */
-export function rleCompressionRatio(data: readonly number[], precision: number = 1): number {
+export function rleCompressionRatio(data: readonly number[], quantizeScale: number = 1): number {
   if (data.length === 0) {
     return 0;
   }
 
   let runs = 1;
-  let prev = Math.round((data[0] ?? 0) * precision);
+  let prev = Math.round((data[0] ?? 0) * quantizeScale);
   for (let i = 1; i < data.length; i++) {
-    const cur = Math.round((data[i] ?? 0) * precision);
+    const cur = Math.round((data[i] ?? 0) * quantizeScale);
     if (cur !== prev) {
       runs++;
     }

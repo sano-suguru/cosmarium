@@ -62,7 +62,7 @@ function formatUnitRow(us: UnitTypeSummary): string {
   const spawned = String(us.totalSpawned).padStart(5);
   const kills = String(us.totalKills).padStart(5);
   const deaths = String(us.totalDeaths).padStart(5);
-  const kd = us.kd.toFixed(2).padStart(5);
+  const kd = (us.kd === Number.POSITIVE_INFINITY ? '  ∞ ' : us.kd.toFixed(2)).padStart(5);
   const sr = us.totalSpawned > 0 ? pctOrDash(us.survivalRate) : '  -  ';
   const cost = String(us.cost).padStart(6);
   const kpc = us.killsPerCost > 0 ? us.killsPerCost.toFixed(3) : '  -  ';
