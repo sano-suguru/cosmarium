@@ -148,7 +148,7 @@ function winRate(stats: PairStats | undefined): number {
 }
 
 /** シナジー評価に必要な最小共起回数。サンプル数が少なすぎる組み合わせを除外する */
-export const MIN_CO_COUNT = 5;
+const MIN_CO_COUNT = 5;
 
 function buildSynergyPairs(
   coStats: Map<number, PairStats>,
