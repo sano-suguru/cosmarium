@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
@@ -26,8 +26,8 @@ afterEach(() => {
 
 describe('combat — FOCUS BEAM', () => {
   it('beamOn が dt×0.8 で蓄積', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 0;
     unit(frig).cooldown = 999;
@@ -37,8 +37,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('beamOn の上限は 2.0', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 1.95;
     unit(frig).cooldown = 999;
@@ -48,8 +48,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('ターゲット死亡で beamOn リセット', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 1.5;
     unit(frig).cooldown = 0;
@@ -60,8 +60,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('ダメージは damage × beamOn × vd', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 1.5;
     unit(frig).cooldown = 0;
@@ -74,8 +74,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('ビーム幅は (2 + beamOn * 2)', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 1.0;
     unit(frig).cooldown = 999;
@@ -91,8 +91,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('beamOn=0 → ヒットパーティクル1個', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 0;
     unit(frig).cooldown = 0;
@@ -104,8 +104,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('beamOn=2 → ヒットパーティクル5個', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 2;
     unit(frig).cooldown = 0;
@@ -117,8 +117,8 @@ describe('combat — FOCUS BEAM', () => {
   });
 
   it('DPS検証: 10秒で Scorcher DPS ≈ 8-16', () => {
-    const frig = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const frig = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).cooldown = 0;
     unit(frig).beamOn = 0;

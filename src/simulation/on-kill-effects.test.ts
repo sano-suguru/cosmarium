@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools.ts';
 import { NO_UNIT } from '../types.ts';
 
@@ -26,21 +26,21 @@ afterEach(() => {
 describe('applyOnKillEffects', () => {
   describe('ProjectileDirect (直撃)', () => {
     it('cooldownResetOnKill 持ちの射撃者 → クールダウンが短縮される', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ProjectileDirect);
       expect(unit(sniper).cooldown).toBeCloseTo(0.8);
     });
 
     it('cooldownResetOnKill 無しの射撃者 → クールダウン変化なし', () => {
-      const fighter = spawnAt(0, 1, 0, 0);
+      const fighter = spawnAt(0, asType(1), 0, 0);
       unit(fighter).cooldown = 2.0;
       applyOnKillEffects(fighter, 0, KILL_CONTEXT.ProjectileDirect);
       expect(unit(fighter).cooldown).toBeCloseTo(2.0);
     });
 
     it('クールダウンが既に resetOnKill 値以下 → 変化なし', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 0.3;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ProjectileDirect);
       expect(unit(sniper).cooldown).toBeCloseTo(0.3);
@@ -49,7 +49,7 @@ describe('applyOnKillEffects', () => {
 
   describe('ProjectileAoe (爆風)', () => {
     it('cooldownResetOnKill 持ちでもクールダウン短縮されない', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ProjectileAoe);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);
@@ -58,7 +58,7 @@ describe('applyOnKillEffects', () => {
 
   describe('Beam', () => {
     it('クールダウン短縮されない', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.Beam);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);
@@ -67,7 +67,7 @@ describe('applyOnKillEffects', () => {
 
   describe('Ram', () => {
     it('クールダウン短縮されない', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.Ram);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);
@@ -76,7 +76,7 @@ describe('applyOnKillEffects', () => {
 
   describe('ChainLightning', () => {
     it('クールダウン短縮されない', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ChainLightning);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);
@@ -85,7 +85,7 @@ describe('applyOnKillEffects', () => {
 
   describe('SweepBeam', () => {
     it('クールダウン短縮されない', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.SweepBeam);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);
@@ -94,7 +94,7 @@ describe('applyOnKillEffects', () => {
 
   describe('Teleporter ブリンクCD短縮', () => {
     it('teleports持ち && blinkCount=0 → teleportTimerが0.8短縮', () => {
-      const tp = spawnAt(0, 13, 0, 0);
+      const tp = spawnAt(0, asType(13), 0, 0);
       unit(tp).teleportTimer = 3.0;
       unit(tp).blinkCount = 0;
       applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
@@ -102,7 +102,7 @@ describe('applyOnKillEffects', () => {
     });
 
     it('blinkCount>0 (ブリンク中) → teleportTimer変化なし', () => {
-      const tp = spawnAt(0, 13, 0, 0);
+      const tp = spawnAt(0, asType(13), 0, 0);
       unit(tp).teleportTimer = 0.17;
       unit(tp).blinkCount = 2;
       applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
@@ -110,7 +110,7 @@ describe('applyOnKillEffects', () => {
     });
 
     it('teleportTimerが0.8未満 → 0にクランプ', () => {
-      const tp = spawnAt(0, 13, 0, 0);
+      const tp = spawnAt(0, asType(13), 0, 0);
       unit(tp).teleportTimer = 0.3;
       unit(tp).blinkCount = 0;
       applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileDirect);
@@ -118,7 +118,7 @@ describe('applyOnKillEffects', () => {
     });
 
     it('ProjectileAoe → 短縮されない', () => {
-      const tp = spawnAt(0, 13, 0, 0);
+      const tp = spawnAt(0, asType(13), 0, 0);
       unit(tp).teleportTimer = 3.0;
       unit(tp).blinkCount = 0;
       applyOnKillEffects(tp, 0, KILL_CONTEXT.ProjectileAoe);
@@ -132,7 +132,7 @@ describe('applyOnKillEffects', () => {
     });
 
     it('射撃者が死亡済み → クールダウン変化なし', () => {
-      const sniper = spawnAt(0, 8, 0, 0);
+      const sniper = spawnAt(0, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       unit(sniper).alive = false;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ProjectileDirect);
@@ -140,7 +140,7 @@ describe('applyOnKillEffects', () => {
     });
 
     it('射撃者のチームが sourceTeam と一致しない → クールダウン変化なし', () => {
-      const sniper = spawnAt(1, 8, 0, 0);
+      const sniper = spawnAt(1, asType(8), 0, 0);
       unit(sniper).cooldown = 2.5;
       applyOnKillEffects(sniper, 0, KILL_CONTEXT.ProjectileDirect);
       expect(unit(sniper).cooldown).toBeCloseTo(2.5);

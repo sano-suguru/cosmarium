@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  asType,
   fillParticlePool,
   fillProjectilePool,
   fillUnitPool,
@@ -101,11 +102,11 @@ describe('spawnProjectile', () => {
 
 describe('spawnUnit', () => {
   it('Fighterユニットを生成する (type=1)', () => {
-    const idx = spawnUnit(0, 1, 100, 200, testRng);
+    const idx = spawnUnit(0, asType(1), 100, 200, testRng);
     expect(idx).toBe(0);
     expect(poolCounts.units).toBe(1);
     const u = unit(0);
-    const fighter = unitType(1);
+    const fighter = unitType(asType(1));
     expect(u.alive).toBe(true);
     expect(u.team).toBe(0);
     expect(u.type).toBe(1);
@@ -122,16 +123,16 @@ describe('spawnUnit', () => {
 
   it('プール満杯時に -1 を返す', () => {
     fillUnitPool();
-    const overflow = spawnUnit(0, 0, 0, 0, testRng);
+    const overflow = spawnUnit(0, asType(0), 0, 0, testRng);
     expect(overflow).toBe(-1);
     expect(poolCounts.units).toBe(POOL_UNITS);
   });
 
   it('dead スロットを再利用する', () => {
-    spawnUnit(0, 0, 0, 0, testRng);
-    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
     kill(0 as UnitIndex);
-    const reused = spawnUnit(1, 1, 50, 50, testRng);
+    const reused = spawnUnit(1, asType(1), 50, 50, testRng);
     expect(reused).toBe(0);
     expect(unit(0).team).toBe(1);
     expect(unit(0).x).toBe(50);
@@ -140,7 +141,7 @@ describe('spawnUnit', () => {
 
 describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
-    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
     expect(poolCounts.units).toBe(1);
     killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(unit(0).alive).toBe(false);
@@ -148,7 +149,7 @@ describe('killUnit', () => {
   });
 
   it('二重killしても poolCounts が負にならない', () => {
-    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
     killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(poolCounts.units).toBe(0);
@@ -159,8 +160,8 @@ describe('killUnit', () => {
     onKillUnit((e) => {
       calls.push({ victim: e.victim, killer: e.killer });
     });
-    spawnUnit(0, 0, 0, 0, testRng);
-    spawnUnit(1, 1, 100, 100, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
+    spawnUnit(1, asType(1), 100, 100, testRng);
     killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex), KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.victim).toBe(0);
@@ -172,8 +173,8 @@ describe('killUnit', () => {
     onKillUnit((e) => {
       calls.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
     });
-    spawnUnit(0, 0, 0, 0, testRng); // index 0, team 0
-    spawnUnit(1, 1, 100, 100, testRng); // index 1, team 1
+    spawnUnit(0, asType(0), 0, 0, testRng); // index 0, team 0
+    spawnUnit(1, asType(1), 100, 100, testRng); // index 1, team 1
     // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
     const killer0 = captureKiller(0 as UnitIndex);
     const killer1 = captureKiller(1 as UnitIndex);
@@ -190,14 +191,14 @@ describe('killUnit', () => {
     onKillUnit((e) => {
       calls.push({ victim: e.victim, killer: e.killer });
     });
-    spawnUnit(0, 0, 0, 0, testRng);
+    spawnUnit(0, asType(0), 0, 0, testRng);
     killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.killer).toBe(NO_UNIT);
   });
 
   it('alive ユニットの KilledUnitSnapshot を正しく返す', () => {
-    spawnUnit(1, 2, 100, 200, testRng);
+    spawnUnit(1, asType(2), 100, 200, testRng);
     const snap = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap).toBeDefined();
     expect(snap?.x).toBe(100);
@@ -207,7 +208,7 @@ describe('killUnit', () => {
   });
 
   it('二重 kill は undefined を返す', () => {
-    spawnUnit(0, 1, 50, 60, testRng);
+    spawnUnit(0, asType(1), 50, 60, testRng);
     const first = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     const second = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(first).toBeDefined();
@@ -215,8 +216,8 @@ describe('killUnit', () => {
   });
 
   it('返り値は独立オブジェクトで、2回 kill しても互いに影響しない', () => {
-    spawnUnit(0, 1, 10, 20, testRng);
-    spawnUnit(1, 2, 30, 40, testRng);
+    spawnUnit(0, asType(1), 10, 20, testRng);
+    spawnUnit(1, asType(2), 30, 40, testRng);
     const snap1 = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     const snap2 = killUnit(1 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap1).not.toBe(snap2);
@@ -237,7 +238,7 @@ describe('killUnit', () => {
     const mothershipType = unitTypeIndex('Mothership');
     const msIdx = spawnUnit(0, mothershipType, 0, 0, testRng);
     incMotherships(0, msIdx);
-    const fighterIdx = spawnUnit(0, 1, 100, 100, testRng);
+    const fighterIdx = spawnUnit(0, asType(1), 100, 100, testRng);
     killUnit(fighterIdx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(mothershipIdx[0]).toBe(msIdx);
   });
@@ -289,7 +290,7 @@ describe('killProjectile', () => {
 
 describe('captureKiller', () => {
   it('alive ユニットの team/type を返す', () => {
-    const idx = spawnUnit(1, 3, 100, 200, testRng);
+    const idx = spawnUnit(1, asType(3), 100, 200, testRng);
     const k = captureKiller(idx);
     if (!k) {
       throw new Error('expected killer');
@@ -300,7 +301,7 @@ describe('captureKiller', () => {
   });
 
   it('dead ユニットに対して undefined を返す', () => {
-    const idx = spawnUnit(0, 1, 50, 50, testRng);
+    const idx = spawnUnit(0, asType(1), 50, 50, testRng);
     kill(idx);
     expect(captureKiller(idx)).toBeUndefined();
   });

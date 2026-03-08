@@ -3,7 +3,7 @@ import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { DRONE_TYPE, unitType } from '../unit-types.ts';
 import { aimAt, tgtDistOrClear } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
 import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
@@ -128,7 +128,7 @@ export function launchDrones(ctx: CombatContext) {
     u.spawnCooldown = 4 + ctx.rng() * 2;
     for (let i = 0; i < 4; i++) {
       const a = ctx.rng() * 6.283;
-      spawnUnit(u.team, 0, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2, ctx.rng);
+      spawnUnit(u.team, DRONE_TYPE, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2, ctx.rng);
     }
     for (let i = 0; i < 10; i++) {
       const a = ctx.rng() * 6.283;

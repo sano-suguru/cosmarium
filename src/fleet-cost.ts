@@ -1,4 +1,4 @@
-import type { FleetComposition } from './types.ts';
+import type { FleetComposition, UnitTypeIndex } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
 /** プレイヤーの初期予算 */
@@ -10,8 +10,8 @@ export function isPurchasable(typeIdx: number): boolean {
 }
 
 /** コスト昇順 → 同コストはTYPES配列順でソート。購入不可タイプは除外 */
-export const SORTED_TYPE_INDICES: readonly number[] = TYPES.map((_, i) => i)
-  .filter(isPurchasable)
+export const SORTED_TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex)
+  .filter((i) => isPurchasable(i))
   .sort((a, b) => {
     const ca = TYPES[a]?.cost ?? 0;
     const cb = TYPES[b]?.cost ?? 0;

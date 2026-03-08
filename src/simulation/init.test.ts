@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
+import {
+  asType,
+  resetPools,
+  resetState,
+  reviveParticle,
+  reviveProjectile,
+  reviveUnit,
+} from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
@@ -160,8 +167,8 @@ describe('initMelee', () => {
 
 describe('initBattle — 母艦自動配備', () => {
   const MOTHERSHIP = unitTypeIndex('Mothership');
-  const playerFleet = [{ type: 0, count: 5 }];
-  const enemyFleet = [{ type: 0, count: 5 }];
+  const playerFleet = [{ type: asType(0), count: 5 }];
+  const enemyFleet = [{ type: asType(0), count: 5 }];
 
   it('各チームに Mothership タイプのユニットが1体存在する', () => {
     initBattle(playerFleet, enemyFleet, rng);

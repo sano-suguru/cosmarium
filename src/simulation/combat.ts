@@ -1,6 +1,6 @@
 import { effectColor } from '../colors.ts';
 import { unit } from '../pools.ts';
-import type { DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
+import type { DemoFlag, Unit, UnitIndex, UnitType, UnitTypeIndex } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import type { CombatContext } from './combat-context.ts';
 import { fireNormal } from './combat-fire.ts';
@@ -28,7 +28,7 @@ const _ctx: CombatContext = {
   dt: 0,
   c: [0, 0, 0],
   vd: 0,
-  t: unitType(0),
+  t: unitType(0 as UnitTypeIndex),
   range: 0,
   rng: () => {
     throw new Error('CombatContext.rng called before combat() initialization');

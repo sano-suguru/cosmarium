@@ -13,6 +13,9 @@ export const KILL_CONTEXT = {
   Ram: 3,
   ChainLightning: 4,
   SweepBeam: 5,
+  Emp: 6,
+  Reflect: 7,
+  Tether: 8,
 } as const;
 
 export type KillContext = (typeof KILL_CONTEXT)[keyof typeof KILL_CONTEXT];
@@ -23,9 +26,9 @@ export const DAMAGE_KIND_TO_KILL_CONTEXT: Record<DamageKind, KillContext> = {
   direct: KILL_CONTEXT.ProjectileDirect,
   aoe: KILL_CONTEXT.ProjectileAoe,
   beam: KILL_CONTEXT.Beam,
-  emp: KILL_CONTEXT.Beam,
-  reflect: KILL_CONTEXT.Beam,
-  tether: KILL_CONTEXT.Beam,
+  emp: KILL_CONTEXT.Emp,
+  reflect: KILL_CONTEXT.Reflect,
+  tether: KILL_CONTEXT.Tether,
   ram: KILL_CONTEXT.Ram,
   chain: KILL_CONTEXT.ChainLightning,
   sweep: KILL_CONTEXT.SweepBeam,
@@ -39,6 +42,9 @@ const KILL_CONTEXT_LABELS: { readonly [K in keyof typeof KILL_CONTEXT]: string }
   Ram: 'ラム',
   ChainLightning: 'チェイン',
   SweepBeam: '掃射',
+  Emp: 'EMP',
+  Reflect: '反射',
+  Tether: 'テザー',
 };
 
 /** KillContext の数値順（0, 1, 2, …）に並んだラベル配列 */
@@ -57,6 +63,9 @@ function shouldApplyCooldownReset(ctx: KillContext): boolean {
     case KILL_CONTEXT.Ram:
     case KILL_CONTEXT.ChainLightning:
     case KILL_CONTEXT.SweepBeam:
+    case KILL_CONTEXT.Emp:
+    case KILL_CONTEXT.Reflect:
+    case KILL_CONTEXT.Tether:
       return false;
     default: {
       const _exhaustive: never = ctx;

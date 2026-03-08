@@ -5,7 +5,7 @@
  * フック内でイベントの参照を保持してはならない。値が必要な場合は即座にコピーすること。
  */
 
-import type { Team } from '../types.ts';
+import type { Team, UnitTypeIndex } from '../types.ts';
 import { stackAt, subscribe } from './hook-utils.ts';
 
 export type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';
@@ -14,9 +14,9 @@ type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
 // ─── Damage Hook ─────────────────────────────────────────────────
 
 interface DamageEvent {
-  attackerType: number;
+  attackerType: UnitTypeIndex;
   attackerTeam: Team;
-  victimType: number;
+  victimType: UnitTypeIndex;
   victimTeam: Team;
   amount: number;
   kind: DamageKind;
@@ -26,9 +26,9 @@ const _DMG_MAX_DEPTH = 4;
 const _dmgStack: DamageEvent[] = Array.from(
   { length: _DMG_MAX_DEPTH },
   (): DamageEvent => ({
-    attackerType: 0,
+    attackerType: 0 as UnitTypeIndex,
     attackerTeam: 0 as Team,
-    victimType: 0,
+    victimType: 0 as UnitTypeIndex,
     victimTeam: 0 as Team,
     amount: 0,
     kind: 'direct',
@@ -44,9 +44,9 @@ export function onDamageUnit(hook: DamageHook): () => void {
 }
 
 export function emitDamage(
-  attackerType: number,
+  attackerType: UnitTypeIndex,
   attackerTeam: Team,
-  victimType: number,
+  victimType: UnitTypeIndex,
   victimTeam: Team,
   amount: number,
   kind: DamageKind,
@@ -76,9 +76,9 @@ export function _resetDamageHooks(): void {
 // ─── Support Hook ────────────────────────────────────────────────
 
 interface SupportEvent {
-  casterType: number;
+  casterType: UnitTypeIndex;
   casterTeam: Team;
-  targetType: number;
+  targetType: UnitTypeIndex;
   targetTeam: Team;
   kind: SupportKind;
   amount: number;
@@ -88,9 +88,9 @@ const _SUP_MAX_DEPTH = 4;
 const _supStack: SupportEvent[] = Array.from(
   { length: _SUP_MAX_DEPTH },
   (): SupportEvent => ({
-    casterType: 0,
+    casterType: 0 as UnitTypeIndex,
     casterTeam: 0 as Team,
-    targetType: 0,
+    targetType: 0 as UnitTypeIndex,
     targetTeam: 0 as Team,
     kind: 'heal',
     amount: 0,
@@ -106,9 +106,9 @@ export function onSupportEffect(hook: SupportHook): () => void {
 }
 
 export function emitSupport(
-  casterType: number,
+  casterType: UnitTypeIndex,
   casterTeam: Team,
-  targetType: number,
+  targetType: UnitTypeIndex,
   targetTeam: Team,
   kind: SupportKind,
   amount: number,

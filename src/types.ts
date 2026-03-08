@@ -1,7 +1,7 @@
 export interface Unit {
   alive: boolean;
   team: Team;
-  type: number;
+  type: UnitTypeIndex;
   x: number;
   y: number;
   prevX: number;
@@ -94,7 +94,7 @@ export interface Projectile {
   aoe: number;
   target: UnitIndex;
   sourceUnit: UnitIndex;
-  sourceType: number;
+  sourceType: UnitTypeIndex;
 }
 
 export interface UnitType {
@@ -231,7 +231,7 @@ export type GameState = 'menu' | 'compose' | 'play' | 'result';
 
 export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath';
 
-export type FleetEntry = { readonly type: number; readonly count: number };
+export type FleetEntry = { readonly type: UnitTypeIndex; readonly count: number };
 export type FleetComposition = readonly FleetEntry[];
 
 export type BattleSnapshot = { readonly survivors: number; readonly enemyKills: number };
@@ -305,10 +305,11 @@ export type UnitIndex = number & { readonly __brand: 'UnitIndex' };
 export type ParticleIndex = number & { readonly __brand: 'ParticleIndex' };
 export type ProjectileIndex = number & { readonly __brand: 'ProjectileIndex' };
 export type SquadronIndex = number & { readonly __brand: 'SquadronIndex' };
+export type UnitTypeIndex = number & { readonly __brand: 'UnitTypeIndex' };
 
 /** ターゲットなし / スロットなしを示すセンチネル値 */
 export const NO_UNIT = -1 as UnitIndex;
 export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
 export const NO_SQUADRON = -1 as SquadronIndex;
-export const NO_SOURCE_TYPE = -1;
+export const NO_SOURCE_TYPE = -1 as UnitTypeIndex;

@@ -1,6 +1,6 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
-import { kill } from '../__test__/pool-helper.ts';
+import { asType, kill } from '../__test__/pool-helper.ts';
 import { SH_CIRCLE } from '../constants.ts';
 import type { ParticleIndex } from '../types.ts';
 import { NO_PARTICLE } from '../types.ts';
@@ -32,7 +32,7 @@ describe('spawnUnit', () => {
   const rng = () => 0.5;
 
   bench('spawn 1 unit (空プール)', () => {
-    const idx = spawnUnit(0, 1, 100, 200, rng);
+    const idx = spawnUnit(0, asType(1), 100, 200, rng);
     kill(idx);
   });
 });

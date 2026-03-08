@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState } from '../__test__/pool-helper.ts';
+import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
 import { parseIntArg, runBatch } from './batch.ts';
@@ -131,8 +132,8 @@ describe('runBatch', () => {
   });
 
   it('指定艦隊で対戦できる', () => {
-    const fleet0: FleetComposition = [{ type: 0, count: 10 }];
-    const fleet1: FleetComposition = [{ type: 1, count: 5 }];
+    const fleet0: FleetComposition = [{ type: asType(0), count: 10 }];
+    const fleet1: FleetComposition = [{ type: asType(1), count: 5 }];
 
     const summary = runBatch(makeTestConfig({ trials: 1, budget: 200, maxSteps: 300, fleets: [fleet0, fleet1] }));
 
@@ -268,7 +269,7 @@ describe('runBatch', () => {
 
       for (const us of summary.unitSummary) {
         expect(us.deathsByContext).toBeDefined();
-        expect(us.deathsByContext.length).toBe(6);
+        expect(us.deathsByContext.length).toBe(KILL_CONTEXT_COUNT);
         for (const c of us.deathsByContext) {
           expect(c).toBeGreaterThanOrEqual(0);
         }
@@ -278,9 +279,9 @@ describe('runBatch', () => {
 
   it('シナジーペアが計算される', () => {
     const fleet: FleetComposition = [
-      { type: 0, count: 3 },
-      { type: 1, count: 3 },
-      { type: 2, count: 2 },
+      { type: asType(0), count: 3 },
+      { type: asType(1), count: 3 },
+      { type: asType(2), count: 2 },
     ];
     const summary = runBatch(
       makeTestConfig({ trials: 6, maxSteps: 200, budget: 30, snapshotInterval: 200, fleets: [fleet, fleet] }),

@@ -1,4 +1,4 @@
-import type { GameState } from './types.ts';
+import type { GameState, UnitTypeIndex } from './types.ts';
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0;
@@ -13,7 +13,7 @@ function mulberry32(seed: number): () => number {
 type State = {
   gameState: GameState;
   codexOpen: boolean;
-  codexSelected: number;
+  codexSelected: UnitTypeIndex;
   timeScale: number;
   reinforcementTimer: number;
   /**
@@ -45,10 +45,16 @@ export function seed(): number {
   return currentSeed;
 }
 
+/** seedRng() 後の state.rng を返すファクトリ。バッチ分析の createRng 引数用 */
+export function createRng(s: number): () => number {
+  seedRng(s);
+  return state.rng;
+}
+
 export const state: State = {
   gameState: 'menu',
   codexOpen: false,
-  codexSelected: 0,
+  codexSelected: 0 as UnitTypeIndex,
   timeScale: 1,
   reinforcementTimer: 0,
   rng: currentRng,

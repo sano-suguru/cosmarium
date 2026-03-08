@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-
+import { asType } from '../__test__/pool-helper.ts';
 import type { FleetComposition } from '../types.ts';
 import type { BattleStateSnapshot } from './entropy.ts';
 import {
@@ -65,28 +65,28 @@ describe('normalizedEntropy', () => {
 
 describe('fleetDiversity', () => {
   it('returns 0 for single-type fleet', () => {
-    const fleet: FleetComposition = [{ type: 0, count: 50 }];
+    const fleet: FleetComposition = [{ type: asType(0), count: 50 }];
     expect(fleetDiversity(fleet)).toBe(0);
   });
 
   it('returns high diversity for multi-type fleet', () => {
     const fleet: FleetComposition = [
-      { type: 0, count: 10 },
-      { type: 1, count: 10 },
-      { type: 2, count: 10 },
-      { type: 3, count: 10 },
+      { type: asType(0), count: 10 },
+      { type: asType(1), count: 10 },
+      { type: asType(2), count: 10 },
+      { type: asType(3), count: 10 },
     ];
     expect(fleetDiversity(fleet)).toBeCloseTo(1, 5);
   });
 
   it('returns higher diversity when types are more balanced', () => {
     const balanced: FleetComposition = [
-      { type: 0, count: 5 },
-      { type: 1, count: 5 },
+      { type: asType(0), count: 5 },
+      { type: asType(1), count: 5 },
     ];
     const unbalanced: FleetComposition = [
-      { type: 0, count: 9 },
-      { type: 1, count: 1 },
+      { type: asType(0), count: 9 },
+      { type: asType(1), count: 1 },
     ];
     expect(fleetDiversity(balanced)).toBeGreaterThan(fleetDiversity(unbalanced));
   });
@@ -102,8 +102,8 @@ describe('fleetCostEntropy', () => {
     // count分布: [10, 1] → 非常に偏り → 低いエントロピー
     // cost分布: [10, 20] → より均衡 → 高いエントロピー
     const fleet: FleetComposition = [
-      { type: 0, count: 10 },
-      { type: 4, count: 1 },
+      { type: asType(0), count: 10 },
+      { type: asType(4), count: 1 },
     ];
     const countDiv = fleetDiversity(fleet);
     const costDiv = fleetCostEntropy(fleet);

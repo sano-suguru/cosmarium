@@ -1,4 +1,4 @@
-import type { UnitType } from './types.ts';
+import type { UnitType, UnitTypeIndex } from './types.ts';
 
 /** 射撃を行わないユニット用のダミー fireRate（cooldown が実質満了しない大きな値） */
 const NO_FIRE = 999;
@@ -563,7 +563,7 @@ export const UNIT_TYPE_COUNT = TYPES.length;
 
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));
 
-export function unitType(id: number): UnitType {
+export function unitType(id: UnitTypeIndex): UnitType {
   const t = TYPES[id];
   if (t === undefined) {
     throw new RangeError(`Invalid unit type id: ${id}`);
@@ -579,13 +579,16 @@ export function invSqrtMass(id: number): number {
   return v;
 }
 
-export function unitTypeIndex(name: string): number {
+export function unitTypeIndex(name: string): UnitTypeIndex {
   const idx = TYPES.findIndex((t) => t.name === name);
   if (idx === -1) {
     throw new RangeError(`Unknown unit type name: ${name}`);
   }
-  return idx;
+  return idx as UnitTypeIndex;
 }
+
+/** よく参照されるユニットタイプインデックスの定数。モジュールロード時に1回だけ解決される */
+export const DRONE_TYPE = unitTypeIndex('Drone');
 
 /** Flagship エンジンY軸オフセット比率 — 左右対称 × 2段 = 計4基 */
 export const FLAGSHIP_ENGINE_OFFSETS = [0.18, 0.38] as const;

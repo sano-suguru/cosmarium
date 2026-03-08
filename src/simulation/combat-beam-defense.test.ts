@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { unit } from '../pools.ts';
@@ -29,8 +29,8 @@ afterEach(() => {
 
 describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   it('攻撃元に直接ダメージが返る', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0);
 
     unit(scorcher).target = reflector;
     unit(scorcher).cooldown = 0;
@@ -39,14 +39,14 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     buildHash();
     combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    const expectedDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0 * REFLECT_BEAM_DAMAGE_MULT;
+    const expectedDmg = unitType(asType(12)).damage * (1.0 + 0.016 * 0.8) * 1.0 * REFLECT_BEAM_DAMAGE_MULT;
     expect(unit(scorcher).hp).toBeCloseTo(hpBefore - expectedDmg);
     expect(unit(scorcher).hitFlash).toBe(1);
   });
 
   it('Reflector の angle に依存せず攻撃元にダメージ', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0);
     unit(reflector).angle = -Math.PI / 4; // 斜め向き
 
     unit(scorcher).target = reflector;
@@ -60,9 +60,9 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   });
 
   it('第三者にはダメージが及ばない', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0);
-    const bystander = spawnAt(0, 1, 0, 200);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0);
+    const bystander = spawnAt(0, asType(1), 0, 200);
     unit(bystander).hp = 100;
 
     unit(scorcher).target = reflector;
@@ -75,8 +75,8 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   });
 
   it('反射ビームが攻撃元に向かって描画される', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0);
 
     unit(scorcher).target = reflector;
     unit(scorcher).cooldown = 0;
@@ -96,8 +96,8 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   });
 
   it('攻撃元が kill される場合', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0);
 
     unit(scorcher).target = reflector;
     unit(scorcher).cooldown = 0;
@@ -110,8 +110,8 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   });
 
   it('Sweep beam + Reflector でバッファ競合なく動作する', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const reflector = spawnAt(1, 6, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const reflector = spawnAt(1, asType(6), 200, 0);
 
     unit(cruiser).target = reflector;
     unit(cruiser).cooldown = 0;
@@ -127,8 +127,8 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   });
 
   it('Sweep中にReflector反射でattackerが死亡 → 例外なく中断', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const reflector = spawnAt(1, 6, 80, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const reflector = spawnAt(1, asType(6), 80, 0);
 
     unit(cruiser).target = reflector;
     unit(cruiser).cooldown = 0;
@@ -148,8 +148,8 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
 
 describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射)', () => {
   it('フィールド持ち味方がビームを反射しダメージを返却する', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0); // Drone (non-reflector)
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0); // Drone (non-reflector)
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     unit(ally).hp = 100;
 
@@ -160,7 +160,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     buildHash();
     combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    const baseDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0;
+    const baseDmg = unitType(asType(12)).damage * (1.0 + 0.016 * 0.8) * 1.0;
     const expectedDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
     expect(unit(scorcher).hp).toBeCloseTo(hpBefore - expectedDmg);
     expect(unit(scorcher).hitFlash).toBe(1);
@@ -169,8 +169,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('フィールドHPがビームダメージ分減少する', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
 
     unit(scorcher).target = ally;
@@ -179,13 +179,13 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     buildHash();
     combat(unit(scorcher), scorcher, 0.016, 0, rng);
 
-    const baseDmg = unitType(12).damage * (1.0 + 0.016 * 0.8) * 1.0;
+    const baseDmg = unitType(asType(12)).damage * (1.0 + 0.016 * 0.8) * 1.0;
     expect(unit(ally).reflectFieldHp).toBeCloseTo(REFLECT_FIELD_MAX_HP - baseDmg);
   });
 
   it('フィールドHP枯渇後はビームが貫通する', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0);
     unit(ally).reflectFieldHp = 0;
     unit(ally).hp = 100;
 
@@ -203,8 +203,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('反射ダメージで攻撃者がkillされる', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     unit(ally).hp = 100;
 
@@ -219,8 +219,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('反射ビームが攻撃元に向かって描画される', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
 
     unit(scorcher).target = ally;
@@ -238,8 +238,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('フィールドHPがダメージ以下の場合0に固定される', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const ally = spawnAt(1, 1, 0, 0);
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const ally = spawnAt(1, asType(1), 0, 0);
     unit(ally).reflectFieldHp = 0.1; // ダメージより小さい
 
     unit(scorcher).target = ally;
@@ -252,8 +252,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('Reflector本体のenergy反射がフィールド反射より優先される', () => {
-    const scorcher = spawnAt(0, 12, -200, 0);
-    const reflector = spawnAt(1, 6, 0, 0); // Reflector本体
+    const scorcher = spawnAt(0, asType(12), -200, 0);
+    const reflector = spawnAt(1, asType(6), 0, 0); // Reflector本体
     unit(reflector).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const energyBefore = unit(reflector).energy;
 
@@ -270,8 +270,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('Sweep Beamがフィールドで反射される', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const ally = spawnAt(1, 1, 80, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const ally = spawnAt(1, asType(1), 80, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     unit(ally).hp = 100;
 
@@ -292,8 +292,8 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
   });
 
   it('Sweep中にフィールド反射でattackerが死亡 → 例外なく中断', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const ally = spawnAt(1, 1, 80, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const ally = spawnAt(1, asType(1), 80, 0);
     unit(ally).reflectFieldHp = REFLECT_FIELD_MAX_HP;
 
     unit(cruiser).target = ally;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { decUnits, unit } from '../pools.ts';
 import { rng } from '../state.ts';
@@ -30,8 +30,8 @@ afterEach(() => {
 
 describe('combat — SWEEP BEAM (CD-triggered)', () => {
   it('IDLE: cooldown>0 → スイープ不発、beamOn減衰', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 1.0;
     unit(cruiser).beamOn = 0.5;
@@ -45,8 +45,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('cooldown満了 → スイープ開始 (sweepPhase>0, beamOn=1)', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 0;
@@ -58,8 +58,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('sweepPhase進行: += dt / SWEEP_DURATION', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -72,8 +72,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('スイープ完了 → CDリセット (sweepPhase=0, cooldown=1.5)', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -83,12 +83,12 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     // 0.9 + 0.1/SWEEP_DURATION > 1 → 完了
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
     expect(unit(cruiser).sweepPhase).toBe(0);
-    expect(unit(cruiser).cooldown).toBeCloseTo(unitType(3).fireRate);
+    expect(unit(cruiser).cooldown).toBeCloseTo(unitType(asType(3)).fireRate);
   });
 
   it('sweep-through命中: arc中心付近の敵にdamage=8', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -96,16 +96,16 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
     unit(cruiser).sweepBaseAngle = 0;
     unit(cruiser).angle = 0;
     buildHash();
-    const cruiserType = unitType(3);
+    const cruiserType = unitType(asType(3));
     const hpBefore = unit(enemy).hp;
     combat(unit(cruiser), cruiser, 0.1, 0, rng);
     expect(unit(enemy).hp).toBe(hpBefore - cruiserType.damage);
   });
 
   it('arc外ミス: 全スイープ実行しても遠方の敵は無傷', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
-    const farEnemy = spawnAt(1, 1, 0, 200); // 90°方向 → arc外
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
+    const farEnemy = spawnAt(1, asType(1), 0, 200); // 90°方向 → arc外
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 0;
@@ -120,10 +120,10 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('Bastion死亡済み参照: 孤児テザー軽減がビームに適用される', () => {
-    const cruiserType = unitType(3);
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const bastion = spawnAt(1, 15, 0, 200);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiserType = unitType(asType(3));
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const bastion = spawnAt(1, asType(15), 0, 200);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -143,9 +143,9 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('孤児テザー（sourceUnit未設定）: 軽減ダメージ適用', () => {
-    const cruiserType = unitType(3);
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiserType = unitType(asType(3));
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -160,8 +160,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('敵kill: hp<=0 → killUnit', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 0, 200, 0); // Drone hp=3
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(0), 200, 0); // Drone hp=3
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -174,7 +174,7 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('ターゲットロスト → beamOn減衰、sweepPhase=0', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
     unit(cruiser).beamOn = 0.5;
     unit(cruiser).sweepPhase = 0.3;
     unit(cruiser).target = NO_UNIT;
@@ -187,8 +187,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('ビーム描画: SWEEPING中のみaddBeam', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).beamOn = 1;
@@ -201,8 +201,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('IDLE中はビーム描画なし', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 1.0;
     unit(cruiser).beamOn = 0;
@@ -213,8 +213,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('DPS検証: 2-5の範囲', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(cruiser).target = enemy;
     unit(cruiser).cooldown = 0;
     unit(cruiser).angle = 0;
@@ -231,8 +231,8 @@ describe('combat — SWEEP BEAM (CD-triggered)', () => {
   });
 
   it('距離>=range → beamOn減衰、sweepPhase=0', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 500, 0); // 距離500 > range=350
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 500, 0); // 距離500 > range=350
     unit(cruiser).target = enemy;
     unit(cruiser).beamOn = 0.5;
     unit(cruiser).sweepPhase = 0.3;

@@ -1,5 +1,5 @@
 import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx } from '../pools.ts';
-import type { BattleTeam, FleetComposition, Team } from '../types.ts';
+import type { BattleTeam, FleetComposition, Team, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT, TEAM0, TEAM1, teamsOf } from '../types.ts';
 import { unitTypeIndex } from '../unit-types.ts';
 import { resetChains } from './effects.ts';
@@ -11,7 +11,7 @@ const BATTLE_SPREAD_BASE = 400;
 const BATTLE_SPREAD_PER_UNIT = 4;
 
 interface InitSpawn {
-  readonly type: number;
+  readonly type: UnitTypeIndex;
   readonly count: number;
   readonly spread: number;
 }

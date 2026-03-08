@@ -2,7 +2,7 @@ import { effectColor } from '../colors.ts';
 import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex } from '../types.ts';
+import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
@@ -39,7 +39,7 @@ function steerHomingProjectile(p: Projectile, dt: number) {
 
 function emitProjectileDamage(
   p: Projectile,
-  victimType: number,
+  victimType: UnitTypeIndex,
   victimTeam: Team,
   amount: number,
   kind: 'direct' | 'aoe',

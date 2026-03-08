@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-
+import { asType } from './__test__/pool-helper.ts';
 import { countFleetUnits, SORTED_TYPE_INDICES } from './fleet-cost.ts';
 import { TYPES } from './unit-types.ts';
 
@@ -21,9 +21,9 @@ describe('TYPES[i].cost', () => {
 describe('countFleetUnits', () => {
   it('sums all entry counts', () => {
     const fleet = [
-      { type: 0, count: 5 },
-      { type: 1, count: 3 },
-      { type: 2, count: 7 },
+      { type: asType(0), count: 5 },
+      { type: asType(1), count: 3 },
+      { type: asType(2), count: 7 },
     ];
     expect(countFleetUnits(fleet)).toBe(15);
   });

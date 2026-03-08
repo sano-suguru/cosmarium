@@ -4,7 +4,7 @@
 
 import { onDamageUnit, onSupportEffect } from '../simulation/hooks.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
-import { onKillUnit } from '../simulation/spawn.ts';
+import { onKillUnit, onSpawnUnit } from '../simulation/spawn.ts';
 import { MAX_TEAMS, NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import type {
@@ -132,6 +132,12 @@ export function createLifespanTracker(): LifespanTracker {
     totalLifespan: new Float64Array(size),
     spawnTimes: new Map(),
   };
+}
+
+export function installLifespanSpawnHook(tracker: LifespanTracker, getTime: () => number): () => void {
+  return onSpawnUnit((e) => {
+    tracker.spawnTimes.set(e.unitIndex, getTime());
+  });
 }
 
 export function installLifespanKillHook(tracker: LifespanTracker, getTime: () => number): () => void {

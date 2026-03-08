@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { buildHash } from './spatial-hash.ts';
@@ -93,8 +93,8 @@ describe('aimAt — 偏差射撃の照準計算', () => {
 
 describe('combat — 偏差射撃統合', () => {
   it('Fighter: 移動目標への射撃角度が直射角度と異なる (leadAccuracy=0.7)', () => {
-    const fighter = spawnAt(0, 1, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const fighter = spawnAt(0, asType(1), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(enemy).vy = 200; // 上に移動中
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
@@ -107,8 +107,8 @@ describe('combat — 偏差射撃統合', () => {
   });
 
   it('Fighter: 静止目標への射撃は直射と同等', () => {
-    const fighter = spawnAt(0, 1, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const fighter = spawnAt(0, asType(1), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(enemy).vx = 0;
     unit(enemy).vy = 0;
     unit(fighter).cooldown = 0;
@@ -121,8 +121,8 @@ describe('combat — 偏差射撃統合', () => {
   });
 
   it('Sniper: ヒットスキャンで射線上の敵に即着弾', () => {
-    const sniper = spawnAt(0, 8, 0, 0);
-    const enemy = spawnAt(1, 1, 300, 0);
+    const sniper = spawnAt(0, asType(8), 0, 0);
+    const enemy = spawnAt(1, asType(1), 300, 0);
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
@@ -134,8 +134,8 @@ describe('combat — 偏差射撃統合', () => {
   });
 
   it('Reflector: 弱射撃にも偏差が適用される (leadAccuracy=0.15)', () => {
-    const reflector = spawnAt(0, 6, 0, 0);
-    const enemy = spawnAt(1, 1, 50, 0);
+    const reflector = spawnAt(0, asType(6), 0, 0);
+    const enemy = spawnAt(1, asType(1), 50, 0);
     unit(enemy).vy = 300;
     unit(reflector).cooldown = 0;
     unit(reflector).target = enemy;
@@ -148,8 +148,8 @@ describe('combat — 偏差射撃統合', () => {
   });
 
   it('Flagship: チャージ時のロック角度に偏差が適用される (leadAccuracy=0.85)', () => {
-    const flagship = spawnAt(0, 4, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const flagship = spawnAt(0, asType(4), 0, 0);
+    const enemy = spawnAt(1, asType(1), 200, 0);
     unit(enemy).vy = 150;
     unit(flagship).cooldown = 0;
     unit(flagship).target = enemy;

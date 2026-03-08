@@ -10,6 +10,7 @@ import type {
   TeamTuple,
   Unit,
   UnitIndex,
+  UnitTypeIndex,
 } from './types.ts';
 import { assignTeamTuple, NO_PARTICLE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0, TEAMS } from './types.ts';
 
@@ -321,7 +322,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
   unitPool[i] = {
     alive: false,
     team: 0,
-    type: 0,
+    type: 0 as UnitTypeIndex,
     x: 0,
     y: 0,
     prevX: 0,

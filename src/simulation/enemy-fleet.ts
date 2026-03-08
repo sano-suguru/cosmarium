@@ -1,5 +1,5 @@
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
-import type { FleetComposition, FleetEntry } from '../types.ts';
+import type { FleetComposition, FleetEntry, UnitTypeIndex } from '../types.ts';
 import { TYPES, unitTypeIndex } from '../unit-types.ts';
 
 /** アーキタイプごとの重み定義。キーは TYPES インデックス → 重み(0-10) */
@@ -122,11 +122,11 @@ function collectFleet(counts: number[], budget: number): FleetEntry[] {
   for (let i = 0; i < NUM_TYPES; i++) {
     const c = counts[i];
     if (c !== undefined && c > 0) {
-      fleet.push({ type: i, count: c });
+      fleet.push({ type: i as UnitTypeIndex, count: c });
     }
   }
   if (fleet.length === 0) {
-    fleet.push({ type: 0, count: Math.max(1, Math.floor(budget / costOf(0))) });
+    fleet.push({ type: 0 as UnitTypeIndex, count: Math.max(1, Math.floor(budget / costOf(0))) });
   }
   return fleet;
 }

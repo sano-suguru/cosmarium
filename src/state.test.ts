@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { resetState } from './__test__/pool-helper.ts';
+import { asType, resetState } from './__test__/pool-helper.ts';
 import { beams, getBeam } from './beams.ts';
 import { rng, seed, seedRng, state } from './state.ts';
 
@@ -43,7 +43,7 @@ describe('直接代入', () => {
   });
 
   it('state.codexSelected を更新できる', () => {
-    state.codexSelected = 7;
+    state.codexSelected = asType(7);
     expect(state.codexSelected).toBe(7);
   });
 

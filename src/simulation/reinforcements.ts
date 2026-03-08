@@ -1,7 +1,7 @@
 import { incMotherships, mothershipIdx, teamUnitCounts } from '../pools.ts';
-import type { BattleTeam } from '../types.ts';
+import type { BattleTeam, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import { DRONE_TYPE, unitTypeIndex } from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, reinforcementOrigin } from './spawn-coordinates.ts';
 import { assignToSquadron } from './squadron.ts';
@@ -14,12 +14,11 @@ import { assignToSquadron } from './squadron.ts';
 // Known overlaps are verified in reinforcements.test.ts
 
 interface ReinforcementEntry {
-  readonly type: number;
+  readonly type: UnitTypeIndex;
   readonly spread: number;
   readonly condition: (r: number, cnt: number) => boolean;
 }
 
-const DRONE = unitTypeIndex('Drone');
 const FIGHTER = unitTypeIndex('Fighter');
 const BOMBER = unitTypeIndex('Bomber');
 const CRUISER = unitTypeIndex('Cruiser');
@@ -64,14 +63,14 @@ export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
 function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {
   const [cx, cy] = reinforcementOrigin(team, rng);
   const r = rng();
-  const s = (tp: number, spread: number) => {
+  const s = (tp: UnitTypeIndex, spread: number) => {
     const idx = spawnUnit(team, tp, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
     if (idx !== NO_UNIT) {
       assignToSquadron(idx, team);
     }
   };
   for (let i = 0; i < 8; i++) {
-    s(DRONE, 100);
+    s(DRONE_TYPE, 100);
   }
   for (let i = 0; i < 2; i++) {
     s(FIGHTER, 80);

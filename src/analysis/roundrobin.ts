@@ -10,6 +10,8 @@
  */
 
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
+import { createRng } from '../state.ts';
+import type { UnitTypeIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { collectArgPairs, parseIntArg, runTrial } from './batch.ts';
 import type { BatchConfig } from './batch-types.ts';
@@ -18,8 +20,8 @@ import { typeName } from './batch-types.ts';
 // ─── Types ────────────────────────────────────────────────────────
 
 interface MatchupResult {
-  readonly typeA: number;
-  readonly typeB: number;
+  readonly typeA: UnitTypeIndex;
+  readonly typeB: UnitTypeIndex;
   readonly nameA: string;
   readonly nameB: string;
   readonly winsA: number;
@@ -29,7 +31,7 @@ interface MatchupResult {
 }
 
 interface RoundRobinRanking {
-  readonly typeIndex: number;
+  readonly typeIndex: UnitTypeIndex;
   readonly name: string;
   readonly totalWins: number;
   readonly totalLosses: number;
@@ -62,7 +64,7 @@ interface RoundRobinConfig {
 // ─── Core ─────────────────────────────────────────────────────────
 
 /** 指定予算内でモノタイプ艦隊を構築。cost <= 0 または購入不可なら null */
-function buildMonoFleet(typeIndex: number, budget: number): { type: number; count: number }[] | null {
+function buildMonoFleet(typeIndex: UnitTypeIndex, budget: number): { type: UnitTypeIndex; count: number }[] | null {
   const t = TYPES[typeIndex];
   if (!t || t.cost <= 0) {
     return null;
@@ -75,7 +77,12 @@ function buildMonoFleet(typeIndex: number, budget: number): { type: number; coun
 }
 
 /** 2つのユニットタイプの全試行を実行し勝敗を集計する */
-function runMatchup(typeA: number, typeB: number, config: RoundRobinConfig, matchIndex: number): MatchupResult | null {
+function runMatchup(
+  typeA: UnitTypeIndex,
+  typeB: UnitTypeIndex,
+  config: RoundRobinConfig,
+  matchIndex: number,
+): MatchupResult | null {
   const fleetA = buildMonoFleet(typeA, config.budget);
   const fleetB = buildMonoFleet(typeB, config.budget);
 
@@ -131,7 +138,11 @@ interface TypeStats {
   matches: number;
 }
 
-function ensureEntry(stats: Map<number, TypeStats>, affinities: Map<number, Map<number, number>>, typeIdx: number) {
+function ensureEntry(
+  stats: Map<UnitTypeIndex, TypeStats>,
+  affinities: Map<UnitTypeIndex, Map<UnitTypeIndex, number>>,
+  typeIdx: UnitTypeIndex,
+) {
   if (!stats.has(typeIdx)) {
     stats.set(typeIdx, { wins: 0, losses: 0, draws: 0, matches: 0 });
   }
@@ -141,11 +152,11 @@ function ensureEntry(stats: Map<number, TypeStats>, affinities: Map<number, Map<
 }
 
 function aggregateMatchups(matchups: readonly MatchupResult[]): {
-  stats: Map<number, TypeStats>;
-  affinities: Map<number, Map<number, number>>;
+  stats: Map<UnitTypeIndex, TypeStats>;
+  affinities: Map<UnitTypeIndex, Map<UnitTypeIndex, number>>;
 } {
-  const stats = new Map<number, TypeStats>();
-  const affinities = new Map<number, Map<number, number>>();
+  const stats = new Map<UnitTypeIndex, TypeStats>();
+  const affinities = new Map<UnitTypeIndex, Map<UnitTypeIndex, number>>();
 
   for (const m of matchups) {
     ensureEntry(stats, affinities, m.typeA);
@@ -173,7 +184,7 @@ function aggregateMatchups(matchups: readonly MatchupResult[]): {
   return { stats, affinities };
 }
 
-function classifyAffinities(aff: Map<number, number>): { strongAgainst: string[]; weakAgainst: string[] } {
+function classifyAffinities(aff: Map<UnitTypeIndex, number>): { strongAgainst: string[]; weakAgainst: string[] } {
   const strongAgainst: string[] = [];
   const weakAgainst: string[] = [];
   for (const [oppIdx, wr] of aff) {
@@ -215,16 +226,16 @@ function computeRankings(matchups: readonly MatchupResult[]): RoundRobinRanking[
 
 /** 全ユニットタイプの総当たり対戦を実行し、勝率ランキングと相性データを返す */
 export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
-  const types = SORTED_TYPE_INDICES;
+  const validTypes = SORTED_TYPE_INDICES.filter((t) => buildMonoFleet(t, config.budget) !== null);
+  const totalMatchups = (validTypes.length * (validTypes.length - 1)) / 2;
   const matchups: MatchupResult[] = [];
   let matchIndex = 0;
-  const totalMatchups = (types.length * (types.length - 1)) / 2;
   const log = config.logger ?? console.error;
 
-  for (let i = 0; i < types.length; i++) {
-    for (let j = i + 1; j < types.length; j++) {
-      const typeA = types[i];
-      const typeB = types[j];
+  for (let i = 0; i < validTypes.length; i++) {
+    for (let j = i + 1; j < validTypes.length; j++) {
+      const typeA = validTypes[i];
+      const typeB = validTypes[j];
       if (typeA === undefined || typeB === undefined) {
         continue;
       }
@@ -295,24 +306,21 @@ function parseRoundRobinArgs(argv: readonly string[], createRng: (seed: number) 
 }
 
 if (import.meta.main) {
-  (async () => {
-    const { seedRng, state } = await import('../state.ts');
-    const createRng = (seed: number) => {
-      seedRng(seed);
-      return state.rng;
-    };
-    const config = parseRoundRobinArgs(process.argv.slice(2), createRng);
-    const summary = runRoundRobin(config);
+  const config = parseRoundRobinArgs(process.argv.slice(2), createRng);
+  const summary = runRoundRobin(config);
 
-    if (config.outFile) {
-      const { writeFileSync } = await import('node:fs');
-      writeFileSync(config.outFile, JSON.stringify(summary, null, 2));
-      console.error(`結果を ${config.outFile} に保存しました`);
-    } else {
-      console.error(formatRoundRobin(summary));
-    }
-  })().catch((e: unknown) => {
-    console.error(e);
-    process.exitCode = 1;
-  });
+  const outFile = config.outFile;
+  if (outFile) {
+    import('node:fs')
+      .then(({ writeFileSync }) => {
+        writeFileSync(outFile, JSON.stringify(summary, null, 2));
+        console.error(`結果を ${outFile} に保存しました`);
+      })
+      .catch((e: unknown) => {
+        console.error(e);
+        process.exitCode = 1;
+      });
+  } else {
+    console.error(formatRoundRobin(summary));
+  }
 }

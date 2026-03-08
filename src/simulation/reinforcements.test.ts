@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fillUnitPool, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, fillUnitPool, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { incMotherships, poolCounts, setUnitCount, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
@@ -92,7 +92,7 @@ describe('reinforce', () => {
     const rs = makeRS(REINFORCE_INTERVAL);
     state.rng = () => 0.99;
     for (let i = 0; i < REINFORCE_UNIT_CAP; i++) {
-      spawnAt(0, 0, i * 20, 0);
+      spawnAt(0, asType(0), i * 20, 0);
     }
     reinforce(0.1, rng, rs);
     // team0: 250体で cap 超え → スキップ, team1: 劣勢(ratio≈0.004)で2ウェーブ=24体(cnt<35で+1/wave@r=0.99)
@@ -125,7 +125,7 @@ describe('rubber band reinforcements', () => {
   /** 指定チームにn体のDroneを事前スポーンする */
   function prefillTeam(team: 0 | 1, count: number) {
     for (let i = 0; i < count; i++) {
-      spawnAt(team, 0, i * 20, team * 500);
+      spawnAt(team, asType(0), i * 20, team * 500);
     }
   }
 
@@ -215,7 +215,7 @@ describe('rubber band reinforcements', () => {
     // team0 に数体スポーン
     const team0Count = 10;
     for (let i = 0; i < team0Count; i++) {
-      spawnAt(0, 0, i * 20, 0);
+      spawnAt(0, asType(0), i * 20, 0);
     }
     // team1 は 0体、プール満杯で母艦復活もできない
     const rs = makeRS(REINFORCE_INTERVAL);

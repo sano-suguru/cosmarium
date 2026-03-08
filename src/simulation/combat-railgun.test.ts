@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
@@ -26,8 +26,8 @@ afterEach(() => {
 
 describe('combat — RAILGUN', () => {
   it('sniper: Sniper (shape=8) → ヒットスキャン + tracerビーム', () => {
-    const sniper = spawnAt(0, 8, 0, 0); // Sniper (shape=8, rng=600)
-    const enemy = spawnAt(1, 1, 300, 0);
+    const sniper = spawnAt(0, asType(8), 0, 0); // Sniper (shape=8, rng=600)
+    const enemy = spawnAt(1, asType(1), 300, 0);
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();

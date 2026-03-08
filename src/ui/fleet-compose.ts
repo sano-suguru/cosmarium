@@ -1,5 +1,5 @@
 import { DEFAULT_BUDGET, SORTED_TYPE_INDICES } from '../fleet-cost.ts';
-import type { FleetComposition, FleetEntry } from '../types.ts';
+import type { FleetComposition, FleetEntry, UnitTypeIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import {
   DOM_ID_COMPOSE,
@@ -279,7 +279,7 @@ function buildPlayerFleet(): FleetComposition {
   for (let i = 0; i < TYPES.length; i++) {
     const c = counts[i] ?? 0;
     if (c > 0) {
-      fleet.push({ type: i, count: c });
+      fleet.push({ type: i as UnitTypeIndex, count: c });
     }
   }
   return fleet;

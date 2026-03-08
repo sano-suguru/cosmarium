@@ -23,7 +23,7 @@ import { resetChains, restoreChains, snapshotChains } from '../simulation/effect
 import { spawnUnit } from '../simulation/spawn.ts';
 import { restoreSquadrons, snapshotSquadrons } from '../simulation/squadron.ts';
 import { state } from '../state.ts';
-import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex } from '../types.ts';
+import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../types.ts';
 import { TYPES, unitType } from '../unit-types.ts';
 import { demoByFlag, demoDefault, demoRng } from './codex-demos.ts';
@@ -177,7 +177,7 @@ function countDemoEnemies(): number {
   return ec;
 }
 
-function setupCodexDemo(typeIdx: number) {
+function setupCodexDemo(typeIdx: UnitTypeIndex) {
   clearCurrentDemo();
 
   const t = unitType(typeIdx);
@@ -275,7 +275,8 @@ export function syncDemoCamera(): void {
 
 function updateCodexPanel() {
   const d = els();
-  const t = unitType(state.codexSelected);
+  const sel = state.codexSelected;
+  const t = unitType(sel);
   const c0 = color(state.codexSelected, 0),
     c1 = color(state.codexSelected, 1);
   const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
@@ -360,7 +361,7 @@ function buildCodexUI() {
     typeDiv.textContent = t.attackDesc;
     labelGroup.appendChild(typeDiv);
     entry.appendChild(labelGroup);
-    const idx = i;
+    const idx = i as UnitTypeIndex;
     entry.onclick = () => {
       state.codexSelected = idx;
       buildCodexUI();
@@ -382,7 +383,7 @@ export function toggleCodex() {
     state.codexOpen = true;
     els().codex.classList.add('open');
     if (!isPurchasable(state.codexSelected)) {
-      state.codexSelected = 0;
+      state.codexSelected = 0 as UnitTypeIndex;
     }
     buildCodexUI();
     updateCodexPanel();

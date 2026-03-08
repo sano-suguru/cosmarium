@@ -4,7 +4,7 @@ import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import { addAberration, addFlash, addFreeze } from '../screen-effects.ts';
 import { swapRemove } from '../swap-remove.ts';
-import type { Color3, Team, Unit, UnitIndex } from '../types.ts';
+import type { Color3, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { emitDamage } from './hooks.ts';
@@ -88,7 +88,7 @@ function updateKillerVet(killer: Killer) {
   }
 }
 
-export function explosion(x: number, y: number, team: Team, type: number, rng: () => number) {
+export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex, rng: () => number) {
   const ut = unitType(type);
   const size = ut.size;
   const cost = ut.cost;

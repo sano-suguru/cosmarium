@@ -1,5 +1,5 @@
 import { color } from '../colors.ts';
-import type { Team } from '../types.ts';
+import type { Team, UnitTypeIndex } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { DOM_ID_KILL_FEED } from './dom-ids.ts';
 
@@ -18,12 +18,12 @@ const SKULL_SVG = `<svg ${SVG_ATTRS}><circle cx="9" cy="12" r="1"/><circle cx="1
 
 interface KillerTag {
   team: Team;
-  type: number;
+  type: UnitTypeIndex;
 }
 
 interface QueuedEntry {
   victimTeam: Team;
-  victimType: number;
+  victimType: UnitTypeIndex;
   killer: KillerTag | null;
 }
 let container: HTMLDivElement | null = null;
@@ -59,7 +59,7 @@ function createIconSpan(svgHtml: string): HTMLSpanElement {
   return span;
 }
 
-function showEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
+function showEntry(victimTeam: Team, victimType: UnitTypeIndex, killer: KillerTag | null) {
   if (!container) {
     return;
   }
@@ -137,7 +137,7 @@ export function clearKillFeed() {
     container.textContent = '';
   }
 }
-export function addKillFeedEntry(victimTeam: Team, victimType: number, killer: KillerTag | null) {
+export function addKillFeedEntry(victimTeam: Team, victimType: UnitTypeIndex, killer: KillerTag | null) {
   if (!container) {
     return;
   }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
@@ -22,15 +22,15 @@ afterEach(() => {
   resetState();
 });
 
-const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
+const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: asType(0) };
 
 // ---------------------------------------------------------------------------
 // snapshotPools → clearAllPools → restorePools ラウンドトリップ
 // ---------------------------------------------------------------------------
 describe('snapshot & restore ラウンドトリップ', () => {
   it('ユニットのHP/位置/チームが完全復元される', () => {
-    const idx0 = spawnAt(0, 1, 100, 200);
-    const idx1 = spawnAt(1, 3, -50, 300);
+    const idx0 = spawnAt(0, asType(1), 100, 200);
+    const idx1 = spawnAt(1, asType(3), -50, 300);
     const u0Before = { ...unit(idx0) };
     const u1Before = { ...unit(idx1) };
 
@@ -145,8 +145,8 @@ describe('snapshot & restore ラウンドトリップ', () => {
   });
 
   it('poolCountsが正確に復元される', () => {
-    spawnAt(0, 0, 0, 0);
-    spawnAt(1, 1, 100, 100);
+    spawnAt(0, asType(0), 0, 0);
+    spawnAt(1, asType(1), 100, 100);
     spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     spawnProjectile(0, 0, 1, 0, 1, 5, 0, 2, 1, 0, 0);
 
@@ -170,7 +170,7 @@ describe('snapshot & restore ラウンドトリップ', () => {
 // ---------------------------------------------------------------------------
 describe('clearAllPools', () => {
   it('全プールをクリアする', () => {
-    spawnAt(0, 0, 100, 100);
+    spawnAt(0, asType(0), 100, 100);
     spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     spawnProjectile(0, 0, 1, 0, 1, 5, 0, 2, 1, 0, 0);
     addBeam(0, 0, 10, 10, 1, 0, 0, 1, 2);
@@ -229,7 +229,7 @@ describe('clearAllPools', () => {
 // ---------------------------------------------------------------------------
 describe('snapshot の独立性', () => {
   it('snapshot後の変更がsnapshotに影響しない', () => {
-    const idx = spawnAt(0, 0, 100, 200);
+    const idx = spawnAt(0, asType(0), 100, 200);
     const snapshot = snapshotPools();
 
     // snapshot後にユニットを変更
@@ -252,7 +252,7 @@ describe('空プールのsnapshot & restore', () => {
     const snapshot = snapshotPools();
 
     // デモエンティティを生成
-    spawnAt(0, 0, 50, 50);
+    spawnAt(0, asType(0), 50, 50);
     spawnParticle(0, 0, 0, 0, 1, 1, 1, 1, 1, SH_CIRCLE);
     expect(poolCounts.units).toBe(1);
 
@@ -277,9 +277,9 @@ describe('pendingChains snapshot & restore', () => {
 
   it('chainLightningで生成されたpendingChainsがsnapshot→clear→restoreで復元される', () => {
     // 複数の敵を配置してチェーンライトニングを発射
-    spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
-    spawnAt(1, 1, 150, 0);
+    spawnAt(1, asType(1), 50, 0);
+    spawnAt(1, asType(1), 100, 0);
+    spawnAt(1, asType(1), 150, 0);
     buildHash();
 
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -302,8 +302,8 @@ describe('pendingChains snapshot & restore', () => {
   });
 
   it('snapshotは独立コピーであり、元のpendingChainsの変更に影響されない', () => {
-    spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
+    spawnAt(1, asType(1), 50, 0);
+    spawnAt(1, asType(1), 100, 0);
     buildHash();
 
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);

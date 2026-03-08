@@ -15,6 +15,7 @@
 
 import { SIM_DT, WORLD_SIZE } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
+import { createRng } from '../state.ts';
 
 /** 3 分 @ 60fps */
 const DEFAULT_MAX_STEPS = 10800;
@@ -27,7 +28,7 @@ import { initBattle, initMelee } from '../simulation/init.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { stepOnce } from '../simulation/update.ts';
 
-import type { FleetComposition, Team } from '../types.ts';
+import type { FleetComposition, Team, UnitTypeIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
 import { computeSummary } from './batch-summary.ts';
@@ -44,16 +45,10 @@ import {
   installKillHook,
   installKillSequenceHook,
   installLifespanKillHook,
+  installLifespanSpawnHook,
   installSupportHook,
 } from './batch-tracking.ts';
-import type {
-  BatchConfig,
-  BatchSummary,
-  KillTracker,
-  LifespanTracker,
-  TrialResult,
-  TrialSnapshot,
-} from './batch-types.ts';
+import type { BatchConfig, BatchSummary, KillTracker, TrialResult, TrialSnapshot } from './batch-types.ts';
 import type { BattleStateSnapshot } from './entropy.ts';
 import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } from './entropy.ts';
 
@@ -104,14 +99,13 @@ function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracke
 // ─── Unit Count by Type ──────────────────────────────────────────
 
 /** 初期ユニット数カウント + lifespan 登録を1回のプール走査で行う */
-function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanTracker): Int32Array {
+function countSpawnedByType(activeTeams: number): Int32Array {
   const counts = new Int32Array(TYPES.length);
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);
     if (u.alive && u.team < activeTeams) {
       counts[u.type] = (counts[u.type] ?? 0) + 1;
-      lifespanTracker.spawnTimes.set(i, 0);
     }
   }
   return counts;
@@ -177,9 +171,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const trialSeed = config.seed + trialIndex;
   const rng = config.createRng(trialSeed);
 
-  // setupFleets はプール状態を初期化するため、呼び出し前のプール状態は破棄される
-  const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
-
+  // フック登録を setupFleets より先に行い、初期ユニットの spawn もフック経由で lifespan 登録する
   const tracker = createKillTracker();
   const unsubKill = installKillHook(tracker);
   const dmgTracker = createDamageTracker();
@@ -190,10 +182,15 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const unsubSeq = installKillSequenceHook(seqTracker);
   const lifespanTracker = createLifespanTracker();
   let currentTime = 0;
-  const unsubLifespan = installLifespanKillHook(lifespanTracker, () => currentTime);
+  const unsubLifespanSpawn = installLifespanSpawnHook(lifespanTracker, () => currentTime);
+  const unsubLifespanKill = installLifespanKillHook(lifespanTracker, () => currentTime);
   const ctxTracker = createKillContextTracker();
   const unsubCtx = installKillContextHook(ctxTracker);
-  const spawnedByType = countSpawnedAndRegister(activeTeams, lifespanTracker);
+
+  // setupFleets はプール状態を初期化するため、呼び出し前のプール状態は破棄される
+  // spawnUnit 内でフックが発火し、初期ユニットの spawnTimes が自動登録される
+  const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
+  const spawnedByType = countSpawnedByType(activeTeams);
 
   const gs = makeBatchGameLoopState(config.mode, activeTeams);
   const snapshots: TrialSnapshot[] = [];
@@ -221,7 +218,8 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     unsubDmg();
     unsubSup();
     unsubSeq();
-    unsubLifespan();
+    unsubLifespanSpawn();
+    unsubLifespanKill();
     unsubCtx();
   }
 
@@ -285,7 +283,7 @@ export function parseIntArg(pairs: Map<string, string>, key: string, fallback: n
 
 /** @example parseFleetSpec("Fighter:10,Cruiser:5,Healer:3") */
 function parseFleetArg(value: string): FleetComposition {
-  const entries: { type: number; count: number }[] = [];
+  const entries: { type: UnitTypeIndex; count: number }[] = [];
   for (const part of value.split(',')) {
     const [name, countStr] = part.split(':');
     if (!name || !countStr) {
@@ -295,7 +293,7 @@ function parseFleetArg(value: string): FleetComposition {
     if (typeIdx === -1) {
       continue;
     }
-    entries.push({ type: typeIdx, count: Number.parseInt(countStr, 10) });
+    entries.push({ type: typeIdx as UnitTypeIndex, count: Number.parseInt(countStr, 10) });
   }
   return entries;
 }
@@ -352,25 +350,22 @@ export function runBatch(config: BatchConfig): BatchSummary {
 }
 
 if (import.meta.main) {
-  (async () => {
-    const { seedRng, state } = await import('../state.ts');
-    const createRng = (seed: number) => {
-      seedRng(seed);
-      return state.rng;
-    };
-    const config = parseArgs(process.argv.slice(2), createRng);
-    const summary = runBatch(config);
+  const config = parseArgs(process.argv.slice(2), createRng);
+  const summary = runBatch(config);
 
-    if (config.outFile) {
-      const { writeFileSync } = await import('node:fs');
-      const replacer = (_key: string, value: unknown) => (value === Number.POSITIVE_INFINITY ? 'Infinity' : value);
-      writeFileSync(config.outFile, JSON.stringify(summary, replacer, 2));
-      console.error(`結果を ${config.outFile} に保存しました`);
-    } else {
-      console.error(formatSummary(summary));
-    }
-  })().catch((e: unknown) => {
-    console.error(e);
-    process.exitCode = 1;
-  });
+  const outFile = config.outFile;
+  if (outFile) {
+    import('node:fs')
+      .then(({ writeFileSync }) => {
+        const replacer = (_key: string, value: unknown) => (value === Number.POSITIVE_INFINITY ? 'Infinity' : value);
+        writeFileSync(outFile, JSON.stringify(summary, replacer, 2));
+        console.error(`結果を ${outFile} に保存しました`);
+      })
+      .catch((e: unknown) => {
+        console.error(e);
+        process.exitCode = 1;
+      });
+  } else {
+    console.error(formatSummary(summary));
+  }
 }

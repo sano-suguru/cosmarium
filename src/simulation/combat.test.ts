@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe('combat — 共通', () => {
   it('stun>0 → 即return（何も起きない）', () => {
-    const idx = spawnAt(0, 1, 0, 0);
+    const idx = spawnAt(0, asType(1), 0, 0);
     const u = unit(idx);
     u.stun = 1.0;
     u.cooldown = 0;
@@ -42,7 +42,7 @@ describe('combat — 共通', () => {
   });
 
   it('cooldown, abilityCooldown がdt分減少する', () => {
-    const idx = spawnAt(0, 1, 0, 0);
+    const idx = spawnAt(0, asType(1), 0, 0);
     const u = unit(idx);
     u.cooldown = 1.0;
     u.abilityCooldown = 0.5;
@@ -56,33 +56,33 @@ describe('combat — 共通', () => {
 
 describe('combat — UNIT STATS', () => {
   it('Cruiser(type 3) に sweep: true がある', () => {
-    expect(unitType(3).sweep).toBe(true);
+    expect(unitType(asType(3)).sweep).toBe(true);
   });
 
   it('Cruiser の fireRate は 1.5', () => {
-    expect(unitType(3).fireRate).toBe(1.5);
+    expect(unitType(asType(3)).fireRate).toBe(1.5);
   });
 
   it('Cruiser の damage は 8', () => {
-    expect(unitType(3).damage).toBe(8);
+    expect(unitType(asType(3)).damage).toBe(8);
   });
 
   it('Scorcher(type 12) の fireRate は 0.1', () => {
-    expect(unitType(12).fireRate).toBe(0.1);
+    expect(unitType(asType(12)).fireRate).toBe(0.1);
   });
 
   it('Scorcher の damage は 0.8', () => {
-    expect(unitType(12).damage).toBe(0.8);
+    expect(unitType(asType(12)).damage).toBe(0.8);
   });
 
   it('Scorcher に sweep がない', () => {
-    expect(unitType(12).sweep).toBe(false);
+    expect(unitType(asType(12)).sweep).toBe(false);
   });
 });
 
 describe('combat — COOLDOWN REGRESSION', () => {
   it('Fighter(type 1) の cooldown は dt 分だけ減少する', () => {
-    const fighter = spawnAt(0, 1, 0, 0);
+    const fighter = spawnAt(0, asType(1), 0, 0);
     unit(fighter).cooldown = 1.0;
     buildHash();
     combat(unit(fighter), fighter, 0.1, 0, rng);
@@ -90,8 +90,8 @@ describe('combat — COOLDOWN REGRESSION', () => {
   });
 
   it('Beam unit(Cruiser type 3) の cooldown も dt 分だけ減少する（二重デクリメントしない）', () => {
-    const cruiser = spawnAt(0, 3, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const cruiser = spawnAt(0, asType(3), 0, 0);
+    const enemy = spawnAt(1, asType(1), 100, 0);
     unit(cruiser).cooldown = 1.0;
     unit(cruiser).target = enemy;
     buildHash();
@@ -104,8 +104,8 @@ describe('combat — COOLDOWN REGRESSION', () => {
 // Amplifier buff effects
 // ============================================================
 describe('combat — AMPLIFIER buff effects', () => {
-  const AMPLIFIER_TYPE = 16; // Amplifier index
-  const FIGHTER_TYPE_C = 1;
+  const AMPLIFIER_TYPE = asType(16); // Amplifier index
+  const FIGHTER_TYPE_C = asType(1);
 
   it('ampBoostTimer > 0 のユニットの射程が AMP_RANGE_MULT 倍に拡張', () => {
     const t = unitType(FIGHTER_TYPE_C);
@@ -179,8 +179,8 @@ describe('combat — KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3)
+    const lancer = spawnAt(0, asType(9), 0, 0);
+    const enemy = spawnAt(1, asType(0), 5, 0); // Drone (hp=3)
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
     expect(unit(enemy).alive).toBe(false);
@@ -194,9 +194,9 @@ describe('combat — KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
     });
-    const lancer = spawnAt(0, 9, 0, 0);
+    const lancer = spawnAt(0, asType(9), 0, 0);
     unit(lancer).hp = 1; // 自傷で死亡
-    const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, mass=1)
+    const enemy = spawnAt(1, asType(0), 5, 0); // Drone (hp=3, mass=1)
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // Drone は Lancer の衝突ダメージで死亡、Lancer は自傷 ceil(Drone.mass)=1 で死亡
@@ -214,8 +214,8 @@ describe('combat — KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const scorcher = spawnAt(0, 12, 0, 0);
-    const enemy = spawnAt(1, 0, 100, 0); // Drone hp=3
+    const scorcher = spawnAt(0, asType(12), 0, 0);
+    const enemy = spawnAt(1, asType(0), 100, 0); // Drone hp=3
     unit(enemy).hp = 0.1; // 最小HPでkill確定
     unit(scorcher).target = enemy;
     unit(scorcher).cooldown = 0;
@@ -234,7 +234,7 @@ describe('combat — KillEvent 伝播', () => {
 // ============================================================
 describe('combat — SCRAMBLER debuff effects', () => {
   const SCRAMBLER_TYPE = unitTypeIndex('Scrambler');
-  const FIGHTER_TYPE_S = 1;
+  const FIGHTER_TYPE_S = asType(1);
 
   it('scrambleTimer > 0 でクールダウン回復が遅延', () => {
     const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);
@@ -319,7 +319,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
 
 describe('combat — CATALYST buff effects', () => {
   const CATALYST_TYPE = unitTypeIndex('Catalyst');
-  const FIGHTER_TYPE = 1;
+  const FIGHTER_TYPE = asType(1);
 
   it('catalystTimer > 0 でクールダウン回復が加速', () => {
     const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
