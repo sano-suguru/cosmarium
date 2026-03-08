@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
 import type { UnitIndex, UnitType, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import {
+  AMPLIFIER_TYPE,
+  CRUISER_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  HEALER_TYPE,
+  LANCER_TYPE,
+  SNIPER_TYPE,
+  unitType,
+} from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import {
   BOUNDARY_MARGIN,
@@ -28,7 +38,7 @@ afterEach(() => {
 
 describe('steer — スタン', () => {
   it('stun>0 → 速度減衰（mass依存）、stun-=dt、位置更新', () => {
-    const idx = spawnAt(0, asType(1), 100, 100); // Fighter: mass=2
+    const idx = spawnAt(0, FIGHTER_TYPE, 100, 100); // mass=2
     const u = unit(idx);
     u.stun = 1.0;
     u.vx = 100;
@@ -38,7 +48,7 @@ describe('steer — スタン', () => {
     buildHash();
     steer(u, idx, 0.016, rng);
     expect(u.stun).toBeCloseTo(1.0 - 0.016);
-    const mass = unitType(asType(1)).mass;
+    const mass = unitType(FIGHTER_TYPE).mass;
     const expectedDrag = (STUN_DRAG_BASE ** (1 / Math.sqrt(mass))) ** (0.016 * REF_FPS);
     expect(u.vx).toBeCloseTo(100 * expectedDrag);
     expect(u.vy).toBeCloseTo(50 * expectedDrag);
@@ -47,7 +57,7 @@ describe('steer — スタン', () => {
   });
 
   it('stun>0 → 通常操舵ロジックは実行されない（早期return）', () => {
-    const idx = spawnAt(0, asType(1), 100, 100);
+    const idx = spawnAt(0, FIGHTER_TYPE, 100, 100);
     const u = unit(idx);
     u.stun = 0.5;
     u.target = NO_UNIT;
@@ -59,8 +69,8 @@ describe('steer — スタン', () => {
   });
 
   it('stun drag: 重いユニットほどスタン中の減速が緩やか', () => {
-    const droneIdx = spawnAt(0, asType(0), 0, 0);
-    const flagshipIdx = spawnAt(0, asType(4), 500, 0);
+    const droneIdx = spawnAt(0, DRONE_TYPE, 0, 0);
+    const flagshipIdx = spawnAt(0, FLAGSHIP_TYPE, 500, 0);
     const uDrone = unit(droneIdx);
     const uFlagship = unit(flagshipIdx);
     uDrone.stun = 1.0;
@@ -80,7 +90,7 @@ describe('steer — スタン', () => {
 
 describe('steer — ベテラン速度', () => {
   it('vet=0 → spd×1.0', () => {
-    const idx = spawnAt(0, asType(1), 0, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u = unit(idx);
     u.vet = 0;
     u.angle = 0;
@@ -90,7 +100,7 @@ describe('steer — ベテラン速度', () => {
       steer(u, idx, 0.033, rng);
     }
     const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
-    const t = unitType(asType(1));
+    const t = unitType(FIGHTER_TYPE);
     // vet=0の目標速度はspd * 1.0
     expect(spd).toBeGreaterThan(0);
     expect(spd).toBeLessThanOrEqual(t.speed * 1.1); // マージン含む
@@ -98,13 +108,13 @@ describe('steer — ベテラン速度', () => {
 
   it('vet=2 → vet=0 より速い', () => {
     // vet=0
-    const i0 = spawnAt(0, asType(1), 0, 0);
+    const i0 = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u0 = unit(i0);
     u0.vet = 0;
     u0.angle = 0;
 
     // vet=2
-    const i2 = spawnAt(0, asType(1), 500, 500); // 離れた位置
+    const i2 = spawnAt(0, FIGHTER_TYPE, 500, 500); // 離れた位置
     const u2 = unit(i2);
     u2.vet = 2;
     u2.angle = 0;
@@ -122,18 +132,18 @@ describe('steer — ベテラン速度', () => {
 
 describe('steer — ターゲット探索', () => {
   it('近傍の敵を最短距離でターゲット', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
-    const nearEnemy = spawnAt(1, asType(1), 80, 0);
-    spawnAt(1, asType(1), 150, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
+    spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
     steer(unit(ally), ally as UnitIndex, 0.016, rng);
     expect(unit(ally).target).toBe(nearEnemy);
   });
 
   it('ベテラン敵を優先: 近い敵(vet=0)より少し遠い敵(vet=2)がターゲットされる', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
-    const nearEnemy = spawnAt(1, asType(1), 80, 0); // vet=0, 距離80
-    const vetEnemy = spawnAt(1, asType(1), 100, 0); // vet=2, 距離100
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0); // vet=0, 距離80
+    const vetEnemy = spawnAt(1, FIGHTER_TYPE, 100, 0); // vet=2, 距離100
     unit(nearEnemy).vet = 0;
     unit(vetEnemy).vet = 2;
     buildHash();
@@ -143,9 +153,9 @@ describe('steer — ターゲット探索', () => {
   });
 
   it('距離差が大きい場合は近い敵を優先', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
-    const nearEnemy = spawnAt(1, asType(1), 80, 0); // vet=0, 距離80
-    const farVetEnemy = spawnAt(1, asType(1), 300, 0); // vet=2, 距離300
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0); // vet=0, 距離80
+    const farVetEnemy = spawnAt(1, FIGHTER_TYPE, 300, 0); // vet=2, 距離300
     unit(nearEnemy).vet = 0;
     unit(farVetEnemy).vet = 2;
     buildHash();
@@ -155,8 +165,8 @@ describe('steer — ターゲット探索', () => {
   });
 
   it('死亡ターゲットクリア: tgt先がalive=false → tgt=-1', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 80, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
     unit(ally).target = enemy;
     unit(enemy).alive = false;
     buildHash();
@@ -171,9 +181,9 @@ describe('steer — ターゲット探索', () => {
 describe('steer — massWeight ターゲット優先', () => {
   it('massWeight>0: 近い軽い敵より遠い重い敵を優先', () => {
     // Sniper (type=8, massWeight=0.15)
-    const sniper = spawnAt(0, asType(8), 0, 0);
-    spawnAt(1, asType(0), 100, 0); // Drone mass=1, 距離100
-    const flagship = spawnAt(1, asType(4), 180, 0); // Flagship mass=30, 距離180（neighbor radius 200以内）
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    spawnAt(1, DRONE_TYPE, 100, 0); // mass=1, 距離100
+    const flagship = spawnAt(1, FLAGSHIP_TYPE, 180, 0); // mass=30, 距離180（neighbor radius 200以内）
     buildHash();
     steer(unit(sniper), sniper as UnitIndex, 0.016, rng);
     // score(drone) = 100²/(1.15²) = 10000/1.3225 ≈ 7561
@@ -184,9 +194,9 @@ describe('steer — massWeight ターゲット優先', () => {
 
   it('massWeight=0（通常ユニット）: 距離のみで判定し近い敵を優先', () => {
     // Fighter (type=1, massWeight なし)
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const drone = spawnAt(1, asType(0), 100, 0); // 距離100
-    spawnAt(1, asType(4), 300, 0); // Flagship 距離300
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const drone = spawnAt(1, DRONE_TYPE, 100, 0); // 距離100
+    spawnAt(1, FLAGSHIP_TYPE, 300, 0); // 距離300
     buildHash();
     steer(unit(fighter), fighter as UnitIndex, 0.016, rng);
     expect(unit(fighter).target).toBe(drone);
@@ -195,8 +205,8 @@ describe('steer — massWeight ターゲット優先', () => {
 
 describe('steer — engageMin/engageMax カスタム距離管理', () => {
   it('Sniper: engageMin=300 より近いと後退する', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0);
-    const enemy = spawnAt(1, asType(1), 200, 0); // 距離200 < engageMin=300
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0); // 距離200 < engageMin=300
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -207,8 +217,8 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
   });
 
   it('Sniper: engageMax=500 より遠いと前進する', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0);
-    const enemy = spawnAt(1, asType(1), 550, 0); // 距離550 > engageMax=500
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 550, 0); // 距離550 > engageMax=500
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -219,8 +229,8 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
   });
 
   it('Sniper: y軸方向でも engageMin 以内なら後退する', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0);
-    const enemy = spawnAt(1, asType(1), 0, 200); // 距離200 < engageMin=300
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 0, 200); // 距離200 < engageMin=300
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -233,8 +243,8 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
 
 describe('steer — LANCER型', () => {
   it('LANCER型はターゲットに向かって強い力で突進', () => {
-    const lancer = spawnAt(0, asType(9), 0, 0); // type 9 = Lancer
-    const enemy = spawnAt(1, asType(1), 200, 0);
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(lancer).target = enemy;
     buildHash();
     steer(unit(lancer), lancer as UnitIndex, 0.033, rng);
@@ -245,9 +255,9 @@ describe('steer — LANCER型', () => {
 
 describe('steer — ヒーラー追従', () => {
   it('全HP満タン時、mass最大の味方に追従', () => {
-    const healer = spawnAt(0, asType(5), 0, 0); // type 5 = Healer
-    spawnAt(0, asType(4), 100, 0); // type 4 = Flagship (mass=30)
-    spawnAt(0, asType(0), -100, 0); // type 0 = Drone (mass=1)
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    spawnAt(0, FLAGSHIP_TYPE, 100, 0); // mass=30
+    spawnAt(0, DRONE_TYPE, -100, 0); // mass=1
     for (let i = 0; i < 30; i++) {
       buildHash();
       steer(unit(healer), healer as UnitIndex, 0.033, rng);
@@ -258,9 +268,9 @@ describe('steer — ヒーラー追従', () => {
 
   it('HP減少ユニットが満タンの大型ユニットより優先される', () => {
     seedRng(12345);
-    const healer = spawnAt(0, asType(5), 0, 0);
-    spawnAt(0, asType(4), 0, -100); // Flagship (mass=30, 満タン)
-    const drone = spawnAt(0, asType(0), 0, 100); // Drone (mass=1)
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    spawnAt(0, FLAGSHIP_TYPE, 0, -100); // mass=30, 満タン
+    const drone = spawnAt(0, DRONE_TYPE, 0, 100); // mass=1
     unit(drone).hp = unit(drone).maxHp * 0.5;
     for (let i = 0; i < 60; i++) {
       buildHash();
@@ -272,9 +282,9 @@ describe('steer — ヒーラー追従', () => {
 
   it('同HP比率でmassが大きいユニットが優先される', () => {
     seedRng(12345);
-    const healer = spawnAt(0, asType(5), 0, 0);
-    const drone = spawnAt(0, asType(0), 0, -100); // Drone (mass=1)
-    const flagship = spawnAt(0, asType(4), 0, 100); // Flagship (mass=30)
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, -100); // mass=1
+    const flagship = spawnAt(0, FLAGSHIP_TYPE, 0, 100); // mass=30
     unit(drone).hp = unit(drone).maxHp * 0.5;
     unit(flagship).hp = unit(flagship).maxHp * 0.5;
     for (let i = 0; i < 60; i++) {
@@ -288,9 +298,9 @@ describe('steer — ヒーラー追従', () => {
 
 describe('steer — サポート重心追従', () => {
   it('味方の重心方向に移動する', () => {
-    const amp = spawnAt(0, asType(16), 0, 0); // type 16 = Amplifier
-    spawnAt(0, asType(0), 100, 100);
-    spawnAt(0, asType(0), -50, 100);
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    spawnAt(0, DRONE_TYPE, 100, 100);
+    spawnAt(0, DRONE_TYPE, -50, 100);
     for (let i = 0; i < 30; i++) {
       buildHash();
       steer(unit(amp), amp as UnitIndex, 0.033, rng);
@@ -301,10 +311,10 @@ describe('steer — サポート重心追従', () => {
 
   it('複数味方の重心が正しく反映される', () => {
     seedRng(12345);
-    const amp = spawnAt(0, asType(16), 0, 0);
-    spawnAt(0, asType(0), 100, 0);
-    spawnAt(0, asType(0), 100, 100);
-    spawnAt(0, asType(0), 100, -100);
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
+    spawnAt(0, DRONE_TYPE, 100, 0);
+    spawnAt(0, DRONE_TYPE, 100, 100);
+    spawnAt(0, DRONE_TYPE, 100, -100);
     for (let i = 0; i < 60; i++) {
       buildHash();
       steer(unit(amp), amp as UnitIndex, 0.033, rng);
@@ -314,7 +324,7 @@ describe('steer — サポート重心追従', () => {
   });
 
   it('近隣に味方がいない場合 NaN にならない', () => {
-    const amp = spawnAt(0, asType(16), 0, 0);
+    const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
     for (let i = 0; i < 5; i++) {
       buildHash();
       steer(unit(amp), amp as UnitIndex, 0.033, rng);
@@ -327,7 +337,7 @@ describe('steer — サポート重心追従', () => {
 describe('steer — ワールド境界', () => {
   it('|x| > WORLD_SIZE*BOUNDARY_MARGIN → 内向き力', () => {
     const outsideX = WORLD_SIZE * (BOUNDARY_MARGIN + 0.05);
-    const idx = spawnAt(0, asType(1), outsideX, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, outsideX, 0);
     const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
@@ -342,7 +352,7 @@ describe('steer — ワールド境界', () => {
 
   it('|y| > WORLD_SIZE*BOUNDARY_MARGIN → 内向き力', () => {
     const outsideY = WORLD_SIZE * (BOUNDARY_MARGIN + 0.05);
-    const idx = spawnAt(0, asType(1), 0, -outsideY);
+    const idx = spawnAt(0, FIGHTER_TYPE, 0, -outsideY);
     const u = unit(idx);
     u.vx = 0;
     u.vy = 0;
@@ -358,8 +368,8 @@ describe('steer — ワールド境界', () => {
 
 describe('steer — Boids Separation', () => {
   it('近接ユニットから離れる方向に力が働く', () => {
-    const u1 = spawnAt(0, asType(1), 0, 0);
-    const u2 = spawnAt(0, asType(1), 8, 0);
+    const u1 = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const u2 = spawnAt(0, FIGHTER_TYPE, 8, 0);
     unit(u1).target = NO_UNIT;
     unit(u2).target = NO_UNIT;
     buildHash();
@@ -372,8 +382,8 @@ describe('steer — Boids Separation', () => {
   });
 
   it('重いユニットは軽いユニットをより強く押しのける', () => {
-    const drone = spawnAt(0, asType(0), 0, 0); // Drone: mass=1
-    const flagship = spawnAt(0, asType(4), 20, 0); // Flagship: mass=30
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0); // mass=1
+    const flagship = spawnAt(0, FLAGSHIP_TYPE, 20, 0); // mass=30
     unit(drone).target = NO_UNIT;
     unit(flagship).target = NO_UNIT;
     unit(drone).vx = 0;
@@ -396,12 +406,12 @@ describe('steer — Boids Separation', () => {
 
 describe('steer — Boids Alignment', () => {
   it('同タイプ味方の速度方向に揃う', () => {
-    const subject = spawnAt(0, asType(1), 0, 0);
+    const subject = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(subject).vx = 0;
     unit(subject).vy = 0;
     unit(subject).target = NO_UNIT;
     for (let j = 1; j <= 3; j++) {
-      const ally = spawnAt(0, asType(1), 50 * j, 0);
+      const ally = spawnAt(0, FIGHTER_TYPE, 50 * j, 0);
       unit(ally).vx = 100;
       unit(ally).vy = 0;
     }
@@ -416,11 +426,11 @@ describe('steer — Boids Alignment', () => {
 
 describe('steer — Boids Cohesion', () => {
   it('味方集団の重心に引き寄せられる', () => {
-    const loner = spawnAt(0, asType(1), 0, 0);
+    const loner = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(loner).target = NO_UNIT;
-    spawnAt(0, asType(1), 100, 0);
-    spawnAt(0, asType(1), 120, 0);
-    spawnAt(0, asType(1), 110, 10);
+    spawnAt(0, FIGHTER_TYPE, 100, 0);
+    spawnAt(0, FIGHTER_TYPE, 120, 0);
+    spawnAt(0, FIGHTER_TYPE, 110, 10);
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
@@ -432,7 +442,7 @@ describe('steer — Boids Cohesion', () => {
 
 describe('steer — accel/drag慣性', () => {
   it('accel/drag ベースの応答: Drone (accel=10) は高速で加速', () => {
-    const idx = spawnAt(0, asType(0), 0, 0); // Drone (accel=10.0, drag=2.5, speed=220)
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0); // accel=10.0, drag=2.5, speed=220
     const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
@@ -455,14 +465,14 @@ describe('steer — accel/drag慣性', () => {
   });
 
   it('accel が低いほど速度応答が遅い', () => {
-    const fast = spawnAt(0, asType(0), 0, 0); // Drone (accel=10.0)
+    const fast = spawnAt(0, DRONE_TYPE, 0, 0); // accel=10.0
     const fastU = unit(fast);
     fastU.angle = 0;
     fastU.vx = 0;
     fastU.vy = 0;
     fastU.target = NO_UNIT;
 
-    const slow = spawnAt(0, asType(3), 100, 0); // Cruiser (accel=3.5)
+    const slow = spawnAt(0, CRUISER_TYPE, 100, 0); // accel=3.5
     const slowU = unit(slow);
     slowU.angle = 0;
     slowU.vx = 0;
@@ -481,7 +491,7 @@ describe('steer — accel/drag慣性', () => {
   });
 
   it('accel=2.0 (Flagship) でも境界力が機能する', () => {
-    const idx = spawnAt(0, asType(4), 3500, 0); // Flagship (accel=2.0) outside boundary
+    const idx = spawnAt(0, FLAGSHIP_TYPE, 3500, 0); // accel=2.0, outside boundary
     const u = unit(idx);
     u.target = NO_UNIT;
     const startX = u.x;
@@ -497,7 +507,7 @@ describe('steer — accel/drag慣性', () => {
 
 describe('steer — accel/drag physics', () => {
   it('accel convergence speed: Drone (accel=10) reaches 90% of target speed in ~10 steps', () => {
-    const idx = spawnAt(0, asType(0), 0, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
@@ -515,7 +525,7 @@ describe('steer — accel/drag physics', () => {
   });
 
   it('accel convergence speed: Flagship (accel=2) takes ~50 steps to reach 90%', () => {
-    const idx = spawnAt(0, asType(4), 0, 0);
+    const idx = spawnAt(0, FLAGSHIP_TYPE, 0, 0);
     const u = unit(idx);
     u.angle = 0;
     u.vx = 0;
@@ -533,7 +543,7 @@ describe('steer — accel/drag physics', () => {
   });
 
   it('drag decay rate: High drag (Drone: 2.5) → velocity decreases each step', () => {
-    const idx = spawnAt(0, asType(0), 0, 0); // Drone: drag=2.5
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0); // drag=2.5
     const u = unit(idx);
     u.vx = 300; // High initial speed (above target speed of 220)
     u.vy = 0;
@@ -554,8 +564,8 @@ describe('steer — accel/drag physics', () => {
   });
 
   it('drag decay comparison: Lancer (drag=0.4) retains more speed than Drone (drag=2.5)', () => {
-    const drone = spawnAt(0, asType(0), 0, 0); // Drone: drag=2.5
-    const lancer = spawnAt(0, asType(9), 500, 0); // Lancer: drag=0.4
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0); // drag=2.5
+    const lancer = spawnAt(0, LANCER_TYPE, 500, 0); // drag=0.4
 
     const uDrone = unit(drone);
     const uLancer = unit(lancer);
@@ -587,7 +597,7 @@ describe('steer — accel/drag physics', () => {
   });
 
   it('Lancer sliding: Lancer (drag=0.4) slides after target loss', () => {
-    const idx = spawnAt(0, asType(9), 0, 0);
+    const idx = spawnAt(0, LANCER_TYPE, 0, 0);
     const u = unit(idx);
     u.vx = 200;
     u.vy = 0;
@@ -624,10 +634,10 @@ describe('steer — boost mechanism', () => {
   }
 
   it('boost trigger: Unit with boost config triggers when target within triggerRange', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
-    const u2 = spawnAt(1, asType(0), 150, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
+    const u2 = spawnAt(1, DRONE_TYPE, 150, 0);
     const u = unit(u1);
     u.target = u2;
     buildHash();
@@ -637,10 +647,10 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost velocity: speed set to spd * multiplier toward target on trigger', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.5, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.5, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
-    const u2 = spawnAt(1, asType(0), 150, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
+    const u2 = spawnAt(1, DRONE_TYPE, 150, 0);
     const u = unit(u1);
     u.target = u2;
     u.vx = 10;
@@ -656,9 +666,9 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost cooldown: boostCooldown set when boostTimer expires', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(u1);
     u.boostTimer = 0.02;
     buildHash();
@@ -670,9 +680,9 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun interrupts active boost and sets cooldown', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(u1);
     u.boostTimer = 0.3;
     u.stun = 1.0;
@@ -685,9 +695,9 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun: cooldown ticks down during stun', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(u1);
     u.boostCooldown = 2.0;
     u.stun = 1.0;
@@ -699,10 +709,10 @@ describe('steer — boost mechanism', () => {
   });
 
   it('no-boost units: Units without boost config keep boostTimer/boostCooldown at 0', () => {
-    expect(unitType(asType(4)).boost).toBeUndefined();
-    const idx = spawnAt(0, asType(4), 0, 0);
+    expect(unitType(FLAGSHIP_TYPE).boost).toBeUndefined();
+    const idx = spawnAt(0, FLAGSHIP_TYPE, 0, 0);
     const u = unit(idx);
-    u.target = spawnAt(1, asType(4), 150, 0);
+    u.target = spawnAt(1, FLAGSHIP_TYPE, 150, 0);
     buildHash();
 
     for (let i = 0; i < 30; i++) {
@@ -714,14 +724,14 @@ describe('steer — boost mechanism', () => {
   });
 
   it('boost stun: cannot re-activate boost while stun cooldown remains', async () => {
-    await mockBoostType(asType(0), { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
+    await mockBoostType(DRONE_TYPE, { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 });
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(u1);
     // Start with active boost + stun
     u.boostTimer = 0.3;
     u.stun = 0.05;
-    const enemy = spawnAt(1, asType(0), 150, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 150, 0);
     u.target = enemy;
     buildHash();
 
@@ -757,12 +767,12 @@ describe('steer — HP退避ポテンシャル', () => {
   }
 
   it('HP < retreatHpRatio → 敵から離れる方向に退避（steer経由）', async () => {
-    await mockRetreat(asType(1), 0.5);
-    const ally = spawnAt(0, asType(1), 0, 0);
+    await mockRetreat(FIGHTER_TYPE, 0.5);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u = unit(ally);
     u.hp = 1;
     u.maxHp = 10;
-    spawnAt(1, asType(1), 60, 0);
+    spawnAt(1, FIGHTER_TYPE, 60, 0);
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
@@ -773,12 +783,12 @@ describe('steer — HP退避ポテンシャル', () => {
   });
 
   it('HP >= retreatHpRatio → 退避力なし（通常エンゲージメント）', async () => {
-    await mockRetreat(asType(1), 0.3);
-    const ally = spawnAt(0, asType(1), 0, 0);
+    await mockRetreat(FIGHTER_TYPE, 0.3);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u = unit(ally);
     u.hp = 5; // ratio=0.5 >= 0.3
     u.maxHp = 10;
-    const enemy = spawnAt(1, asType(1), 80, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
     u.target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -790,21 +800,21 @@ describe('steer — HP退避ポテンシャル', () => {
   });
 
   it('urgencyスケーリング: HPが低いほど退避量が大きい', async () => {
-    await mockRetreat(asType(1), 0.5);
+    await mockRetreat(FIGHTER_TYPE, 0.5);
 
     // HP 40% (ratio 0.4 < 0.5) → urgency = 0.2
-    const mild = spawnAt(0, asType(1), 0, 100);
+    const mild = spawnAt(0, FIGHTER_TYPE, 0, 100);
     const uMild = unit(mild);
     uMild.hp = 4;
     uMild.maxHp = 10;
-    spawnAt(1, asType(1), 80, 100);
+    spawnAt(1, FIGHTER_TYPE, 80, 100);
 
     // HP 10% (ratio 0.1 < 0.5) → urgency = 0.8
-    const severe = spawnAt(0, asType(1), 0, -100);
+    const severe = spawnAt(0, FIGHTER_TYPE, 0, -100);
     const uSevere = unit(severe);
     uSevere.hp = 1;
     uSevere.maxHp = 10;
-    spawnAt(1, asType(1), 80, -100);
+    spawnAt(1, FIGHTER_TYPE, 80, -100);
 
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -818,12 +828,12 @@ describe('steer — HP退避ポテンシャル', () => {
 
   it('retreatHpRatio未設定 → 退避しない（Drone等）', () => {
     // Drone (type=0) は retreatHpRatio 未設定
-    expect(unitType(asType(0)).retreatHpRatio).toBeUndefined();
-    const drone = spawnAt(0, asType(0), 0, 0);
+    expect(unitType(DRONE_TYPE).retreatHpRatio).toBeUndefined();
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(drone);
     u.hp = 1;
     u.maxHp = 3; // ratio=0.33
-    const enemy = spawnAt(1, asType(0), 80, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 80, 0);
     u.target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
@@ -835,12 +845,12 @@ describe('steer — HP退避ポテンシャル', () => {
   });
 
   it('kiting: 退避中もターゲット維持', async () => {
-    await mockRetreat(asType(1), 0.5);
-    const ally = spawnAt(0, asType(1), 0, 0);
+    await mockRetreat(FIGHTER_TYPE, 0.5);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u = unit(ally);
     u.hp = 1;
     u.maxHp = 10;
-    const enemy = spawnAt(1, asType(1), 80, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
     u.target = enemy;
     buildHash();
     steer(u, ally, 0.033, rng);
@@ -849,21 +859,21 @@ describe('steer — HP退避ポテンシャル', () => {
   });
 
   it('近傍内の敵がいると退避し、いないと退避しない（steer経由）', async () => {
-    await mockRetreat(asType(1), 0.5);
+    await mockRetreat(FIGHTER_TYPE, 0.5);
 
     // ケース1: 近傍内に敵がいる (距離100 < nearRadius=200)
-    const inRange = spawnAt(0, asType(1), 0, 1000);
+    const inRange = spawnAt(0, FIGHTER_TYPE, 0, 1000);
     const uIn = unit(inRange);
     uIn.hp = 0.01;
     uIn.maxHp = 10;
-    spawnAt(1, asType(1), 100, 1000);
+    spawnAt(1, FIGHTER_TYPE, 100, 1000);
 
     // ケース2: 近傍外に敵がいる (距離300 > nearRadius=200 → 退避力なし)
-    const outRange = spawnAt(0, asType(1), 0, -1000);
+    const outRange = spawnAt(0, FIGHTER_TYPE, 0, -1000);
     const uOut = unit(outRange);
     uOut.hp = 0.01;
     uOut.maxHp = 10;
-    spawnAt(1, asType(1), 300, -1000);
+    spawnAt(1, FIGHTER_TYPE, 300, -1000);
 
     for (let i = 0; i < 30; i++) {
       buildHash();
@@ -878,13 +888,13 @@ describe('steer — HP退避ポテンシャル', () => {
 describe('steer — Catalyst バフ', () => {
   it('catalystTimer>0 → 速度が CATALYST_SPEED_MULT 倍に増加', () => {
     // catalystTimer=1.0 のユニット
-    const catIdx = spawnAt(0, asType(1), 0, 0);
+    const catIdx = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const uCat = unit(catIdx);
     uCat.catalystTimer = 1.0;
     uCat.angle = 0;
 
     // catalystTimer=0 の対照群（離れた位置）
-    const refIdx = spawnAt(0, asType(1), 500, 500);
+    const refIdx = spawnAt(0, FIGHTER_TYPE, 500, 500);
     const uRef = unit(refIdx);
     uRef.catalystTimer = 0;
     uRef.angle = 0;
@@ -902,19 +912,19 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer>0 → 旋回速度が CATALYST_TURN_MULT 倍に増加', () => {
     // バフ有りユニット: 敵を配置して旋回を誘発
-    const catIdx = spawnAt(0, asType(1), 0, 0);
+    const catIdx = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const uCat = unit(catIdx);
     uCat.catalystTimer = 1.0;
     uCat.angle = 0;
-    const enemy1 = spawnAt(1, asType(1), 0, 100); // 真上 → 90度旋回を誘発
+    const enemy1 = spawnAt(1, FIGHTER_TYPE, 0, 100); // 真上 → 90度旋回を誘発
     uCat.target = enemy1;
 
     // バフ無しユニット（離れた位置）
-    const refIdx = spawnAt(0, asType(1), 500, 500);
+    const refIdx = spawnAt(0, FIGHTER_TYPE, 500, 500);
     const uRef = unit(refIdx);
     uRef.catalystTimer = 0;
     uRef.angle = 0;
-    const enemy2 = spawnAt(1, asType(1), 500, 600); // 同じ相対配置
+    const enemy2 = spawnAt(1, FIGHTER_TYPE, 500, 600); // 同じ相対配置
     uRef.target = enemy2;
 
     buildHash();
@@ -928,7 +938,7 @@ describe('steer — Catalyst バフ', () => {
   });
 
   it('catalystTimer=0 → 通常速度（バフなし）', () => {
-    const idx = spawnAt(0, asType(1), 0, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const u = unit(idx);
     u.catalystTimer = 0;
     u.angle = 0;
@@ -939,7 +949,7 @@ describe('steer — Catalyst バフ', () => {
     }
 
     const spd = Math.sqrt(u.vx ** 2 + u.vy ** 2);
-    const t = unitType(asType(1));
+    const t = unitType(FIGHTER_TYPE);
     // vet=0, catalyst=0 → drag/wanderの影響で t.speed より低めに収束
     expect(spd).toBeGreaterThan(t.speed * 0.6);
     expect(spd).toBeLessThan(t.speed * 1.15);
@@ -964,20 +974,20 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer>0 → ブースト突進のmultiplierがCATALYST_BOOST_MULT倍に強化', async () => {
     const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
-    await mockBoostTypeForCatalyst(asType(0), boost);
+    await mockBoostTypeForCatalyst(DRONE_TYPE, boost);
 
     // バフ有り
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const uCat = unit(u1);
     uCat.catalystTimer = 1.0;
-    const enemy1 = spawnAt(1, asType(0), 150, 0);
+    const enemy1 = spawnAt(1, DRONE_TYPE, 150, 0);
     uCat.target = enemy1;
 
     // バフ無し（離れた位置）
-    const u2 = spawnAt(0, asType(0), 500, 500);
+    const u2 = spawnAt(0, DRONE_TYPE, 500, 500);
     const uRef = unit(u2);
     uRef.catalystTimer = 0;
-    const enemy2 = spawnAt(1, asType(0), 650, 500);
+    const enemy2 = spawnAt(1, DRONE_TYPE, 650, 500);
     uRef.target = enemy2;
 
     buildHash();
@@ -997,10 +1007,10 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer>0 → ブーストcooldownがCATALYST_BOOST_CD_MULT倍に短縮', async () => {
     const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
-    await mockBoostTypeForCatalyst(asType(0), boost);
+    await mockBoostTypeForCatalyst(DRONE_TYPE, boost);
 
     // バフ有り: boost timer直前に設定→期限切れでcooldownが設定される
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const uCat = unit(u1);
     uCat.catalystTimer = 1.0;
     uCat.boostTimer = 0.02; // 次tickで期限切れ
@@ -1008,7 +1018,7 @@ describe('steer — Catalyst バフ', () => {
     steer(uCat, u1, 1 / 30, rng);
 
     // バフ無し
-    const u2 = spawnAt(0, asType(0), 500, 500);
+    const u2 = spawnAt(0, DRONE_TYPE, 500, 500);
     const uRef = unit(u2);
     uRef.catalystTimer = 0;
     uRef.boostTimer = 0.02;
@@ -1021,22 +1031,22 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer>0 → ブースト持続時間がCATALYST_BOOST_DUR_MULT倍に延長', async () => {
     const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
-    await mockBoostTypeForCatalyst(asType(0), boost);
+    await mockBoostTypeForCatalyst(DRONE_TYPE, boost);
 
     // バフ有り: 敵を近くに配置してブースト発動
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const uCat = unit(u1);
     uCat.catalystTimer = 1.0;
-    const e1 = spawnAt(1, asType(0), 50, 0);
+    const e1 = spawnAt(1, DRONE_TYPE, 50, 0);
     uCat.target = e1;
     buildHash();
     steer(uCat, u1, 1 / 30, rng);
 
     // バフ無し
-    const u2 = spawnAt(0, asType(0), 500, 500);
+    const u2 = spawnAt(0, DRONE_TYPE, 500, 500);
     const uRef = unit(u2);
     uRef.catalystTimer = 0;
-    const e2 = spawnAt(1, asType(0), 550, 500);
+    const e2 = spawnAt(1, DRONE_TYPE, 550, 500);
     uRef.target = e2;
     buildHash();
     steer(uRef, u2, 1 / 30, rng);
@@ -1047,20 +1057,20 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer>0 → ブーストtriggerRangeがCATALYST_BOOST_RANGE_MULT倍に拡大', async () => {
     const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 100 };
-    await mockBoostTypeForCatalyst(asType(0), boost);
+    await mockBoostTypeForCatalyst(DRONE_TYPE, boost);
 
     // バフ有り範囲内かつ通常範囲外の距離を定数から動的に算出
     const dist = boost.triggerRange * CATALYST_BOOST_RANGE_MULT - 10;
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const uCat = unit(u1);
     uCat.catalystTimer = 1.0;
-    const enemy1 = spawnAt(1, asType(0), dist, 0);
+    const enemy1 = spawnAt(1, DRONE_TYPE, dist, 0);
     uCat.target = enemy1;
 
-    const u2 = spawnAt(0, asType(0), 500, 500);
+    const u2 = spawnAt(0, DRONE_TYPE, 500, 500);
     const uRef = unit(u2);
     uRef.catalystTimer = 0;
-    const enemy2 = spawnAt(1, asType(0), 500 + dist, 500);
+    const enemy2 = spawnAt(1, DRONE_TYPE, 500 + dist, 500);
     uRef.target = enemy2;
 
     buildHash();
@@ -1073,9 +1083,9 @@ describe('steer — Catalyst バフ', () => {
 
   it('catalystTimer=0 → ブーストは通常値', async () => {
     const boost = { multiplier: 2.0, duration: 0.5, cooldown: 3.0, triggerRange: 200 };
-    await mockBoostTypeForCatalyst(asType(0), boost);
+    await mockBoostTypeForCatalyst(DRONE_TYPE, boost);
 
-    const u1 = spawnAt(0, asType(0), 0, 0);
+    const u1 = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(u1);
     u.catalystTimer = 0;
     u.boostTimer = 0.02;
@@ -1103,7 +1113,7 @@ describe('steer — seek（敵重心への誘導）', () => {
   }
 
   it('敵チームの重心方向へ移動する', () => {
-    const idx = spawnAt(0, asType(0), 0, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(idx);
     u.target = NO_UNIT;
 
@@ -1121,7 +1131,7 @@ describe('steer — seek（敵重心への誘導）', () => {
     // Scenario A: フェイク敵重心を +y 方向に設定 → seek で +y 方向へバイアス
     // （wanderAngle 初期値=0 → ワンダーは +x 方向なので、+y に seek を置くことで弁別）
     seedRng(42);
-    const idxA = spawnAt(0, asType(0), 0, 0);
+    const idxA = spawnAt(0, DRONE_TYPE, 0, 0);
     const uA = unit(idxA);
     uA.target = NO_UNIT;
 
@@ -1136,7 +1146,7 @@ describe('steer — seek（敵重心への誘導）', () => {
 
     // Scenario B: 敵重心なし → seek なし、ワンダーのみ
     seedRng(42);
-    const idxB = spawnAt(0, asType(0), 0, 0);
+    const idxB = spawnAt(0, DRONE_TYPE, 0, 0);
     const uB = unit(idxB);
     uB.target = NO_UNIT;
 
@@ -1151,7 +1161,7 @@ describe('steer — seek（敵重心への誘導）', () => {
   });
 
   it('複数敵チームがいる場合は最寄りの重心に向かう', () => {
-    const idx = spawnAt(0, asType(0), 0, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0);
     const u = unit(idx);
     u.target = NO_UNIT;
 
@@ -1170,7 +1180,7 @@ describe('steer — seek（敵重心への誘導）', () => {
   });
 
   it('敵重心に十分近い場合はワンダーにフォールバック', () => {
-    const idx = spawnAt(0, asType(0), 0.5, 0.5);
+    const idx = spawnAt(0, DRONE_TYPE, 0.5, 0.5);
     const u = unit(idx);
     u.target = NO_UNIT;
 

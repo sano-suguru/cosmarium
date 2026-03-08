@@ -29,7 +29,7 @@ function accum(arr: Int32Array | Float64Array, idx: number, delta: number): void
   arr[idx] = (arr[idx] ?? 0) + delta;
 }
 
-// ─── Kill Tracking ───────────────────────────────────────────────
+// ─── Tracking Hooks ──────────────────────────────────────────────
 
 export function createKillTracker(): KillTracker {
   const size = TYPES.length;
@@ -59,8 +59,6 @@ export function installKillHook(tracker: KillTracker): () => void {
   });
 }
 
-// ─── Damage Tracking ─────────────────────────────────────────────
-
 export function createDamageTracker(): DamageTracker {
   const size = TYPES.length;
   return {
@@ -76,8 +74,6 @@ export function installDamageHook(tracker: DamageTracker): () => void {
     accum(tracker.receivedByType, e.victimType, e.amount);
   });
 }
-
-// ─── Support Tracking ────────────────────────────────────────────
 
 export function createSupportTracker(): SupportTracker {
   const size = TYPES.length;
@@ -112,7 +108,7 @@ export function installSupportHook(tracker: SupportTracker): () => void {
   });
 }
 
-// ─── Kill Sequence Tracking ──────────────────────────────────────
+// ─── Snapshot Tracking ───────────────────────────────────────────
 
 /** エントロピー計算に十分な精度を持つキルシーケンスの上限長 */
 const MAX_KILL_SEQUENCE_LENGTH = 10800;
@@ -129,8 +125,6 @@ export function installKillSequenceHook(tracker: KillSequenceTracker): () => voi
     tracker.sequence.push(e.victimType);
   });
 }
-
-// ─── Lifespan Tracking ──────────────────────────────────────────
 
 export function createLifespanTracker(): LifespanTracker {
   const size = TYPES.length;
@@ -154,8 +148,6 @@ export function installLifespanKillHook(tracker: LifespanTracker, getTime: () =>
     tracker.spawnTimes.delete(e.victim);
   });
 }
-
-// ─── Kill Context Tracking ──────────────────────────────────────
 
 export function createKillContextTracker(): KillContextTracker {
   const size = TYPES.length;
@@ -216,8 +208,6 @@ export function aggregateKillContext(trials: readonly TrialResult[]): Map<number
   }
   return result;
 }
-
-// ─── Unit Stats Collection ───────────────────────────────────────
 
 export function collectUnitStats(
   spawnedByType: Int32Array,

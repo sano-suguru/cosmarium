@@ -41,25 +41,25 @@ interface ReinforcementEntry {
 }
 
 export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
-  { type: BOMBER_TYPE, spread: 80, condition: (r) => r < 0.5 }, // 50%
-  { type: CRUISER_TYPE, spread: 80, condition: (r) => r < 0.4 }, // 40%
-  { type: FLAGSHIP_TYPE, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // 10% (losing)
-  { type: HEALER_TYPE, spread: 60, condition: (r) => r > 0.2 && r < 0.35 }, // 15%
-  { type: REFLECTOR_TYPE, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // 15%
-  { type: CARRIER_TYPE, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // 18% (losing)
-  { type: SNIPER_TYPE, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // 15%
-  { type: LANCER_TYPE, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
-  { type: LAUNCHER_TYPE, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
-  { type: DISRUPTOR_TYPE, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
-  { type: SCORCHER_TYPE, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
-  { type: TELEPORTER_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
-  { type: ARCER_TYPE, spread: 60, condition: (r) => r > 0.95 }, // 5%
-  { type: BASTION_TYPE, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
-  { type: AMPLIFIER_TYPE, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
-  { type: SCRAMBLER_TYPE, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
-  { type: CATALYST_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
-  { type: DISRUPTOR_TYPE, spread: 60, condition: (r, cnt) => cnt < 35 && r < 0.6 }, // 劣勢時60%
-  { type: BOMBER_TYPE, spread: 80, condition: (r, cnt) => cnt < 35 && r > 0.4 }, // 劣勢時60%
+  { type: BOMBER_TYPE, spread: 80, condition: (r) => r < 0.5 },
+  { type: CRUISER_TYPE, spread: 80, condition: (r) => r < 0.4 },
+  { type: FLAGSHIP_TYPE, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // losing
+  { type: HEALER_TYPE, spread: 60, condition: (r) => r > 0.2 && r < 0.35 },
+  { type: REFLECTOR_TYPE, spread: 60, condition: (r) => r > 0.35 && r < 0.5 },
+  { type: CARRIER_TYPE, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // losing
+  { type: SNIPER_TYPE, spread: 80, condition: (r) => r > 0.5 && r < 0.65 },
+  { type: LANCER_TYPE, spread: 50, condition: (r) => r > 0.65 && r < 0.77 },
+  { type: LAUNCHER_TYPE, spread: 60, condition: (r) => r > 0.3 && r < 0.45 },
+  { type: DISRUPTOR_TYPE, spread: 60, condition: (r) => r > 0.77 && r < 0.87 },
+  { type: SCORCHER_TYPE, spread: 60, condition: (r) => r > 0.12 && r < 0.25 },
+  { type: TELEPORTER_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.95 },
+  { type: ARCER_TYPE, spread: 60, condition: (r) => r > 0.95 },
+  { type: BASTION_TYPE, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // overlaps BOMBER
+  { type: AMPLIFIER_TYPE, spread: 60, condition: (r) => r > 0.55 && r < 0.67 },
+  { type: SCRAMBLER_TYPE, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // overlaps LANCER
+  { type: CATALYST_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.97 },
+  { type: DISRUPTOR_TYPE, spread: 60, condition: (r, cnt) => cnt < 35 && r < 0.6 }, // 劣勢時
+  { type: BOMBER_TYPE, spread: 80, condition: (r, cnt) => cnt < 35 && r > 0.4 }, // 劣勢時
 ];
 
 function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { makeGameLoopState, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, getTrackingBeam, trackingBeams } from '../beams.ts';
 import {
   AMP_BOOST_LINGER,
@@ -14,7 +14,15 @@ import {
 import { decMotherships, decUnits, incMotherships, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAMS } from '../types.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import {
+  BASTION_TYPE,
+  BOMBER_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  REFLECTOR_TYPE,
+  SNIPER_TYPE,
+  unitTypeIndex,
+} from '../unit-types.ts';
 import {
   BASTION_ABSORB_RATIO,
   BASTION_SELF_ABSORB_RATIO,
@@ -63,14 +71,14 @@ afterEach(() => {
 // ============================================================
 describe('buildHash call count — tick 単位検証', () => {
   it('tick(SIM_DT) 1回 → buildHash 1回', () => {
-    spawnAt(0, asType(0), 0, 0);
+    spawnAt(0, DRONE_TYPE, 0, 0);
     vi.mocked(buildHash).mockClear();
     tick(SIM_DT, 0, rng, gameLoopState());
     expect(vi.mocked(buildHash)).toHaveBeenCalledTimes(1);
   });
 
   it('tick(SIM_DT) 2回 → buildHash 2回', () => {
-    spawnAt(0, asType(0), 0, 0);
+    spawnAt(0, DRONE_TYPE, 0, 0);
     vi.mocked(buildHash).mockClear();
     tick(SIM_DT, 0, rng, gameLoopState());
     tick(SIM_DT, 0, rng, gameLoopState());
@@ -78,7 +86,7 @@ describe('buildHash call count — tick 単位検証', () => {
   });
 
   it('tick(SIM_DT) 4回 → buildHash 4回', () => {
-    spawnAt(0, asType(0), 0, 0);
+    spawnAt(0, DRONE_TYPE, 0, 0);
     vi.mocked(buildHash).mockClear();
     for (let i = 0; i < 4; i++) {
       tick(SIM_DT, 0, rng, gameLoopState());
@@ -140,7 +148,7 @@ describe('ビーム pass', () => {
 // ============================================================
 describe('steer + combat + trail', () => {
   it('shieldLingerTimer が毎フレーム減衰する', () => {
-    const idx = spawnAt(0, asType(0), 0, 0); // Drone
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0);
     unit(idx).shieldLingerTimer = 1.0;
     unit(idx).trailTimer = 99; // trail 抑制
     tick(0.016, 0, rng, gameLoopState());
@@ -148,8 +156,8 @@ describe('steer + combat + trail', () => {
   });
 
   it('steer→combat 順序: tgt 設定と即発射', () => {
-    const a = spawnAt(0, asType(1), 0, 0);
-    const b = spawnAt(1, asType(1), 100, 0);
+    const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -158,7 +166,7 @@ describe('steer + combat + trail', () => {
   });
 
   it('trail timer: trailTimer<=0 でパーティクル生成', () => {
-    const idx = spawnAt(0, asType(0), 500, 500);
+    const idx = spawnAt(0, DRONE_TYPE, 500, 500);
     unit(idx).trailTimer = 0.001;
     tick(0.016, 0, rng, gameLoopState());
     expect(poolCounts.particles).toBeGreaterThan(0);
@@ -170,8 +178,8 @@ describe('steer + combat + trail', () => {
 // ============================================================
 describe('Reflector reflect field', () => {
   it('範囲内の味方が reflectFieldHp=MAX になる（エネルギーあり）', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -179,8 +187,8 @@ describe('Reflector reflect field', () => {
   });
 
   it('範囲外の味方は reflectFieldHp=0', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 250, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 250, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -188,8 +196,8 @@ describe('Reflector reflect field', () => {
   });
 
   it('敵チームは reflectFieldHp=0', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const enemy = spawnAt(1, asType(0), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(enemy).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -198,8 +206,8 @@ describe('Reflector reflect field', () => {
 
   it('codexOpen=true → Reflector は通常通りフィールドを付与する', () => {
     state.codexOpen = true;
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -207,8 +215,8 @@ describe('Reflector reflect field', () => {
   });
 
   it('maxEnergy=0のReflectorは味方にフィールドを付与しない', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).energy = 0;
     unit(ref).maxEnergy = 0;
     unit(ref).trailTimer = 99;
@@ -218,8 +226,8 @@ describe('Reflector reflect field', () => {
   });
 
   it('シールドダウン中のReflectorでも味方フィールド補充は継続', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).energy = 0;
     unit(ref).shieldCooldown = 3; // ダウン中
     unit(ref).trailTimer = 99;
@@ -229,8 +237,8 @@ describe('Reflector reflect field', () => {
   });
 
   it('Reflector範囲から出てもフィールドは持続する', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -245,8 +253,8 @@ describe('Reflector reflect field', () => {
 // ============================================================
 describe('Bastion tether', () => {
   it('範囲内の味方に shieldLingerTimer を付与しテザービームを生成する', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
@@ -256,8 +264,8 @@ describe('Bastion tether', () => {
   });
 
   it('範囲外の味方にはテザーが付与されない', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 500, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 500, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
@@ -267,8 +275,8 @@ describe('Bastion tether', () => {
   });
 
   it('テザービームがユニットの移動に追従する', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -286,8 +294,8 @@ describe('Bastion tether', () => {
   });
 
   it('テザー接続中はビームが消えない（60フレーム後も life > 0）', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
@@ -302,8 +310,8 @@ describe('Bastion tether', () => {
   });
 
   it('範囲外に出るとビームがフェードアウトして消える', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
@@ -321,8 +329,8 @@ describe('Bastion tether', () => {
   });
 
   it('接続中もビーム重複が発生しない（30フレーム後もtrackingBeams.length === 1）', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(bastion).trailTimer = 99;
     unit(ally).trailTimer = 99;
     trackingBeams.length = 0;
@@ -340,7 +348,7 @@ describe('Bastion tether', () => {
 // ============================================================
 describe('Bastion self-shield', () => {
   it('energy>0 のBastionは被弾ダメージの30%をenergyで吸収する', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     unit(bastion).energy = 25;
     unit(bastion).maxEnergy = 25;
@@ -353,7 +361,7 @@ describe('Bastion self-shield', () => {
   });
 
   it('energy不足時は残energy分のみ吸収する', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     // maxEnergy=1 にキャップ → regenEnergy で 1 を超えない
     unit(bastion).energy = 1;
@@ -367,7 +375,7 @@ describe('Bastion self-shield', () => {
   });
 
   it('energy=0 のBastionは吸収しない', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     // maxEnergy=0 → regenEnergy がスキップされる
     unit(bastion).energy = 0;
@@ -380,8 +388,8 @@ describe('Bastion self-shield', () => {
   });
 
   it('テザー吸収と自身シールドがスタックする', () => {
-    const bastion = spawnAt(1, asType(15), 0, 200);
-    const target = spawnAt(1, asType(15), 0, 0);
+    const bastion = spawnAt(1, BASTION_TYPE, 0, 200);
+    const target = spawnAt(1, BASTION_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     unit(target).trailTimer = 99;
     unit(target).energy = 25;
@@ -423,7 +431,7 @@ describe('projectile pass', () => {
   });
 
   it('AOE 爆発: 範囲内の敵にダメージ + addShake(3)', () => {
-    const enemy = spawnAt(1, asType(1), 30, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 30, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, { aoe: 70 });
     tick(0.016, 0, rng, gameLoopState());
@@ -432,7 +440,7 @@ describe('projectile pass', () => {
   });
 
   it('ユニットヒット: 通常ダメージ', () => {
-    const enemy = spawnAt(1, asType(1), 5, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 5, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 5, 0, 2, 1, 0, 0);
     tick(0.016, 0, rng, gameLoopState());
@@ -441,8 +449,8 @@ describe('projectile pass', () => {
   });
 
   it('Bastion テザー下のヒット: Bastion が40%、味方が60%ダメージ', () => {
-    const bastion = spawnAt(1, asType(15), 0, 200);
-    const target = spawnAt(1, asType(1), 0, 0);
+    const bastion = spawnAt(1, BASTION_TYPE, 0, 200);
+    const target = spawnAt(1, FIGHTER_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     unit(target).trailTimer = 99;
     unit(target).shieldLingerTimer = 2;
@@ -457,8 +465,8 @@ describe('projectile pass', () => {
   });
 
   it('Bastion死亡済み参照: 孤児テザー軽減が適用される', () => {
-    const bastion = spawnAt(1, asType(15), 0, 200);
-    const target = spawnAt(1, asType(1), 0, 0);
+    const bastion = spawnAt(1, BASTION_TYPE, 0, 200);
+    const target = spawnAt(1, FIGHTER_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     unit(target).trailTimer = 99;
     unit(target).shieldLingerTimer = 2;
@@ -474,8 +482,8 @@ describe('projectile pass', () => {
   });
 
   it('Bastion テザー吸収時にエネルギーフローパーティクルが生成される', () => {
-    const bastion = spawnAt(1, asType(15), 0, 200);
-    const target = spawnAt(1, asType(1), 0, 0);
+    const bastion = spawnAt(1, BASTION_TYPE, 0, 200);
+    const target = spawnAt(1, FIGHTER_TYPE, 0, 0);
     unit(bastion).trailTimer = 99;
     unit(target).trailTimer = 99;
     unit(target).shieldLingerTimer = 2;
@@ -488,7 +496,7 @@ describe('projectile pass', () => {
   });
 
   it('ヒットで HP<=0 → ユニット死亡', () => {
-    const enemy = spawnAt(1, asType(0), 3, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 3, 0);
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
     tick(0.016, 0, rng, gameLoopState());
@@ -497,7 +505,7 @@ describe('projectile pass', () => {
   });
 
   it('homing: ターゲット生存時に追尾で曲がる', () => {
-    const target = spawnAt(1, asType(1), 0, 200);
+    const target = spawnAt(1, FIGHTER_TYPE, 0, 200);
     unit(target).trailTimer = 99;
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, { homing: true, target });
     tick(0.016, 0, rng, gameLoopState());
@@ -505,7 +513,7 @@ describe('projectile pass', () => {
   });
 
   it('homing: ターゲット死亡時は直進', () => {
-    const target = spawnAt(1, asType(1), 0, 200);
+    const target = spawnAt(1, FIGHTER_TYPE, 0, 200);
     unit(target).alive = false;
     decUnits(unit(target).team);
     unit(target).trailTimer = 99;
@@ -534,7 +542,6 @@ describe('projectile pass', () => {
 // ============================================================
 // 5b. Railgun hitscan
 // ============================================================
-const SNIPER_TYPE = unitTypeIndex('Sniper');
 
 describe('railgun hitscan', () => {
   it('射線上の敵にダメージが入る', () => {
@@ -543,7 +550,7 @@ describe('railgun hitscan', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).angle = 0; // 右方向
     // 射程600以内・正面に配置
-    const enemy = spawnAt(1, asType(0), 200, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 200, 0);
     unit(enemy).trailTimer = 99;
     const hpBefore = unit(enemy).hp;
     tick(0.016, 0, rng, gameLoopState());
@@ -556,11 +563,11 @@ describe('railgun hitscan', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).angle = 0;
     // 射線上に2体の敵を配置
-    const enemy1 = spawnAt(1, asType(0), 150, 0);
+    const enemy1 = spawnAt(1, DRONE_TYPE, 150, 0);
     unit(enemy1).trailTimer = 99;
     unit(enemy1).hp = 200; // 死なないように
     unit(enemy1).maxHp = 200;
-    const enemy2 = spawnAt(1, asType(0), 300, 0);
+    const enemy2 = spawnAt(1, DRONE_TYPE, 300, 0);
     unit(enemy2).trailTimer = 99;
     unit(enemy2).hp = 200;
     unit(enemy2).maxHp = 200;
@@ -577,7 +584,7 @@ describe('railgun hitscan', () => {
     unit(sniper).trailTimer = 99;
     unit(sniper).cooldown = 0;
     unit(sniper).angle = 0;
-    const enemy = spawnAt(1, asType(0), 200, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 200, 0);
     unit(enemy).trailTimer = 99;
     unit(enemy).reflectFieldHp = 100;
     const hpBefore = unit(enemy).hp;
@@ -593,7 +600,7 @@ describe('railgun hitscan', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).angle = 0;
     // HP低い敵を配置（確実にキル）
-    const enemy = spawnAt(1, asType(0), 200, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 200, 0);
     unit(enemy).trailTimer = 99;
     unit(enemy).hp = 1;
     tick(0.016, 0, rng, gameLoopState());
@@ -607,7 +614,7 @@ describe('railgun hitscan', () => {
     unit(sniper).trailTimer = 99;
     unit(sniper).cooldown = 0;
     // 敵は (200,0) で vy=200 の高速移動中
-    const enemy = spawnAt(1, asType(0), 200, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 200, 0);
     unit(enemy).trailTimer = 99;
     unit(enemy).vy = 200;
     unit(enemy).hp = 200;
@@ -624,7 +631,7 @@ describe('railgun hitscan', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).angle = 0; // 右方向
     // 射程外（range=600を超える位置）に配置
-    const enemy = spawnAt(1, asType(0), 800, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 800, 0);
     unit(enemy).trailTimer = 99;
     const hpBefore = unit(enemy).hp;
     tick(0.016, 0, rng, gameLoopState());
@@ -634,9 +641,9 @@ describe('railgun hitscan', () => {
 
 describe('キル時クールダウン短縮', () => {
   it('sourceUnit 指定時: キルで kills カウントが上昇', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0); // Sniper
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
     unit(sniper).trailTimer = 99;
-    const enemy = spawnAt(1, asType(0), 3, 0); // Drone hp=3
+    const enemy = spawnAt(1, DRONE_TYPE, 3, 0); // hp=3
     unit(enemy).trailTimer = 99;
     // sourceUnit=sniper の弾を生成
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
@@ -646,10 +653,10 @@ describe('キル時クールダウン短縮', () => {
   });
 
   it('cooldownResetOnKill: キル時にクールダウンが短縮される', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0); // Sniper (cooldownResetOnKill=0.8)
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0); // cooldownResetOnKill=0.8
     unit(sniper).trailTimer = 99;
     unit(sniper).cooldown = 2.5; // 射撃直後のクールダウン
-    const enemy = spawnAt(1, asType(0), 3, 0); // Drone hp=3
+    const enemy = spawnAt(1, DRONE_TYPE, 3, 0); // hp=3
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
     tick(0.016, 0, rng, gameLoopState());
@@ -658,7 +665,7 @@ describe('キル時クールダウン短縮', () => {
   });
 
   it('sourceUnit 未指定: キルしても誰のvetも上昇しない', () => {
-    const enemy = spawnAt(1, asType(0), 3, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 3, 0);
     unit(enemy).trailTimer = 99;
     // sourceUnit なし（デフォルト NO_UNIT）→ 誰もvet上昇しない
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
@@ -696,7 +703,7 @@ describe('reinforce', () => {
 describe('codexOpen 分岐', () => {
   it('codexOpen=true → reinforce スキップ + updateCodexDemo 呼出', () => {
     state.codexOpen = true;
-    const idx = spawnAt(0, asType(1), 0, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(idx).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
     expect(mockUpdateCodexDemo).toHaveBeenCalled();
@@ -704,8 +711,8 @@ describe('codexOpen 分岐', () => {
 
   it('codexOpen=true → 全ユニットの steer/combat が走る（snapshot/restore方式）', () => {
     state.codexOpen = true;
-    const idx = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(idx).trailTimer = 99;
     unit(idx).cooldown = 0;
     unit(enemy).trailTimer = 99;
@@ -719,10 +726,10 @@ describe('codexOpen 分岐', () => {
 // ============================================================
 describe('swarmN 更新', () => {
   it('同型味方3体が近傍 → swarmN=3', () => {
-    const a = spawnAt(0, asType(0), 0, 0); // Drone (swarm:true)
-    const b = spawnAt(0, asType(0), 20, 0);
-    const c = spawnAt(0, asType(0), 0, 20);
-    const d = spawnAt(0, asType(0), 20, 20);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0); // swarm:true
+    const b = spawnAt(0, DRONE_TYPE, 20, 0);
+    const c = spawnAt(0, DRONE_TYPE, 0, 20);
+    const d = spawnAt(0, DRONE_TYPE, 20, 20);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
     unit(c).trailTimer = 99;
@@ -733,8 +740,8 @@ describe('swarmN 更新', () => {
   });
 
   it('異なる type は swarmN にカウントされない', () => {
-    const a = spawnAt(0, asType(0), 0, 0); // Drone
-    const b = spawnAt(0, asType(1), 20, 0); // Fighter (type !== 0)
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, FIGHTER_TYPE, 20, 0); // type !== 0
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -742,8 +749,8 @@ describe('swarmN 更新', () => {
   });
 
   it('非 swarm ユニットは swarmN=0', () => {
-    const a = spawnAt(0, asType(1), 0, 0); // Fighter (swarm:false)
-    const b = spawnAt(0, asType(1), 20, 0);
+    const a = spawnAt(0, FIGHTER_TYPE, 0, 0); // swarm:false
+    const b = spawnAt(0, FIGHTER_TYPE, 20, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -751,18 +758,18 @@ describe('swarmN 更新', () => {
   });
 
   it('敵チームの同型は swarmN にカウントされない', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
-    spawnAt(1, asType(0), 20, 0);
-    spawnAt(1, asType(0), 0, 20);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    spawnAt(1, DRONE_TYPE, 20, 0);
+    spawnAt(1, DRONE_TYPE, 0, 20);
     unit(a).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
     expect(unit(a).swarmN).toBe(0);
   });
 
   it('7体以上でも swarmN は 6 にクランプされる', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     for (let i = 0; i < 8; i++) {
-      const idx = spawnAt(0, asType(0), 10 + i * 5, 10);
+      const idx = spawnAt(0, DRONE_TYPE, 10 + i * 5, 10);
       unit(idx).trailTimer = 99;
     }
     unit(a).trailTimer = 99;
@@ -771,9 +778,9 @@ describe('swarmN 更新', () => {
   });
 
   it('半径80外の味方はカウントされない', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     // CELL_SIZE=100, cr=ceil(80/100)=1 → 3x3セル走査。確実にセル外にするため距離201を使用
-    const far = spawnAt(0, asType(0), 201, 0);
+    const far = spawnAt(0, DRONE_TYPE, 201, 0);
     unit(a).trailTimer = 99;
     unit(far).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -782,8 +789,8 @@ describe('swarmN 更新', () => {
 
   it('codexOpen=true → swarmN は通常通り更新される（snapshot/restore方式）', () => {
     state.codexOpen = true;
-    const a = spawnAt(0, asType(0), 0, 0);
-    const b = spawnAt(0, asType(0), 20, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, DRONE_TYPE, 20, 0);
     unit(a).trailTimer = 99;
     unit(b).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -796,7 +803,7 @@ describe('swarmN 更新', () => {
 // ============================================================
 describe('Reflector shieldCooldown 回復', () => {
   it('shieldCooldownがdt分カウントダウンされる', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
     unit(ref).energy = 0;
     unit(ref).shieldCooldown = 3;
     unit(ref).trailTimer = 99;
@@ -805,7 +812,7 @@ describe('Reflector shieldCooldown 回復', () => {
   });
 
   it('shieldCooldown到達で全回復（energy = maxEnergy）', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
     unit(ref).energy = 0;
     unit(ref).shieldCooldown = 0.01; // すぐ回復
     unit(ref).trailTimer = 99;
@@ -815,7 +822,7 @@ describe('Reflector shieldCooldown 回復', () => {
   });
 
   it('Bastionのenergy回復に影響なし', () => {
-    const bastion = spawnAt(0, asType(15), 0, 0);
+    const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
     unit(bastion).energy = 10;
     unit(bastion).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -824,7 +831,7 @@ describe('Reflector shieldCooldown 回復', () => {
   });
 
   it('Reflectorはenergy自然回復しない（shieldCooldown=0、energy < maxEnergy）', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
     unit(ref).energy = 50;
     unit(ref).shieldCooldown = 0;
     unit(ref).trailTimer = 99;
@@ -839,7 +846,7 @@ describe('Reflector shieldCooldown 回復', () => {
 // ============================================================
 describe('reflectFieldHp 反射', () => {
   it('reflectFieldHp > 0 で確定反射し、damage分減算される', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(ally).reflectFieldHp = 10;
     unit(ally).trailTimer = 99;
     const hpBefore = unit(ally).hp;
@@ -851,7 +858,7 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('reflectFieldHp = 0 で反射なし', () => {
-    const ally = spawnAt(0, asType(1), 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(ally).reflectFieldHp = 0;
     unit(ally).trailTimer = 99;
     const hpBefore = unit(ally).hp;
@@ -861,8 +868,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('フィールドアクティブ中はHP再付与しない', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
@@ -877,8 +884,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('HP枯渇時に味方側ペナルティなし（次のスキャンで即再付与可能）', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
@@ -894,8 +901,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('ReflectorのfieldGrantCooldown > 0の間はフィールド付与しない', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     unit(ref).fieldGrantCooldown = 2.0;
@@ -904,8 +911,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('フィールド付与時にReflectorのfieldGrantCooldownがREFLECT_FIELD_GRANT_INTERVALに設定される', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     tick(0.016, 0, rng, gameLoopState());
@@ -914,8 +921,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('全味方がフィールド保有中はfieldGrantCooldownが開始されない', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 味方に事前にフィールドを付与
@@ -926,9 +933,9 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('複数Reflectorがインターバルをずらしてカバーできる', () => {
-    const ref1 = spawnAt(0, asType(6), 0, 0);
-    const ref2 = spawnAt(0, asType(6), 30, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref1 = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ref2 = spawnAt(0, REFLECTOR_TYPE, 30, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref1).trailTimer = 99;
     unit(ref2).trailTimer = 99;
     unit(ally).trailTimer = 99;
@@ -945,8 +952,8 @@ describe('reflectFieldHp 反射', () => {
   });
 
   it('範囲外に出ても被弾しない限りフィールドは消滅しない', () => {
-    const ref = spawnAt(0, asType(6), 0, 0);
-    const ally = spawnAt(0, asType(1), 50, 0);
+    const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
     unit(ally).trailTimer = 99;
     // 初回付与
@@ -1021,9 +1028,9 @@ describe('KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const attacker = spawnAt(0, asType(1), 0, 200); // Fighter
+    const attacker = spawnAt(0, FIGHTER_TYPE, 0, 200);
     unit(attacker).trailTimer = 99;
-    const enemy = spawnAt(1, asType(0), 3, 0); // Drone hp=3
+    const enemy = spawnAt(1, DRONE_TYPE, 3, 0); // hp=3
     unit(enemy).trailTimer = 99;
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: attacker });
     tick(0.016, 0, rng, gameLoopState());
@@ -1038,9 +1045,9 @@ describe('KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const attacker = spawnAt(0, asType(2), 0, 200); // Bomber
+    const attacker = spawnAt(0, BOMBER_TYPE, 0, 200);
     unit(attacker).trailTimer = 99;
-    const enemy = spawnAt(1, asType(0), 30, 0); // Drone hp=3
+    const enemy = spawnAt(1, DRONE_TYPE, 30, 0); // hp=3
     unit(enemy).trailTimer = 99;
     // 寿命切れで爆発する AOE 弾
     spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, { aoe: 70, sourceUnit: attacker });
@@ -1162,8 +1169,8 @@ describe('stepOnce 勝敗判定', () => {
   }
 
   it('相互母艦撃沈: team 0 母艦を先に判定するため team 1 の勝利（DEFEAT）', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
-    const b = spawnAt(1, asType(0), 100, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     incMotherships(0, a);
     incMotherships(1, b);
     decMotherships(TEAM0);
@@ -1173,8 +1180,8 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('敵母艦撃沈: team 0 の勝利（VICTORY）を返す', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
-    spawnAt(1, asType(0), 100, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    spawnAt(1, DRONE_TYPE, 100, 0);
     incMotherships(0, a);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
@@ -1182,8 +1189,8 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('自軍母艦撃沈: team 1 の勝利（DEFEAT）を返す', () => {
-    spawnAt(0, asType(0), 0, 0);
-    const b = spawnAt(1, asType(0), 100, 0);
+    spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     incMotherships(1, b);
 
     const result = tick(SIM_DT, 0, rng, battleGameLoopState());
@@ -1191,8 +1198,8 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('両チーム母艦生存時は null を返す', () => {
-    const a = spawnAt(0, asType(0), 0, 0);
-    const b = spawnAt(1, asType(0), 100, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     incMotherships(0, a);
     incMotherships(1, b);
 
@@ -1201,7 +1208,7 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('battlePhase="spectate" では勝敗判定をスキップする', () => {
-    const b = spawnAt(1, asType(0), 100, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
     // team 0 のみ生存だが spectate モードなので null
@@ -1210,7 +1217,7 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('battlePhase="battleEnding" では勝敗判定をスキップする', () => {
-    const b = spawnAt(1, asType(0), 100, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
     const gs = makeGameLoopState(mockUpdateCodexDemo);
@@ -1221,7 +1228,7 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('battlePhase="meleeEnding" では勝敗判定をスキップする', () => {
-    const b = spawnAt(1, asType(0), 100, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
     const gs = makeGameLoopState(mockUpdateCodexDemo);
@@ -1231,7 +1238,7 @@ describe('stepOnce 勝敗判定', () => {
   });
 
   it('battlePhase="aftermath" では増援も勝敗判定もスキップする', () => {
-    const b = spawnAt(1, asType(0), 100, 0);
+    const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
     const gs = makeGameLoopState(mockUpdateCodexDemo);
@@ -1260,7 +1267,7 @@ describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
       const team = TEAMS[t] ?? TEAM0;
       const idx = spawnAt(team, MOTHERSHIP_T, t * 100, 0);
       incMotherships(team, idx);
-      spawnAt(team, asType(0), t * 100, 50);
+      spawnAt(team, DRONE_TYPE, t * 100, 50);
     }
   }
 
@@ -1311,7 +1318,7 @@ describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
 
   it('母艦生存中はユニット全滅でも脱落しない', () => {
     spawnMeleeTeams(2);
-    const u1 = spawnAt(1, asType(0), 100, 100);
+    const u1 = spawnAt(1, DRONE_TYPE, 100, 100);
     unit(u1).alive = false;
     decUnits(TEAM1);
 

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
+import { FIGHTER_TYPE, SNIPER_TYPE } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -26,8 +27,8 @@ afterEach(() => {
 
 describe('combat — RAILGUN', () => {
   it('sniper: Sniper (shape=8) → ヒットスキャン + tracerビーム', () => {
-    const sniper = spawnAt(0, asType(8), 0, 0); // Sniper (shape=8, rng=600)
-    const enemy = spawnAt(1, asType(1), 300, 0);
+    const sniper = spawnAt(0, SNIPER_TYPE, 0, 0); // shape=8, rng=600
+    const enemy = spawnAt(1, FIGHTER_TYPE, 300, 0);
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();

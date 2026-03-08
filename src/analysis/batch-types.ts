@@ -9,8 +9,6 @@ export function typeName(idx: number): string {
   return TYPES[idx]?.name ?? `Type${idx}`;
 }
 
-// ─── Config ──────────────────────────────────────────────────────
-
 export interface BatchConfig {
   readonly trials: number;
   readonly mode: 'battle' | 'melee';
@@ -27,8 +25,6 @@ export interface BatchConfig {
   /** 進捗ログ出力関数。デフォルトは console.error */
   readonly logger?: ((msg: string) => void) | undefined;
 }
-
-// ─── Trial ───────────────────────────────────────────────────────
 
 export interface TrialSnapshot {
   readonly step: number;
@@ -67,8 +63,6 @@ export interface TrialResult {
   readonly killContextStats: KillContextTracker;
   readonly lifespanStats: LifespanStats;
 }
-
-// ─── Summary ─────────────────────────────────────────────────────
 
 export interface UnitTypeSummary {
   readonly typeIndex: number;
@@ -122,15 +116,11 @@ export interface BatchSummary {
   readonly synergyPairs: readonly SynergyPair[];
 }
 
-// ─── Kill Matrix ─────────────────────────────────────────────────
-
 export interface KillMatrix {
   /** matrix[killerType][victimType] = count */
   readonly data: Int32Array[];
   readonly size: number;
 }
-
-// ─── Kill Tracking ───────────────────────────────────────────────
 
 export interface KillTracker {
   readonly teamKills: Int32Array;
@@ -139,14 +129,10 @@ export interface KillTracker {
   readonly killMatrix: Int32Array[];
 }
 
-// ─── Damage Tracking ─────────────────────────────────────────────
-
 export interface DamageTracker {
   readonly dealtByType: Float64Array;
   readonly receivedByType: Float64Array;
 }
-
-// ─── Support Tracking ────────────────────────────────────────────
 
 export interface SupportTracker {
   readonly healingByType: Float64Array;
@@ -155,14 +141,10 @@ export interface SupportTracker {
   readonly catalystApplications: Float64Array;
 }
 
-// ─── Kill Sequence Tracking ─────────────────────────────────────
-
 export interface KillSequenceTracker {
   readonly sequence: number[];
   readonly maxLength: number;
 }
-
-// ─── Lifespan Tracking ──────────────────────────────────────────
 
 export interface LifespanTracker {
   readonly totalLifespan: Float64Array;
@@ -173,13 +155,9 @@ export interface LifespanStats {
   readonly totalLifespan: Float64Array;
 }
 
-// ─── Kill Context Tracking ──────────────────────────────────────
-
 export interface KillContextTracker {
   readonly contextCounts: Int32Array[];
 }
-
-// ─── Synergy ────────────────────────────────────────────────────
 
 export interface SynergyPair {
   readonly typeA: number;

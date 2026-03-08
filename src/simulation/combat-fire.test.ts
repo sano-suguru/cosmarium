@@ -3,7 +3,15 @@ import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import {
+  BOMBER_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  LAUNCHER_TYPE,
+  SNIPER_TYPE,
+  unitType,
+} from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { updateSwarmN } from './update.ts';
 
@@ -29,8 +37,8 @@ afterEach(() => {
 
 describe('combat — NORMAL FIRE', () => {
   it('射程内で cooldown<=0 → プロジェクタイル発射', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
@@ -40,8 +48,8 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('射程外 → プロジェクタイルなし', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 500, 0); // 距離500 > rng
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 500, 0); // 距離500 > rng
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
@@ -50,36 +58,36 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('vet=1: damage×1.2', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     unit(fighter).vet = 1;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    const fighterType = unitType(asType(1));
+    const fighterType = unitType(FIGHTER_TYPE);
 
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.2);
     expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.2);
   });
 
   it('vet=2: damage×1.4', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     unit(fighter).vet = 2;
     buildHash();
     combat(unit(fighter), fighter, 0.016, 0, rng);
-    const fighterType = unitType(asType(1));
+    const fighterType = unitType(FIGHTER_TYPE);
 
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.4);
     expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.4);
   });
 
   it('homing: Launcher → 3発ホーミングミサイル (homing burst)', () => {
-    const launcher = spawnAt(0, asType(10), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const launcher = spawnAt(0, LAUNCHER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(launcher).cooldown = 0;
     unit(launcher).target = enemy;
     buildHash();
@@ -98,13 +106,13 @@ describe('combat — NORMAL FIRE', () => {
     expect(unit(launcher).burstCount).toBe(0);
     expect(projectile(1).homing).toBe(true);
     expect(projectile(2).homing).toBe(true);
-    expect(unit(launcher).cooldown).toBeCloseTo(unitType(asType(10)).fireRate, 1);
+    expect(unit(launcher).cooldown).toBeCloseTo(unitType(LAUNCHER_TYPE).fireRate, 1);
   });
 
   it('aoe: AOEプロジェクタイル生成', () => {
-    const bomberType = unitType(asType(2));
-    const bomber = spawnAt(0, asType(2), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const bomberType = unitType(BOMBER_TYPE);
+    const bomber = spawnAt(0, BOMBER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(bomber).cooldown = 0;
     unit(bomber).target = enemy;
     buildHash();
@@ -114,9 +122,9 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('carpet: Bomber → 4発AOEプロジェクタイル (carpet bomb)', () => {
-    const bomberType = unitType(asType(2));
-    const bomber = spawnAt(0, asType(2), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const bomberType = unitType(BOMBER_TYPE);
+    const bomber = spawnAt(0, BOMBER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(bomber).cooldown = 0;
     unit(bomber).target = enemy;
     buildHash();
@@ -141,8 +149,8 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('broadside: Flagship → チャージ→メイン3発→側面2発', () => {
-    const flagship = spawnAt(0, asType(4), 0, 0);
-    const enemy = spawnAt(1, asType(1), 200, 0);
+    const flagship = spawnAt(0, FLAGSHIP_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(flagship).cooldown = 0;
     unit(flagship).target = enemy;
     buildHash();
@@ -170,8 +178,8 @@ describe('combat — NORMAL FIRE', () => {
   });
 
   it('dead target → tgt=-1 に設定して return', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     unit(enemy).alive = false; // 死亡状態
@@ -184,8 +192,8 @@ describe('combat — NORMAL FIRE', () => {
 
 describe('combat — DRONE SWARM', () => {
   it('孤立 Drone: ダメージ倍率 ×1.0', () => {
-    const drone = spawnAt(0, asType(0), 0, 0); // Drone (swarm, dmg=1)
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0); // swarm, dmg=1
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
@@ -196,12 +204,12 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('味方 Drone 3体: ダメージ倍率 ×1.45', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     // 味方 Drone を周囲に 3体配置 (80以内)
-    spawnAt(0, asType(0), 20, 0);
-    spawnAt(0, asType(0), -20, 0);
-    spawnAt(0, asType(0), 0, 20);
+    spawnAt(0, DRONE_TYPE, 20, 0);
+    spawnAt(0, DRONE_TYPE, -20, 0);
+    spawnAt(0, DRONE_TYPE, 0, 20);
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
@@ -212,10 +220,10 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('味方 6+体: 上限 ×1.9', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     for (let i = 0; i < 8; i++) {
-      spawnAt(0, asType(0), 10 + i * 5, 10);
+      spawnAt(0, DRONE_TYPE, 10 + i * 5, 10);
     }
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
@@ -227,11 +235,11 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('他タイプの味方は除外される', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     // Fighter (type=1) は同型ではないのでカウントされない
-    spawnAt(0, asType(1), 20, 0);
-    spawnAt(0, asType(1), -20, 0);
+    spawnAt(0, FIGHTER_TYPE, 20, 0);
+    spawnAt(0, FIGHTER_TYPE, -20, 0);
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
@@ -240,11 +248,11 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('敵チームの同型は除外される', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     // 敵チームの Drone
-    spawnAt(1, asType(0), 20, 0);
-    spawnAt(1, asType(0), -20, 0);
+    spawnAt(1, DRONE_TYPE, 20, 0);
+    spawnAt(1, DRONE_TYPE, -20, 0);
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
@@ -253,8 +261,8 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('孤立 Drone: プロジェクタイル size/color は変化なし', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
@@ -267,10 +275,10 @@ describe('combat — DRONE SWARM', () => {
   });
 
   it('味方 6体: プロジェクタイル size 拡大 + 白寄りの色', () => {
-    const drone = spawnAt(0, asType(0), 0, 0);
-    const enemy = spawnAt(1, asType(1), 50, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     for (let i = 0; i < 6; i++) {
-      spawnAt(0, asType(0), 10 + i * 5, 10);
+      spawnAt(0, DRONE_TYPE, 10 + i * 5, 10);
     }
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
@@ -289,8 +297,8 @@ describe('combat — DRONE SWARM', () => {
 
 describe('combat — FIGHTER BURST', () => {
   it('初発でバーストカウント開始 (burst=2, salvo=2 → burstCount=1 after shot)', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 0;
     unit(fighter).target = enemy;
@@ -301,8 +309,8 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('バースト中間: cooldown = BURST_INTERVAL (0.07)', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 0;
     unit(fighter).target = enemy;
@@ -312,8 +320,8 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('最終弾: cooldown = fireRate (0.9)', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 1; // 残り1発
     unit(fighter).target = enemy;
@@ -325,7 +333,7 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('ターゲットロスト → burstCount リセット', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(fighter).burstCount = 1;
     unit(fighter).target = NO_UNIT;
     buildHash();
@@ -334,8 +342,8 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('ターゲット死亡 → burstCount リセット', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 1;
     unit(fighter).target = enemy;
@@ -347,8 +355,8 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('salvo=2: 左右対称のキャノン位置から発射', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 0;
     unit(fighter).angle = 0; // +x方向
@@ -364,8 +372,8 @@ describe('combat — FIGHTER BURST', () => {
   });
 
   it('salvo=2: 2バースト目は後方キャノンペアから発射', () => {
-    const fighter = spawnAt(0, asType(1), 0, 0);
-    const enemy = spawnAt(1, asType(1), 100, 0);
+    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).burstCount = 1; // 2バースト目（残り1発）
     unit(fighter).angle = 0;
@@ -375,7 +383,7 @@ describe('combat — FIGHTER BURST', () => {
     expect(poolCounts.projectiles).toBe(2);
     const p0 = projectile(0);
     const p1 = projectile(1);
-    const fighterType = unitType(asType(1));
+    const fighterType = unitType(FIGHTER_TYPE);
     const rearOffsetX = fighterType.cannonOffsets?.[1]?.[0] ?? 0;
     const expectedX = fighterType.size * rearOffsetX;
     expect(p0.x).toBeCloseTo(expectedX, 1);
@@ -405,20 +413,20 @@ describe('getDominantDemoFlag', () => {
   });
 
   it('Bomber (carpet+aoe): carpet が aoe より優先', () => {
-    const t = unitType(asType(2));
+    const t = unitType(BOMBER_TYPE);
     expect(t.carpet).toBe(true);
     expect(t.aoe).toBeGreaterThan(0);
     expect(demoFlag(t)).toBe('carpet');
   });
 
   it('Launcher (homing+burst): homing が burst より優先', () => {
-    const t = unitType(asType(10));
+    const t = unitType(LAUNCHER_TYPE);
     expect(t.homing).toBeTruthy();
     expect(t.shots).toBeGreaterThan(1);
     expect(demoFlag(t)).toBe('homing');
   });
 
   it('フラグなしユニット → null', () => {
-    expect(demoFlag(unitType(asType(8)))).toBeNull();
+    expect(demoFlag(unitType(SNIPER_TYPE))).toBeNull();
   });
 });
