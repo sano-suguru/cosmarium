@@ -200,28 +200,30 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   let winner: Team | 'draw' | null = null;
   let step = 0;
 
-  for (; step < config.maxSteps; step++) {
-    const now = step * SIM_DT;
-    currentTime = now;
-    const result = stepOnce(SIM_DT, now, rng, gs);
+  try {
+    for (; step < config.maxSteps; step++) {
+      const now = step * SIM_DT;
+      currentTime = now;
+      const result = stepOnce(SIM_DT, now, rng, gs);
 
-    if (step % config.snapshotInterval === 0) {
-      snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
-    }
+      if (step % config.snapshotInterval === 0) {
+        snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
+      }
 
-    if (result !== null) {
-      winner = result;
-      snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
-      break;
+      if (result !== null) {
+        winner = result;
+        snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
+        break;
+      }
     }
+  } finally {
+    unsubKill();
+    unsubDmg();
+    unsubSup();
+    unsubSeq();
+    unsubLifespan();
+    unsubCtx();
   }
-
-  unsubKill();
-  unsubDmg();
-  unsubSup();
-  unsubSeq();
-  unsubLifespan();
-  unsubCtx();
 
   const survivorsByType = countSurvivorsByType(activeTeams);
 
@@ -274,7 +276,11 @@ export function collectArgPairs(argv: readonly string[]): Map<string, string> {
 
 export function parseIntArg(pairs: Map<string, string>, key: string, fallback: number): number {
   const v = pairs.get(key);
-  return v ? Number.parseInt(v, 10) : fallback;
+  if (v === undefined) {
+    return fallback;
+  }
+  const n = Number.parseInt(v, 10);
+  return Number.isNaN(n) ? fallback : n;
 }
 
 /** @example parseFleetSpec("Fighter:10,Cruiser:5,Healer:3") */

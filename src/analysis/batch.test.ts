@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
-import { runBatch } from './batch.ts';
+import { parseIntArg, runBatch } from './batch.ts';
 import type { BatchConfig, BatchSummary } from './batch-types.ts';
 
 function testCreateRng(seed: number): () => number {
@@ -30,6 +30,28 @@ afterEach(() => {
   resetPools();
   resetState();
   vi.restoreAllMocks();
+});
+
+describe('parseIntArg', () => {
+  it('有効な整数文字列をパースする', () => {
+    const pairs = new Map([['--count', '42']]);
+    expect(parseIntArg(pairs, '--count', 10)).toBe(42);
+  });
+
+  it('キーが存在しない場合はフォールバックを返す', () => {
+    const pairs = new Map<string, string>();
+    expect(parseIntArg(pairs, '--count', 10)).toBe(10);
+  });
+
+  it('NaN になる文字列の場合はフォールバックを返す', () => {
+    const pairs = new Map([['--count', 'abc']]);
+    expect(parseIntArg(pairs, '--count', 10)).toBe(10);
+  });
+
+  it('空文字列の場合はフォールバックを返す', () => {
+    const pairs = new Map([['--count', '']]);
+    expect(parseIntArg(pairs, '--count', 10)).toBe(10);
+  });
 });
 
 describe('runBatch', () => {

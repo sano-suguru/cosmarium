@@ -84,6 +84,7 @@ export function reflectProjectile(
   p.r = c[0];
   p.g = c[1];
   p.b = c[2];
+  // 再反射時も最後に反射したユニットの型に更新（ダメージ統計・キル帰属の正確性のため）
   p.sourceType = reflectorType;
   p.sourceUnit = reflectorIndex;
   // 反射時にホーミング・AOE・ターゲットをリセット（元の味方に追尾/範囲ダメージを与えないため）

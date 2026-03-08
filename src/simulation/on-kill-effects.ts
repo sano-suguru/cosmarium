@@ -5,6 +5,16 @@ import { unitType } from '../unit-types.ts';
 
 const BLINK_KILL_CD = 0.8;
 
+/**
+ * キル時副作用判定用の粗粒度分類（6値）。
+ * DamageKind（hooks.ts）とは多対一の対応:
+ *   ProjectileDirect ← 'direct'
+ *   ProjectileAoe    ← 'aoe'
+ *   Beam             ← 'beam','emp','reflect','tether'
+ *   Ram              ← 'ram'
+ *   ChainLightning   ← 'chain'
+ *   SweepBeam        ← 'sweep'
+ */
 export const KILL_CONTEXT = {
   ProjectileDirect: 0,
   ProjectileAoe: 1,

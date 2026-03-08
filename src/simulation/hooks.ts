@@ -8,6 +8,16 @@
 import type { Team } from '../types.ts';
 import { stackAt, subscribe } from './hook-utils.ts';
 
+/**
+ * 全ダメージイベント用の細粒度分類（9値）。
+ * KILL_CONTEXT（on-kill-effects.ts）とは多対一の関係:
+ *   'direct'  → ProjectileDirect
+ *   'aoe'     → ProjectileAoe
+ *   'beam','emp','reflect','tether' → Beam
+ *   'ram'     → Ram
+ *   'chain'   → ChainLightning
+ *   'sweep'   → SweepBeam
+ */
 type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';
 type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
 
