@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import type { Team } from '../types.ts';
 import { MAX_TEAMS, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
 import {
@@ -22,7 +22,7 @@ afterEach(() => {
 
 /** テスト用: 指定位置に alive ユニットを配置する */
 function placeUnit(team: Team, x: number, y: number) {
-  spawnAt(team, 0, x, y);
+  spawnAt(team, asType(0), x, y);
 }
 
 describe('updateTeamCenters', () => {

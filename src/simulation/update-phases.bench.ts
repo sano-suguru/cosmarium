@@ -1,6 +1,6 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
-import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, SH_CIRCLE } from '../constants.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { updateChains } from './effects.ts';
@@ -16,7 +16,7 @@ const dt = 1 / REF_FPS;
 function setupWorld(units: number, particles: number, projectiles: number) {
   rng.reset();
   for (let i = 0; i < units; i++) {
-    spawnAt(i % 2 === 0 ? 0 : 1, 1, rng() * 4000, rng() * 4000);
+    spawnAt(i % 2 === 0 ? 0 : 1, asType(1), rng() * 4000, rng() * 4000);
   }
   for (let i = 0; i < particles; i++) {
     spawnParticle(rng() * 4000, rng() * 4000, rng() - 0.5, rng() - 0.5, 1, 2, 1, 1, 1, SH_CIRCLE);

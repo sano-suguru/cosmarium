@@ -6,7 +6,15 @@ import { particle, poolCounts, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import {
+  ARCER_TYPE,
+  CARRIER_TYPE,
+  CRUISER_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  unitType,
+} from '../unit-types.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
@@ -38,7 +46,7 @@ import {
   updateChains,
 } from './effects.ts';
 
-const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: 0 };
+const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: DRONE_TYPE };
 
 afterEach(() => {
   resetPools();
@@ -51,38 +59,38 @@ afterEach(() => {
 describe('explosion', () => {
   it('パーティクルが生成される', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, rng);
+    explosion(0, 0, 0, DRONE_TYPE, rng);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 
   it('大型/高コストユニット (cost>=8 or size>=14) → addShake が呼ばれる', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const cruiserType = unitType(3);
-    explosion(0, 0, 0, 3, rng);
+    const cruiserType = unitType(CRUISER_TYPE);
+    explosion(0, 0, 0, CRUISER_TYPE, rng);
     expect(addShake).toHaveBeenCalledWith(cruiserType.size * 1.2, 0, 0);
   });
 
   it('小型低コストユニット (cost<8 and size<14) → addShake が呼ばれない', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // type 0 (Drone) は size=4
-    explosion(0, 0, 0, 0, rng);
+    explosion(0, 0, 0, DRONE_TYPE, rng);
     expect(addShake).not.toHaveBeenCalled();
   });
 
   it('近くのユニットにノックバック適用 (kbVx/kbVy変化)', () => {
-    const idx = spawnAt(0, 1, 30, 0);
+    const idx = spawnAt(0, FIGHTER_TYPE, 30, 0);
     unit(idx).kbVx = 0;
     unit(idx).kbVy = 0;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, rng);
+    explosion(0, 0, 0, DRONE_TYPE, rng);
     // ノックバックでkbVxが正方向に変化（ユニットは爆発の右側）
     expect(unit(idx).kbVx).toBeGreaterThan(0);
   });
 
   it('killer有効 → kills++ される（destroyUnit経由）', () => {
-    const killer = spawnAt(0, 1, 100, 100);
-    const victim = spawnAt(1, 0, 0, 0);
+    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
+    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unit(killer).kills).toBe(0);
@@ -91,8 +99,8 @@ describe('explosion', () => {
   });
 
   it('kills >= 3 → vet=1（destroyUnit経由）', () => {
-    const killer = spawnAt(0, 1, 100, 100);
-    const victim = spawnAt(1, 0, 0, 0);
+    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
+    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
     unit(killer).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -102,8 +110,8 @@ describe('explosion', () => {
   });
 
   it('kills >= 8 → vet=2（destroyUnit経由）', () => {
-    const killer = spawnAt(0, 1, 100, 100);
-    const victim = spawnAt(1, 0, 0, 0);
+    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
+    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
     unit(killer).kills = 7;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -116,14 +124,14 @@ describe('explosion', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     // killer=-1 でエラーが起きないことを確認
-    explosion(0, 0, 0, 0, rng);
+    explosion(0, 0, 0, DRONE_TYPE, rng);
     expect(poolCounts.particles).toBeGreaterThan(0);
   });
 
   it('cost >= 8 (Cruiser, type=3) → addAberration + addFreeze(0.03)', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 3, rng);
+    explosion(0, 0, 0, CRUISER_TYPE, rng);
     expect(addAberration).toHaveBeenCalledWith(8 / 30);
     expect(addFreeze).toHaveBeenCalledWith(0.03);
   });
@@ -131,7 +139,7 @@ describe('explosion', () => {
   it('cost >= 12 (Carrier, type=7) → addAberration + addFreeze(0.05)', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 7, rng);
+    explosion(0, 0, 0, CARRIER_TYPE, rng);
     expect(addAberration).toHaveBeenCalledWith(12 / 30);
     expect(addFreeze).toHaveBeenCalledWith(0.05);
   });
@@ -139,7 +147,7 @@ describe('explosion', () => {
   it('cost >= 20 (Flagship, type=4) → addAberration + addFreeze(0.07)', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 4, rng);
+    explosion(0, 0, 0, FLAGSHIP_TYPE, rng);
     expect(addAberration).toHaveBeenCalledWith(20 / 30);
     expect(addFreeze).toHaveBeenCalledWith(0.07);
   });
@@ -147,7 +155,7 @@ describe('explosion', () => {
   it('cost < 8 (Drone, type=0) → addAberration/addFreeze 呼ばれない', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    explosion(0, 0, 0, 0, rng);
+    explosion(0, 0, 0, DRONE_TYPE, rng);
     expect(addAberration).not.toHaveBeenCalled();
     expect(addFreeze).not.toHaveBeenCalled();
   });
@@ -155,7 +163,7 @@ describe('explosion', () => {
 
 describe('trail', () => {
   it('パーティクルが1つ生成される', () => {
-    const idx = spawnAt(0, 1, 50, 50);
+    const idx = spawnAt(0, FIGHTER_TYPE, 50, 50);
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const before = poolCounts.particles;
     trail(unit(idx), rng);
@@ -172,7 +180,7 @@ describe('chainLightning', () => {
   });
 
   it('1体の敵にビーム + ダメージ適用', () => {
-    const enemy = spawnAt(1, 1, 50, 0); // team 1
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0); // team 1
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(enemy).hp;
@@ -183,8 +191,8 @@ describe('chainLightning', () => {
   });
 
   it('連鎖ごとにダメージ12%減衰', () => {
-    const e1 = spawnAt(1, 1, 50, 0);
-    const e2 = spawnAt(1, 1, 100, 0);
+    const e1 = spawnAt(1, FIGHTER_TYPE, 50, 0);
+    const e2 = spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp1Before = unit(e1).hp;
@@ -200,7 +208,7 @@ describe('chainLightning', () => {
 
   it('同ターゲットに2度連鎖しない (Set管理)', () => {
     // 1体だけの敵 → 1回だけヒット
-    const enemy = spawnAt(1, 1, 50, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 50, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(enemy).hp;
@@ -211,7 +219,7 @@ describe('chainLightning', () => {
   });
 
   it('HP<=0 → killUnit + explosion（ユニットが死亡する）', () => {
-    const enemy = spawnAt(1, 0, 50, 0); // type 0 (Drone), hp=3
+    const enemy = spawnAt(1, DRONE_TYPE, 50, 0); // hp=3
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 100, 5, [1, 0, 0], DUMMY_KILLER, rng); // damage=100 > hp=3
@@ -219,7 +227,7 @@ describe('chainLightning', () => {
   });
 
   it('味方にはヒットしない', () => {
-    const ally = spawnAt(0, 1, 50, 0); // team 0 (発射側と同チーム)
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0); // team 0 (発射側と同チーム)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hpBefore = unit(ally).hp;
@@ -229,9 +237,9 @@ describe('chainLightning', () => {
   });
 
   it('遅延ダメージタイミング', () => {
-    const e1 = spawnAt(1, 1, 50, 0);
-    const e2 = spawnAt(1, 1, 100, 0);
-    const e3 = spawnAt(1, 1, 150, 0);
+    const e1 = spawnAt(1, FIGHTER_TYPE, 50, 0);
+    const e2 = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    const e3 = spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp1Before = unit(e1).hp;
@@ -249,11 +257,11 @@ describe('chainLightning', () => {
   });
 
   it('ビーム数の段階的増加', () => {
-    spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
-    spawnAt(1, 1, 150, 0);
-    spawnAt(1, 1, 200, 0);
-    spawnAt(1, 1, 250, 0);
+    spawnAt(1, FIGHTER_TYPE, 50, 0);
+    spawnAt(1, FIGHTER_TYPE, 100, 0);
+    spawnAt(1, FIGHTER_TYPE, 150, 0);
+    spawnAt(1, FIGHTER_TYPE, 200, 0);
+    spawnAt(1, FIGHTER_TYPE, 250, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -269,9 +277,9 @@ describe('chainLightning', () => {
   });
 
   it('死亡ターゲット処理', () => {
-    spawnAt(1, 1, 50, 0);
-    const e2 = spawnAt(1, 1, 100, 0);
-    spawnAt(1, 1, 150, 0);
+    spawnAt(1, FIGHTER_TYPE, 50, 0);
+    const e2 = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const hp2Before = unit(e2).hp;
@@ -283,9 +291,9 @@ describe('chainLightning', () => {
   });
 
   it('チェインクリーンアップ', () => {
-    spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
-    spawnAt(1, 1, 150, 0);
+    spawnAt(1, FIGHTER_TYPE, 50, 0);
+    spawnAt(1, FIGHTER_TYPE, 100, 0);
+    spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -307,7 +315,7 @@ describe('chainLightning', () => {
   });
 
   it('ビームの lightning フラグ', () => {
-    spawnAt(1, 1, 50, 0);
+    spawnAt(1, FIGHTER_TYPE, 50, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -315,8 +323,8 @@ describe('chainLightning', () => {
   });
 
   it('遅延ホップのビーム起点が前ターゲットのライブ座標を使う', () => {
-    const e1 = spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
+    const e1 = spawnAt(1, FIGHTER_TYPE, 50, 0);
+    spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -328,8 +336,8 @@ describe('chainLightning', () => {
   });
 
   it('前ターゲット死亡時はフォールバック座標を使う', () => {
-    const e1 = spawnAt(1, 1, 50, 0);
-    spawnAt(1, 1, 100, 0);
+    const e1 = spawnAt(1, FIGHTER_TYPE, 50, 0);
+    spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     chainLightning(0, 0, 0, 4, 5, [1, 0, 0], DUMMY_KILLER, rng);
@@ -346,7 +354,7 @@ describe('chainLightning', () => {
 describe('boostBurst', () => {
   it('パーティクルが10個生成される', () => {
     state.rng = () => 0.5;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const before = poolCounts.particles;
     boostBurst(unit(idx), rng);
     expect(poolCounts.particles).toBe(before + 10);
@@ -354,7 +362,7 @@ describe('boostBurst', () => {
 
   it('パーティクルのライフが0.3s以下（rng最大値）', () => {
     state.rng = () => 0.999;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     boostBurst(unit(idx), rng);
     // life = 0.15 + 0.999 * 0.1 = 0.2499
     for (let i = 0; i < 10; i++) {
@@ -367,7 +375,7 @@ describe('boostBurst', () => {
 
   it('明るいトレイルカラー使用', () => {
     state.rng = () => 0.5;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     boostBurst(unit(idx), rng);
     const team: Team = 0;
     const tc = trailColor(0, team);
@@ -382,7 +390,7 @@ describe('boostBurst', () => {
 describe('boostTrail', () => {
   it('rng < 閾値でパーティクルが1個生成される', () => {
     state.rng = () => 0.0;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const before = poolCounts.particles;
     boostTrail(unit(idx), 1 / 30, rng);
     // rng()=0.0 < 1 - 0.6^1 ≈ 0.4 → spawn
@@ -391,7 +399,7 @@ describe('boostTrail', () => {
 
   it('rng >= 閾値でパーティクルが生成されない', () => {
     state.rng = () => 0.99;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const before = poolCounts.particles;
     boostTrail(unit(idx), 1 / 30, rng);
     // rng()=0.99 >= 0.4 → スキップ
@@ -400,7 +408,7 @@ describe('boostTrail', () => {
 
   it('パーティクルがユニット背面に生成される', () => {
     state.rng = () => 0.0;
-    const idx = spawnAt(0, 0, 200, 200);
+    const idx = spawnAt(0, DRONE_TYPE, 200, 200);
     const u = unit(idx);
     u.angle = 0; // cos(0)=1, sin(0)=0
     boostTrail(u, 1 / 30, rng);
@@ -411,7 +419,7 @@ describe('boostTrail', () => {
 
   it('パーティクルのライフが0.3s以下', () => {
     state.rng = () => 0.0;
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     boostTrail(unit(idx), 1 / 30, rng);
     const p = particle(0);
     // life = 0.08 + rng() * 0.12 = 0.08 (rng=0)
@@ -425,8 +433,8 @@ describe('chainLightning — KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
-    const enemy = spawnAt(1, 0, 50, 0); // Drone (hp=3)
+    const attacker = spawnAt(0, ARCER_TYPE, 100, 100);
+    const enemy = spawnAt(1, DRONE_TYPE, 50, 0); // hp=3
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const killer = captureKiller(attacker);
@@ -445,9 +453,9 @@ describe('chainLightning — KillEvent 伝播', () => {
     onKillUnit((e) => {
       events.push({ killerTeam: e.killerTeam, killerType: e.killerType });
     });
-    const attacker = spawnAt(0, 14, 100, 100); // Arcer (type=14)
-    spawnAt(1, 1, 50, 0); // 即時ホップ対象 (Fighter hp=10, 生存)
-    const enemy2 = spawnAt(1, 0, 100, 0); // 遅延ホップ対象 (Drone hp=3)
+    const attacker = spawnAt(0, ARCER_TYPE, 100, 100);
+    spawnAt(1, FIGHTER_TYPE, 50, 0); // 即時ホップ対象 (hp=10, 生存)
+    const enemy2 = spawnAt(1, DRONE_TYPE, 100, 0); // 遅延ホップ対象 (hp=3)
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const killer2 = captureKiller(attacker);
@@ -467,7 +475,7 @@ describe('chainLightning — KillEvent 伝播', () => {
 
 describe('killUnitWithExplosion', () => {
   it('alive ユニットをkillしてexplosionパーティクルを生成する', () => {
-    const idx = spawnAt(0, 1, 100, 200);
+    const idx = spawnAt(0, FIGHTER_TYPE, 100, 200);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(unit(idx).alive).toBe(true);
@@ -478,7 +486,7 @@ describe('killUnitWithExplosion', () => {
   });
 
   it('dead ユニットに対して explosion をスキップする（パーティクル 0 個）', () => {
-    const idx = spawnAt(0, 1, 100, 200);
+    const idx = spawnAt(0, FIGHTER_TYPE, 100, 200);
     buildHash();
     // まず kill してから dead ユニットに対して呼ぶ
     destroyUnit(idx, NO_UNIT, rng, KILL_CONTEXT.ProjectileDirect);
@@ -491,8 +499,8 @@ describe('killUnitWithExplosion', () => {
 
 describe('destroyMutualKill', () => {
   it('相打ち時はkiller双方のkillsを加算しない（両者deadのためスキップ）', () => {
-    const a = spawnAt(0, 1, 0, 0);
-    const b = spawnAt(1, 1, 100, 0);
+    const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect);
@@ -501,8 +509,8 @@ describe('destroyMutualKill', () => {
   });
 
   it('相打ち時はvet昇格をスキップする（両者deadのため）', () => {
-    const a = spawnAt(0, 1, 0, 0);
-    const b = spawnAt(1, 1, 100, 0);
+    const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(a).kills = 2;
     unit(b).kills = 2;
     buildHash();
@@ -515,8 +523,8 @@ describe('destroyMutualKill', () => {
   });
 
   it('片方のみHP枯渇 → 枯渇側のみkill、killer側のみvet加算', () => {
-    const a = spawnAt(0, 1, 0, 0);
-    const b = spawnAt(1, 1, 100, 0);
+    const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(a).kills = 7;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -531,8 +539,8 @@ describe('destroyMutualKill', () => {
   });
 
   it('両方死亡後もexplosionパーティクルが生成される', () => {
-    spawnAt(0, 1, 0, 0);
-    spawnAt(1, 1, 100, 0);
+    spawnAt(0, FIGHTER_TYPE, 0, 0);
+    spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const before = poolCounts.particles;

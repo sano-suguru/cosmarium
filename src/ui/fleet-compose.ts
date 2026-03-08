@@ -1,6 +1,6 @@
 import { DEFAULT_BUDGET, SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import type { FleetComposition, FleetEntry } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { TYPE_INDICES, TYPES } from '../unit-types.ts';
 import {
   DOM_ID_COMPOSE,
   DOM_ID_COMPOSE_BACK,
@@ -111,8 +111,8 @@ const cardRefMap = new Map<number, CardRefs>();
 
 function usedBudget(): number {
   let sum = 0;
-  for (let i = 0; i < TYPES.length; i++) {
-    sum += (counts[i] ?? 0) * (TYPES[i]?.cost ?? 0);
+  for (const idx of TYPE_INDICES) {
+    sum += (counts[idx] ?? 0) * (TYPES[idx]?.cost ?? 0);
   }
   return sum;
 }
@@ -276,10 +276,10 @@ export function initComposeDOM(launchCb: LaunchCb, backCb: BackCb, codexToggleCb
 
 function buildPlayerFleet(): FleetComposition {
   const fleet: FleetEntry[] = [];
-  for (let i = 0; i < TYPES.length; i++) {
-    const c = counts[i] ?? 0;
+  for (const idx of TYPE_INDICES) {
+    const c = counts[idx] ?? 0;
     if (c > 0) {
-      fleet.push({ type: i, count: c });
+      fleet.push({ type: idx, count: c });
     }
   }
   return fleet;
@@ -306,9 +306,7 @@ export function getPlayerFleet(): FleetComposition {
 }
 
 export function resetCounts() {
-  for (let i = 0; i < counts.length; i++) {
-    counts[i] = 0;
-  }
+  counts.fill(0);
 }
 
 /** テスト専用: モジュールレベル変数をリセット */

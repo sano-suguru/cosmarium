@@ -4,6 +4,7 @@ import { SQUADRONS_PER_TEAM } from '../constants.ts';
 import { getUnitHWM, squadron, unit } from '../pools.ts';
 import type { SquadronIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
+import { DRONE_TYPE, FLAGSHIP_TYPE } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 import {
   assignToSquadron,
@@ -26,7 +27,7 @@ afterEach(() => {
 
 describe('assignToSquadron', () => {
   it('ユニットを新規分隊に配属し、リーダーに昇格する', () => {
-    const idx = spawnAt(0, 0, 0, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 0, 0);
     assignToSquadron(idx, TEAM0);
 
     const u = unit(idx);
@@ -40,8 +41,8 @@ describe('assignToSquadron', () => {
   });
 
   it('2番目のメンバーは均等配分で別分隊に配属される', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(0, 0, 10, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, DRONE_TYPE, 10, 0);
     assignToSquadron(a, TEAM0);
     assignToSquadron(b, TEAM0);
 
@@ -55,7 +56,7 @@ describe('assignToSquadron', () => {
 describe('formSquadrons', () => {
   it('チーム内の全ユニットが分隊に配属される', () => {
     for (let i = 0; i < 8; i++) {
-      spawnAt(0, 0, i * 10, 0);
+      spawnAt(0, DRONE_TYPE, i * 10, 0);
     }
     formSquadrons(TEAM0, getUnitHWM());
 
@@ -71,7 +72,7 @@ describe('formSquadrons', () => {
 
   it('各分隊にリーダーが存在する', () => {
     for (let i = 0; i < 8; i++) {
-      spawnAt(0, 0, i * 10, 0);
+      spawnAt(0, DRONE_TYPE, i * 10, 0);
     }
     formSquadrons(TEAM0, getUnitHWM());
 
@@ -86,7 +87,7 @@ describe('formSquadrons', () => {
 
   it('均等配分: 8ユニット / 4分隊 → 各2メンバー', () => {
     for (let i = 0; i < 8; i++) {
-      spawnAt(0, 0, i * 10, 0);
+      spawnAt(0, DRONE_TYPE, i * 10, 0);
     }
     formSquadrons(TEAM0, getUnitHWM());
 
@@ -116,8 +117,8 @@ function setupColocatedSquadron(a: ReturnType<typeof spawnAt>, b: ReturnType<typ
 
 describe('succeedLeader', () => {
   it('リーダー死亡時に次の生存メンバーが昇格する', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(0, 0, 10, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, DRONE_TYPE, 10, 0);
     const si = setupColocatedSquadron(a, b);
 
     expect(squadron(si).leader).toBe(a);
@@ -131,8 +132,8 @@ describe('succeedLeader', () => {
 
   it('リーダー死亡時に最大 mass の生存メンバーが昇格する', () => {
     // type 0 = Drone (mass=1), type 4 = Flagship (mass=30)
-    const drone = spawnAt(0, 0, 0, 0);
-    const flagship = spawnAt(0, 4, 10, 0);
+    const drone = spawnAt(0, DRONE_TYPE, 0, 0);
+    const flagship = spawnAt(0, FLAGSHIP_TYPE, 10, 0);
     const si = 0 as SquadronIndex;
     const s = squadron(si);
     s.alive = true;
@@ -142,7 +143,7 @@ describe('succeedLeader', () => {
     s.objectiveTimer = 5;
     unit(drone).squadronIdx = si;
     unit(flagship).squadronIdx = si;
-    const extra = spawnAt(0, 0, 20, 0); // もう1体 Drone
+    const extra = spawnAt(0, DRONE_TYPE, 20, 0); // もう1体 Drone
     unit(extra).squadronIdx = si;
 
     // リーダー(Drone)死亡
@@ -154,7 +155,7 @@ describe('succeedLeader', () => {
   });
 
   it('全メンバー死亡時にリーダーが NO_UNIT になる（消滅判定は onUnitKilled 側）', () => {
-    const a = spawnAt(0, 0, 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     assignToSquadron(a, TEAM0);
 
     const si = unit(a).squadronIdx;
@@ -169,8 +170,8 @@ describe('succeedLeader', () => {
 
 describe('onUnitKilled', () => {
   it('memberCount を減少させる', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(0, 0, 10, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, DRONE_TYPE, 10, 0);
     const si = setupColocatedSquadron(a, b);
 
     expect(squadron(si).memberCount).toBe(2);
@@ -182,8 +183,8 @@ describe('onUnitKilled', () => {
   });
 
   it('リーダー死亡で後継者が選出される', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const b = spawnAt(0, 0, 10, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const b = spawnAt(0, DRONE_TYPE, 10, 0);
     const si = setupColocatedSquadron(a, b);
 
     const squadronIdx = unit(a).squadronIdx;
@@ -195,14 +196,14 @@ describe('onUnitKilled', () => {
   });
 
   it('未所属ユニットの死亡はスキップされる', () => {
-    const a = spawnAt(0, 0, 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     unit(a).alive = false;
     // NO_SQUADRON のまま — エラーなく通過すること
     onUnitKilled(unit(a).squadronIdx, a, getUnitHWM());
   });
 
   it('最後のメンバー死亡で分隊が消滅する', () => {
-    const a = spawnAt(0, 0, 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     assignToSquadron(a, TEAM0);
 
     const si = unit(a).squadronIdx;
@@ -218,8 +219,8 @@ describe('onUnitKilled', () => {
 
 describe('updateSquadronObjectives', () => {
   it('タイマー到達で目標が更新される', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    const enemy = spawnAt(1, 0, 500, 500);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 500, 500);
     assignToSquadron(a, TEAM0);
 
     const si = unit(a).squadronIdx;
@@ -238,8 +239,8 @@ describe('updateSquadronObjectives', () => {
   });
 
   it('タイマー到達前は目標が変わらない', () => {
-    const a = spawnAt(0, 0, 0, 0);
-    spawnAt(1, 0, 500, 500);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
+    spawnAt(1, DRONE_TYPE, 500, 500);
     assignToSquadron(a, TEAM0);
 
     const si = unit(a).squadronIdx;
@@ -258,7 +259,7 @@ describe('updateSquadronObjectives', () => {
 
 describe('snapshotSquadrons / restoreSquadrons', () => {
   it('スナップショットと復元が正しく機能する', () => {
-    const a = spawnAt(0, 0, 0, 0);
+    const a = spawnAt(0, DRONE_TYPE, 0, 0);
     assignToSquadron(a, TEAM0);
 
     const si = unit(a).squadronIdx;
@@ -281,12 +282,12 @@ describe('squadron-overflow', () => {
   it('全分隊満員時に新ユニットは配属されない', () => {
     // SQUADRONS_PER_TEAM=4, SQUADRON_MAX_SIZE=20 → 80ユニットで満員
     for (let i = 0; i < 80; i++) {
-      spawnAt(0, 0, i * 10, 0);
+      spawnAt(0, DRONE_TYPE, i * 10, 0);
     }
     formSquadrons(TEAM0, getUnitHWM());
 
     // 81番目のユニットは配属不可
-    const extra = spawnAt(0, 0, 999, 999);
+    const extra = spawnAt(0, DRONE_TYPE, 999, 999);
     assignToSquadron(extra, TEAM0);
     expect(unit(extra).squadronIdx).toBe(NO_SQUADRON);
   });
@@ -294,8 +295,8 @@ describe('squadron-overflow', () => {
 
 describe('computeSquadronCohesion', () => {
   it('リーダーから離れたメンバーに追従力が発生する', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 300, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 300, 0);
     setupColocatedSquadron(leader, member);
 
     const out = { x: 0, y: 0 };
@@ -306,8 +307,8 @@ describe('computeSquadronCohesion', () => {
   });
 
   it('リーダー自身には追従力が発生しない', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 300, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 300, 0);
     setupColocatedSquadron(leader, member);
 
     const out = { x: 0, y: 0 };
@@ -317,8 +318,8 @@ describe('computeSquadronCohesion', () => {
   });
 
   it('SQUADRON_COHESION_DIST 以内では追従力はゼロ', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 50, 0); // 50 < SQUADRON_COHESION_DIST(80)
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 50, 0); // 50 < SQUADRON_COHESION_DIST(80)
     setupColocatedSquadron(leader, member);
 
     const out = { x: 0, y: 0 };
@@ -328,7 +329,7 @@ describe('computeSquadronCohesion', () => {
   });
 
   it('未所属ユニットには追従力が発生しない', () => {
-    const u = spawnAt(0, 0, 0, 0);
+    const u = spawnAt(0, DRONE_TYPE, 0, 0);
     // assignToSquadron 未実行 → NO_SQUADRON
 
     const out = { x: 0, y: 0 };
@@ -338,9 +339,9 @@ describe('computeSquadronCohesion', () => {
   });
 
   it('距離が離れるほど二次的に追従力が増大する', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const memberNear = spawnAt(0, 0, 200, 0);
-    const memberFar = spawnAt(0, 0, 400, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const memberNear = spawnAt(0, DRONE_TYPE, 200, 0);
+    const memberFar = spawnAt(0, DRONE_TYPE, 400, 0);
 
     // 2体とも同じ分隊に配置（手動で分隊設定）
     const si = 0 as SquadronIndex;
@@ -369,8 +370,8 @@ describe('computeSquadronCohesion', () => {
 
 describe('computeSquadronLeashFactor', () => {
   it('リーシュ距離以内では 1 を返す', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 200, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 200, 0);
     setupColocatedSquadron(leader, member);
 
     const factor = computeSquadronLeashFactor(unit(member), member);
@@ -378,8 +379,8 @@ describe('computeSquadronLeashFactor', () => {
   });
 
   it('最大距離以上では 0 を返す', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 600, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 600, 0);
     setupColocatedSquadron(leader, member);
 
     const factor = computeSquadronLeashFactor(unit(member), member);
@@ -387,8 +388,8 @@ describe('computeSquadronLeashFactor', () => {
   });
 
   it('リーシュ距離〜最大距離間では 0〜1 の中間値を返す', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 425, 0); // (350+500)/2 の中間
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 425, 0); // (350+500)/2 の中間
     setupColocatedSquadron(leader, member);
 
     const factor = computeSquadronLeashFactor(unit(member), member);
@@ -398,8 +399,8 @@ describe('computeSquadronLeashFactor', () => {
   });
 
   it('リーダー自身は 1 を返す', () => {
-    const leader = spawnAt(0, 0, 0, 0);
-    const member = spawnAt(0, 0, 500, 0);
+    const leader = spawnAt(0, DRONE_TYPE, 0, 0);
+    const member = spawnAt(0, DRONE_TYPE, 500, 0);
     setupColocatedSquadron(leader, member);
 
     const factor = computeSquadronLeashFactor(unit(leader), leader);
@@ -407,7 +408,7 @@ describe('computeSquadronLeashFactor', () => {
   });
 
   it('未所属ユニットは 1 を返す', () => {
-    const u = spawnAt(0, 0, 0, 0);
+    const u = spawnAt(0, DRONE_TYPE, 0, 0);
     const factor = computeSquadronLeashFactor(unit(u), u);
     expect(factor).toBe(1);
   });

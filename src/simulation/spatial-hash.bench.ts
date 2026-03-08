@@ -1,13 +1,13 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
-import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { buildHash, getNeighbors } from './spatial-hash.ts';
 
 const rng = makeRng();
 
 function spawnUnits(n: number) {
   for (let i = 0; i < n; i++) {
-    spawnAt(i % 2 === 0 ? 0 : 1, 1, rng() * 4000, rng() * 4000);
+    spawnAt(i % 2 === 0 ? 0 : 1, asType(1), rng() * 4000, rng() * 4000);
   }
 }
 

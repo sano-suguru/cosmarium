@@ -12,6 +12,7 @@ import {
 } from '../constants.ts';
 import { resetInterp, setInterpAlpha } from '../interpolation.ts';
 import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
+import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE } from '../unit-types.ts';
 
 const mockWriteSlots = vi.fn();
 
@@ -74,7 +75,7 @@ function getWriteCalls() {
 
 describe('writeOverlay', () => {
   it('active shield overlay は SH_OCT_SHIELD(26) で now=0 時に angle=0, a=0.5 で描画される', () => {
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
     u.angle = 1.5;
@@ -89,7 +90,7 @@ describe('writeOverlay', () => {
   });
 
   it('passive shield (Reflector class) は SH_REFLECT_FIELD(27) エネルギー連動alpha で描画される', () => {
-    const idx = spawnAt(0, 6, 100, 100);
+    const idx = spawnAt(0, REFLECTOR_TYPE, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 0;
 
@@ -103,7 +104,7 @@ describe('writeOverlay', () => {
   });
 
   it('Reflector シールドダウン時は赤系の SH_REFLECT_FIELD(27) で描画される', () => {
-    const idx = spawnAt(0, 6, 100, 100);
+    const idx = spawnAt(0, REFLECTOR_TYPE, 100, 100);
     const u = unit(idx);
     u.shieldCooldown = 3;
     u.energy = 0;
@@ -120,7 +121,7 @@ describe('writeOverlay', () => {
   });
 
   it('active shield は passive shield より優先される (Reflector + shieldLingerTimer > 0)', () => {
-    const idx = spawnAt(0, 6, 100, 100);
+    const idx = spawnAt(0, REFLECTOR_TYPE, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
@@ -133,7 +134,7 @@ describe('writeOverlay', () => {
   });
 
   it('active shield overlay の angle は now*0.5 で回転する', () => {
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx);
     u.shieldLingerTimer = 1.0;
 
@@ -146,7 +147,7 @@ describe('writeOverlay', () => {
   });
 
   it('vet overlay は angle=0 で描画される', () => {
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx);
     u.vet = 1;
     u.kills = 3;
@@ -160,7 +161,7 @@ describe('writeOverlay', () => {
   });
 
   it('swarm overlay は angle=0 で描画される', () => {
-    const idx = spawnAt(0, 0, 100, 100);
+    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx);
     u.swarmN = 3;
     u.angle = 0.8;
@@ -337,7 +338,7 @@ describe('writeBeamSegment', () => {
 
 describe('writeInstance（直接使用）', () => {
   it('ユニット本体はユニット固有の angle/shape で描画される', () => {
-    spawnAt(0, 1, 200, 300);
+    spawnAt(0, FIGHTER_TYPE, 200, 300);
     const u = unit(0);
     u.angle = 1.23;
 
@@ -373,7 +374,7 @@ describe('writeInstance（直接使用）', () => {
 
   it('vet=1 のユニット本体は金色方向にティント適用される', () => {
     // vet=0 の基本色を取得
-    spawnAt(0, 0, 100, 100);
+    spawnAt(0, DRONE_TYPE, 100, 100);
     renderSceneAll(0);
     const baseCalls = getWriteCalls();
     const baseCall = baseCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
@@ -382,7 +383,7 @@ describe('writeInstance（直接使用）', () => {
     // リセットして vet=1 のユニットを生成
     resetPools();
     mockWriteSlots.mockClear();
-    const idx1 = spawnAt(0, 0, 100, 100);
+    const idx1 = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx1);
     u.vet = 1;
     u.kills = 3;
@@ -401,7 +402,7 @@ describe('writeInstance（直接使用）', () => {
 
 describe('Reflector 味方フィールド描画', () => {
   it('味方ユニットに reflectFieldHp > 0 で SH_REFLECT_FIELD が描画される', () => {
-    const ally = spawnAt(0, 1, 100, 100); // Fighter (reflects なし)
+    const ally = spawnAt(0, FIGHTER_TYPE, 100, 100); // reflects なし
     const u = unit(ally);
     u.reflectFieldHp = 15;
     renderSceneAll(0);
@@ -414,7 +415,7 @@ describe('Reflector 味方フィールド描画', () => {
   });
 
   it('reflectFieldHp = 0 の味方には SH_REFLECT_FIELD が描画されない', () => {
-    spawnAt(0, 1, 100, 100);
+    spawnAt(0, FIGHTER_TYPE, 100, 100);
     renderSceneAll(0);
     const calls = getWriteCalls();
     const fieldCall = calls.find((c) => c.shape === SH_REFLECT_FIELD);
@@ -422,7 +423,7 @@ describe('Reflector 味方フィールド描画', () => {
   });
 
   it('Reflector 自身は味方フィールド描画ではなく自前描画を使う', () => {
-    const idx = spawnAt(0, 6, 100, 100);
+    const idx = spawnAt(0, REFLECTOR_TYPE, 100, 100);
     const u = unit(idx);
     u.reflectFieldHp = 15;
     renderSceneAll(0);
@@ -440,7 +441,7 @@ describe('renderScene 描画数', () => {
   });
 
   it('ユニット1体で複数インスタンスが生成される', () => {
-    spawnAt(0, 3, 100, 100);
+    spawnAt(0, CRUISER_TYPE, 100, 100);
     const u = unit(0);
     u.hp = u.maxHp * 0.5;
 
@@ -454,13 +455,13 @@ describe('フラスタムカリング', () => {
     // cx=0, cy=0, cz=1, vW=800, vH=600 → halfW=400, halfH=300
     // Drone(size=4) の unitR = max(30, 4*2.2*2.5) + 10 = 40 → 可視範囲 ±440
     // ユニットを x=5000 に配置 → 画面外
-    spawnAt(0, 0, 5000, 0);
+    spawnAt(0, DRONE_TYPE, 5000, 0);
     const count = renderScene(0, 0, 0, 1, 800, 600);
     expect(count).toBe(0);
   });
 
   it('画面内ユニットは正常に描画される', () => {
-    spawnAt(0, 0, 100, 100);
+    spawnAt(0, DRONE_TYPE, 100, 100);
     const count = renderScene(0, 0, 0, 1, 800, 600);
     expect(count).toBeGreaterThan(0);
   });
@@ -468,7 +469,7 @@ describe('フラスタムカリング', () => {
   it('ユニット半径内に画面端がある場合は描画される', () => {
     // cz=1, vW=800 → halfW=400。Drone(size=4) の unitR=40
     // x=410 → 410-40=370 < 400 → 可視
-    spawnAt(0, 0, 410, 0);
+    spawnAt(0, DRONE_TYPE, 410, 0);
     const count = renderScene(0, 0, 0, 1, 800, 600);
     expect(count).toBeGreaterThan(0);
   });
@@ -594,8 +595,8 @@ describe('フラスタムカリング', () => {
   });
 
   it('画面外トラッキングビームはスキップされる', () => {
-    const src = spawnAt(0, 0, 5000, 5000);
-    const tgt = spawnAt(1, 0, 6000, 5000);
+    const src = spawnAt(0, DRONE_TYPE, 5000, 5000);
+    const tgt = spawnAt(1, DRONE_TYPE, 6000, 5000);
     trackingBeams.push({
       srcUnit: src,
       tgtUnit: tgt,
@@ -644,7 +645,7 @@ describe('フラスタムカリング', () => {
     // vx=500(右向き) → ゴーストは左に伸びる: gx = 450 - dist
     // trailLen = max(4*2.0, 500*0.12) = 60, GHOST_COUNT=5
     // i=5: gx=450-60=390, ghostSize=4*(1-5*0.08)*2.5=6.0 → 390+6=396<400, 390-6=384<400 → 可視
-    const idx = spawnAt(0, 0, 450, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 450, 0);
     const u = unit(idx);
     u.catalystTimer = 1.0;
     u.vx = 500;
@@ -655,7 +656,7 @@ describe('フラスタムカリング', () => {
   });
 
   it('ユニットもゴーストも完全に画面外なら描画されない', () => {
-    const idx = spawnAt(0, 0, 600, 0);
+    const idx = spawnAt(0, DRONE_TYPE, 600, 0);
     const u = unit(idx);
     u.catalystTimer = 1.0;
     u.vx = 500;

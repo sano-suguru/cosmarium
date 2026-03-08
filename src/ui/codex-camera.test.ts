@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { computeDemoBounds } from './codex.ts';
 
 afterEach(() => {
@@ -15,7 +15,7 @@ describe('computeDemoBounds', () => {
   });
 
   it('N=1 (100, 200) → minRadius適用で radius=80', () => {
-    spawnAt(0, 0, 100, 200);
+    spawnAt(0, asType(0), 100, 200);
 
     const result = computeDemoBounds();
     expect(result.cx).toBeCloseTo(100, 0);
@@ -24,9 +24,9 @@ describe('computeDemoBounds', () => {
   });
 
   it('N=3 → 重心が平均座標と一致、radius が最遠距離 + 50', () => {
-    spawnAt(0, 1, 0, 100);
-    spawnAt(0, 2, 100, 0);
-    spawnAt(0, 3, -100, 0);
+    spawnAt(0, asType(1), 0, 100);
+    spawnAt(0, asType(2), 100, 0);
+    spawnAt(0, asType(3), -100, 0);
 
     const result = computeDemoBounds();
     expect(result.cx).toBeCloseTo(0, 0);
@@ -37,7 +37,7 @@ describe('computeDemoBounds', () => {
 
   it('全ユニット同一座標 → radius = 80 (minRadius)', () => {
     for (let j = 0; j < 4; j++) {
-      spawnAt(0, j, 50, 50);
+      spawnAt(0, asType(j), 50, 50);
     }
 
     const result = computeDemoBounds();
@@ -47,8 +47,8 @@ describe('computeDemoBounds', () => {
   });
 
   it('2ユニットが離れている場合 radius はminRadius以上', () => {
-    spawnAt(0, 0, 0, 0);
-    spawnAt(0, 1, 200, 0);
+    spawnAt(0, asType(0), 0, 0);
+    spawnAt(0, asType(1), 200, 0);
 
     const result = computeDemoBounds();
     expect(result.cx).toBeCloseTo(100, 0);

@@ -5,7 +5,19 @@ import { POOL_UNITS, REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import {
+  ARCER_TYPE,
+  CARRIER_TYPE,
+  DISRUPTOR_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  HEALER_TYPE,
+  LANCER_TYPE,
+  REFLECTOR_TYPE,
+  TELEPORTER_TYPE,
+  unitType,
+} from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
 
 vi.mock('../input/camera.ts', () => ({
@@ -30,10 +42,10 @@ afterEach(() => {
 
 describe('combat — LANCER', () => {
   it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass×2)', () => {
-    const lancerType = unitType(9);
-    const fighterType = unitType(1);
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 1, 5, 0);
+    const lancerType = unitType(LANCER_TYPE);
+    const fighterType = unitType(FIGHTER_TYPE);
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 5, 0);
     buildHash();
     const lancerHpBefore = unit(lancer).hp;
     const enemyHpBefore = unit(enemy).hp;
@@ -44,8 +56,8 @@ describe('combat — LANCER', () => {
   });
 
   it('衝突でノックバック発生', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 1, 5, 0);
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 5, 0);
     unit(enemy).kbVx = 0;
     unit(enemy).kbVy = 0;
     buildHash();
@@ -55,8 +67,8 @@ describe('combat — LANCER', () => {
   });
 
   it('敵HP<=0 → killUnit + explosion', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 0, 5, 0); // Drone (hp=3, size=4)
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, DRONE_TYPE, 5, 0); // hp=3, size=4
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // Lancer damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
@@ -64,9 +76,9 @@ describe('combat — LANCER', () => {
   });
 
   it('自身HP<=0 → 自身も死亡', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
     unit(lancer).hp = 1; // HP1にする
-    spawnAt(1, 4, 5, 0); // Flagship (mass=30)
+    spawnAt(1, FLAGSHIP_TYPE, 5, 0); // mass=30
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
@@ -74,8 +86,8 @@ describe('combat — LANCER', () => {
   });
 
   it('フィールド持ち相手に ram ダメージ半減', () => {
-    const lancer = spawnAt(0, 9, 0, 0); // Lancer (mass=12)
-    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0); // mass=12
+    const enemy = spawnAt(1, REFLECTOR_TYPE, 5, 0); // mass=3
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const enemyHpBefore = unit(enemy).hp;
     buildHash();
@@ -85,8 +97,8 @@ describe('combat — LANCER', () => {
   });
 
   it('reflectFieldHp が ramDmg 分減少', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 6, 5, 0);
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, REFLECTOR_TYPE, 5, 0);
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
@@ -95,8 +107,8 @@ describe('combat — LANCER', () => {
   });
 
   it('フィールド持ち相手で自傷 1.5 倍', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, REFLECTOR_TYPE, 5, 0); // mass=3
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const lancerHpBefore = unit(lancer).hp;
     buildHash();
@@ -106,8 +118,8 @@ describe('combat — LANCER', () => {
   });
 
   it('reflectFieldHp=0 なら通常ダメージ', () => {
-    const lancer = spawnAt(0, 9, 0, 0);
-    const enemy = spawnAt(1, 6, 5, 0); // Reflector (mass=3)
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, REFLECTOR_TYPE, 5, 0); // mass=3
     unit(enemy).reflectFieldHp = 0; // フィールド枯渇
     const enemyHpBefore = unit(enemy).hp;
     const lancerHpBefore = unit(lancer).hp;
@@ -122,8 +134,8 @@ describe('combat — LANCER', () => {
 
 describe('combat — HEALER', () => {
   it('味方HP回復 (hp+HEALER_AMOUNT, 上限maxHp)', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
@@ -132,8 +144,8 @@ describe('combat — HEALER', () => {
   });
 
   it('hp上限 (maxHp) を超えない', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 9;
     buildHash();
@@ -142,8 +154,8 @@ describe('combat — HEALER', () => {
   });
 
   it('abilityCooldown=HEALER_COOLDOWN にリセットされる', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
@@ -152,7 +164,7 @@ describe('combat — HEALER', () => {
   });
 
   it('自身は回復しない', () => {
-    const healer = spawnAt(0, 5, 0, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
     unit(healer).abilityCooldown = 0;
     unit(healer).hp = 5;
     buildHash();
@@ -161,8 +173,8 @@ describe('combat — HEALER', () => {
   });
 
   it('回復ビームが追加される', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
@@ -171,8 +183,8 @@ describe('combat — HEALER', () => {
   });
 
   it('abilityCooldown>0 → 回復スキップ', () => {
-    const healer = spawnAt(0, 5, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
+    const healer = spawnAt(0, HEALER_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(healer).abilityCooldown = 1.0;
     unit(ally).hp = 5;
     buildHash();
@@ -183,14 +195,14 @@ describe('combat — HEALER', () => {
 
 describe('combat — CARRIER', () => {
   it('spawnCooldown<=0 で Drone×4 スポーン', () => {
-    const carrier = spawnAt(0, 7, 0, 0); // Carrier
+    const carrier = spawnAt(0, CARRIER_TYPE, 0, 0);
     unit(carrier).spawnCooldown = 0; // クールダウン切れ
     const ucBefore = poolCounts.units;
     buildHash();
     combat(unit(carrier), carrier, 0.016, 0, rng);
     // Drone×4 生成
     expect(poolCounts.units).toBe(ucBefore + 4);
-    // Drone (type=0) が生成されている
+    // DRONE_TYPE が生成されている
     let drones = 0;
     for (let i = 0; i < POOL_UNITS; i++) {
       if (unit(i).alive && unit(i).type === 0 && i !== carrier) {
@@ -201,7 +213,7 @@ describe('combat — CARRIER', () => {
   });
 
   it('spawnCooldown > 0 → スポーンなし', () => {
-    const carrier = spawnAt(0, 7, 0, 0);
+    const carrier = spawnAt(0, CARRIER_TYPE, 0, 0);
     unit(carrier).spawnCooldown = 5.0;
     const ucBefore = poolCounts.units;
     buildHash();
@@ -210,7 +222,7 @@ describe('combat — CARRIER', () => {
   });
 
   it('spawnCooldown リセット', () => {
-    const carrier = spawnAt(0, 7, 0, 0);
+    const carrier = spawnAt(0, CARRIER_TYPE, 0, 0);
     unit(carrier).spawnCooldown = 0;
     buildHash();
     combat(unit(carrier), carrier, 0.016, 0, rng);
@@ -222,9 +234,9 @@ describe('combat — CARRIER', () => {
 
 describe('combat — DISRUPTOR', () => {
   it('範囲内の敵にstun=1.5 + ダメージ', () => {
-    const disruptorType = unitType(11);
-    const disruptor = spawnAt(0, 11, 0, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const disruptorType = unitType(DISRUPTOR_TYPE);
+    const disruptor = spawnAt(0, DISRUPTOR_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = enemy;
     buildHash();
@@ -235,7 +247,7 @@ describe('combat — DISRUPTOR', () => {
   });
 
   it('tgt<0 → 即return', () => {
-    const disruptor = spawnAt(0, 11, 0, 0);
+    const disruptor = spawnAt(0, DISRUPTOR_TYPE, 0, 0);
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = NO_UNIT;
     buildHash();
@@ -244,9 +256,9 @@ describe('combat — DISRUPTOR', () => {
   });
 
   it('味方にスタンはかからない', () => {
-    const disruptor = spawnAt(0, 11, 0, 0);
-    const ally = spawnAt(0, 1, 50, 0);
-    const enemy = spawnAt(1, 1, 100, 0);
+    const disruptor = spawnAt(0, DISRUPTOR_TYPE, 0, 0);
+    const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = enemy;
     buildHash();
@@ -258,8 +270,8 @@ describe('combat — DISRUPTOR', () => {
 
 describe('combat — TELEPORTER (3連ブリンク)', () => {
   it('距離80-600で出発 → blinkPhase=1, blinkCount未減', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -273,8 +285,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('到着: blinkPhase=0, blinkCount--, 2発射撃', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -291,8 +303,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('シーケンス継続: blinkCount>0 → 出発+到着ペア', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).blinkCount = 2;
     unit(tp).target = enemy;
@@ -310,8 +322,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('最終ブリンク: blinkCount=1→出発→到着→0、メインCDセット', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).blinkCount = 1;
     unit(tp).target = enemy;
@@ -330,8 +342,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('3連ブリンク全実行で計6発', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -356,8 +368,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('teleportTimer>0 では何もしない', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 3.0;
     unit(tp).target = enemy;
     unit(tp).cooldown = 999;
@@ -368,8 +380,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('距離が80未満ではブリンク開始しない', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 30, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 30, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     unit(tp).cooldown = 999;
@@ -381,8 +393,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('ターゲット死亡でblinkCountリセット', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).blinkCount = 2;
     unit(tp).target = enemy;
@@ -394,7 +406,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('ターゲットなしでblinkCountリセット', () => {
-    const tp = spawnAt(0, 13, 0, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).blinkCount = 2;
     unit(tp).target = NO_UNIT;
@@ -404,8 +416,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('到着後はcooldownが抑制されfireNormalが発火しない', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).cooldown = 0;
     unit(tp).target = enemy;
@@ -420,8 +432,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('射撃にsourceUnitが設定される', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -435,8 +447,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('blinkPhase=1の中間状態: 不可視で射撃なし', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -447,8 +459,8 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('ワープ中にターゲット死亡 → 到着はするが射撃なし', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -465,9 +477,9 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('着地衝撃: 近接敵にノックバック + ミニスタン', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
-    const nearby = spawnAt(1, 0, 0, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
+    const nearby = spawnAt(1, DRONE_TYPE, 0, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -490,9 +502,9 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('着地衝撃: 味方にはノックバック/スタンがかからない', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
-    const ally = spawnAt(0, 0, 0, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
+    const ally = spawnAt(0, DRONE_TYPE, 0, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -514,9 +526,9 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
   });
 
   it('着地衝撃: 効果範囲外の敵は影響なし', () => {
-    const tp = spawnAt(0, 13, 0, 0);
-    const enemy = spawnAt(1, 1, 200, 0);
-    const farEnemy = spawnAt(1, 0, 0, 0);
+    const tp = spawnAt(0, TELEPORTER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
+    const farEnemy = spawnAt(1, DRONE_TYPE, 0, 0);
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
@@ -540,20 +552,20 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
 
 describe('combat — CHAIN LIGHTNING', () => {
   it('chainLightning() 呼出 + cooldownリセット', () => {
-    const arcer = spawnAt(0, 14, 0, 0); // Arcer (rng=250, fireRate=2)
-    const enemy = spawnAt(1, 1, 100, 0);
+    const arcer = spawnAt(0, ARCER_TYPE, 0, 0); // rng=250, fireRate=2
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(arcer).cooldown = 0;
     unit(arcer).target = enemy;
     buildHash();
     combat(unit(arcer), arcer, 0.016, 0, rng);
     // cooldown = fireRate = 2
-    expect(unit(arcer).cooldown).toBeCloseTo(unitType(14).fireRate);
+    expect(unit(arcer).cooldown).toBeCloseTo(unitType(ARCER_TYPE).fireRate);
     // ビーム + ダメージ
     expect(beams.length).toBeGreaterThan(0);
   });
 
   it('tgt<0 → 即return', () => {
-    const arcer = spawnAt(0, 14, 0, 0);
+    const arcer = spawnAt(0, ARCER_TYPE, 0, 0);
     unit(arcer).cooldown = 0;
     unit(arcer).target = NO_UNIT;
     buildHash();

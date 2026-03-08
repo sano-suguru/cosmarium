@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools.ts';
 import { hotspot, resetHotspot, updateHotspot } from './hotspot.ts';
 
@@ -25,17 +25,17 @@ describe('hotspot', () => {
 
   it('片方のチームのみ → null', () => {
     for (let i = 0; i < 5; i++) {
-      spawnAt(0, 1, 100, 100);
+      spawnAt(0, asType(1), 100, 100);
     }
     triggerUpdate();
     expect(hotspot()).toBeNull();
   });
 
   it('2チーム混在（1セル内） → 正しい座標', () => {
-    spawnAt(0, 1, 90, 110);
-    spawnAt(0, 1, 110, 90);
-    spawnAt(1, 1, 100, 100);
-    spawnAt(1, 1, 120, 80);
+    spawnAt(0, asType(1), 90, 110);
+    spawnAt(0, asType(1), 110, 90);
+    spawnAt(1, asType(1), 100, 100);
+    spawnAt(1, asType(1), 120, 80);
     triggerUpdate();
     const hs = hotspot();
     expect(hs).not.toBeNull();
@@ -44,14 +44,14 @@ describe('hotspot', () => {
   });
 
   it('複数セルで最高スコアのセルが選ばれる', () => {
-    spawnAt(0, 1, 50, 50);
-    spawnAt(1, 1, 60, 60);
+    spawnAt(0, asType(1), 50, 50);
+    spawnAt(1, asType(1), 60, 60);
 
-    spawnAt(0, 1, 900, 900);
-    spawnAt(0, 1, 920, 920);
-    spawnAt(0, 1, 940, 940);
-    spawnAt(1, 1, 910, 910);
-    spawnAt(1, 1, 930, 930);
+    spawnAt(0, asType(1), 900, 900);
+    spawnAt(0, asType(1), 920, 920);
+    spawnAt(0, asType(1), 940, 940);
+    spawnAt(1, asType(1), 910, 910);
+    spawnAt(1, asType(1), 930, 930);
 
     triggerUpdate();
     const hs = hotspot();
@@ -61,8 +61,8 @@ describe('hotspot', () => {
   });
 
   it('フレームスキップが動作する', () => {
-    spawnAt(0, 1, 100, 100);
-    spawnAt(1, 1, 120, 120);
+    spawnAt(0, asType(1), 100, 100);
+    spawnAt(1, asType(1), 120, 120);
     updateHotspot();
     expect(hotspot()).toBeNull();
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 1; i++) {
@@ -73,8 +73,8 @@ describe('hotspot', () => {
   });
 
   it('ユニット全滅後 → null に戻る', () => {
-    spawnAt(0, 1, 100, 100);
-    spawnAt(1, 1, 120, 120);
+    spawnAt(0, asType(1), 100, 100);
+    spawnAt(1, asType(1), 120, 120);
     triggerUpdate();
     expect(hotspot()).not.toBeNull();
 
@@ -88,8 +88,8 @@ describe('hotspot', () => {
   });
 
   it('resetHotspot がフレームカウンタをリセットする', () => {
-    spawnAt(0, 1, 100, 100);
-    spawnAt(1, 1, 120, 120);
+    spawnAt(0, asType(1), 100, 100);
+    spawnAt(1, asType(1), 120, 120);
 
     for (let i = 0; i < HOTSPOT_UPDATE_INTERVAL - 2; i++) {
       updateHotspot();
@@ -109,8 +109,8 @@ describe('hotspot', () => {
 
   it('連続呼出しでプール再利用時に前回のセルデータが残らない', () => {
     // 1回目: (100,100)付近に2チーム配置 → ホットスポット検出
-    spawnAt(0, 1, 100, 100);
-    spawnAt(1, 1, 120, 120);
+    spawnAt(0, asType(1), 100, 100);
+    spawnAt(1, asType(1), 120, 120);
     triggerUpdate();
     const hs1 = hotspot();
     expect(hs1).not.toBeNull();
@@ -121,8 +121,8 @@ describe('hotspot', () => {
     for (let i = 0; i < 2; i++) {
       unit(i).alive = false;
     }
-    spawnAt(0, 1, 800, 800);
-    spawnAt(1, 1, 820, 820);
+    spawnAt(0, asType(1), 800, 800);
+    spawnAt(1, asType(1), 820, 820);
 
     // 2回目: セルプールが再利用されるが、前回の (100,100) 付近のデータが混入しないこと
     triggerUpdate();
@@ -134,16 +134,16 @@ describe('hotspot', () => {
 
   it('3回連続更新でプール再利用が安定する', () => {
     // 1回目
-    spawnAt(0, 1, 50, 50);
-    spawnAt(1, 1, 70, 70);
+    spawnAt(0, asType(1), 50, 50);
+    spawnAt(1, asType(1), 70, 70);
     triggerUpdate();
     expect(hotspot()).not.toBeNull();
 
     // 全滅→再配置（2回目）
     unit(0).alive = false;
     unit(1).alive = false;
-    spawnAt(0, 1, 500, 500);
-    spawnAt(1, 1, 520, 520);
+    spawnAt(0, asType(1), 500, 500);
+    spawnAt(1, asType(1), 520, 520);
     triggerUpdate();
     const hs2 = hotspot();
     expect(hs2).not.toBeNull();
@@ -153,8 +153,8 @@ describe('hotspot', () => {
     for (let i = 0; i < 4; i++) {
       unit(i).alive = false;
     }
-    spawnAt(0, 1, 1500, 1500);
-    spawnAt(1, 1, 1520, 1520);
+    spawnAt(0, asType(1), 1500, 1500);
+    spawnAt(1, asType(1), 1520, 1520);
     triggerUpdate();
     const hs3 = hotspot();
     expect(hs3).not.toBeNull();

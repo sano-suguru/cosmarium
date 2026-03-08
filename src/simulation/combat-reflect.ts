@@ -1,6 +1,6 @@
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3 } from '../types.ts';
+import type { Color3, ReflectableProjectile, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt } from './combat-aim.ts';
 import { consumeReflectorShieldHp } from './combat-beam-defense.ts';
@@ -20,22 +20,27 @@ export function resetReflected() {
   reflectedThisFrame.clear();
 }
 
+interface ReflectOpts {
+  readonly team: Team;
+  readonly color: Color3;
+  readonly reflectorType: UnitTypeIndex;
+  readonly reflectorIndex: UnitIndex;
+}
+
 /**
  * Reflector による弾の鏡面反射+散乱。弾の速度・チーム・色を書き換える。
  * @param rng 決定論的乱数（散乱角・パーティクルに使用）
  * @param ux Reflector の X 座標（反射法線の原点）
  * @param uy Reflector の Y 座標
- * @param p 反射対象（vx/vy/life/team/色を上書き）
- * @param team 反射後に設定するチーム
- * @param c 反射ビーム・パーティクルの色
+ * @param p 反射対象（vx/vy/life/team/色/sourceType/sourceUnit を上書きし、homing/aoe/target をリセット）
+ * @param opts 反射先チーム・色・リフレクター情報
  */
 export function reflectProjectile(
   rng: () => number,
   ux: number,
   uy: number,
-  p: { x: number; y: number; vx: number; vy: number; life: number; team: number; r: number; g: number; b: number },
-  team: number,
-  c: Color3,
+  p: ReflectableProjectile,
+  opts: ReflectOpts,
 ) {
   let dx = p.x - ux;
   let dy = p.y - uy;
@@ -57,10 +62,19 @@ export function reflectProjectile(
   p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
   p.vy = (rvx * sn + rvy * cs) * REFLECT_SPEED_MULT;
   p.life = REFLECT_LIFE;
+  // 反射弾は反射ユニットのチームに帰属する（分析統計でもReflectorのダメージとして計上）
+  const { team, color: c, reflectorType, reflectorIndex } = opts;
   p.team = team;
   p.r = c[0];
   p.g = c[1];
   p.b = c[2];
+  // 再反射時も最後に反射したユニットの型に更新（ダメージ統計・キル帰属の正確性のため）
+  p.sourceType = reflectorType;
+  p.sourceUnit = reflectorIndex;
+  // 反射時にホーミング・AOE・ターゲットをリセット（元の味方に追尾/範囲ダメージを与えないため）
+  p.homing = false;
+  p.aoe = 0;
+  p.target = NO_UNIT;
   addBeam(ux, uy, p.x, p.y, c[0], c[1], c[2], 0.15, 1.5);
   for (let j = 0; j < 4; j++) {
     spawnParticle(p.x, p.y, (rng() - 0.5) * 80, (rng() - 0.5) * 80, 0.15, 3 + rng() * 2, c[0], c[1], c[2], SH_CIRCLE);
@@ -68,13 +82,7 @@ export function reflectProjectile(
   spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, SH_EXPLOSION_RING);
 }
 
-function reflectNearbyProjectiles(
-  ctx: CombatContext,
-  u: CombatContext['u'],
-  reflectR: number,
-  team: number,
-  c: Color3,
-) {
+function reflectNearbyProjectiles(ctx: CombatContext, u: CombatContext['u'], reflectR: number, team: Team, c: Color3) {
   const cooldown = ctx.t.shieldCooldown;
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
@@ -94,7 +102,7 @@ function reflectNearbyProjectiles(
       break;
     }
     consumeReflectorShieldHp(u, p.damage, cooldown);
-    reflectProjectile(ctx.rng, u.x, u.y, p, team, c);
+    reflectProjectile(ctx.rng, u.x, u.y, p, { team, color: c, reflectorType: u.type, reflectorIndex: ctx.ui });
     reflectedThisFrame.add(i);
     if (u.energy <= 0) {
       break;
@@ -132,6 +140,7 @@ export function reflectProjectiles(ctx: CombatContext) {
           c[0],
           c[1],
           c[2],
+          { sourceUnit: ctx.ui },
         );
       }
     }

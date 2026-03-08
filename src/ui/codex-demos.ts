@@ -2,23 +2,18 @@ import { unit } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { DemoFlag, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, SCORCHER_TYPE } from '../unit-types.ts';
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 export const demoRng: () => number = Math.random;
 
-const SCORCHER_TYPE = unitTypeIndex('Scorcher');
-const CRUISER_TYPE = unitTypeIndex('Cruiser');
-const FIGHTER_TYPE = unitTypeIndex('Fighter');
-const DRONE_TYPE = unitTypeIndex('Drone');
-
 function demoDroneSwarm(mi: UnitIndex) {
   for (let i = 0; i < 5; i++) {
     const a = ((i + 1) / 6) * Math.PI * 2;
-    spawnUnit(0, 0, Math.cos(a) * 40, Math.sin(a) * 40, demoRng);
+    spawnUnit(0, DRONE_TYPE, Math.cos(a) * 40, Math.sin(a) * 40, demoRng);
   }
   for (let i = 0; i < 6; i++) {
-    const ei = spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
+    const ei = spawnUnit(1, DRONE_TYPE, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }
@@ -27,7 +22,7 @@ function demoDroneSwarm(mi: UnitIndex) {
 
 function demoBurstFighter(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 1, 200 + (demoRng() - 0.5) * 60, (i - 1) * 60, demoRng);
+    const ei = spawnUnit(1, FIGHTER_TYPE, 200 + (demoRng() - 0.5) * 60, (i - 1) * 60, demoRng);
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }
@@ -35,24 +30,24 @@ function demoBurstFighter(mi: UnitIndex) {
 }
 
 function demoHealer() {
-  const ai = spawnUnit(0, 1, -60, 0, demoRng);
+  const ai = spawnUnit(0, FIGHTER_TYPE, -60, 0, demoRng);
   if (ai !== NO_UNIT) {
     unit(ai).hp = 3;
   }
-  const ai2 = spawnUnit(0, 0, 60, -40, demoRng);
+  const ai2 = spawnUnit(0, DRONE_TYPE, 60, -40, demoRng);
   if (ai2 !== NO_UNIT) {
     unit(ai2).hp = 1;
   }
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 120, demoRng);
   }
 }
 
 function demoReflector(mi: UnitIndex) {
   for (let i = 0; i < 2; i++) {
-    spawnUnit(0, 1, -40, (i === 0 ? -1 : 1) * 30, demoRng);
+    spawnUnit(0, FIGHTER_TYPE, -40, (i === 0 ? -1 : 1) * 30, demoRng);
   }
-  const fi = spawnUnit(1, 1, -120, 0, demoRng);
+  const fi = spawnUnit(1, FIGHTER_TYPE, -120, 0, demoRng);
   if (fi !== NO_UNIT) {
     unit(fi).target = mi;
   }
@@ -68,7 +63,7 @@ function demoReflector(mi: UnitIndex) {
 
 function demoCarrier() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 0, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 150, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + (demoRng() - 0.5) * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
@@ -76,25 +71,25 @@ function demoDisruptor() {
   for (let i = 0; i < 8; i++) {
     const a = demoRng() * 6.283,
       r = 80 + demoRng() * 60;
-    spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r, demoRng);
+    spawnUnit(1, DRONE_TYPE, Math.cos(a) * r, Math.sin(a) * r, demoRng);
   }
 }
 
 function demoArcer() {
   for (let i = 0; i < 6; i++) {
-    spawnUnit(1, 0, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10), demoRng);
+    spawnUnit(1, DRONE_TYPE, 120 + i * 35, (i % 2 === 0 ? -1 : 1) * (30 + i * 10), demoRng);
   }
 }
 
 function demoTeleporter() {
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (demoRng() - 0.5) * 150, demoRng);
+    spawnUnit(1, FIGHTER_TYPE, 250 + (demoRng() - 0.5) * 100, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
 function demoLancer(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 3, 250, (i - 1) * 80, demoRng);
+    spawnUnit(1, CRUISER_TYPE, 250, (i - 1) * 80, demoRng);
   }
   if (mi !== NO_UNIT) {
     unit(mi).x = -200;
@@ -107,17 +102,17 @@ function demoSweepBeam(mi: UnitIndex) {
   }
   for (let i = 0; i < 6; i++) {
     const angle = ((i - 2.5) / 5) * 1.2;
-    spawnUnit(1, 0, 200 + Math.cos(angle) * 40, Math.sin(angle) * 120, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + Math.cos(angle) * 40, Math.sin(angle) * 120, demoRng);
   }
 }
 
 function demoFocusBeam() {
-  const ti = spawnUnit(1, 1, 200, 0, demoRng);
+  const ti = spawnUnit(1, FIGHTER_TYPE, 200, 0, demoRng);
   if (ti !== NO_UNIT) {
     unit(ti).hp = unit(ti).maxHp;
   }
   for (let i = 0; i < 2; i++) {
-    spawnUnit(1, 0, 250, (i === 0 ? -1 : 1) * 100, demoRng);
+    spawnUnit(1, DRONE_TYPE, 250, (i === 0 ? -1 : 1) * 100, demoRng);
   }
 }
 
@@ -126,7 +121,7 @@ function demoFlagship(mi: UnitIndex) {
     unit(mi).cooldown = 0;
   }
   for (let i = 0; i < 6; i++) {
-    spawnUnit(1, 0, 250 + demoRng() * 80, (demoRng() - 0.5) * 200, demoRng);
+    spawnUnit(1, DRONE_TYPE, 250 + demoRng() * 80, (demoRng() - 0.5) * 200, demoRng);
   }
 }
 
@@ -134,7 +129,7 @@ function demoCarpetBomber(mi: UnitIndex) {
   for (let i = 0; i < 8; i++) {
     const a = demoRng() * 6.283;
     const r = 120 + demoRng() * 40;
-    const ei = spawnUnit(1, 0, Math.cos(a) * r, Math.sin(a) * r, demoRng);
+    const ei = spawnUnit(1, DRONE_TYPE, Math.cos(a) * r, Math.sin(a) * r, demoRng);
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }
@@ -143,7 +138,7 @@ function demoCarpetBomber(mi: UnitIndex) {
 
 function demoHomingLauncher(mi: UnitIndex) {
   for (let i = 0; i < 3; i++) {
-    const ei = spawnUnit(1, 1, 250 + (demoRng() - 0.5) * 100, (i - 1) * 60, demoRng);
+    const ei = spawnUnit(1, FIGHTER_TYPE, 250 + (demoRng() - 0.5) * 100, (i - 1) * 60, demoRng);
     if (ei !== NO_UNIT) {
       unit(ei).target = mi;
     }
@@ -153,13 +148,13 @@ function demoHomingLauncher(mi: UnitIndex) {
 function demoBastion() {
   for (let i = 0; i < 3; i++) {
     const a = ((i + 1) / 4) * Math.PI * 2;
-    const ai = spawnUnit(0, 1, Math.cos(a) * 70, Math.sin(a) * 70, demoRng);
+    const ai = spawnUnit(0, FIGHTER_TYPE, Math.cos(a) * 70, Math.sin(a) * 70, demoRng);
     if (ai !== NO_UNIT) {
       unit(ai).hp = 5;
     }
   }
   for (let i = 0; i < 4; i++) {
-    spawnUnit(1, 0, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
@@ -174,7 +169,7 @@ function demoAmplifier() {
   }
   spawnUnit(0, DRONE_TYPE, -40, 0, demoRng);
   for (let i = 0; i < 3; i++) {
-    spawnUnit(1, 0, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + demoRng() * 80, (demoRng() - 0.5) * 150, demoRng);
   }
 }
 
@@ -211,7 +206,7 @@ export function demoDefault(t: UnitType) {
     cnt = 4;
   }
   for (let i = 0; i < cnt; i++) {
-    spawnUnit(1, 0, 200 + demoRng() * 100, (demoRng() - 0.5) * 200, demoRng);
+    spawnUnit(1, DRONE_TYPE, 200 + demoRng() * 100, (demoRng() - 0.5) * 200, demoRng);
   }
 }
 

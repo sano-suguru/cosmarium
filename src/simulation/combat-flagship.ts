@@ -96,8 +96,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
       c[0],
       c[1],
       c[2],
-      false,
-      60,
+      { aoe: 60, sourceUnit: ctx.ui },
     );
     for (let j = 0; j < 5; j++) {
       const a = ba + (ctx.rng() - 0.5) * 0.5;
@@ -174,6 +173,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
       c[0] * 0.8,
       c[1] * 0.8,
       c[2] * 0.8,
+      { sourceUnit: ctx.ui },
     );
 
     for (const ey of FLAGSHIP_ENGINE_OFFSETS) {

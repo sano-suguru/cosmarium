@@ -21,14 +21,19 @@ import {
 } from '../pools.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { resetChains } from '../simulation/effects.ts';
-import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
+import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
+import type { KillContext } from '../simulation/on-kill-effects.ts';
+import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
+import type { Killer } from '../simulation/spawn.ts';
+import { _resetKillUnitHooks, _resetSpawnUnitHooks, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
-import type { Team, UnitIndex } from '../types.ts';
+import type { Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose.ts';
 import { _resetGameControl } from '../ui/game-control.ts';
+import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
 
 export function resetPools() {
   const uHwm = getUnitHWM();
@@ -39,7 +44,7 @@ export function resetPools() {
     const u = unit(i);
     u.alive = false;
     u.team = 0;
-    u.type = 0;
+    u.type = DEFAULT_UNIT_TYPE;
     u.x = 0;
     u.y = 0;
     u.vx = 0;
@@ -129,6 +134,9 @@ export function resetPools() {
   clearBeamPools();
   _resetSweepHits();
   _resetKillUnitHooks();
+  _resetSpawnUnitHooks();
+  _resetDamageHooks();
+  _resetSupportHooks();
   _resetBattleTracker();
   _resetMeleeTracker();
   _resetFleetCompose();
@@ -182,7 +190,7 @@ export function reviveProjectile(i: number) {
 const stateDefaults = {
   gameState: 'menu' as const,
   codexOpen: false,
-  codexSelected: 0,
+  codexSelected: DEFAULT_UNIT_TYPE,
   timeScale: 1,
   reinforcementTimer: 0,
   rng: () => 0,
@@ -229,7 +237,17 @@ export function makeRng() {
   return fn;
 }
 
+/** 数値を UnitTypeIndex にキャストするテスト用ヘルパー */
+export function asType(n: number): UnitTypeIndex {
+  return n as UnitTypeIndex;
+}
+
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
-export function spawnAt(team: Team, type: number, x: number, y: number): UnitIndex {
+export function spawnAt(team: Team, type: UnitTypeIndex, x: number, y: number): UnitIndex {
   return spawnUnit(team, type, x, y, () => 0);
+}
+
+/** テスト用 killUnit ラッパー。大半のテストでは killContext を気にしないためデフォルトを提供 */
+export function kill(i: UnitIndex, killer?: Killer, killContext: KillContext = KILL_CONTEXT.ProjectileDirect) {
+  return killUnit(i, killer, killContext);
 }

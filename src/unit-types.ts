@@ -1,67 +1,5 @@
-import type { UnitType } from './types.ts';
-
-/** 射撃を行わないユニット用のダミー fireRate（cooldown が実質満了しない大きな値） */
-const NO_FIRE = 999;
-
-/** resolve() が自動補完する UnitType のデフォルト値プロパティ群 */
-type DefaultKeys =
-  | 'aoe'
-  | 'carpet'
-  | 'beam'
-  | 'heals'
-  | 'reflects'
-  | 'spawns'
-  | 'homing'
-  | 'rams'
-  | 'emp'
-  | 'teleports'
-  | 'chain'
-  | 'sweep'
-  | 'swarm'
-  | 'broadside'
-  | 'shots'
-  | 'salvo'
-  | 'massWeight'
-  | 'shields'
-  | 'amplifies'
-  | 'scrambles'
-  | 'catalyzes'
-  | 'supportFollow'
-  | 'maxEnergy'
-  | 'energyRegen'
-  | 'shieldCooldown';
-
-const DEFAULTS: Pick<UnitType, DefaultKeys> = {
-  aoe: 0,
-  carpet: false,
-  beam: false,
-  heals: false,
-  reflects: false,
-  spawns: false,
-  homing: false,
-  rams: false,
-  emp: false,
-  teleports: false,
-  chain: false,
-  sweep: false,
-  swarm: false,
-  broadside: false,
-  shots: 1,
-  salvo: 0,
-  massWeight: 0,
-  shields: false,
-  amplifies: false,
-  scrambles: false,
-  catalyzes: false,
-  supportFollow: 0,
-  maxEnergy: 0,
-  energyRegen: 0,
-  shieldCooldown: 0,
-};
-
-function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, DefaultKeys>>): UnitType {
-  return { ...DEFAULTS, ...partial };
-}
+import type { UnitType, UnitTypeIndex } from './types.ts';
+import { NO_FIRE, resolve } from './unit-type-resolve.ts';
 
 export const TYPES: UnitType[] = [
   resolve({
@@ -559,9 +497,10 @@ export const TYPES: UnitType[] = [
   }),
 ];
 
+export const UNIT_TYPE_COUNT = TYPES.length;
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));
 
-export function unitType(id: number): UnitType {
+export function unitType(id: UnitTypeIndex): UnitType {
   const t = TYPES[id];
   if (t === undefined) {
     throw new RangeError(`Invalid unit type id: ${id}`);
@@ -569,7 +508,7 @@ export function unitType(id: number): UnitType {
   return t;
 }
 
-export function invSqrtMass(id: number): number {
+export function invSqrtMass(id: UnitTypeIndex): number {
   const v = _invSqrtMass[id];
   if (v === undefined) {
     throw new RangeError(`Invalid unit type id: ${id}`);
@@ -577,13 +516,61 @@ export function invSqrtMass(id: number): number {
   return v;
 }
 
-export function unitTypeIndex(name: string): number {
+export function unitTypeIndex(name: string): UnitTypeIndex {
   const idx = TYPES.findIndex((t) => t.name === name);
   if (idx === -1) {
     throw new RangeError(`Unknown unit type name: ${name}`);
   }
-  return idx;
+  return idx as UnitTypeIndex;
 }
 
+const T = unitTypeIndex;
+export const DRONE_TYPE = T('Drone');
+export const FIGHTER_TYPE = T('Fighter');
+export const BOMBER_TYPE = T('Bomber');
+export const CRUISER_TYPE = T('Cruiser');
+export const FLAGSHIP_TYPE = T('Flagship');
+export const HEALER_TYPE = T('Healer');
+export const REFLECTOR_TYPE = T('Reflector');
+export const CARRIER_TYPE = T('Carrier');
+export const SNIPER_TYPE = T('Sniper');
+export const LANCER_TYPE = T('Lancer');
+export const LAUNCHER_TYPE = T('Launcher');
+export const DISRUPTOR_TYPE = T('Disruptor');
+export const SCORCHER_TYPE = T('Scorcher');
+export const TELEPORTER_TYPE = T('Teleporter');
+export const ARCER_TYPE = T('Arcer');
+export const BASTION_TYPE = T('Bastion');
+export const AMPLIFIER_TYPE = T('Amplifier');
+export const SCRAMBLER_TYPE = T('Scrambler');
+export const CATALYST_TYPE = T('Catalyst');
+export const MOTHERSHIP_TYPE = T('Mothership');
+/** プール初期値・リセット値に使用（DRONE_TYPE と同値だが、意味的に区別するための定数） */
+export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
+/** 全ユニットタイプインデックスの配列 */
+export const TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex);
+/** 名前からユニットタイプインデックスを検索（大文字小文字を無視） */
+/** ユニットタイプ名を取得。範囲外は RangeError */
+export function unitTypeName(idx: UnitTypeIndex): string {
+  const t = TYPES[idx];
+  if (t === undefined) {
+    throw new RangeError(`Invalid unit type index: ${idx}`);
+  }
+  return t.name;
+}
+
+/** ユニットタイプのコストを取得。範囲外は RangeError */
+export function unitTypeCost(idx: UnitTypeIndex): number {
+  const t = TYPES[idx];
+  if (t === undefined) {
+    throw new RangeError(`Invalid unit type index: ${idx}`);
+  }
+  return t.cost;
+}
+
+export function findTypeIndex(name: string): UnitTypeIndex | undefined {
+  const idx = TYPES.findIndex((t) => t.name.toLowerCase() === name.toLowerCase());
+  return idx === -1 ? undefined : (idx as UnitTypeIndex);
+}
 /** Flagship エンジンY軸オフセット比率 — 左右対称 × 2段 = 計4基 */
 export const FLAGSHIP_ENGINE_OFFSETS = [0.18, 0.38] as const;

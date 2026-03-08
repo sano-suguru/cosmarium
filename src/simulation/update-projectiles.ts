@@ -2,13 +2,14 @@ import { effectColor } from '../colors.ts';
 import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { addShake } from '../input/camera.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, Projectile, ProjectileIndex, Unit, UnitIndex } from '../types.ts';
-import { NO_UNIT } from '../types.ts';
+import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
+import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
 import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { emitDamage } from './hooks.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
 
@@ -36,6 +37,18 @@ function steerHomingProjectile(p: Projectile, dt: number) {
   }
 }
 
+function emitProjectileDamage(
+  p: Projectile,
+  victimType: UnitTypeIndex,
+  victimTeam: Team,
+  amount: number,
+  kind: 'direct' | 'aoe',
+): void {
+  if (p.sourceType !== NO_SOURCE_TYPE) {
+    emitDamage(p.sourceType, p.team, victimType, victimTeam, amount, kind);
+  }
+}
+
 function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
@@ -51,11 +64,14 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       ddy = o.y - p.y;
     if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
       const dd = Math.sqrt(ddx * ddx + ddy * ddy);
-      o.hp -= p.damage * (1 - dd / (p.aoe * 1.2));
+      const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
+      o.hp -= aoeDmg;
       o.hitFlash = 1;
+      const aoeKind = 'aoe';
+      emitProjectileDamage(p, o.type, o.team, aoeDmg, aoeKind);
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
-        destroyUnit(oi, p.sourceUnit, rng, KILL_CONTEXT.ProjectileAoe);
+        destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind]);
       }
     }
   }
@@ -80,15 +96,15 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
 }
 
 function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
-  destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
+  destroyUnit(oi, sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT.direct);
 }
-function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
+function tryReflectField(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number): boolean {
   if (o.reflectFieldHp <= 0) {
     return false;
   }
   o.reflectFieldHp = Math.max(0, o.reflectFieldHp - p.damage);
   const c: Color3 = effectColor(o.type, o.team);
-  reflectProjectile(rng, o.x, o.y, p, o.team, c);
+  reflectProjectile(rng, o.x, o.y, p, { team: o.team, color: c, reflectorType: o.type, reflectorIndex: oi });
   return true;
 }
 
@@ -114,7 +130,7 @@ function hitSparkFx(p: Projectile, rng: () => number) {
 }
 
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
-  if (tryReflectField(p, o, rng)) {
+  if (tryReflectField(p, oi, o, rng)) {
     return;
   }
   let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
@@ -122,6 +138,7 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   o.hp -= dmg;
   o.hitFlash = 1;
   knockback(oi, p.x, p.y, p.damage * 12);
+  emitProjectileDamage(p, o.type, o.team, dmg, 'direct');
   hitSparkFx(p, rng);
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);

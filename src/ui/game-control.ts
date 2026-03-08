@@ -1,6 +1,7 @@
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
+import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
 import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
 import type { BattleResult, FleetComposition } from '../types.ts';
@@ -168,7 +169,8 @@ function startMelee() {
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1)); // 2〜MAX_TEAMS
   const perTeamBudget = Math.round(MELEE_TOTAL_BUDGET / numTeams);
-  initMelee(numTeams, perTeamBudget, rng);
+  const fleets = Array.from({ length: numTeams }, () => generateEnemyFleet(perTeamBudget, rng).fleet);
+  initMelee(fleets, rng);
   onMeleeStart(numTeams);
 }
 
