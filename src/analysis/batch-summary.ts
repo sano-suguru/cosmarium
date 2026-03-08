@@ -219,7 +219,7 @@ function computeUnitSummary(trials: readonly TrialResult[], killMatrix: KillMatr
   }
 
   result.sort((a, b) => {
-    // Infinity - Infinity === NaN を回避する比較
+    // Infinity 同士の減算で NaN になることを回避
     if (a.kd === b.kd) {
       return 0;
     }

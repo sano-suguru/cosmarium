@@ -158,3 +158,49 @@ describe('再入安全性', () => {
     expect(innerValues).toEqual([{ kind: 'chain', amount: 99 }]);
   });
 });
+
+// ─── 複合フック統合 ─────────────────────────────────────────────
+
+describe('複合フック統合', () => {
+  it('onDamageUnit + onSupportEffect を同時登録し独立に配信される', () => {
+    const damageEvents: number[] = [];
+    const supportEvents: string[] = [];
+
+    onDamageUnit((e) => {
+      damageEvents.push(e.amount);
+    });
+    onSupportEffect((e) => {
+      supportEvents.push(e.kind);
+    });
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'heal', 20);
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 30, 'beam');
+
+    expect(damageEvents).toEqual([10, 30]);
+    expect(supportEvents).toEqual(['heal']);
+  });
+
+  it('片方の unsubscribe が他方に影響しない', () => {
+    const damageEvents: number[] = [];
+    const supportEvents: string[] = [];
+
+    const unsubDamage = onDamageUnit((e) => {
+      damageEvents.push(e.amount);
+    });
+    onSupportEffect((e) => {
+      supportEvents.push(e.kind);
+    });
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'amp', 5);
+
+    unsubDamage();
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 20, 'direct');
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'heal', 15);
+
+    expect(damageEvents).toEqual([10]);
+    expect(supportEvents).toEqual(['amp', 'heal']);
+  });
+});

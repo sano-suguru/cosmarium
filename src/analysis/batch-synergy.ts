@@ -147,12 +147,17 @@ function winRate(stats: PairStats | undefined): number {
   return stats && stats.total > 0 ? stats.wins / stats.total : 0;
 }
 
-const MIN_CO_COUNT = 5;
+/** シナジー評価に必要な最小共起回数。サンプル数が少なすぎる組み合わせを除外する */
+export const MIN_CO_COUNT = 5;
 
-function buildSynergyPairs(coStats: Map<number, PairStats>, soloStats: Map<number, PairStats>): SynergyPair[] {
+function buildSynergyPairs(
+  coStats: Map<number, PairStats>,
+  soloStats: Map<number, PairStats>,
+  minCoCount: number = MIN_CO_COUNT,
+): SynergyPair[] {
   const results: SynergyPair[] = [];
   for (const [key, co] of coStats) {
-    if (co.total < MIN_CO_COUNT) {
+    if (co.total < minCoCount) {
       continue;
     }
     const a = (key >> PAIR_BITS) & PAIR_MASK;
@@ -176,7 +181,7 @@ function buildSynergyPairs(coStats: Map<number, PairStats>, soloStats: Map<numbe
   return results;
 }
 
-export function computeSynergyPairs(trials: readonly TrialResult[]): SynergyPair[] {
+export function computeSynergyPairs(trials: readonly TrialResult[], minCoCount?: number): SynergyPair[] {
   const { coStats, soloStats } = collectSynergyStats(trials);
-  return buildSynergyPairs(coStats, soloStats);
+  return buildSynergyPairs(coStats, soloStats, minCoCount);
 }

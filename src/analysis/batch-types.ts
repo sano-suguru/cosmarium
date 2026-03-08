@@ -159,6 +159,7 @@ export interface SupportTracker {
 
 export interface KillSequenceTracker {
   readonly sequence: number[];
+  readonly maxLength: number;
 }
 
 // ─── Lifespan Tracking ──────────────────────────────────────────

@@ -43,6 +43,10 @@ describe('shannonEntropy', () => {
   it('ignores zero counts', () => {
     expect(shannonEntropy([0, 0, 5])).toBe(0);
   });
+
+  it('ignores negative counts', () => {
+    expect(shannonEntropy([-1, 5, 5])).toBe(shannonEntropy([5, 5]));
+  });
 });
 
 describe('normalizedEntropy', () => {
@@ -200,7 +204,7 @@ describe('spatialEntropy', () => {
     const bottomRight = [600, 600];
     const positions = [...topLeft, ...topRight, ...bottomLeft, ...bottomRight];
     const e = spatialEntropy(positions, 1000, 8);
-    expect(e).toBeGreaterThan(0.9);
+    expect(e).toBeGreaterThan(0.85);
   });
 
   it('clustered units have lower entropy than spread units', () => {

@@ -10,7 +10,9 @@ import { TYPES } from '../unit-types.ts';
 export function shannonEntropy(counts: readonly number[]): number {
   let total = 0;
   for (const c of counts) {
-    total += c;
+    if (c > 0) {
+      total += c;
+    }
   }
   if (total <= 0) {
     return 0;
@@ -285,7 +287,17 @@ export function battleComplexity(snapshots: readonly BattleStateSnapshot[]): num
   const countPredictability = unitCountComplexity(snapshots);
   const killBalance = killDiffCompression(snapshots);
 
-  return spatialDynamics * 0.3 + countPredictability * 0.4 + killBalance * 0.3;
+  /**
+   * 戦闘複雑性スコアの成分重み。
+   * - 空間動態 30%: 陣形変化は戦闘の一側面だが、停滞したまま激戦になるケースもある
+   * - ユニット数 40%: 戦況の推移を最も直接的に反映。最大重み
+   * - キル差変動 30%: 拮抗度を示すが、一方的でも複雑な戦闘はあり得る
+   */
+  const W_SPATIAL = 0.3;
+  const W_UNIT_COUNT = 0.4;
+  const W_KILL_BALANCE = 0.3;
+
+  return spatialDynamics * W_SPATIAL + countPredictability * W_UNIT_COUNT + killBalance * W_KILL_BALANCE;
 }
 
 function spatialEntropyVolatility(snapshots: readonly BattleStateSnapshot[]): number {

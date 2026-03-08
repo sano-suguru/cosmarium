@@ -114,12 +114,18 @@ export function installSupportHook(tracker: SupportTracker): () => void {
 
 // ─── Kill Sequence Tracking ──────────────────────────────────────
 
-export function createKillSequenceTracker(): KillSequenceTracker {
-  return { sequence: [] };
+/** エントロピー計算に十分な精度を持つキルシーケンスの上限長 */
+const MAX_KILL_SEQUENCE_LENGTH = 10800;
+
+export function createKillSequenceTracker(maxLength: number = MAX_KILL_SEQUENCE_LENGTH): KillSequenceTracker {
+  return { sequence: [], maxLength };
 }
 
 export function installKillSequenceHook(tracker: KillSequenceTracker): () => void {
   return onKillUnit((e) => {
+    if (tracker.sequence.length >= tracker.maxLength) {
+      return;
+    }
     tracker.sequence.push(e.victimType);
   });
 }
