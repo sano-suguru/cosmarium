@@ -21,7 +21,7 @@ import {
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
 import { DEFAULT_UNIT_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-types.ts';
-import { stackAt, subscribe } from './hook-utils.ts';
+import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 import type { KillContext } from './on-kill-effects.ts';
 
 export interface Killer {
@@ -89,9 +89,8 @@ type SpawnUnitHook = (e: Readonly<SpawnEvent>) => void;
 const spawnUnitHooks: SpawnUnitHook[] = [];
 
 // GC回避: SpawnEvent 深度インデックスド・スタック（再入安全・Carrier等のフック内spawnUnit対応）
-const _SE_MAX_DEPTH = 4;
 const _seStack = Array.from(
-  { length: _SE_MAX_DEPTH },
+  { length: EVENT_STACK_MAX_DEPTH },
   (): SpawnEvent => ({ unitIndex: 0 as UnitIndex, team: TEAM0, type: DEFAULT_UNIT_TYPE }),
 );
 let _seDepth = 0;
@@ -178,9 +177,8 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
 }
 
 // GC回避: KillEvent 深度インデックスド・スタック（再入安全・hookは参照保存しない前提）
-const _KE_MAX_DEPTH = 4;
 const _keWK = Array.from(
-  { length: _KE_MAX_DEPTH },
+  { length: EVENT_STACK_MAX_DEPTH },
   (): KillEvent & { killerTeam: Team; killerType: UnitTypeIndex } => ({
     victim: 0 as UnitIndex,
     victimTeam: TEAM0,
@@ -193,7 +191,7 @@ const _keWK = Array.from(
     killerType: DEFAULT_UNIT_TYPE,
   }),
 );
-const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
+const _keNK = Array.from({ length: EVENT_STACK_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
   victim: 0 as UnitIndex,
   victimTeam: TEAM0,
   victimType: DEFAULT_UNIT_TYPE,

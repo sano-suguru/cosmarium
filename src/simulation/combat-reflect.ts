@@ -1,6 +1,6 @@
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, Projectile, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
+import type { Color3, ReflectableProjectile, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt } from './combat-aim.ts';
 import { consumeReflectorShieldHp } from './combat-beam-defense.ts';
@@ -39,23 +39,7 @@ export function reflectProjectile(
   rng: () => number,
   ux: number,
   uy: number,
-  p: Pick<
-    Projectile,
-    | 'x'
-    | 'y'
-    | 'vx'
-    | 'vy'
-    | 'life'
-    | 'team'
-    | 'r'
-    | 'g'
-    | 'b'
-    | 'sourceType'
-    | 'sourceUnit'
-    | 'homing'
-    | 'aoe'
-    | 'target'
-  >,
+  p: ReflectableProjectile,
   opts: ReflectOpts,
 ) {
   let dx = p.x - ux;

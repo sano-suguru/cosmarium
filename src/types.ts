@@ -97,6 +97,25 @@ export interface Projectile {
   sourceType: UnitTypeIndex;
 }
 
+/** reflectProjectile() で読み書きされる Projectile フィールドの部分型 */
+export type ReflectableProjectile = Pick<
+  Projectile,
+  | 'x'
+  | 'y'
+  | 'vx'
+  | 'vy'
+  | 'life'
+  | 'team'
+  | 'r'
+  | 'g'
+  | 'b'
+  | 'sourceType'
+  | 'sourceUnit'
+  | 'homing'
+  | 'aoe'
+  | 'target'
+>;
+
 export interface UnitType {
   name: string;
   cost: number;

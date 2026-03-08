@@ -5,9 +5,9 @@
 type Unsubscribe = () => void;
 
 /**
- * 深度インデックスド・スタックから要素を取得（再入安全）。深度超過時は throw。
+ * イベントフック共通の再入深度上限。
  *
- * 最大深度 4 の根拠:
+ * 根拠:
  * - 深度1: 通常の emit（戦闘ダメージ、サポート効果等）
  * - 深度2: on-kill-effects 内での再帰 emit（例: Reflector反射→ダメージ→キル→追加emit）
  * - 深度3: チェーン系能力の追加段（chain damage 等）
@@ -16,6 +16,9 @@ type Unsubscribe = () => void;
  * ⚠️ 新しい on-kill エフェクトや再帰的ダメージパスを追加する場合は
  *    hooks.test.ts の「再帰深度の回帰テスト」が壊れないことを確認すること。
  */
+export const EVENT_STACK_MAX_DEPTH = 4;
+
+/** 深度インデックスド・スタックから要素を取得（再入安全）。深度超過時は throw。 */
 export function stackAt<T>(stack: T[], depth: number): T {
   const e = stack[depth];
   if (!e) {
