@@ -146,6 +146,13 @@ function setupFleets(
   rng: () => number,
 ): { fleetDiversities: number[]; fleetCompositions: FleetComposition[]; activeTeams: number } {
   const activeTeams = config.mode === 'battle' ? 2 : config.teams;
+
+  if (config.fleets && config.fleets.length !== activeTeams) {
+    throw new Error(
+      `fleets.length (${config.fleets.length}) must equal the number of active teams (${activeTeams}) in ${config.mode} mode`,
+    );
+  }
+
   const fleetDiversities: number[] = [];
   const fleetCompositions: FleetComposition[] = [];
 

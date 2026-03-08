@@ -298,4 +298,25 @@ describe('runBatch', () => {
       expect(sp.nameB).toBeTruthy();
     }
   });
+
+  describe('fleet count validation', () => {
+    it('battle モードで fleets.length !== 2 のときエラー', () => {
+      const fleet: FleetComposition = [{ type: asType(0), count: 3 }];
+      expect(() =>
+        runBatch(makeTestConfig({ mode: 'battle', fleets: [fleet] })),
+      ).toThrow('fleets.length (1) must equal the number of active teams (2)');
+    });
+
+    it('melee モードで fleets.length !== teams のときエラー', () => {
+      const fleet: FleetComposition = [{ type: asType(0), count: 3 }];
+      expect(() =>
+        runBatch(makeTestConfig({ mode: 'melee', teams: 3, fleets: [fleet, fleet] })),
+      ).toThrow('fleets.length (2) must equal the number of active teams (3)');
+    });
+
+    it('fleets 未指定時は自動生成で正常動作', () => {
+      const summary = runBatch(makeTestConfig({ mode: 'melee', teams: 3 }));
+      expect(summary.trials.length).toBe(2);
+    });
+  });
 });

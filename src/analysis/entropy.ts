@@ -238,6 +238,12 @@ export function rleCompressionRatio(data: readonly number[], binSize: number = 1
  * @param gridDiv グリッドの分割数（デフォルト 8 → 64セル）
  */
 export function spatialEntropy(positions: readonly number[], worldSize: number, gridDiv: number = 8): number {
+  if (worldSize <= 0) {
+    throw new RangeError(`spatialEntropy: worldSize must be positive, got ${worldSize}`);
+  }
+  if (gridDiv <= 0 || !Number.isInteger(gridDiv)) {
+    throw new RangeError(`spatialEntropy: gridDiv must be a positive integer, got ${gridDiv}`);
+  }
   const totalCells = gridDiv * gridDiv;
   const cellSize = worldSize / gridDiv;
   const cellCounts = new Array<number>(totalCells).fill(0);

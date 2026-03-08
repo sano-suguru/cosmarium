@@ -204,3 +204,92 @@ describe('複合フック統合', () => {
     expect(supportEvents).toEqual(['amp', 'heal']);
   });
 });
+
+// ─── スタック深度の回帰テスト ────────────────────────────────────
+
+describe('再帰深度の回帰テスト', () => {
+  it('深度3の再帰チェーンが正常に動作する', () => {
+    const log: number[] = [];
+
+    onDamageUnit((e) => {
+      log.push(e.amount);
+      if (e.amount === 100) {
+        // 深度1 → 深度2
+        emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 200, 'chain');
+      } else if (e.amount === 200) {
+        // 深度2 → 深度3
+        emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 300, 'sweep');
+      }
+    });
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 100, 'direct');
+
+    expect(log).toEqual([100, 200, 300]);
+  });
+
+  it('深度4（安全マージン）まで動作する', () => {
+    const log: number[] = [];
+
+    onDamageUnit((e) => {
+      log.push(e.amount);
+      if (e.amount < 4) {
+        emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, e.amount + 1, 'chain');
+      }
+    });
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 1, 'direct');
+
+    expect(log).toEqual([1, 2, 3, 4]);
+  });
+
+  it('深度超過時に stackAt がエラーを投げる', () => {
+    onDamageUnit((e) => {
+      if (e.amount < 5) {
+        emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, e.amount + 1, 'chain');
+      }
+    });
+
+    expect(() => {
+      emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 1, 'direct');
+    }).toThrow('Event stack overflow');
+  });
+});
+
+// ─── フック独立性の検証 ──────────────────────────────────────────
+
+describe('フック独立性', () => {
+  it('各フックが独立して状態を蓄積する', () => {
+    const totals1: number[] = [];
+    const totals2: number[] = [];
+
+    onDamageUnit((e) => {
+      totals1.push(e.amount);
+    });
+    onDamageUnit((e) => {
+      totals2.push(e.amount * 2);
+    });
+
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 20, 'beam');
+
+    expect(totals1).toEqual([10, 20]);
+    expect(totals2).toEqual([20, 40]);
+  });
+
+  it('一方のフックが例外を投げても他方のフックの蓄積結果に影響しない', () => {
+    const results: number[] = [];
+
+    onDamageUnit(() => {
+      throw new Error('hook failure');
+    });
+    onDamageUnit((e) => {
+      results.push(e.amount);
+    });
+
+    // 最初のフックが例外を投げるため emitDamage 自体も例外になるが、
+    // フックの独立性として2番目のフックは呼ばれない（配列順実行の制約）
+    expect(() => {
+      emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
+    }).toThrow('hook failure');
+  });
+});

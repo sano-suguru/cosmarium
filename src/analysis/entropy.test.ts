@@ -212,6 +212,17 @@ describe('spatialEntropy', () => {
     const spread = spatialEntropy([100, 100, 400, 400, 700, 100, 100, 700], 1000, 8);
     expect(clustered).toBeLessThan(spread);
   });
+
+  it('throws RangeError for worldSize <= 0', () => {
+    expect(() => spatialEntropy([100, 100], 0)).toThrow(RangeError);
+    expect(() => spatialEntropy([100, 100], -1)).toThrow(RangeError);
+  });
+
+  it('throws RangeError for gridDiv <= 0 or non-integer', () => {
+    expect(() => spatialEntropy([100, 100], 1000, 0)).toThrow(RangeError);
+    expect(() => spatialEntropy([100, 100], 1000, -4)).toThrow(RangeError);
+    expect(() => spatialEntropy([100, 100], 1000, 2.5)).toThrow(RangeError);
+  });
 });
 
 // ─── Battle Complexity ─────────────────────────────────────────────
