@@ -94,12 +94,25 @@ export function ngramFrequencies(sequence: readonly number[], n: number): Map<st
   if (n <= 0 || sequence.length < n) {
     return new Map();
   }
+  if (n === 1) {
+    return unigramFrequencies(sequence);
+  }
   if (n === 2) {
     return bigramFrequencies(sequence);
   }
   const freq = new Map<string, number>();
   for (let i = 0; i <= sequence.length - n; i++) {
     const key = sequence.slice(i, i + n).join(',');
+    freq.set(key, (freq.get(key) ?? 0) + 1);
+  }
+  return freq;
+}
+
+/** Unigram (n=1) 専用の高速頻度集計 — slice + join を排除し直接文字列変換 */
+function unigramFrequencies(sequence: readonly number[]): Map<string, number> {
+  const freq = new Map<string, number>();
+  for (let i = 0; i < sequence.length; i++) {
+    const key = String(sequence[i]);
     freq.set(key, (freq.get(key) ?? 0) + 1);
   }
   return freq;
@@ -180,26 +193,26 @@ function findInHistory(sequence: readonly number[], start: number, len: number):
 }
 
 /**
- * バイト配列の圧縮率を run-length encoding で近似。
+ * 配列の圧縮率を run-length encoding で近似。
  * 空間分布のスナップショット等、連続データ向け。
  *
  * 戻り値: 圧縮後サイズ / 元サイズ（0～1。低い → 繰り返しが多い）
  *
- * @param quantizeScale 量子化スケール。値を `quantizeScale` 倍してから丸める。
- *   大きい値ほど近い値が同一ランとみなされにくい（精度が上がる）。
+ * @param binSize 量子化ビンサイズ。値を `binSize` で割ってから丸める。
+ *   binSize が大きいほど粗い量子化（近い値が同一ランにまとめられやすい）。
  *   - `1`（デフォルト）: 整数丸め。整数列やインデックス列向け。
- *   - `0.1`: 小数点第1位まで保持。座標差分など浮動小数点データ向け。
- *   - `100`: 小数点第2位まで保持（百分率等）。
+ *   - `10`: 10単位で丸め。キル差分など粗い比較向け。
+ *   - `100`: 100単位で丸め。座標値など広範囲データ向け。
  */
-export function rleCompressionRatio(data: readonly number[], quantizeScale: number = 1): number {
+export function rleCompressionRatio(data: readonly number[], binSize: number = 1): number {
   if (data.length === 0) {
     return 0;
   }
 
   let runs = 1;
-  let prev = Math.round((data[0] ?? 0) * quantizeScale);
+  let prev = Math.round((data[0] ?? 0) / binSize);
   for (let i = 1; i < data.length; i++) {
-    const cur = Math.round((data[i] ?? 0) * quantizeScale);
+    const cur = Math.round((data[i] ?? 0) / binSize);
     if (cur !== prev) {
       runs++;
     }
@@ -299,11 +312,12 @@ function killDiffCompression(snapshots: readonly BattleStateSnapshot[]): number 
     }
     return (kills[0] ?? 0) - (kills[1] ?? 0);
   });
-  return rleCompressionRatio(killDiffs, 0.1);
+  return rleCompressionRatio(killDiffs, 10);
 }
 
 // ─── Utility ───────────────────────────────────────────────────────
 
+/** 母集団標準偏差（n で割る）。全スナップショットを母集団として扱う */
 function standardDeviation(values: readonly number[]): number {
   if (values.length <= 1) {
     return 0;

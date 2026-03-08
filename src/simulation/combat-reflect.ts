@@ -32,14 +32,30 @@ interface ReflectOpts {
  * @param rng 決定論的乱数（散乱角・パーティクルに使用）
  * @param ux Reflector の X 座標（反射法線の原点）
  * @param uy Reflector の Y 座標
- * @param p 反射対象（vx/vy/life/team/色/sourceType/sourceUnit を上書き）
+ * @param p 反射対象（vx/vy/life/team/色/sourceType/sourceUnit を上書きし、homing/aoe/target をリセット）
  * @param opts 反射先チーム・色・リフレクター情報
  */
 export function reflectProjectile(
   rng: () => number,
   ux: number,
   uy: number,
-  p: Pick<Projectile, 'x' | 'y' | 'vx' | 'vy' | 'life' | 'team' | 'r' | 'g' | 'b' | 'sourceType' | 'sourceUnit'>,
+  p: Pick<
+    Projectile,
+    | 'x'
+    | 'y'
+    | 'vx'
+    | 'vy'
+    | 'life'
+    | 'team'
+    | 'r'
+    | 'g'
+    | 'b'
+    | 'sourceType'
+    | 'sourceUnit'
+    | 'homing'
+    | 'aoe'
+    | 'target'
+  >,
   opts: ReflectOpts,
 ) {
   let dx = p.x - ux;
@@ -70,6 +86,10 @@ export function reflectProjectile(
   p.b = c[2];
   p.sourceType = reflectorType;
   p.sourceUnit = reflectorIndex;
+  // 反射時にホーミング・AOE・ターゲットをリセット（元の味方に追尾/範囲ダメージを与えないため）
+  p.homing = false;
+  p.aoe = 0;
+  p.target = NO_UNIT;
   addBeam(ux, uy, p.x, p.y, c[0], c[1], c[2], 0.15, 1.5);
   for (let j = 0; j < 4; j++) {
     spawnParticle(p.x, p.y, (rng() - 0.5) * 80, (rng() - 0.5) * 80, 0.15, 3 + rng() * 2, c[0], c[1], c[2], SH_CIRCLE);

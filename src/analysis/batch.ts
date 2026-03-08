@@ -67,7 +67,7 @@ import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, sp
 const _posBuf: number[] = [];
 
 /** 座標を再利用バッファ `_posBuf` に収集。返り値は `_posBuf` 自体の参照であり、次の呼び出しで上書きされる */
-function collectPositions(activeTeams: number): number[] {
+function collectPositions(activeTeams: number): readonly number[] {
   _posBuf.length = 0;
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
@@ -90,7 +90,7 @@ function collectTeamCounts(activeTeams: number): Int32Array {
 function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracker: KillTracker): TrialSnapshot {
   const positions = collectPositions(activeTeams);
   const spatial = spatialEntropy(positions, WORLD_SIZE, 8);
-  const positionRle = rleCompressionRatio(positions, 0.01);
+  const positionRle = rleCompressionRatio(positions, 100);
   return {
     step,
     elapsed,

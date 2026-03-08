@@ -79,7 +79,7 @@ function formatBalanceCandidates(unitSummary: readonly UnitTypeSummary[]): strin
     lines.push('');
     lines.push('  --- バランス候補 ---');
     for (const c of candidates) {
-      const tag = c.tag === 'OP' ? '🔴 OP候補' : '🔵 UP候補';
+      const tag = c.tag === 'OP' ? '[OP] OP候補' : '[UP] UP候補';
       const delta = `${c.winDelta >= 0 ? '+' : ''}${(c.winDelta * 100).toFixed(1)}%`;
       lines.push(
         `  ${tag}: ${c.name} (貢献度=${delta}, K/D=${c.kd.toFixed(2)}, 勝率=${(c.winRate * 100).toFixed(1)}%)`,
