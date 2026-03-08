@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fillParticlePool,
   fillProjectilePool,
@@ -11,7 +11,7 @@ import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT, TEAM0, TEAM1 } from '../types.ts';
 import { BOMBER_TYPE, CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, unitType, unitTypeIndex } from '../unit-types.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import {
@@ -21,6 +21,7 @@ import {
   killProjectile,
   killUnit,
   onKillUnit,
+  onSpawnUnit,
   spawnParticle,
   spawnProjectile,
   spawnUnit,
@@ -331,5 +332,59 @@ describe('addBeam', () => {
     addBeam(0, 0, 10, 10, 1, 1, 1, 1, 1);
     addBeam(20, 20, 30, 30, 0, 1, 0, 0.5, 3);
     expect(beams).toHaveLength(2);
+  });
+});
+
+describe('onSpawnUnit', () => {
+  it('spawnUnit 呼び出し時にフックが発火する', () => {
+    const hook = vi.fn();
+    onSpawnUnit(hook);
+    const idx = spawnUnit(TEAM0, FIGHTER_TYPE, 10, 20, testRng);
+    expect(hook).toHaveBeenCalledOnce();
+    const call = hook.mock.calls[0];
+    if (!call) {
+      throw new Error('hook not called');
+    }
+    const event = call[0];
+    expect(event.unitIndex).toBe(idx);
+    expect(event.team).toBe(TEAM0);
+    expect(event.type).toBe(FIGHTER_TYPE);
+  });
+
+  it('unsubscribe 後はフックが発火しない', () => {
+    const hook = vi.fn();
+    const unsub = onSpawnUnit(hook);
+    unsub();
+    spawnUnit(TEAM0, DRONE_TYPE, 0, 0, testRng);
+    expect(hook).not.toHaveBeenCalled();
+  });
+
+  it('複数フックが全て発火する', () => {
+    const hook1 = vi.fn();
+    const hook2 = vi.fn();
+    onSpawnUnit(hook1);
+    onSpawnUnit(hook2);
+    spawnUnit(TEAM1, BOMBER_TYPE, 50, 60, testRng);
+    expect(hook1).toHaveBeenCalledOnce();
+    expect(hook2).toHaveBeenCalledOnce();
+  });
+
+  it('各 spawn ごとに正しいデータがフックに渡される', () => {
+    // SpawnEvent はプール再利用されるため、呼び出し時にコピーして保存
+    const events: { unitIndex: number; team: number; type: number }[] = [];
+    onSpawnUnit((e) => {
+      events.push({ unitIndex: e.unitIndex, team: e.team, type: e.type });
+    });
+    const idx0 = spawnUnit(TEAM0, FIGHTER_TYPE, 10, 20, testRng);
+    const idx1 = spawnUnit(TEAM1, CRUISER_TYPE, 30, 40, testRng);
+    expect(events).toHaveLength(2);
+    // 1回目の spawn イベント
+    expect(events[0]?.unitIndex).toBe(idx0);
+    expect(events[0]?.team).toBe(TEAM0);
+    expect(events[0]?.type).toBe(FIGHTER_TYPE);
+    // 2回目の spawn イベント
+    expect(events[1]?.unitIndex).toBe(idx1);
+    expect(events[1]?.team).toBe(TEAM1);
+    expect(events[1]?.type).toBe(CRUISER_TYPE);
   });
 });

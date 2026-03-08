@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { asType } from './__test__/pool-helper.ts';
+import type { UnitTypeIndex } from './types.ts';
 import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
@@ -136,16 +137,16 @@ describe('invSqrtMass', () => {
   it('全タイプで 1/sqrt(mass) と一致する', () => {
     for (let i = 0; i < TYPES.length; i++) {
       const t = unitType(asType(i));
-      expect(invSqrtMass(i)).toBeCloseTo(1 / Math.sqrt(t.mass), 10);
+      expect(invSqrtMass(asType(i))).toBeCloseTo(1 / Math.sqrt(t.mass), 10);
     }
   });
 
   it('負のインデックスでRangeError', () => {
-    expect(() => invSqrtMass(-1)).toThrow(RangeError);
+    expect(() => invSqrtMass(-1 as UnitTypeIndex)).toThrow(RangeError);
   });
 
   it('TYPES.length以上のインデックスでRangeError', () => {
-    expect(() => invSqrtMass(TYPES.length)).toThrow(RangeError);
+    expect(() => invSqrtMass(TYPES.length as UnitTypeIndex)).toThrow(RangeError);
   });
 });
 

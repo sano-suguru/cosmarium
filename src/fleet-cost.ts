@@ -5,7 +5,7 @@ import { TYPE_INDICES, TYPES } from './unit-types.ts';
 export const DEFAULT_BUDGET = 200;
 
 /** 購入可能なユニットタイプか（cost > 0） */
-export function isPurchasable(typeIdx: number): boolean {
+export function isPurchasable(typeIdx: UnitTypeIndex): boolean {
   return (TYPES[typeIdx]?.cost ?? 0) > 0;
 }
 

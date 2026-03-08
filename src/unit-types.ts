@@ -508,7 +508,7 @@ export function unitType(id: UnitTypeIndex): UnitType {
   return t;
 }
 
-export function invSqrtMass(id: number): number {
+export function invSqrtMass(id: UnitTypeIndex): number {
   const v = _invSqrtMass[id];
   if (v === undefined) {
     throw new RangeError(`Invalid unit type id: ${id}`);
@@ -550,6 +550,24 @@ export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
 /** 全ユニットタイプインデックスの配列 */
 export const TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex);
 /** 名前からユニットタイプインデックスを検索（大文字小文字を無視） */
+/** ユニットタイプ名を取得。範囲外は RangeError */
+export function unitTypeName(idx: UnitTypeIndex): string {
+  const t = TYPES[idx];
+  if (t === undefined) {
+    throw new RangeError(`Invalid unit type index: ${idx}`);
+  }
+  return t.name;
+}
+
+/** ユニットタイプのコストを取得。範囲外は RangeError */
+export function unitTypeCost(idx: UnitTypeIndex): number {
+  const t = TYPES[idx];
+  if (t === undefined) {
+    throw new RangeError(`Invalid unit type index: ${idx}`);
+  }
+  return t.cost;
+}
+
 export function findTypeIndex(name: string): UnitTypeIndex | undefined {
   const idx = TYPES.findIndex((t) => t.name.toLowerCase() === name.toLowerCase());
   return idx === -1 ? undefined : (idx as UnitTypeIndex);

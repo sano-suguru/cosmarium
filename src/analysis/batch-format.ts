@@ -3,7 +3,7 @@
  */
 
 import { KILL_CONTEXT_LABEL_LIST } from '../simulation/on-kill-effects.ts';
-import { TYPES } from '../unit-types.ts';
+import { unitTypeName } from '../unit-types.ts';
 import type { BatchSummary, KillMatrix, SynergyPair, TrialResult, UnitTypeSummary } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
@@ -20,7 +20,7 @@ function winLabel(winner: number | 'draw' | null): string {
 function formatTrialLine(trial: TrialResult): string[] {
   const divStr = trial.fleetDiversities.length > 0 ? trial.fleetDiversities.map((d) => d.toFixed(3)).join('/') : '-';
   const fleetStr = trial.fleetCompositions
-    .map((f, i) => `T${i}[${f.map((e) => `${TYPES[e.type]?.name ?? '?'}:${e.count}`).join(',')}]`)
+    .map((f, i) => `T${i}[${f.map((e) => `${unitTypeName(e.type)}:${e.count}`).join(',')}]`)
     .join(' vs ');
   return [
     `  #${String(trial.trialIndex).padStart(3, '0')} | ${winLabel(trial.winner).padEnd(10)} | ${trial.steps.toString().padStart(5)}歩 | 複雑性=${trial.complexity.toFixed(3)} | 多様性=${divStr}`,
@@ -325,9 +325,9 @@ export function formatSummary(summary: BatchSummary): string {
   lines.push(`  平均キルシーケンスエントロピー: ${summary.stats.avgKillSequenceEntropy.toFixed(4)}`);
   lines.push('-----------------------------------------------');
   lines.push('  勝率:');
-  const LABELS: Record<string, string> = { draw: '引分', timeout: '時間切' };
+  const OUTCOME_LABELS: Record<string, string | undefined> = { draw: '引分', timeout: '時間切' };
   for (const [key, rate] of Object.entries(summary.stats.winRates)) {
-    const label = LABELS[key] ?? `チーム${key}`;
+    const label = OUTCOME_LABELS[key] ?? `チーム${key}`;
     lines.push(`    ${label}: ${(rate * 100).toFixed(1)}%`);
   }
   lines.push('-----------------------------------------------');

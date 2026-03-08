@@ -46,10 +46,9 @@ export function seed(): number {
   return currentSeed;
 }
 
-/** seedRng() 後の state.rng を返すファクトリ。バッチ分析の createRng 引数用 */
+/** 独立した RNG クロージャを生成する。グローバル state.rng を汚染しない */
 export function createRng(s: number): () => number {
-  seedRng(s);
-  return state.rng;
+  return mulberry32(s);
 }
 
 export const state: State = {

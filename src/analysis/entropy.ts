@@ -1,5 +1,5 @@
 import type { FleetComposition } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { TYPES, unitTypeCost } from '../unit-types.ts';
 
 // ─── Shannon Entropy ───────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export function fleetCostEntropy(fleet: FleetComposition): number {
   const costDist: number[] = new Array(TYPES.length).fill(0);
   for (const entry of fleet) {
     const idx = entry.type;
-    const cost = TYPES[idx]?.cost ?? 1;
+    const cost = unitTypeCost(idx);
     const cprev = costDist[idx];
     if (idx >= 0 && cprev !== undefined) {
       costDist[idx] = cprev + entry.count * cost;

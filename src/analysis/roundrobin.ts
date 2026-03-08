@@ -95,7 +95,6 @@ function runMatchup(
   let draws = 0;
 
   for (let t = 0; t < config.trials; t++) {
-    const noSnapshots = config.maxSteps;
     const batchConfig: BatchConfig = {
       trials: 1,
       mode: 'battle',
@@ -103,7 +102,7 @@ function runMatchup(
       seed: config.seed + matchIndex * config.trials + t,
       budget: config.budget,
       maxSteps: config.maxSteps,
-      snapshotInterval: noSnapshots,
+      snapshotInterval: config.maxSteps,
       outFile: null,
       fleets: [fleetA, fleetB],
       createRng: config.createRng,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { asType, resetState } from './__test__/pool-helper.ts';
 import { beams, getBeam } from './beams.ts';
-import { rng, seed, seedRng, state } from './state.ts';
+import { createRng, rng, seed, seedRng, state } from './state.ts';
 
 afterEach(() => {
   resetState();
@@ -189,5 +189,73 @@ describe('PRNG (mulberry32)', () => {
     expect(samples.every((v) => v >= 0 && v < 1)).toBe(true);
     const unique = new Set(samples);
     expect(unique.size).toBeGreaterThan(90);
+  });
+});
+
+describe('createRng', () => {
+  it('同じシードで決定的なシーケンスを返す', () => {
+    const r = createRng(42);
+    const seq = [r(), r(), r(), r(), r()];
+
+    const r2 = createRng(42);
+    const seq2 = [r2(), r2(), r2(), r2(), r2()];
+
+    expect(seq).toEqual(seq2);
+  });
+
+  it('異なるシードで異なるシーケンスを生成する', () => {
+    const r1 = createRng(111);
+    const r2 = createRng(222);
+
+    const seq1 = [r1(), r1(), r1()];
+    const seq2 = [r2(), r2(), r2()];
+
+    expect(seq1).not.toEqual(seq2);
+  });
+
+  it('グローバル state.rng に影響しない', () => {
+    seedRng(9999);
+    const before = state.rng();
+
+    seedRng(9999);
+    createRng(5555);
+    const after = state.rng();
+
+    expect(before).toBe(after);
+  });
+
+  it('同じシードから複数の独立インスタンスが同一シーケンスを生成する', () => {
+    const a = createRng(777);
+    const b = createRng(777);
+
+    const seqA = Array.from({ length: 10 }, () => a());
+    const seqB = Array.from({ length: 10 }, () => b());
+
+    expect(seqA).toEqual(seqB);
+  });
+
+  it('複数の独立インスタンスがインターリーブ呼び出しで干渉しない', () => {
+    const a = createRng(100);
+    const b = createRng(200);
+
+    // インターリーブで呼び出し
+    const a1 = a();
+    const b1 = b();
+    const a2 = a();
+    const b2 = b();
+    const a3 = a();
+    const b3 = b();
+
+    // 独立インスタンスで順次呼び出し — 同じ結果になるはず
+    const aFresh = createRng(100);
+    const bFresh = createRng(200);
+
+    expect(a1).toBe(aFresh());
+    expect(a2).toBe(aFresh());
+    expect(a3).toBe(aFresh());
+
+    expect(b1).toBe(bFresh());
+    expect(b2).toBe(bFresh());
+    expect(b3).toBe(bFresh());
   });
 });
