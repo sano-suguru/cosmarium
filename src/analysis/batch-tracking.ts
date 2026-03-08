@@ -69,6 +69,7 @@ export function createDamageTracker(): DamageTracker {
   };
 }
 
+/** タイプ別の攻撃力/被弾量を全チーム横断で集計するダメージフックを登録 */
 export function installDamageHook(tracker: DamageTracker): () => void {
   return onDamageUnit((e) => {
     accum(tracker.dealtByType, e.attackerType, e.amount);

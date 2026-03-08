@@ -284,6 +284,13 @@ export function spawnParticle(
   return slot;
 }
 
+interface ProjectileOpts {
+  readonly homing?: boolean;
+  readonly aoe?: number;
+  readonly target?: UnitIndex;
+  readonly sourceUnit?: UnitIndex;
+}
+
 export function spawnProjectile(
   x: number,
   y: number,
@@ -296,10 +303,7 @@ export function spawnProjectile(
   r: number,
   g: number,
   b: number,
-  homing = false,
-  aoe = 0,
-  target: UnitIndex = NO_UNIT,
-  sourceUnit: UnitIndex = NO_UNIT,
+  opts?: ProjectileOpts,
 ): ProjectileIndex {
   for (let i = 0; i < POOL_PROJECTILES; i++) {
     const p = projectile(i);
@@ -318,6 +322,10 @@ export function spawnProjectile(
       p.r = r;
       p.g = g;
       p.b = b;
+      const homing = opts?.homing ?? false;
+      const aoe = opts?.aoe ?? 0;
+      const target = opts?.target ?? NO_UNIT;
+      const sourceUnit = opts?.sourceUnit ?? NO_UNIT;
       p.homing = homing;
       p.aoe = aoe;
       p.target = target;

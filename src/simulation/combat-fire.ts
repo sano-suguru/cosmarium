@@ -85,7 +85,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
       cannonWorld(u, localX, localY * sign);
       const mx = _cwBuf[0];
       const my = _cwBuf[1];
-      spawnProjectile(mx, my, vxP, vyP, life, dmg, u.team, pSize, pr, pg, pb, false, 0, NO_UNIT, ctx.ui);
+      spawnProjectile(mx, my, vxP, vyP, life, dmg, u.team, pSize, pr, pg, pb, { sourceUnit: ctx.ui });
       spawnCannonFlash(ctx, ang, mx, my);
     }
   } else {
@@ -101,10 +101,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
       pr,
       pg,
       pb,
-      false,
-      0,
-      NO_UNIT,
-      ctx.ui,
+      { sourceUnit: ctx.ui },
     );
     spawnMuzzleFlash(ctx, ang);
   }
@@ -141,10 +138,7 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number)
     c[0],
     c[1],
     c[2],
-    true,
-    0,
-    u.target,
-    ctx.ui,
+    { homing: true, target: u.target, sourceUnit: ctx.ui },
   );
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -166,10 +160,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
     c[0] * 0.8,
     c[1] * 0.7 + 0.3,
     c[2],
-    false,
-    t.aoe,
-    NO_UNIT,
-    ctx.ui,
+    { aoe: t.aoe, sourceUnit: ctx.ui },
   );
   spawnMuzzleFlash(ctx, ang);
 }

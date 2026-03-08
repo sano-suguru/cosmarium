@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { resetPools, spawnAt } from '../__test__/pool-helper.ts';
+import { kill, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
-import { killUnit } from './spawn.ts';
 
 afterEach(() => {
   resetPools();
@@ -37,7 +35,7 @@ describe('buildHash + getNeighbors', () => {
   it('dead ユニットは除外される', () => {
     spawnAt(0, 1, 50, 50);
     const i1 = spawnAt(1, 1, 60, 60);
-    killUnit(i1, undefined, KILL_CONTEXT.ProjectileDirect);
+    kill(i1);
     buildHash();
     const n = getNeighbors(55, 55, 200);
     expect(n).toBe(1);

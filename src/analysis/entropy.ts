@@ -91,12 +91,25 @@ export function fleetCostEntropy(fleet: FleetComposition): number {
  * パターン分析に使用。
  */
 export function ngramFrequencies(sequence: readonly number[], n: number): Map<string, number> {
-  const freq = new Map<string, number>();
   if (n <= 0 || sequence.length < n) {
-    return freq;
+    return new Map();
   }
+  if (n === 2) {
+    return bigramFrequencies(sequence);
+  }
+  const freq = new Map<string, number>();
   for (let i = 0; i <= sequence.length - n; i++) {
     const key = sequence.slice(i, i + n).join(',');
+    freq.set(key, (freq.get(key) ?? 0) + 1);
+  }
+  return freq;
+}
+
+/** Bigram (n=2) 専用の高速頻度集計 — slice + join を排除し GC 圧力を削減 */
+function bigramFrequencies(sequence: readonly number[]): Map<string, number> {
+  const freq = new Map<string, number>();
+  for (let i = 0; i <= sequence.length - 2; i++) {
+    const key = `${sequence[i]},${sequence[i + 1]}`;
     freq.set(key, (freq.get(key) ?? 0) + 1);
   }
   return freq;
@@ -147,7 +160,12 @@ export function lzComplexity(sequence: readonly number[]): number {
   return Math.min(1, novelPhrases / theoreticalBound);
 }
 
-/** sequence[start..start+len) が sequence[0..start+len-1) 内に存在するか判定 */
+/**
+ * sequence[start..start+len) が sequence[0..start+len-1) 内に存在するか判定。
+ * 計算量: 外側ループ全体で O(n²·L)（L=最大フレーズ長）。
+ * phraseLen が増えると i が大きくジャンプするため、バッチ分析の典型的な入力サイズ
+ * （DEFAULT_MAX_STEPS / snapshotInterval ≈ 180 要素）では問題にならない。
+ */
 function findInHistory(sequence: readonly number[], start: number, len: number): boolean {
   const boundary = start + len - 1;
   outer: for (let h = 0; h <= boundary - len; h++) {

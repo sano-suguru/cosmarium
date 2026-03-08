@@ -22,7 +22,10 @@ import {
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { resetChains } from '../simulation/effects.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
-import { _resetKillUnitHooks, spawnUnit } from '../simulation/spawn.ts';
+import type { KillContext } from '../simulation/on-kill-effects.ts';
+import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
+import type { Killer } from '../simulation/spawn.ts';
+import { _resetKillUnitHooks, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
@@ -235,4 +238,9 @@ export function makeRng() {
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
 export function spawnAt(team: Team, type: number, x: number, y: number): UnitIndex {
   return spawnUnit(team, type, x, y, () => 0);
+}
+
+/** テスト用 killUnit ラッパー。大半のテストでは killContext を気にしないためデフォルトを提供 */
+export function kill(i: UnitIndex, killer?: Killer, killContext: KillContext = KILL_CONTEXT.ProjectileDirect) {
+  return killUnit(i, killer, killContext);
 }

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { fillParticlePool, fillProjectilePool, fillUnitPool, resetPools, resetState } from '../__test__/pool-helper.ts';
+import {
+  fillParticlePool,
+  fillProjectilePool,
+  fillUnitPool,
+  kill,
+  resetPools,
+  resetState,
+} from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
@@ -77,7 +84,7 @@ describe('spawnProjectile', () => {
   });
 
   it('オプション引数が反映される', () => {
-    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, true, 70, 42 as UnitIndex);
+    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, { homing: true, aoe: 70, target: 42 as UnitIndex });
     expect(idx).toBe(0);
     const p = projectile(0);
     expect(p.homing).toBe(true);
@@ -123,7 +130,7 @@ describe('spawnUnit', () => {
   it('dead スロットを再利用する', () => {
     spawnUnit(0, 0, 0, 0, testRng);
     spawnUnit(0, 0, 0, 0, testRng);
-    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    kill(0 as UnitIndex);
     const reused = spawnUnit(1, 1, 50, 50, testRng);
     expect(reused).toBe(0);
     expect(unit(0).team).toBe(1);
@@ -294,7 +301,7 @@ describe('captureKiller', () => {
 
   it('dead ユニットに対して undefined を返す', () => {
     const idx = spawnUnit(0, 1, 50, 50, testRng);
-    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
+    kill(idx);
     expect(captureKiller(idx)).toBeUndefined();
   });
 });

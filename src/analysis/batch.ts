@@ -61,7 +61,7 @@ import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, sp
 
 const _posBuf: number[] = [];
 
-/** 座標を再利用バッファに収集。返り値は次の呼び出しまで有効 */
+/** 座標を再利用バッファ `_posBuf` に収集。返り値は次の呼び出しで上書きされる */
 function collectPositions(activeTeams: number): number[] {
   _posBuf.length = 0;
   const hwm = getUnitHWM();
@@ -172,6 +172,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const trialSeed = config.seed + trialIndex;
   const rng = config.createRng(trialSeed);
 
+  // setupFleets はプール状態を初期化するため、呼び出し前のプール状態は破棄される
   const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
 
   const tracker = createKillTracker();

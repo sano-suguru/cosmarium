@@ -425,7 +425,7 @@ describe('projectile pass', () => {
   it('AOE 爆発: 範囲内の敵にダメージ + addShake(3)', () => {
     const enemy = spawnAt(1, 1, 30, 0);
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, false, 70);
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 1, 0, 0, { aoe: 70 });
     tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).hp).toBeLessThan(10);
     expect(addShake).toHaveBeenCalledWith(3, expect.any(Number), expect.any(Number));
@@ -499,7 +499,7 @@ describe('projectile pass', () => {
   it('homing: ターゲット生存時に追尾で曲がる', () => {
     const target = spawnAt(1, 1, 0, 200);
     unit(target).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, { homing: true, target });
     tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBeGreaterThan(0);
   });
@@ -509,14 +509,14 @@ describe('projectile pass', () => {
     unit(target).alive = false;
     decUnits(unit(target).team);
     unit(target).trailTimer = 99;
-    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, true, 0, target);
+    spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0, { homing: true, target });
     tick(0.016, 0, rng, gameLoopState());
     expect(projectile(0).vy).toBe(0);
   });
 
   it('AOE 爆発: パーティクルがチームカラーを使う (hardcoded orange ではなく)', () => {
     // Team 0: blue (r=0, g=0.3, b=1)
-    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, false, 70);
+    spawnProjectile(0, 0, 0, 0, 0.01, 8, 0, 2, 0, 0.3, 1, { aoe: 70 });
     expect(poolCounts.projectiles).toBe(1);
     const origParticleCount = poolCounts.particles;
     tick(0.016, 0, rng, gameLoopState());
@@ -639,7 +639,7 @@ describe('キル時クールダウン短縮', () => {
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     // sourceUnit=sniper の弾を生成
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
     tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(unit(sniper).kills).toBe(1);
@@ -651,7 +651,7 @@ describe('キル時クールダウン短縮', () => {
     unit(sniper).cooldown = 2.5; // 射撃直後のクールダウン
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, sniper);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
     tick(0.016, 0, rng, gameLoopState());
     // combat() で cooldown 2.5→2.484, 次に detectProjectileHit で min(2.484, 0.8)=0.8
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
@@ -1025,7 +1025,7 @@ describe('KillEvent 伝播', () => {
     unit(attacker).trailTimer = 99;
     const enemy = spawnAt(1, 0, 3, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
-    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, false, 0, undefined, attacker);
+    spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: attacker });
     tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
@@ -1043,7 +1043,7 @@ describe('KillEvent 伝播', () => {
     const enemy = spawnAt(1, 0, 30, 0); // Drone hp=3
     unit(enemy).trailTimer = 99;
     // 寿命切れで爆発する AOE 弾
-    spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, false, 70, undefined, attacker);
+    spawnProjectile(0, 0, 0, 0, 0.01, 100, 0, 2, 1, 0, 0, { aoe: 70, sourceUnit: attacker });
     tick(0.016, 0, rng, gameLoopState());
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);

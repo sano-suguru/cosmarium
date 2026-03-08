@@ -97,13 +97,13 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
 function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
   destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
 }
-function tryReflectField(p: Projectile, o: Unit, rng: () => number): boolean {
+function tryReflectField(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number): boolean {
   if (o.reflectFieldHp <= 0) {
     return false;
   }
   o.reflectFieldHp = Math.max(0, o.reflectFieldHp - p.damage);
   const c: Color3 = effectColor(o.type, o.team);
-  reflectProjectile(rng, o.x, o.y, p, o.team, c);
+  reflectProjectile(rng, o.x, o.y, p, { team: o.team, color: c, reflectorType: o.type, reflectorIndex: oi });
   return true;
 }
 
@@ -129,7 +129,7 @@ function hitSparkFx(p: Projectile, rng: () => number) {
 }
 
 function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
-  if (tryReflectField(p, o, rng)) {
+  if (tryReflectField(p, oi, o, rng)) {
     return;
   }
   let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
