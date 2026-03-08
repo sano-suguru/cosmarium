@@ -256,7 +256,7 @@ export function parseIntArg(pairs: Map<string, string>, key: string, fallback: n
 }
 
 /** @example parseFleetSpec("Fighter:10,Cruiser:5,Healer:3") */
-function parseFleetArg(value: string): FleetComposition {
+export function parseFleetArg(value: string): FleetComposition {
   const entries: { type: UnitTypeIndex; count: number }[] = [];
   for (const part of value.split(',')) {
     const [name, countStr] = part.split(':');

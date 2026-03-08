@@ -114,6 +114,30 @@ describe('fleetCostEntropy', () => {
     // コスト加重ではDrone/Flagshipの予算比が均衡に近づくため、count基準より高い
     expect(costDiv).toBeGreaterThan(countDiv);
   });
+
+  it('空の艦隊で 0 を返す', () => {
+    expect(fleetCostEntropy([])).toBe(0);
+  });
+
+  it('単一タイプの艦隊で 0 を返す', () => {
+    const fleet: FleetComposition = [{ type: asType(0), count: 5 }];
+    expect(fleetCostEntropy(fleet)).toBe(0);
+  });
+
+  it('コスト配分が均衡な編成ほどエントロピーが高い', () => {
+    // 同じ2タイプでも、コスト総額が片方に偏る編成 vs 均等な編成
+    // type 0 (Drone, 安い) を大量 + type 1 (Fighter) を少量 → コスト比が偏る
+    const skewed: FleetComposition = [
+      { type: asType(0), count: 1 },
+      { type: asType(1), count: 50 },
+    ];
+    // 両タイプ同数 → コスト比がより均衡に近づく
+    const lessSkewed: FleetComposition = [
+      { type: asType(0), count: 25 },
+      { type: asType(1), count: 25 },
+    ];
+    expect(fleetCostEntropy(lessSkewed)).toBeGreaterThan(fleetCostEntropy(skewed));
+  });
 });
 
 // ─── N-gram ────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { asType, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
-import { parseIntArg, runBatch } from './batch.ts';
+import { collectArgPairs, parseFleetArg, parseIntArg, runBatch } from './batch.ts';
 import type { BatchConfig, BatchSummary } from './batch-types.ts';
 
 function testCreateRng(seed: number): () => number {
@@ -52,6 +52,79 @@ describe('parseIntArg', () => {
   it('空文字列の場合はフォールバックを返す', () => {
     const pairs = new Map([['--count', '']]);
     expect(parseIntArg(pairs, '--count', 10)).toBe(10);
+  });
+});
+
+// ─── collectArgPairs ──────────────────────────────────────────────
+
+describe('collectArgPairs', () => {
+  it('--key value ペアを収集する', () => {
+    const pairs = collectArgPairs(['--seed', '42', '--mode', 'melee']);
+    expect(pairs.get('--seed')).toBe('42');
+    expect(pairs.get('--mode')).toBe('melee');
+  });
+
+  it('値なしの末尾フラグは無視する', () => {
+    const pairs = collectArgPairs(['--seed', '42', '--verbose']);
+    expect(pairs.get('--seed')).toBe('42');
+    expect(pairs.has('--verbose')).toBe(false);
+  });
+
+  it('連続する -- フラグは値なしとして扱う', () => {
+    // --a --b value → --a は値なし（次が --b）、--b の値は value
+    const pairs = collectArgPairs(['--a', '--b', 'value']);
+    expect(pairs.has('--a')).toBe(false);
+    expect(pairs.get('--b')).toBe('value');
+  });
+
+  it('空配列で空 Map を返す', () => {
+    const pairs = collectArgPairs([]);
+    expect(pairs.size).toBe(0);
+  });
+
+  it('-- プレフィクスなしの引数は無視する', () => {
+    const pairs = collectArgPairs(['positional', '--key', 'val']);
+    expect(pairs.get('--key')).toBe('val');
+    expect(pairs.size).toBe(1);
+  });
+});
+
+// ─── parseFleetArg ────────────────────────────────────────────────
+
+describe('parseFleetArg', () => {
+  it('有効な艦隊指定をパースする', () => {
+    const fleet = parseFleetArg('Drone:10,Fighter:5');
+    expect(fleet).toHaveLength(2);
+    expect(fleet[0]?.count).toBe(10);
+    expect(fleet[1]?.count).toBe(5);
+  });
+
+  it('存在しないユニット名を無視する', () => {
+    const fleet = parseFleetArg('Drone:5,InvalidUnit:3');
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.count).toBe(5);
+  });
+
+  it('NaN のカウント値を無視する', () => {
+    const fleet = parseFleetArg('Drone:abc,Fighter:5');
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.count).toBe(5);
+  });
+
+  it('空文字列で空配列を返す', () => {
+    const fleet = parseFleetArg('');
+    expect(fleet).toHaveLength(0);
+  });
+
+  it('コロンなしのエントリを無視する', () => {
+    const fleet = parseFleetArg('Drone,Fighter:5');
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.count).toBe(5);
+  });
+
+  it('大文字小文字を区別しない', () => {
+    const fleet = parseFleetArg('drone:3,FIGHTER:2');
+    expect(fleet).toHaveLength(2);
   });
 });
 
