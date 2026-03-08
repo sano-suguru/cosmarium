@@ -25,7 +25,7 @@ import { restoreSquadrons, snapshotSquadrons } from '../simulation/squadron.ts';
 import { state } from '../state.ts';
 import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../types.ts';
-import { TYPES, unitType } from '../unit-types.ts';
+import { DEFAULT_UNIT_TYPE, TYPE_INDICES, TYPES, unitType } from '../unit-types.ts';
 import { demoByFlag, demoDefault, demoRng } from './codex-demos.ts';
 import {
   DOM_ID_CODEX,
@@ -331,19 +331,19 @@ function updateCodexPanel() {
 function buildCodexUI() {
   const list = els().codexList;
   list.textContent = '';
-  for (let i = 0; i < TYPES.length; i++) {
-    const t = TYPES[i];
+  for (const idx of TYPE_INDICES) {
+    const t = TYPES[idx];
     if (!t) {
       continue;
     }
-    if (!isPurchasable(i)) {
+    if (!isPurchasable(idx)) {
       continue;
     }
     const entry = document.createElement('div');
-    entry.className = `cxItem${i === state.codexSelected ? ' active' : ''}`;
-    const c = color(i, 0);
+    entry.className = `cxItem${idx === state.codexSelected ? ' active' : ''}`;
+    const c = color(idx, 0);
     const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
-    const hue = 180 + (i / Math.max(TYPES.length - 1, 1)) * 120;
+    const hue = 180 + (idx / Math.max(TYPES.length - 1, 1)) * 120;
     const dotColor = `hsl(${hue}, 100%, 60%)`;
     const dot = document.createElement('div');
     dot.className = 'ciDot';
@@ -361,7 +361,6 @@ function buildCodexUI() {
     typeDiv.textContent = t.attackDesc;
     labelGroup.appendChild(typeDiv);
     entry.appendChild(labelGroup);
-    const idx = i as UnitTypeIndex;
     entry.onclick = () => {
       state.codexSelected = idx;
       buildCodexUI();
@@ -383,7 +382,7 @@ export function toggleCodex() {
     state.codexOpen = true;
     els().codex.classList.add('open');
     if (!isPurchasable(state.codexSelected)) {
-      state.codexSelected = 0 as UnitTypeIndex;
+      state.codexSelected = DEFAULT_UNIT_TYPE;
     }
     buildCodexUI();
     updateCodexPanel();

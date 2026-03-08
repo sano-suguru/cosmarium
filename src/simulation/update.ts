@@ -4,7 +4,7 @@ import { getParticleHWM, getUnitHWM, mothershipIdx, particle, poolCounts, unit }
 import { swapRemove } from '../swap-remove.ts';
 import type { BattlePhase, ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT, TEAM0, TEAM1, TEAMS } from '../types.ts';
-import { unitType, unitTypeIndex } from '../unit-types.ts';
+import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-types.ts';
 import { combat } from './combat.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { boostBurst, boostTrail, flagshipTrail, trail, updateChains } from './effects.ts';
@@ -102,11 +102,8 @@ export function updateSwarmN() {
   }
 }
 
-const FLAGSHIP = unitTypeIndex('Flagship');
-const MOTHERSHIP = unitTypeIndex('Mothership');
-
 function emitTrail(u: Unit, rng: () => number) {
-  if (u.type === FLAGSHIP || u.type === MOTHERSHIP) {
+  if (u.type === FLAGSHIP_TYPE || u.type === MOTHERSHIP_TYPE) {
     flagshipTrail(u, rng);
   } else {
     trail(u, rng);

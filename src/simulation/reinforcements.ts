@@ -1,7 +1,28 @@
 import { incMotherships, mothershipIdx, teamUnitCounts } from '../pools.ts';
 import type { BattleTeam, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { DRONE_TYPE, unitTypeIndex } from '../unit-types.ts';
+import {
+  AMPLIFIER_TYPE,
+  ARCER_TYPE,
+  BASTION_TYPE,
+  BOMBER_TYPE,
+  CARRIER_TYPE,
+  CATALYST_TYPE,
+  CRUISER_TYPE,
+  DISRUPTOR_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  HEALER_TYPE,
+  LANCER_TYPE,
+  LAUNCHER_TYPE,
+  MOTHERSHIP_TYPE,
+  REFLECTOR_TYPE,
+  SCORCHER_TYPE,
+  SCRAMBLER_TYPE,
+  SNIPER_TYPE,
+  TELEPORTER_TYPE,
+} from '../unit-types.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, reinforcementOrigin } from './spawn-coordinates.ts';
 import { assignToSquadron } from './squadron.ts';
@@ -19,45 +40,26 @@ interface ReinforcementEntry {
   readonly condition: (r: number, cnt: number) => boolean;
 }
 
-const FIGHTER = unitTypeIndex('Fighter');
-const BOMBER = unitTypeIndex('Bomber');
-const CRUISER = unitTypeIndex('Cruiser');
-const FLAGSHIP = unitTypeIndex('Flagship');
-const HEALER = unitTypeIndex('Healer');
-const REFLECTOR = unitTypeIndex('Reflector');
-const CARRIER = unitTypeIndex('Carrier');
-const SNIPER = unitTypeIndex('Sniper');
-const LANCER = unitTypeIndex('Lancer');
-const LAUNCHER = unitTypeIndex('Launcher');
-const DISRUPTOR = unitTypeIndex('Disruptor');
-const SCORCHER = unitTypeIndex('Scorcher');
-const TELEPORTER = unitTypeIndex('Teleporter');
-const ARCER = unitTypeIndex('Arcer');
-const BASTION = unitTypeIndex('Bastion');
-const AMPLIFIER = unitTypeIndex('Amplifier');
-const SCRAMBLER = unitTypeIndex('Scrambler');
-const CATALYST = unitTypeIndex('Catalyst');
-
 export const REINFORCEMENT_TABLE: readonly ReinforcementEntry[] = [
-  { type: BOMBER, spread: 80, condition: (r) => r < 0.5 }, // 50%
-  { type: CRUISER, spread: 80, condition: (r) => r < 0.4 }, // 40%
-  { type: FLAGSHIP, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // 10% (losing)
-  { type: HEALER, spread: 60, condition: (r) => r > 0.2 && r < 0.35 }, // 15%
-  { type: REFLECTOR, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // 15%
-  { type: CARRIER, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // 18% (losing)
-  { type: SNIPER, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // 15%
-  { type: LANCER, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
-  { type: LAUNCHER, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
-  { type: DISRUPTOR, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
-  { type: SCORCHER, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
-  { type: TELEPORTER, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
-  { type: ARCER, spread: 60, condition: (r) => r > 0.95 }, // 5%
-  { type: BASTION, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
-  { type: AMPLIFIER, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
-  { type: SCRAMBLER, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
-  { type: CATALYST, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
-  { type: DISRUPTOR, spread: 60, condition: (r, cnt) => cnt < 35 && r < 0.6 }, // 劣勢時60%
-  { type: BOMBER, spread: 80, condition: (r, cnt) => cnt < 35 && r > 0.4 }, // 劣勢時60%
+  { type: BOMBER_TYPE, spread: 80, condition: (r) => r < 0.5 }, // 50%
+  { type: CRUISER_TYPE, spread: 80, condition: (r) => r < 0.4 }, // 40%
+  { type: FLAGSHIP_TYPE, spread: 80, condition: (r, cnt) => cnt < 50 && r < 0.1 }, // 10% (losing)
+  { type: HEALER_TYPE, spread: 60, condition: (r) => r > 0.2 && r < 0.35 }, // 15%
+  { type: REFLECTOR_TYPE, spread: 60, condition: (r) => r > 0.35 && r < 0.5 }, // 15%
+  { type: CARRIER_TYPE, spread: 80, condition: (r, cnt) => cnt < 40 && r < 0.18 }, // 18% (losing)
+  { type: SNIPER_TYPE, spread: 80, condition: (r) => r > 0.5 && r < 0.65 }, // 15%
+  { type: LANCER_TYPE, spread: 50, condition: (r) => r > 0.65 && r < 0.77 }, // 12%
+  { type: LAUNCHER_TYPE, spread: 60, condition: (r) => r > 0.3 && r < 0.45 }, // 15%
+  { type: DISRUPTOR_TYPE, spread: 60, condition: (r) => r > 0.77 && r < 0.87 }, // 10%
+  { type: SCORCHER_TYPE, spread: 60, condition: (r) => r > 0.12 && r < 0.25 }, // 13%
+  { type: TELEPORTER_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.95 }, // 8%
+  { type: ARCER_TYPE, spread: 60, condition: (r) => r > 0.95 }, // 5%
+  { type: BASTION_TYPE, spread: 60, condition: (r) => r > 0.45 && r < 0.55 }, // 10% (overlaps BOMBER)
+  { type: AMPLIFIER_TYPE, spread: 60, condition: (r) => r > 0.55 && r < 0.67 }, // 12%
+  { type: SCRAMBLER_TYPE, spread: 60, condition: (r) => r > 0.67 && r < 0.77 }, // 10% (overlaps LANCER)
+  { type: CATALYST_TYPE, spread: 60, condition: (r) => r > 0.87 && r < 0.97 }, // 10%
+  { type: DISRUPTOR_TYPE, spread: 60, condition: (r, cnt) => cnt < 35 && r < 0.6 }, // 劣勢時60%
+  { type: BOMBER_TYPE, spread: 80, condition: (r, cnt) => cnt < 35 && r > 0.4 }, // 劣勢時60%
 ];
 
 function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {
@@ -73,7 +75,7 @@ function spawnWave(team: BattleTeam, cnt: number, rng: () => number) {
     s(DRONE_TYPE, 100);
   }
   for (let i = 0; i < 2; i++) {
-    s(FIGHTER, 80);
+    s(FIGHTER_TYPE, 80);
   }
   for (let i = 0; i < REINFORCEMENT_TABLE.length; i++) {
     const entry = REINFORCEMENT_TABLE[i];
@@ -96,8 +98,6 @@ export const REINFORCE_UNIT_CAP = 250;
  * - 中間 → 通常1ウェーブ
  */
 export const RUBBER_BAND_RATIO = 1.3;
-
-const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
 /** spectate 専用の増援スポーン。battle/melee では stepOnce の switch で呼ばれない */
 export function reinforce(dt: number, rng: () => number, rs: ReinforcementState) {

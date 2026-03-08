@@ -6,6 +6,7 @@
  */
 
 import type { Team, UnitTypeIndex } from '../types.ts';
+import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
 import { stackAt, subscribe } from './hook-utils.ts';
 
 export type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';
@@ -26,9 +27,9 @@ const _DMG_MAX_DEPTH = 4;
 const _dmgStack: DamageEvent[] = Array.from(
   { length: _DMG_MAX_DEPTH },
   (): DamageEvent => ({
-    attackerType: 0 as UnitTypeIndex,
+    attackerType: DEFAULT_UNIT_TYPE,
     attackerTeam: 0 as Team,
-    victimType: 0 as UnitTypeIndex,
+    victimType: DEFAULT_UNIT_TYPE,
     victimTeam: 0 as Team,
     amount: 0,
     kind: 'direct',
@@ -88,9 +89,9 @@ const _SUP_MAX_DEPTH = 4;
 const _supStack: SupportEvent[] = Array.from(
   { length: _SUP_MAX_DEPTH },
   (): SupportEvent => ({
-    casterType: 0 as UnitTypeIndex,
+    casterType: DEFAULT_UNIT_TYPE,
     casterTeam: 0 as Team,
-    targetType: 0 as UnitTypeIndex,
+    targetType: DEFAULT_UNIT_TYPE,
     targetTeam: 0 as Team,
     kind: 'heal',
     amount: 0,

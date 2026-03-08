@@ -1,4 +1,5 @@
 import type { GameState, UnitTypeIndex } from './types.ts';
+import { DEFAULT_UNIT_TYPE } from './unit-types.ts';
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0;
@@ -54,7 +55,7 @@ export function createRng(s: number): () => number {
 export const state: State = {
   gameState: 'menu',
   codexOpen: false,
-  codexSelected: 0 as UnitTypeIndex,
+  codexSelected: DEFAULT_UNIT_TYPE,
   timeScale: 1,
   reinforcementTimer: 0,
   rng: currentRng,

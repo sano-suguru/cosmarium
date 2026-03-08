@@ -88,6 +88,16 @@
       "formatter": { "enabled": false }
     },
     {
+      "includes": ["src/unit-types.ts"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 625 } }
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/*.test.ts", "src/__test__/**"],
       "linter": {
         "rules": {

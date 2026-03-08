@@ -1,7 +1,28 @@
 import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx } from '../pools.ts';
 import type { BattleTeam, FleetComposition, Team, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT, TEAM0, TEAM1, teamsOf } from '../types.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import {
+  AMPLIFIER_TYPE,
+  ARCER_TYPE,
+  BASTION_TYPE,
+  BOMBER_TYPE,
+  CARRIER_TYPE,
+  CATALYST_TYPE,
+  CRUISER_TYPE,
+  DISRUPTOR_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  FLAGSHIP_TYPE,
+  HEALER_TYPE,
+  LANCER_TYPE,
+  LAUNCHER_TYPE,
+  MOTHERSHIP_TYPE,
+  REFLECTOR_TYPE,
+  SCORCHER_TYPE,
+  SCRAMBLER_TYPE,
+  SNIPER_TYPE,
+  TELEPORTER_TYPE,
+} from '../unit-types.ts';
 import { resetChains } from './effects.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, meleeOrigin } from './spawn-coordinates.ts';
@@ -16,29 +37,26 @@ interface InitSpawn {
   readonly spread: number;
 }
 
-const T = unitTypeIndex;
-const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
-
 export const INIT_SPAWNS: readonly InitSpawn[] = [
-  { type: T('Flagship'), count: 2, spread: 200 },
-  { type: T('Carrier'), count: 1, spread: 150 },
-  { type: T('Cruiser'), count: 4, spread: 500 },
-  { type: T('Bomber'), count: 3, spread: 400 },
-  { type: T('Fighter'), count: 20, spread: 700 },
-  { type: T('Drone'), count: 65, spread: 900 },
-  { type: T('Healer'), count: 3, spread: 400 },
-  { type: T('Reflector'), count: 2, spread: 300 },
-  { type: T('Sniper'), count: 4, spread: 600 },
-  { type: T('Lancer'), count: 3, spread: 400 },
-  { type: T('Launcher'), count: 3, spread: 500 },
-  { type: T('Disruptor'), count: 2, spread: 400 },
-  { type: T('Scorcher'), count: 3, spread: 400 },
-  { type: T('Teleporter'), count: 2, spread: 400 },
-  { type: T('Arcer'), count: 2, spread: 400 },
-  { type: T('Bastion'), count: 2, spread: 400 },
-  { type: T('Amplifier'), count: 2, spread: 400 },
-  { type: T('Scrambler'), count: 2, spread: 400 },
-  { type: T('Catalyst'), count: 2, spread: 400 },
+  { type: FLAGSHIP_TYPE, count: 2, spread: 200 },
+  { type: CARRIER_TYPE, count: 1, spread: 150 },
+  { type: CRUISER_TYPE, count: 4, spread: 500 },
+  { type: BOMBER_TYPE, count: 3, spread: 400 },
+  { type: FIGHTER_TYPE, count: 20, spread: 700 },
+  { type: DRONE_TYPE, count: 65, spread: 900 },
+  { type: HEALER_TYPE, count: 3, spread: 400 },
+  { type: REFLECTOR_TYPE, count: 2, spread: 300 },
+  { type: SNIPER_TYPE, count: 4, spread: 600 },
+  { type: LANCER_TYPE, count: 3, spread: 400 },
+  { type: LAUNCHER_TYPE, count: 3, spread: 500 },
+  { type: DISRUPTOR_TYPE, count: 2, spread: 400 },
+  { type: SCORCHER_TYPE, count: 3, spread: 400 },
+  { type: TELEPORTER_TYPE, count: 2, spread: 400 },
+  { type: ARCER_TYPE, count: 2, spread: 400 },
+  { type: BASTION_TYPE, count: 2, spread: 400 },
+  { type: AMPLIFIER_TYPE, count: 2, spread: 400 },
+  { type: SCRAMBLER_TYPE, count: 2, spread: 400 },
+  { type: CATALYST_TYPE, count: 2, spread: 400 },
 ];
 
 function resetField() {

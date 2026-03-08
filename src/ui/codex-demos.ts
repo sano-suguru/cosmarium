@@ -2,14 +2,10 @@ import { unit } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { DemoFlag, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { DRONE_TYPE, unitTypeIndex } from '../unit-types.ts';
+import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, SCORCHER_TYPE } from '../unit-types.ts';
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 export const demoRng: () => number = Math.random;
-
-const SCORCHER_TYPE = unitTypeIndex('Scorcher');
-const CRUISER_TYPE = unitTypeIndex('Cruiser');
-const FIGHTER_TYPE = unitTypeIndex('Fighter');
 
 function demoDroneSwarm(mi: UnitIndex) {
   for (let i = 0; i < 5; i++) {

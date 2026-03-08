@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { UnitTypeIndex } from '../types.ts';
+import { asType } from '../__test__/pool-helper.ts';
 import { aggregatePresenceWins, computeSynergyPairs, isBattleWithWinner } from './batch-synergy.ts';
 import type { TrialResult } from './batch-types.ts';
 
@@ -54,8 +54,8 @@ describe('isBattleWithWinner', () => {
 
 describe('aggregatePresenceWins', () => {
   it('各ユニットタイプの勝敗カウントを集計する', () => {
-    const typeA = 0 as UnitTypeIndex;
-    const typeB = 1 as UnitTypeIndex;
+    const typeA = asType(0);
+    const typeB = asType(1);
 
     const trials: TrialResult[] = [
       // チーム0勝利: チーム0にA,B、チーム1にB
@@ -92,7 +92,7 @@ describe('aggregatePresenceWins', () => {
   });
 
   it('draw や null の trial は無視する', () => {
-    const typeA = 0 as UnitTypeIndex;
+    const typeA = asType(0);
 
     const trials: TrialResult[] = [
       makeTrial('draw', [[{ type: typeA, count: 3 }], [{ type: typeA, count: 2 }]]),
@@ -104,7 +104,7 @@ describe('aggregatePresenceWins', () => {
   });
 
   it('count が 0 のエントリは無視する', () => {
-    const typeA = 0 as UnitTypeIndex;
+    const typeA = asType(0);
 
     const trials: TrialResult[] = [makeTrial(0, [[{ type: typeA, count: 0 }], [{ type: typeA, count: 1 }]])];
 
@@ -119,8 +119,8 @@ describe('aggregatePresenceWins', () => {
 
 describe('computeSynergyPairs', () => {
   it('共起回数が MIN_CO_COUNT(5) 未満のペアを除外する', () => {
-    const typeA = 0 as UnitTypeIndex;
-    const typeB = 1 as UnitTypeIndex;
+    const typeA = asType(0);
+    const typeB = asType(1);
 
     // 4回しか共起しない → フィルタされるはず
     const trials: TrialResult[] = Array.from({ length: 4 }, () =>
@@ -142,8 +142,8 @@ describe('computeSynergyPairs', () => {
   });
 
   it('共起回数が MIN_CO_COUNT(5) 以上のペアは含まれる', () => {
-    const typeA = 0 as UnitTypeIndex;
-    const typeB = 1 as UnitTypeIndex;
+    const typeA = asType(0);
+    const typeB = asType(1);
 
     // 5回共起
     const trials: TrialResult[] = Array.from({ length: 5 }, () =>
@@ -165,9 +165,9 @@ describe('computeSynergyPairs', () => {
   });
 
   it('synergy 降順でソートされる', () => {
-    const typeA = 0 as UnitTypeIndex;
-    const typeB = 1 as UnitTypeIndex;
-    const typeC = 2 as UnitTypeIndex;
+    const typeA = asType(0);
+    const typeB = asType(1);
+    const typeC = asType(2);
 
     // A+B: 全勝 (高シナジー), A+C: 全敗 (低シナジー)
     const trials: TrialResult[] = [];

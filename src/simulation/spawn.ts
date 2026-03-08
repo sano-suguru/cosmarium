@@ -20,11 +20,9 @@ import {
 } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
-import { unitType, unitTypeIndex } from '../unit-types.ts';
+import { DEFAULT_UNIT_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-types.ts';
 import { stackAt, subscribe } from './hook-utils.ts';
 import type { KillContext } from './on-kill-effects.ts';
-
-const MOTHERSHIP_TYPE = unitTypeIndex('Mothership');
 
 export interface Killer {
   index: UnitIndex;
@@ -94,7 +92,7 @@ const spawnUnitHooks: SpawnUnitHook[] = [];
 const _SE_MAX_DEPTH = 4;
 const _seStack = Array.from(
   { length: _SE_MAX_DEPTH },
-  (): SpawnEvent => ({ unitIndex: 0 as UnitIndex, team: TEAM0, type: 0 as UnitTypeIndex }),
+  (): SpawnEvent => ({ unitIndex: 0 as UnitIndex, team: TEAM0, type: DEFAULT_UNIT_TYPE }),
 );
 let _seDepth = 0;
 
@@ -186,19 +184,19 @@ const _keWK = Array.from(
   (): KillEvent & { killerTeam: Team; killerType: UnitTypeIndex } => ({
     victim: 0 as UnitIndex,
     victimTeam: TEAM0,
-    victimType: 0 as UnitTypeIndex,
+    victimType: DEFAULT_UNIT_TYPE,
     victimSquadronIdx: NO_SQUADRON,
     victimTeamRemaining: 0,
     killContext: 0,
     killer: 0 as UnitIndex,
     killerTeam: TEAM0,
-    killerType: 0 as UnitTypeIndex,
+    killerType: DEFAULT_UNIT_TYPE,
   }),
 );
 const _keNK = Array.from({ length: _KE_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
   victim: 0 as UnitIndex,
   victimTeam: TEAM0,
-  victimType: 0 as UnitTypeIndex,
+  victimType: DEFAULT_UNIT_TYPE,
   victimSquadronIdx: NO_SQUADRON,
   victimTeamRemaining: 0,
   killContext: 0,

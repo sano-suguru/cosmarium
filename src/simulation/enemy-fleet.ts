@@ -1,6 +1,6 @@
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
-import type { FleetComposition, FleetEntry, UnitTypeIndex } from '../types.ts';
-import { TYPES, unitTypeIndex } from '../unit-types.ts';
+import type { FleetComposition, FleetEntry } from '../types.ts';
+import { DRONE_TYPE, TYPE_INDICES, TYPES, unitTypeIndex } from '../unit-types.ts';
 
 /** アーキタイプごとの重み定義。キーは TYPES インデックス → 重み(0-10) */
 interface Archetype {
@@ -119,14 +119,14 @@ function fillRemaining(arch: Archetype, indices: number[], counts: number[], rem
 /** counts 配列を FleetComposition に変換 */
 function collectFleet(counts: number[], budget: number): FleetEntry[] {
   const fleet: FleetEntry[] = [];
-  for (let i = 0; i < NUM_TYPES; i++) {
-    const c = counts[i];
+  for (const idx of TYPE_INDICES) {
+    const c = counts[idx];
     if (c !== undefined && c > 0) {
-      fleet.push({ type: i as UnitTypeIndex, count: c });
+      fleet.push({ type: idx, count: c });
     }
   }
   if (fleet.length === 0) {
-    fleet.push({ type: 0 as UnitTypeIndex, count: Math.max(1, Math.floor(budget / costOf(0))) });
+    fleet.push({ type: DRONE_TYPE, count: Math.max(1, Math.floor(budget / costOf(0))) });
   }
   return fleet;
 }

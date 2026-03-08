@@ -33,6 +33,7 @@ import type { Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose.ts';
 import { _resetGameControl } from '../ui/game-control.ts';
+import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
 
 export function resetPools() {
   const uHwm = getUnitHWM();
@@ -43,7 +44,7 @@ export function resetPools() {
     const u = unit(i);
     u.alive = false;
     u.team = 0;
-    u.type = 0 as UnitTypeIndex;
+    u.type = DEFAULT_UNIT_TYPE;
     u.x = 0;
     u.y = 0;
     u.vx = 0;
@@ -189,7 +190,7 @@ export function reviveProjectile(i: number) {
 const stateDefaults = {
   gameState: 'menu' as const,
   codexOpen: false,
-  codexSelected: 0 as UnitTypeIndex,
+  codexSelected: DEFAULT_UNIT_TYPE,
   timeScale: 1,
   reinforcementTimer: 0,
   rng: () => 0,

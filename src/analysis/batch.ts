@@ -29,7 +29,7 @@ import type { GameLoopState } from '../simulation/update.ts';
 import { stepOnce } from '../simulation/update.ts';
 
 import type { FleetComposition, Team, UnitTypeIndex } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { findTypeIndex, TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
 import { computeSummary } from './batch-summary.ts';
 import {
@@ -289,11 +289,11 @@ function parseFleetArg(value: string): FleetComposition {
     if (!name || !countStr) {
       continue;
     }
-    const typeIdx = TYPES.findIndex((t) => t.name.toLowerCase() === name.toLowerCase());
-    if (typeIdx === -1) {
+    const typeIdx = findTypeIndex(name);
+    if (typeIdx === undefined) {
       continue;
     }
-    entries.push({ type: typeIdx as UnitTypeIndex, count: Number.parseInt(countStr, 10) });
+    entries.push({ type: typeIdx, count: Number.parseInt(countStr, 10) });
   }
   return entries;
 }

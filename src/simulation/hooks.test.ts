@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Team, UnitTypeIndex } from '../types.ts';
+import { asType } from '../__test__/pool-helper.ts';
+import type { Team } from '../types.ts';
 import type { DamageKind } from './hooks.ts';
 import {
   _resetDamageHooks,
@@ -20,14 +21,14 @@ afterEach(() => {
 describe('emitDamage', () => {
   it('フック未登録 → クラッシュせず no-op', () => {
     expect(() => {
-      emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 50, 'direct');
+      emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 50, 'direct');
     }).not.toThrow();
   });
 
   it('登録後にイベントが配信される', () => {
     const hook = vi.fn();
     onDamageUnit(hook);
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 30, 'beam');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 30, 'beam');
     expect(hook).toHaveBeenCalledOnce();
   });
 
@@ -35,7 +36,7 @@ describe('emitDamage', () => {
     const hook = vi.fn();
     onDamageUnit(hook);
 
-    emitDamage(2 as UnitTypeIndex, 1 as Team, 3 as UnitTypeIndex, 0 as Team, 42.5, 'aoe');
+    emitDamage(asType(2), 1 as Team, asType(3), 0 as Team, 42.5, 'aoe');
 
     const ev = hook.mock.calls[0]?.[0];
     expect(ev.attackerType).toBe(2);
@@ -54,7 +55,7 @@ describe('emitDamage', () => {
     onDamageUnit(hook2);
     onDamageUnit(hook3);
 
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 10, 'direct');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
 
     expect(hook1).toHaveBeenCalledOnce();
     expect(hook2).toHaveBeenCalledOnce();
@@ -65,11 +66,11 @@ describe('emitDamage', () => {
     const hook = vi.fn();
     const unsub = onDamageUnit(hook);
 
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 10, 'direct');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
     expect(hook).toHaveBeenCalledOnce();
 
     unsub();
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 10, 'direct');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
     expect(hook).toHaveBeenCalledOnce(); // 増えない
   });
 
@@ -81,7 +82,7 @@ describe('emitDamage', () => {
 
     _resetDamageHooks();
 
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 10, 'direct');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 10, 'direct');
     expect(hook1).not.toHaveBeenCalled();
     expect(hook2).not.toHaveBeenCalled();
   });
@@ -97,7 +98,7 @@ describe('emitSupport', () => {
       const hook = vi.fn();
       onSupportEffect(hook);
 
-      emitSupport(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 0 as Team, kind, 25);
+      emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, kind, 25);
 
       expect(hook).toHaveBeenCalledOnce();
       const ev = hook.mock.calls[0]?.[0];
@@ -114,11 +115,11 @@ describe('emitSupport', () => {
     const hook = vi.fn();
     const unsub = onSupportEffect(hook);
 
-    emitSupport(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 0 as Team, 'heal', 10);
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'heal', 10);
     expect(hook).toHaveBeenCalledOnce();
 
     unsub();
-    emitSupport(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 0 as Team, 'heal', 10);
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'heal', 10);
     expect(hook).toHaveBeenCalledOnce();
   });
 
@@ -128,7 +129,7 @@ describe('emitSupport', () => {
 
     _resetSupportHooks();
 
-    emitSupport(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 0 as Team, 'heal', 10);
+    emitSupport(asType(0), 0 as Team, asType(1), 0 as Team, 'heal', 10);
     expect(hook).not.toHaveBeenCalled();
   });
 });
@@ -143,7 +144,7 @@ describe('再入安全性', () => {
     onDamageUnit((e) => {
       if (e.kind === 'beam') {
         // 外側イベント → 内側 emitDamage を再入発火
-        emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 99, 'chain');
+        emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 99, 'chain');
         // 再入から戻った後も外側の値が保持されていること
         outerValues.push({ kind: e.kind, amount: e.amount });
       } else {
@@ -151,7 +152,7 @@ describe('再入安全性', () => {
       }
     });
 
-    emitDamage(0 as UnitTypeIndex, 0 as Team, 1 as UnitTypeIndex, 1 as Team, 50, 'beam');
+    emitDamage(asType(0), 0 as Team, asType(1), 1 as Team, 50, 'beam');
 
     expect(outerValues).toEqual([{ kind: 'beam', amount: 50 }]);
     expect(innerValues).toEqual([{ kind: 'chain', amount: 99 }]);
