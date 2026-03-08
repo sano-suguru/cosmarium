@@ -5,9 +5,7 @@
  * フック内でイベントの参照を保持してはならない。値が必要な場合は即座にコピーすること。
  */
 
-import { unit } from '../pools.ts';
-import type { Team, UnitIndex } from '../types.ts';
-import { NO_UNIT } from '../types.ts';
+import type { Team } from '../types.ts';
 
 type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect';
 type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
@@ -23,14 +21,19 @@ interface DamageEvent {
   kind: DamageKind;
 }
 
-const _pooledDmgEvent: DamageEvent = {
-  attackerType: 0,
-  attackerTeam: 0 as Team,
-  victimType: 0,
-  victimTeam: 0 as Team,
-  amount: 0,
-  kind: 'direct',
-};
+const _DMG_MAX_DEPTH = 4;
+const _dmgStack: DamageEvent[] = Array.from(
+  { length: _DMG_MAX_DEPTH },
+  (): DamageEvent => ({
+    attackerType: 0,
+    attackerTeam: 0 as Team,
+    victimType: 0,
+    victimTeam: 0 as Team,
+    amount: 0,
+    kind: 'direct',
+  }),
+);
+let _dmgDepth = 0;
 
 type DamageHook = (e: Readonly<DamageEvent>) => void;
 const damageHooks: DamageHook[] = [];
@@ -58,39 +61,23 @@ export function emitDamage(
   if (damageHooks.length === 0) {
     return;
   }
-  _pooledDmgEvent.attackerType = attackerType;
-  _pooledDmgEvent.attackerTeam = attackerTeam;
-  _pooledDmgEvent.victimType = victimType;
-  _pooledDmgEvent.victimTeam = victimTeam;
-  _pooledDmgEvent.amount = amount;
-  _pooledDmgEvent.kind = kind;
+  const d = _dmgDepth++;
+  const ev = _dmgStack[d % _DMG_MAX_DEPTH] as DamageEvent;
+  ev.attackerType = attackerType;
+  ev.attackerTeam = attackerTeam;
+  ev.victimType = victimType;
+  ev.victimTeam = victimTeam;
+  ev.amount = amount;
+  ev.kind = kind;
   for (const h of damageHooks) {
-    h(_pooledDmgEvent);
+    h(ev);
   }
+  _dmgDepth--;
 }
 
 export function _resetDamageHooks(): void {
   damageHooks.length = 0;
-}
-
-/**
- * sourceUnit が NO_UNIT でなく alive であれば emitDamage を発火する共通ヘルパー。
- * emitTetherDamage / emitProjectileDamage の重複パターンを統合。
- */
-export function emitDamageFrom(
-  sourceIndex: UnitIndex,
-  victimType: number,
-  victimTeam: Team,
-  amount: number,
-  kind: DamageKind,
-): void {
-  if (sourceIndex === NO_UNIT) {
-    return;
-  }
-  const src = unit(sourceIndex);
-  if (src.alive) {
-    emitDamage(src.type, src.team, victimType, victimTeam, amount, kind);
-  }
+  _dmgDepth = 0;
 }
 
 // ─── Support Hook ────────────────────────────────────────────────
@@ -104,14 +91,19 @@ interface SupportEvent {
   amount: number;
 }
 
-const _pooledSupEvent: SupportEvent = {
-  casterType: 0,
-  casterTeam: 0 as Team,
-  targetType: 0,
-  targetTeam: 0 as Team,
-  kind: 'heal',
-  amount: 0,
-};
+const _SUP_MAX_DEPTH = 4;
+const _supStack: SupportEvent[] = Array.from(
+  { length: _SUP_MAX_DEPTH },
+  (): SupportEvent => ({
+    casterType: 0,
+    casterTeam: 0 as Team,
+    targetType: 0,
+    targetTeam: 0 as Team,
+    kind: 'heal',
+    amount: 0,
+  }),
+);
+let _supDepth = 0;
 
 type SupportHook = (e: Readonly<SupportEvent>) => void;
 const supportHooks: SupportHook[] = [];
@@ -137,17 +129,21 @@ export function emitSupport(
   if (supportHooks.length === 0) {
     return;
   }
-  _pooledSupEvent.casterType = casterType;
-  _pooledSupEvent.casterTeam = casterTeam;
-  _pooledSupEvent.targetType = targetType;
-  _pooledSupEvent.targetTeam = targetTeam;
-  _pooledSupEvent.kind = kind;
-  _pooledSupEvent.amount = amount;
+  const d = _supDepth++;
+  const ev = _supStack[d % _SUP_MAX_DEPTH] as SupportEvent;
+  ev.casterType = casterType;
+  ev.casterTeam = casterTeam;
+  ev.targetType = targetType;
+  ev.targetTeam = targetTeam;
+  ev.kind = kind;
+  ev.amount = amount;
   for (const h of supportHooks) {
-    h(_pooledSupEvent);
+    h(ev);
   }
+  _supDepth--;
 }
 
 export function _resetSupportHooks(): void {
   supportHooks.length = 0;
+  _supDepth = 0;
 }

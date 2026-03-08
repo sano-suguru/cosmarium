@@ -59,16 +59,19 @@ import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, sp
 
 // ─── Snapshot Collection ──────────────────────────────────────────
 
+const _posBuf: number[] = [];
+
+/** 座標を再利用バッファに収集。返り値は次の呼び出しまで有効 */
 function collectPositions(activeTeams: number): number[] {
-  const positions: number[] = [];
+  _posBuf.length = 0;
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);
     if (u.alive && u.team < activeTeams) {
-      positions.push(u.x, u.y);
+      _posBuf.push(u.x, u.y);
     }
   }
-  return positions;
+  return _posBuf;
 }
 
 function collectTeamCounts(activeTeams: number): Int32Array {

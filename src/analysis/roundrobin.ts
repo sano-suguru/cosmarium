@@ -17,7 +17,7 @@ import { typeName } from './batch-types.ts';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-interface MatchupResult {
+export interface MatchupResult {
   readonly typeA: number;
   readonly typeB: number;
   readonly nameA: string;
@@ -28,7 +28,7 @@ interface MatchupResult {
   readonly trials: number;
 }
 
-interface RoundRobinRanking {
+export interface RoundRobinRanking {
   readonly typeIndex: number;
   readonly name: string;
   readonly totalWins: number;
@@ -40,7 +40,7 @@ interface RoundRobinRanking {
   readonly weakAgainst: readonly string[];
 }
 
-interface RoundRobinSummary {
+export interface RoundRobinSummary {
   readonly budget: number;
   readonly trialsPerMatchup: number;
   readonly seed: number;
@@ -48,7 +48,7 @@ interface RoundRobinSummary {
   readonly rankings: readonly RoundRobinRanking[];
 }
 
-interface RoundRobinConfig {
+export interface RoundRobinConfig {
   readonly budget: number;
   readonly trials: number;
   readonly seed: number;

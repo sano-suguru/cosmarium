@@ -322,7 +322,7 @@ export function spawnProjectile(
       p.aoe = aoe;
       p.target = target;
       p.sourceUnit = sourceUnit;
-      p.sourceType = sourceUnit !== NO_UNIT ? unit(sourceUnit).type : NO_SOURCE_TYPE;
+      p.sourceType = sourceUnit !== NO_UNIT && unit(sourceUnit).alive ? unit(sourceUnit).type : NO_SOURCE_TYPE;
       advanceProjectileHWM(i);
       incProjectiles();
       return i as ProjectileIndex;

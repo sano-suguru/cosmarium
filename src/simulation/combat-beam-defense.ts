@@ -5,7 +5,7 @@ import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { destroyUnit } from './effects.ts';
-import { emitDamage, emitDamageFrom } from './hooks.ts';
+import { emitDamage } from './hooks.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
 import { addBeam, spawnParticle } from './spawn.ts';
@@ -144,7 +144,10 @@ export function applyTetherAbsorb(
       src.hp -= bastionDmg;
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
-      emitDamageFrom(killerIndex, src.type, src.team, bastionDmg, 'direct');
+      const killer = killerIndex !== NO_UNIT ? unit(killerIndex) : undefined;
+      if (killer?.alive) {
+        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, 'direct');
+      }
       if (src.hp <= 0) {
         destroyUnit(n.shieldSourceUnit, killerIndex, rng, KILL_CONTEXT.Beam);
         n.shieldSourceUnit = NO_UNIT;
