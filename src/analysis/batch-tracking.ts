@@ -167,6 +167,35 @@ export function installKillContextHook(tracker: KillContextTracker): () => void 
   });
 }
 
+/** 全トラッカーを一括生成・フック登録し、まとめて解除できるオブジェクトを返す */
+export function installAllTrackers(getCurrentTime: () => number) {
+  const kill = createKillTracker();
+  const unsubKill = installKillHook(kill);
+  const damage = createDamageTracker();
+  const unsubDmg = installDamageHook(damage);
+  const support = createSupportTracker();
+  const unsubSup = installSupportHook(support);
+  const sequence = createKillSequenceTracker();
+  const unsubSeq = installKillSequenceHook(sequence);
+  const lifespan = createLifespanTracker();
+  const unsubLifespanSpawn = installLifespanSpawnHook(lifespan, getCurrentTime);
+  const unsubLifespanKill = installLifespanKillHook(lifespan, getCurrentTime);
+  const killContext = createKillContextTracker();
+  const unsubCtx = installKillContextHook(killContext);
+
+  function unsubscribeAll() {
+    unsubKill();
+    unsubDmg();
+    unsubSup();
+    unsubSeq();
+    unsubLifespanSpawn();
+    unsubLifespanKill();
+    unsubCtx();
+  }
+
+  return { kill, damage, support, sequence, lifespan, killContext, unsubscribeAll };
+}
+
 // ─── Cross-Trial Aggregation ────────────────────────────────────
 
 export function aggregateLifespan(trials: readonly TrialResult[]): Map<number, number> {

@@ -32,22 +32,7 @@ import type { FleetComposition, Team, UnitTypeIndex } from '../types.ts';
 import { findTypeIndex, TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
 import { computeSummary } from './batch-summary.ts';
-import {
-  collectUnitStats,
-  createDamageTracker,
-  createKillContextTracker,
-  createKillSequenceTracker,
-  createKillTracker,
-  createLifespanTracker,
-  createSupportTracker,
-  installDamageHook,
-  installKillContextHook,
-  installKillHook,
-  installKillSequenceHook,
-  installLifespanKillHook,
-  installLifespanSpawnHook,
-  installSupportHook,
-} from './batch-tracking.ts';
+import { collectUnitStats, installAllTrackers } from './batch-tracking.ts';
 import type { BatchConfig, BatchSummary, KillTracker, TrialResult, TrialSnapshot } from './batch-types.ts';
 import type { BattleStateSnapshot } from './entropy.ts';
 import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } from './entropy.ts';
@@ -179,20 +164,8 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const rng = config.createRng(trialSeed);
 
   // フック登録を setupFleets より先に行い、初期ユニットの spawn もフック経由で lifespan 登録する
-  const tracker = createKillTracker();
-  const unsubKill = installKillHook(tracker);
-  const dmgTracker = createDamageTracker();
-  const unsubDmg = installDamageHook(dmgTracker);
-  const supTracker = createSupportTracker();
-  const unsubSup = installSupportHook(supTracker);
-  const seqTracker = createKillSequenceTracker();
-  const unsubSeq = installKillSequenceHook(seqTracker);
-  const lifespanTracker = createLifespanTracker();
   let currentTime = 0;
-  const unsubLifespanSpawn = installLifespanSpawnHook(lifespanTracker, () => currentTime);
-  const unsubLifespanKill = installLifespanKillHook(lifespanTracker, () => currentTime);
-  const ctxTracker = createKillContextTracker();
-  const unsubCtx = installKillContextHook(ctxTracker);
+  const trackers = installAllTrackers(() => currentTime);
 
   // setupFleets はプール状態を初期化するため、呼び出し前のプール状態は破棄される
   // spawnUnit 内でフックが発火し、初期ユニットの spawnTimes が自動登録される
@@ -211,23 +184,17 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
       const result = stepOnce(SIM_DT, now, rng, gs);
 
       if (step % config.snapshotInterval === 0) {
-        snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
+        snapshots.push(takeSnapshot(step, now, activeTeams, trackers.kill));
       }
 
       if (result !== null) {
         winner = result;
-        snapshots.push(takeSnapshot(step, now, activeTeams, tracker));
+        snapshots.push(takeSnapshot(step, now, activeTeams, trackers.kill));
         break;
       }
     }
   } finally {
-    unsubKill();
-    unsubDmg();
-    unsubSup();
-    unsubSeq();
-    unsubLifespanSpawn();
-    unsubLifespanKill();
-    unsubCtx();
+    trackers.unsubscribeAll();
   }
 
   const survivorsByType = countSurvivorsByType(activeTeams);
@@ -249,18 +216,18 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     fleetCompositions,
     snapshots,
     complexity: battleComplexity(battleSnapshots),
-    unitStats: collectUnitStats(spawnedByType, survivorsByType, tracker),
-    killMatrix: { data: tracker.killMatrix, size },
-    damageStats: { dealtByType: dmgTracker.dealtByType, receivedByType: dmgTracker.receivedByType },
+    unitStats: collectUnitStats(spawnedByType, survivorsByType, trackers.kill),
+    killMatrix: { data: trackers.kill.killMatrix, size },
+    damageStats: { dealtByType: trackers.damage.dealtByType, receivedByType: trackers.damage.receivedByType },
     supportStats: {
-      healingByType: supTracker.healingByType,
-      ampApplications: supTracker.ampApplications,
-      scrambleApplications: supTracker.scrambleApplications,
-      catalystApplications: supTracker.catalystApplications,
+      healingByType: trackers.support.healingByType,
+      ampApplications: trackers.support.ampApplications,
+      scrambleApplications: trackers.support.scrambleApplications,
+      catalystApplications: trackers.support.catalystApplications,
     },
-    killSequenceEntropy: ngramEntropy(seqTracker.sequence, 2),
-    killContextStats: { contextCounts: ctxTracker.contextCounts },
-    lifespanStats: { totalLifespan: lifespanTracker.totalLifespan },
+    killSequenceEntropy: ngramEntropy(trackers.sequence.sequence, 2),
+    killContextStats: { contextCounts: trackers.killContext.contextCounts },
+    lifespanStats: { totalLifespan: trackers.lifespan.totalLifespan },
   };
 }
 
@@ -300,7 +267,11 @@ function parseFleetArg(value: string): FleetComposition {
     if (typeIdx === undefined) {
       continue;
     }
-    entries.push({ type: typeIdx, count: Number.parseInt(countStr, 10) });
+    const count = Number.parseInt(countStr, 10);
+    if (Number.isNaN(count)) {
+      continue;
+    }
+    entries.push({ type: typeIdx, count });
   }
   return entries;
 }
@@ -373,6 +344,6 @@ if (import.meta.main) {
         process.exitCode = 1;
       });
   } else {
-    console.error(formatSummary(summary));
+    process.stdout.write(`${formatSummary(summary)}\n`);
   }
 }
