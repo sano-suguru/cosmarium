@@ -155,6 +155,9 @@ function buildUnitSummaryEntry(
   const pw = presenceWins.get(typeIdx);
   const presenceTotal = pw?.total ?? 0;
   const presenceWinCount = pw?.wins ?? 0;
+  // 各battle試合は2チーム参加・勝者は最大1チーム。
+  // absenceTotal = 全「チーム×試合」数 - この型が存在した回数 = 不在チーム×試合の数。
+  // absenceWinCount = 全勝利数(=試合数) - この型を含むチームの勝利数 = 不在チームの勝利数。
   const absenceTotal = totalBattleTrials * 2 - presenceTotal;
   const absenceWinCount = totalBattleTrials - presenceWinCount;
   const cost = typeInfo?.cost ?? 0;

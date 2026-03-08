@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
@@ -29,6 +29,7 @@ function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
 afterEach(() => {
   resetPools();
   resetState();
+  vi.restoreAllMocks();
 });
 
 describe('runBatch', () => {

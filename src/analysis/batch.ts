@@ -104,11 +104,9 @@ function countSpawnedAndRegister(activeTeams: number, lifespanTracker: LifespanT
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);
-    if (u.team < activeTeams) {
+    if (u.alive && u.team < activeTeams) {
       counts[u.type] = (counts[u.type] ?? 0) + 1;
-      if (u.alive) {
-        lifespanTracker.spawnTimes.set(i, 0);
-      }
+      lifespanTracker.spawnTimes.set(i, 0);
     }
   }
   return counts;

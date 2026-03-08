@@ -57,6 +57,7 @@ export function reflectProjectile(
   p.vx = (rvx * cs - rvy * sn) * REFLECT_SPEED_MULT;
   p.vy = (rvx * sn + rvy * cs) * REFLECT_SPEED_MULT;
   p.life = REFLECT_LIFE;
+  // 反射弾は反射ユニットのチームに帰属する（分析統計でもReflectorのダメージとして計上）
   p.team = team;
   p.r = c[0];
   p.g = c[1];

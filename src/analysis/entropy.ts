@@ -32,7 +32,12 @@ export function shannonEntropy(counts: readonly number[]): number {
  * k ≤ 1 の場合は 0 を返す（多様性なし）。
  */
 export function normalizedEntropy(counts: readonly number[]): number {
-  const nonZero = counts.filter((c) => c > 0).length;
+  let nonZero = 0;
+  for (const c of counts) {
+    if (c > 0) {
+      nonZero++;
+    }
+  }
   if (nonZero <= 1) {
     return 0;
   }
@@ -161,6 +166,11 @@ function findInHistory(sequence: readonly number[], start: number, len: number):
  * 空間分布のスナップショット等、連続データ向け。
  *
  * 戻り値: 圧縮後サイズ / 元サイズ（0～1。低い → 繰り返しが多い）
+ *
+ * @param precision 量子化スケール。`Math.round(v * precision)` で離散化する。
+ *   - `1`（デフォルト）: 整数丸め。整数列やインデックス列向け。
+ *   - `0.1`: 小数点第1位まで保持。座標差分など浮動小数点データ向け。
+ *   - `100`: 小数点第2位まで保持（百分率等）。
  */
 export function rleCompressionRatio(data: readonly number[], precision: number = 1): number {
   if (data.length === 0) {

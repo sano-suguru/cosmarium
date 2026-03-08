@@ -35,6 +35,14 @@ const _dmgStack: DamageEvent[] = Array.from(
 );
 let _dmgDepth = 0;
 
+function _stackAt<T>(stack: T[], d: number): T {
+  const e = stack[d];
+  if (!e) {
+    throw new Error('Event stack overflow');
+  }
+  return e;
+}
+
 type DamageHook = (e: Readonly<DamageEvent>) => void;
 const damageHooks: DamageHook[] = [];
 
@@ -62,7 +70,7 @@ export function emitDamage(
     return;
   }
   const d = _dmgDepth++;
-  const ev = _dmgStack[d % _DMG_MAX_DEPTH] as DamageEvent;
+  const ev = _stackAt(_dmgStack, d);
   ev.attackerType = attackerType;
   ev.attackerTeam = attackerTeam;
   ev.victimType = victimType;
@@ -130,7 +138,7 @@ export function emitSupport(
     return;
   }
   const d = _supDepth++;
-  const ev = _supStack[d % _SUP_MAX_DEPTH] as SupportEvent;
+  const ev = _stackAt(_supStack, d);
   ev.casterType = casterType;
   ev.casterTeam = casterTeam;
   ev.targetType = targetType;

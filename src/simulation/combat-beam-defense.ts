@@ -144,8 +144,8 @@ export function applyTetherAbsorb(
       src.hp -= bastionDmg;
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
-      const killer = killerIndex !== NO_UNIT ? unit(killerIndex) : undefined;
-      if (killer?.alive) {
+      if (killerIndex !== NO_UNIT) {
+        const killer = unit(killerIndex);
         emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, 'direct');
       }
       if (src.hp <= 0) {
