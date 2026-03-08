@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe('combat — LANCER', () => {
-  it('衝突時に敵にダメージ (mass×3×vd) + 自傷 (敵mass×2)', () => {
+  it('衝突時に敵にダメージ (mass×2.5×vd) + 自傷 (敵mass×2)', () => {
     const lancerType = unitType(LANCER_TYPE);
     const fighterType = unitType(FIGHTER_TYPE);
     const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
@@ -51,7 +51,7 @@ describe('combat — LANCER', () => {
     const enemyHpBefore = unit(enemy).hp;
     combat(unit(lancer), lancer, 0.016, 0, rng);
     // size合計 > distance=5 → 衝突, vet=0 → vd=1
-    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 3 * 1));
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 2.5 * 1));
     expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass * 2));
   });
 
@@ -92,8 +92,8 @@ describe('combat — LANCER', () => {
     const enemyHpBefore = unit(enemy).hp;
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
-    // ramDmg = ceil(12 * 3 * 1 * 0.5) = 18
-    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 3 * 1 * 0.5));
+    // ramDmg = ceil(12 * 2.5 * 1 * 0.5) = 15
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 2.5 * 1 * 0.5));
   });
 
   it('reflectFieldHp が ramDmg 分減少', () => {
@@ -102,7 +102,7 @@ describe('combat — LANCER', () => {
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
-    const ramDmg = Math.ceil(12 * 3 * 1 * 0.5);
+    const ramDmg = Math.ceil(12 * 2.5 * 1 * 0.5);
     expect(unit(enemy).reflectFieldHp).toBe(Math.max(0, REFLECT_FIELD_MAX_HP - ramDmg));
   });
 
@@ -125,8 +125,8 @@ describe('combat — LANCER', () => {
     const lancerHpBefore = unit(lancer).hp;
     buildHash();
     combat(unit(lancer), lancer, 0.016, 0, rng);
-    // ramDmg = ceil(12 * 3 * 1) = 36 (フルダメージ)
-    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 3 * 1));
+    // ramDmg = ceil(12 * 2.5 * 1) = 30 (フルダメージ)
+    expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 2.5 * 1));
     // selfDmg = ceil(3 * 2 * 1) = 6 (通常)
     expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(3 * 2 * 1));
   });

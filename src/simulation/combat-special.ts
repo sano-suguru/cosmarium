@@ -53,7 +53,7 @@ function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitT
   const kind = 'ram';
   const hasField = o.reflectFieldHp > 0;
   const fieldMul = hasField ? 0.5 : 1;
-  const ramDmg = Math.ceil(u.mass * 3 * vd * fieldMul);
+  const ramDmg = Math.ceil(u.mass * 2.5 * vd * fieldMul);
   o.hp -= ramDmg;
   emitDamage(u.type, u.team, o.type, o.team, ramDmg, kind);
   if (hasField) {

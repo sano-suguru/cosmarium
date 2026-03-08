@@ -270,7 +270,7 @@ interface PendingChain {
 const pendingChains: PendingChain[] = [];
 const CHAIN_HOP_DELAY = 0.06;
 const CHAIN_SEARCH_RANGE = 200;
-export const CHAIN_DAMAGE_DECAY = 0.12;
+export const CHAIN_DAMAGE_DECAY = 0.18;
 
 export function resetChains() {
   pendingChains.length = 0;
