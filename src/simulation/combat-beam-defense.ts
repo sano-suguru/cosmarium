@@ -6,7 +6,7 @@ import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
 import { addBeam, spawnParticle } from './spawn.ts';
 
@@ -64,11 +64,12 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   addBeam(n.x, n.y, attacker.x, attacker.y, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.08, 3);
   spawnParticle(n.x, n.y, 0, 0, 0.15, 12, c[0], c[1], c[2], SH_EXPLOSION_RING);
 
+  const kind = 'reflect';
   const reflectDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
   attacker.hp -= reflectDmg;
   attacker.hitFlash = 1;
   knockback(killerIndex, n.x, n.y, reflectDmg * 5);
-  emitDamage(n.type, n.team, attacker.type, attacker.team, reflectDmg, 'reflect');
+  emitDamage(n.type, n.team, attacker.type, attacker.team, reflectDmg, kind);
 
   for (let j = 0; j < 4; j++) {
     spawnParticle(
@@ -86,7 +87,7 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   }
 
   if (attacker.hp <= 0) {
-    destroyUnit(killerIndex, ni, rng, KILL_CONTEXT.Beam);
+    destroyUnit(killerIndex, ni, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
   }
 }
 
@@ -144,12 +145,13 @@ export function applyTetherAbsorb(
       src.hp -= bastionDmg;
       src.hitFlash = 1;
       tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
+      const tetherKind = 'tether';
       if (killerIndex !== NO_UNIT) {
         const killer = unit(killerIndex);
-        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, 'tether');
+        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, tetherKind);
       }
       if (src.hp <= 0) {
-        destroyUnit(n.shieldSourceUnit, killerIndex, rng, KILL_CONTEXT.Beam);
+        destroyUnit(n.shieldSourceUnit, killerIndex, rng, DAMAGE_KIND_TO_KILL_CONTEXT[tetherKind]);
         n.shieldSourceUnit = NO_UNIT;
       }
       return dmg * (1 - BASTION_ABSORB_RATIO);

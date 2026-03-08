@@ -8,7 +8,7 @@ import { aimAt, tgtDistOrClear } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
 import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
 import { emitDamage, emitSupport } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, captureKiller, spawnParticle, spawnProjectile, spawnUnit } from './spawn.ts';
 
@@ -50,11 +50,12 @@ function ramCollisionSparks(x: number, y: number, rng: () => number) {
 
 function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitType) {
   const { u, ui, vd } = ctx;
+  const kind = 'ram';
   const hasField = o.reflectFieldHp > 0;
   const fieldMul = hasField ? 0.5 : 1;
   const ramDmg = Math.ceil(u.mass * 3 * vd * fieldMul);
   o.hp -= ramDmg;
-  emitDamage(u.type, u.team, o.type, o.team, ramDmg, 'ram');
+  emitDamage(u.type, u.team, o.type, o.team, ramDmg, kind);
   if (hasField) {
     o.reflectFieldHp = Math.max(0, o.reflectFieldHp - ramDmg);
   }
@@ -62,16 +63,17 @@ function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitT
   knockback(oi, u.x, u.y, u.mass * 55);
   const selfDmg = Math.ceil(oType.mass * 2 * (hasField ? 1.5 : 1));
   u.hp -= selfDmg;
-  emitDamage(o.type, o.team, u.type, u.team, selfDmg, 'ram');
+  emitDamage(o.type, o.team, u.type, u.team, selfDmg, kind);
   ramCollisionSparks((u.x + o.x) / 2, (u.y + o.y) / 2, ctx.rng);
+  const killCtx = DAMAGE_KIND_TO_KILL_CONTEXT[kind];
   if (o.hp <= 0 && u.hp <= 0) {
-    destroyMutualKill(ui, oi, true, true, ctx.rng, KILL_CONTEXT.Ram);
+    destroyMutualKill(ui, oi, true, true, ctx.rng, killCtx);
     return true;
   }
   if (o.hp <= 0) {
-    destroyUnit(oi, ui, ctx.rng, KILL_CONTEXT.Ram);
+    destroyUnit(oi, ui, ctx.rng, killCtx);
   } else if (u.hp <= 0) {
-    destroyUnit(ui, oi, ctx.rng, KILL_CONTEXT.Ram);
+    destroyUnit(ui, oi, ctx.rng, killCtx);
     return true;
   }
   return false;
@@ -161,12 +163,13 @@ export function dischargeEmp(ctx: CombatContext) {
       continue;
     }
     if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
+      const empKind = 'emp';
       oo.stun = 1.5;
       oo.hp -= t.damage;
       oo.hitFlash = 1;
-      emitDamage(u.type, u.team, oo.type, oo.team, t.damage, 'emp');
+      emitDamage(u.type, u.team, oo.type, oo.team, t.damage, empKind);
       if (oo.hp <= 0) {
-        destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.Beam);
+        destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[empKind]);
       }
     }
   }

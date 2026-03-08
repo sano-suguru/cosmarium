@@ -6,7 +6,7 @@ import { applyBeamDefenses } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import { addBeam, onKillUnitPermanent, spawnParticle } from './spawn.ts';
 
@@ -56,8 +56,9 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: CombatContext['u'],
   const { u, c } = ctx;
   n.hp -= dmg;
   n.hitFlash = 1;
+  const kind = 'sweep';
   knockback(ni, u.x, u.y, dmg * 3);
-  emitDamage(u.type, u.team, n.type, n.team, dmg, 'sweep');
+  emitDamage(u.type, u.team, n.type, n.team, dmg, kind);
   spawnParticle(
     n.x + (ctx.rng() - 0.5) * 8,
     n.y + (ctx.rng() - 0.5) * 8,
@@ -71,7 +72,7 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: CombatContext['u'],
     SH_CIRCLE,
   );
   if (n.hp <= 0) {
-    destroyUnit(ni, ctx.ui, ctx.rng, KILL_CONTEXT.SweepBeam);
+    destroyUnit(ni, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
   }
 }
 

@@ -5,7 +5,7 @@ import { applyBeamDefenses } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
 import { addBeam, spawnParticle } from './spawn.ts';
 
@@ -37,11 +37,12 @@ export function focusBeam(ctx: CombatContext) {
     if (!u.alive) {
       return;
     }
+    const kind = 'beam';
     if (dmg >= 0) {
       o.hp -= dmg;
       o.hitFlash = 1;
       knockback(u.target, u.x, u.y, dmg * 5);
-      emitDamage(u.type, u.team, o.type, o.team, dmg, 'beam');
+      emitDamage(u.type, u.team, o.type, o.team, dmg, kind);
     }
     const pCount = 1 + Math.floor(u.beamOn * 2);
     const pSize = 2 + u.beamOn * 0.5;
@@ -61,7 +62,7 @@ export function focusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
-      destroyUnit(u.target, ui, ctx.rng, KILL_CONTEXT.Beam);
+      destroyUnit(u.target, ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
       u.beamOn = 0;
     }
   }

@@ -9,7 +9,7 @@ import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT
 import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
 
@@ -67,10 +67,11 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
       o.hp -= aoeDmg;
       o.hitFlash = 1;
-      emitProjectileDamage(p, o.type, o.team, aoeDmg, 'aoe');
+      const aoeKind = 'aoe';
+      emitProjectileDamage(p, o.type, o.team, aoeDmg, aoeKind);
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
-        destroyUnit(oi, p.sourceUnit, rng, KILL_CONTEXT.ProjectileAoe);
+        destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind]);
       }
     }
   }
@@ -95,7 +96,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
 }
 
 function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
-  destroyUnit(oi, sourceUnit, rng, KILL_CONTEXT.ProjectileDirect);
+  destroyUnit(oi, sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT.direct);
 }
 function tryReflectField(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number): boolean {
   if (o.reflectFieldHp <= 0) {

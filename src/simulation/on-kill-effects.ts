@@ -2,19 +2,10 @@ import { unit } from '../pools.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-types.ts';
+import type { DamageKind } from './hooks.ts';
 
 const BLINK_KILL_CD = 0.8;
 
-/**
- * キル時副作用判定用の粗粒度分類（6値）。
- * DamageKind（hooks.ts）とは多対一の対応:
- *   ProjectileDirect ← 'direct'
- *   ProjectileAoe    ← 'aoe'
- *   Beam             ← 'beam','emp','reflect','tether'
- *   Ram              ← 'ram'
- *   ChainLightning   ← 'chain'
- *   SweepBeam        ← 'sweep'
- */
 export const KILL_CONTEXT = {
   ProjectileDirect: 0,
   ProjectileAoe: 1,
@@ -27,6 +18,18 @@ export const KILL_CONTEXT = {
 export type KillContext = (typeof KILL_CONTEXT)[keyof typeof KILL_CONTEXT];
 
 export const KILL_CONTEXT_COUNT = Object.keys(KILL_CONTEXT).length;
+
+export const DAMAGE_KIND_TO_KILL_CONTEXT: Record<DamageKind, KillContext> = {
+  direct: KILL_CONTEXT.ProjectileDirect,
+  aoe: KILL_CONTEXT.ProjectileAoe,
+  beam: KILL_CONTEXT.Beam,
+  emp: KILL_CONTEXT.Beam,
+  reflect: KILL_CONTEXT.Beam,
+  tether: KILL_CONTEXT.Beam,
+  ram: KILL_CONTEXT.Ram,
+  chain: KILL_CONTEXT.ChainLightning,
+  sweep: KILL_CONTEXT.SweepBeam,
+};
 
 /** 各 KillContext に対応する日本語ラベル。キーの過不足はコンパイルエラーで検出される */
 const KILL_CONTEXT_LABELS: { readonly [K in keyof typeof KILL_CONTEXT]: string } = {

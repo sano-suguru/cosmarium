@@ -9,7 +9,7 @@ import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
 import { emitDamage } from './hooks.ts';
 import type { KillContext } from './on-kill-effects.ts';
-import { applyOnKillEffects, KILL_CONTEXT } from './on-kill-effects.ts';
+import { applyOnKillEffects, DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, killUnit, spawnParticle } from './spawn.ts';
@@ -357,9 +357,10 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     o.hp -= hop.damage;
     o.hitFlash = 1;
     knockback(hop.targetIndex, fx, fy, hop.damage * 8);
-    emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, hop.damage, 'chain');
+    const kind = 'chain';
+    emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, hop.damage, kind);
     if (o.hp <= 0) {
-      destroyUnit(hop.targetIndex, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
+      destroyUnit(hop.targetIndex, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
     }
   }
 }
@@ -402,9 +403,10 @@ function applyChainHit(
   o.hp -= dd;
   o.hitFlash = 1;
   knockback(bi, cx, cy, dd * 8);
-  emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, dd, 'chain');
+  const chainKind = 'chain';
+  emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, dd, chainKind);
   if (o.hp <= 0) {
-    destroyUnit(bi, sourceKiller, rng, KILL_CONTEXT.ChainLightning);
+    destroyUnit(bi, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[chainKind]);
   }
   return { hx, hy };
 }

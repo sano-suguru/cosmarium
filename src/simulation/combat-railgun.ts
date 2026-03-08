@@ -7,7 +7,7 @@ import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT
 import type { CombatContext } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
-import { KILL_CONTEXT } from './on-kill-effects.ts';
+import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import { addBeam, spawnParticle } from './spawn.ts';
 
@@ -111,10 +111,11 @@ function applyRailgunHits(
     actualDmg = absorbByBastionShield(o, actualDmg);
     o.hp -= actualDmg;
     o.hitFlash = 1;
+    const kind = 'direct';
     knockback(oi, ox + dx * hit.dist, oy + dy * hit.dist, dmg * 12);
-    emitDamage(ctx.u.type, ctx.u.team, o.type, o.team, actualDmg, 'direct');
+    emitDamage(ctx.u.type, ctx.u.team, o.type, o.team, actualDmg, kind);
     if (o.hp <= 0) {
-      destroyUnit(oi, ctx.ui, ctx.rng, KILL_CONTEXT.ProjectileDirect);
+      destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
     }
 
     railgunHitFx(o.x, o.y, ang, ctx.c, ctx.rng);
