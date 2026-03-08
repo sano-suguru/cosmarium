@@ -6,6 +6,7 @@
  */
 
 import type { Team } from '../types.ts';
+import { stackAt, subscribe } from './hook-utils.ts';
 
 type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect';
 type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
@@ -35,27 +36,11 @@ const _dmgStack: DamageEvent[] = Array.from(
 );
 let _dmgDepth = 0;
 
-function _stackAt<T>(stack: T[], d: number): T {
-  const e = stack[d];
-  if (!e) {
-    throw new Error('Event stack overflow');
-  }
-  return e;
-}
-
 type DamageHook = (e: Readonly<DamageEvent>) => void;
 const damageHooks: DamageHook[] = [];
 
-type Unsubscribe = () => void;
-
-export function onDamageUnit(hook: DamageHook): Unsubscribe {
-  damageHooks.push(hook);
-  return () => {
-    const idx = damageHooks.indexOf(hook);
-    if (idx !== -1) {
-      damageHooks.splice(idx, 1);
-    }
-  };
+export function onDamageUnit(hook: DamageHook): () => void {
+  return subscribe(damageHooks, hook);
 }
 
 export function emitDamage(
@@ -70,7 +55,7 @@ export function emitDamage(
     return;
   }
   const d = _dmgDepth++;
-  const ev = _stackAt(_dmgStack, d);
+  const ev = stackAt(_dmgStack, d);
   ev.attackerType = attackerType;
   ev.attackerTeam = attackerTeam;
   ev.victimType = victimType;
@@ -116,14 +101,8 @@ let _supDepth = 0;
 type SupportHook = (e: Readonly<SupportEvent>) => void;
 const supportHooks: SupportHook[] = [];
 
-export function onSupportEffect(hook: SupportHook): Unsubscribe {
-  supportHooks.push(hook);
-  return () => {
-    const idx = supportHooks.indexOf(hook);
-    if (idx !== -1) {
-      supportHooks.splice(idx, 1);
-    }
-  };
+export function onSupportEffect(hook: SupportHook): () => void {
+  return subscribe(supportHooks, hook);
 }
 
 export function emitSupport(
@@ -138,7 +117,7 @@ export function emitSupport(
     return;
   }
   const d = _supDepth++;
-  const ev = _stackAt(_supStack, d);
+  const ev = stackAt(_supStack, d);
   ev.casterType = casterType;
   ev.casterTeam = casterTeam;
   ev.targetType = targetType;

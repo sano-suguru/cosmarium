@@ -5,6 +5,7 @@
 import { KILL_CONTEXT_LABEL_LIST } from '../simulation/on-kill-effects.ts';
 import { TYPES } from '../unit-types.ts';
 import type { BatchSummary, KillMatrix, SynergyPair, TrialResult, UnitTypeSummary } from './batch-types.ts';
+import { typeName } from './batch-types.ts';
 
 function winLabel(winner: number | 'draw' | null): string {
   if (winner === null) {
@@ -134,7 +135,7 @@ function typeNameOrDash(typeIdx: number | null): string {
   if (typeIdx === null) {
     return '-';
   }
-  return TYPES[typeIdx]?.name ?? '?';
+  return typeName(typeIdx);
 }
 
 function formatKillMatrix(matrix: KillMatrix, unitSummary: readonly UnitTypeSummary[]): string[] {

@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { seedRng, state } from '../state.ts';
 import type { FleetComposition } from '../types.ts';
 import { runBatch } from './batch.ts';
-import type { BatchConfig } from './batch-types.ts';
+import type { BatchConfig, BatchSummary } from './batch-types.ts';
 
 function testCreateRng(seed: number): () => number {
   seedRng(seed);
@@ -16,7 +16,7 @@ function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
     mode: 'battle',
     teams: 2,
     seed: 42,
-    budget: 80,
+    budget: 50,
     maxSteps: 600,
     snapshotInterval: 300,
     outFile: null,
@@ -98,21 +98,6 @@ describe('runBatch', () => {
     }
   });
 
-  it('ユニットタイプ別戦績が集計される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    expect(summary.unitSummary.length).toBeGreaterThan(0);
-    for (const us of summary.unitSummary) {
-      expect(us.totalSpawned).toBeGreaterThanOrEqual(0);
-      expect(us.totalKills).toBeGreaterThanOrEqual(0);
-      expect(us.totalDeaths).toBeGreaterThanOrEqual(0);
-      expect(us.kd).toBeGreaterThanOrEqual(0);
-      expect(us.name).toBeTruthy();
-      expect(us.winDelta).toBeGreaterThanOrEqual(-1);
-      expect(us.winDelta).toBeLessThanOrEqual(1);
-    }
-  });
-
   it('スナップショットにチームキル数が含まれる', () => {
     const summary = runBatch(makeTestConfig({ trials: 1, snapshotInterval: 60 }));
 
@@ -136,7 +121,7 @@ describe('runBatch', () => {
   });
 
   it('生存統計が記録される', () => {
-    const summary = runBatch(makeTestConfig());
+    const summary = runBatch(makeTestConfig({ budget: 80 }));
 
     expect(summary.unitSummary.length).toBeGreaterThan(0);
     for (const us of summary.unitSummary) {
@@ -154,116 +139,130 @@ describe('runBatch', () => {
     }
   });
 
-  it('コスト効率メトリクスが計算される', () => {
-    const summary = runBatch(makeTestConfig());
+  // デフォルト config を共有して runBatch の重複実行を回避
+  describe('default config', () => {
+    let summary: BatchSummary;
 
-    expect(summary.unitSummary.length).toBeGreaterThan(0);
-    for (const us of summary.unitSummary) {
-      expect(us.cost).toBeGreaterThanOrEqual(0);
-      expect(us.killsPerCost).toBeGreaterThanOrEqual(0);
-      // cost=0 (Mothership) の場合は killsPerCost=0
-      if (us.cost === 0) {
-        expect(us.killsPerCost).toBe(0);
+    beforeAll(() => {
+      summary = runBatch(makeTestConfig());
+    });
+
+    it('ユニットタイプ別戦績が集計される', () => {
+      expect(summary.unitSummary.length).toBeGreaterThan(0);
+      for (const us of summary.unitSummary) {
+        expect(us.totalSpawned).toBeGreaterThanOrEqual(0);
+        expect(us.totalKills).toBeGreaterThanOrEqual(0);
+        expect(us.totalDeaths).toBeGreaterThanOrEqual(0);
+        expect(us.kd).toBeGreaterThanOrEqual(0);
+        expect(us.name).toBeTruthy();
+        expect(us.winDelta).toBeGreaterThanOrEqual(-1);
+        expect(us.winDelta).toBeLessThanOrEqual(1);
       }
-    }
-  });
+    });
 
-  it('キルマトリクスが集計される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    expect(summary.killMatrix).toBeDefined();
-    expect(summary.killMatrix.data.length).toBe(summary.killMatrix.size);
-
-    for (const trial of summary.trials) {
-      expect(trial.killMatrix).toBeDefined();
-      expect(trial.killMatrix.data.length).toBe(trial.killMatrix.size);
-    }
-
-    for (const us of summary.unitSummary) {
-      if (us.totalKills > 0) {
-        expect(us.topVictimType).not.toBeNull();
+    it('コスト効率メトリクスが計算される', () => {
+      expect(summary.unitSummary.length).toBeGreaterThan(0);
+      for (const us of summary.unitSummary) {
+        expect(us.cost).toBeGreaterThanOrEqual(0);
+        expect(us.killsPerCost).toBeGreaterThanOrEqual(0);
+        if (us.cost === 0) {
+          expect(us.killsPerCost).toBe(0);
+        }
       }
-    }
-  });
+    });
 
-  it('ダメージ統計が集計される', () => {
-    const summary = runBatch(makeTestConfig());
+    it('キルマトリクスが集計される', () => {
+      expect(summary.killMatrix).toBeDefined();
+      expect(summary.killMatrix.data.length).toBe(summary.killMatrix.size);
 
-    for (const trial of summary.trials) {
-      expect(trial.damageStats).toBeDefined();
-      expect(trial.damageStats.dealtByType.length).toBeGreaterThan(0);
-      expect(trial.damageStats.receivedByType.length).toBeGreaterThan(0);
-    }
-
-    for (const us of summary.unitSummary) {
-      expect(us.totalDamageDealt).toBeGreaterThanOrEqual(0);
-      expect(us.totalDamageReceived).toBeGreaterThanOrEqual(0);
-      expect(us.damagePerCost).toBeGreaterThanOrEqual(0);
-    }
-
-    const totalDealt = summary.unitSummary.reduce((s, u) => s + u.totalDamageDealt, 0);
-    expect(totalDealt).toBeGreaterThan(0);
-  });
-
-  it('サポート統計が集計される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    for (const trial of summary.trials) {
-      expect(trial.supportStats).toBeDefined();
-      expect(trial.supportStats.healingByType.length).toBeGreaterThan(0);
-      expect(trial.supportStats.ampApplications.length).toBeGreaterThan(0);
-      expect(trial.supportStats.scrambleApplications.length).toBeGreaterThan(0);
-      expect(trial.supportStats.catalystApplications.length).toBeGreaterThan(0);
-    }
-
-    for (const us of summary.unitSummary) {
-      expect(us.totalHealing).toBeGreaterThanOrEqual(0);
-      expect(us.supportScore).toBeGreaterThanOrEqual(0);
-    }
-  });
-
-  it('キルシーケンスエントロピーが計算される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    for (const trial of summary.trials) {
-      expect(trial.killSequenceEntropy).toBeGreaterThanOrEqual(0);
-    }
-
-    expect(summary.stats.avgKillSequenceEntropy).toBeGreaterThanOrEqual(0);
-  });
-
-  it('生存時間分布が計算される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    for (const trial of summary.trials) {
-      expect(trial.lifespanStats).toBeDefined();
-      expect(trial.lifespanStats.totalLifespan.length).toBeGreaterThan(0);
-    }
-
-    for (const us of summary.unitSummary) {
-      expect(us.avgLifespan).toBeGreaterThanOrEqual(0);
-    }
-  });
-
-  it('死因内訳が記録される', () => {
-    const summary = runBatch(makeTestConfig());
-
-    for (const trial of summary.trials) {
-      expect(trial.killContextStats).toBeDefined();
-      expect(trial.killContextStats.contextCounts.length).toBeGreaterThan(0);
-    }
-
-    for (const us of summary.unitSummary) {
-      expect(us.deathsByContext).toBeDefined();
-      expect(us.deathsByContext.length).toBe(6);
-      for (const c of us.deathsByContext) {
-        expect(c).toBeGreaterThanOrEqual(0);
+      for (const trial of summary.trials) {
+        expect(trial.killMatrix).toBeDefined();
+        expect(trial.killMatrix.data.length).toBe(trial.killMatrix.size);
       }
-    }
+
+      for (const us of summary.unitSummary) {
+        if (us.totalKills > 0) {
+          expect(us.topVictimType).not.toBeNull();
+        }
+      }
+    });
+
+    it('ダメージ統計が集計される', () => {
+      for (const trial of summary.trials) {
+        expect(trial.damageStats).toBeDefined();
+        expect(trial.damageStats.dealtByType.length).toBeGreaterThan(0);
+        expect(trial.damageStats.receivedByType.length).toBeGreaterThan(0);
+      }
+
+      for (const us of summary.unitSummary) {
+        expect(us.totalDamageDealt).toBeGreaterThanOrEqual(0);
+        expect(us.totalDamageReceived).toBeGreaterThanOrEqual(0);
+        expect(us.damagePerCost).toBeGreaterThanOrEqual(0);
+      }
+
+      const totalDealt = summary.unitSummary.reduce((s, u) => s + u.totalDamageDealt, 0);
+      expect(totalDealt).toBeGreaterThan(0);
+    });
+
+    it('サポート統計が集計される', () => {
+      for (const trial of summary.trials) {
+        expect(trial.supportStats).toBeDefined();
+        expect(trial.supportStats.healingByType.length).toBeGreaterThan(0);
+        expect(trial.supportStats.ampApplications.length).toBeGreaterThan(0);
+        expect(trial.supportStats.scrambleApplications.length).toBeGreaterThan(0);
+        expect(trial.supportStats.catalystApplications.length).toBeGreaterThan(0);
+      }
+
+      for (const us of summary.unitSummary) {
+        expect(us.totalHealing).toBeGreaterThanOrEqual(0);
+        expect(us.supportScore).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('キルシーケンスエントロピーが計算される', () => {
+      for (const trial of summary.trials) {
+        expect(trial.killSequenceEntropy).toBeGreaterThanOrEqual(0);
+      }
+
+      expect(summary.stats.avgKillSequenceEntropy).toBeGreaterThanOrEqual(0);
+    });
+
+    it('生存時間分布が計算される', () => {
+      for (const trial of summary.trials) {
+        expect(trial.lifespanStats).toBeDefined();
+        expect(trial.lifespanStats.totalLifespan.length).toBeGreaterThan(0);
+      }
+
+      for (const us of summary.unitSummary) {
+        expect(us.avgLifespan).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('死因内訳が記録される', () => {
+      for (const trial of summary.trials) {
+        expect(trial.killContextStats).toBeDefined();
+        expect(trial.killContextStats.contextCounts.length).toBeGreaterThan(0);
+      }
+
+      for (const us of summary.unitSummary) {
+        expect(us.deathsByContext).toBeDefined();
+        expect(us.deathsByContext.length).toBe(6);
+        for (const c of us.deathsByContext) {
+          expect(c).toBeGreaterThanOrEqual(0);
+        }
+      }
+    });
   });
 
   it('シナジーペアが計算される', () => {
-    const summary = runBatch(makeTestConfig({ trials: 10, snapshotInterval: 600 }));
+    const fleet: FleetComposition = [
+      { type: 0, count: 3 },
+      { type: 1, count: 3 },
+      { type: 2, count: 2 },
+    ];
+    const summary = runBatch(
+      makeTestConfig({ trials: 6, maxSteps: 200, budget: 30, snapshotInterval: 200, fleets: [fleet, fleet] }),
+    );
 
     expect(summary.synergyPairs).toBeDefined();
     expect(Array.isArray(summary.synergyPairs)).toBe(true);

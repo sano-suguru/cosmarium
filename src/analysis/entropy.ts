@@ -177,12 +177,14 @@ export function rleCompressionRatio(data: readonly number[], precision: number =
     return 0;
   }
 
-  const quantized = data.map((v) => Math.round(v * precision));
   let runs = 1;
-  for (let i = 1; i < quantized.length; i++) {
-    if (quantized[i] !== quantized[i - 1]) {
+  let prev = Math.round((data[0] ?? 0) * precision);
+  for (let i = 1; i < data.length; i++) {
+    const cur = Math.round((data[i] ?? 0) * precision);
+    if (cur !== prev) {
       runs++;
     }
+    prev = cur;
   }
 
   return runs / data.length;
