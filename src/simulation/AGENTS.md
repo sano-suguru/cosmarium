@@ -4,10 +4,16 @@
 
 ## Tick順序（update.ts）
 
-1-6は常時実行: `buildHash()` → `updateSwarmN()` → `resetReflected()` → per unit(`steer` → `combat` → trail、`codexOpen`時は非デモユニットをスキップ) → `applyReflectorShields(dt)`（`decayShieldTimers` → `shieldNearbyAllies`） → projectile pass → particle pass → beam pass → chain pass → trackingBeam pass
+1-6は常時実行: `buildHash()` → `resetReflected()` → `updateSquadronObjectives()`
+→ `processAllUnits()` (per unit: swarmN計算 → `steerWithNeighbors` → `combat` → trail)
+→ `decayAndRegen()` → `applyAllFields()` (フィールドユニットのみ: shields/amp/scramble/catalyst/reflect)
+→ projectile pass → particle pass → beam pass → chain pass → trackingBeam pass
 7は`!codexOpen`時のみ: `reinforce(dt)`。codexOpen時は`updateCodexDemo(dt)`実行。
 
-**重要**: Reflector付与(step 4)はcombat(step 3)の後→`shieldLingerTimer`は次フレームで有効。`shieldLingerTimer`はReflector範囲内にいる間は毎フレーム`SHIELD_LINGER`にリセットされ、範囲離脱後に減衰を開始する。
+**重要**:
+- `processAllUnits` 内の `getNeighbors` 共有は swarm+steer のみ（combat 後はバッファ無効）
+- フィールド付与は全ユニット combat 完了後に `applyAllFields` で独立パス実行（neighborBuffer 破損・順序依存性を回避）
+- `decayAndRegen` は全ユニット処理後に一括実行
 
 ## 変更ガイド
 

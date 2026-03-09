@@ -125,7 +125,7 @@ export function launchDrones(ctx: CombatContext) {
   const { u, c, t, dt } = ctx;
   u.spawnCooldown -= dt;
   if (u.spawnCooldown <= 0) {
-    u.spawnCooldown = 4 + ctx.rng() * 2;
+    u.spawnCooldown = 3 + ctx.rng() * 2;
     for (let i = 0; i < 4; i++) {
       const a = ctx.rng() * 6.283;
       spawnUnit(u.team, DRONE_TYPE, u.x + Math.cos(a) * t.size * 2, u.y + Math.sin(a) * t.size * 2, ctx.rng);

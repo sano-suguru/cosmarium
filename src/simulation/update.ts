@@ -1,5 +1,5 @@
 import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
-import { REF_FPS } from '../constants.ts';
+import { NEIGHBOR_RANGE, REF_FPS } from '../constants.ts';
 import { getParticleHWM, getUnitHWM, mothershipIdx, particle, poolCounts, unit } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { BattlePhase, ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
@@ -13,11 +13,17 @@ import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { killParticle } from './spawn.ts';
 import { updateSquadronObjectives } from './squadron.ts';
-import { steer } from './steering.ts';
-import { applyShieldsAndFields, decayAndRegen } from './update-fields.ts';
+import { steerWithNeighbors } from './steering.ts';
+import { applyAllFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
-const SWARM_RADIUS_SQ = 80 * 80;
+const SWARM_RADIUS = 80;
+const SWARM_RADIUS_SQ = SWARM_RADIUS * SWARM_RADIUS;
+
+// static invariant: SWARM_RADIUS ≤ NEIGHBOR_RANGE（getNeighbors の範囲に収まる必要がある）
+if (SWARM_RADIUS > NEIGHBOR_RANGE) {
+  throw new Error(`SWARM_RADIUS (${SWARM_RADIUS}) が NEIGHBOR_RANGE (${NEIGHBOR_RANGE}) を超えています`);
+}
 
 export function updateParticles(dt: number) {
   for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
@@ -70,8 +76,7 @@ export function updateTrackingBeams(dt: number) {
   }
 }
 
-function countSwarmAllies(u: Unit): number {
-  const nn = getNeighbors(u.x, u.y, 80);
+function countSwarmFromNeighbors(u: Unit, nn: number): number {
   let allies = 0;
   for (let j = 0; j < nn; j++) {
     const o = unit(getNeighborAt(j));
@@ -87,21 +92,6 @@ function countSwarmAllies(u: Unit): number {
   return Math.min(allies, 6);
 }
 
-export function updateSwarmN() {
-  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) {
-      continue;
-    }
-    rem--;
-    if (!unitType(u.type).swarm) {
-      u.swarmN = 0;
-      continue;
-    }
-    u.swarmN = countSwarmAllies(u);
-  }
-}
-
 function emitTrail(u: Unit, rng: () => number) {
   if (u.type === FLAGSHIP_TYPE || u.type === MOTHERSHIP_TYPE) {
     flagshipTrail(u, rng);
@@ -110,31 +100,39 @@ function emitTrail(u: Unit, rng: () => number) {
   }
 }
 
-export function updateUnits(dt: number, now: number, rng: () => number) {
+function processTrailAndBoost(u: Unit, dt: number, rng: () => number, wasNotBoosting: boolean) {
+  u.trailTimer -= dt;
+  if (u.trailTimer <= 0) {
+    u.trailTimer = 0.03 + rng() * 0.02;
+    emitTrail(u, rng);
+  }
+  if (u.boostTimer > 0 && u.stun <= 0) {
+    boostTrail(u, dt, rng);
+    if (wasNotBoosting) {
+      boostBurst(u, rng);
+    }
+  }
+}
+
+function processAllUnits(dt: number, now: number, rng: () => number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {
       continue;
     }
     rem--;
+
+    const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+    u.swarmN = unitType(u.type).swarm ? countSwarmFromNeighbors(u, nn) : 0;
+    steerWithNeighbors(u, i as UnitIndex, nn, dt, rng);
+
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
-    steer(u, i as UnitIndex, dt, rng);
     combat(u, i as UnitIndex, dt, now, rng);
     if (u.alive && u.hp < prevHp) {
       u.hitFlash = 1;
     }
-    u.trailTimer -= dt;
-    if (u.trailTimer <= 0) {
-      u.trailTimer = 0.03 + rng() * 0.02;
-      emitTrail(u, rng);
-    }
-    if (u.boostTimer > 0 && u.stun <= 0) {
-      boostTrail(u, dt, rng);
-      if (wasNotBoosting) {
-        boostBurst(u, rng);
-      }
-    }
+    processTrailAndBoost(u, dt, rng, wasNotBoosting);
   }
 }
 
@@ -185,15 +183,12 @@ function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
 export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState): Team | 'draw' | null {
   const co = gameState.codexOpen;
   buildHash(gameState.activeTeamCount);
-  updateSwarmN();
   resetReflected();
   updateSquadronObjectives(dt, rng);
 
-  updateUnits(dt, now, rng);
-  // updateUnits で hitFlash=1 がセットされた後にディケイする（視覚効果のみ、ロジック影響なし）
+  processAllUnits(dt, now, rng);
   decayAndRegen(dt);
-
-  applyShieldsAndFields(dt);
+  applyAllFields(dt);
 
   updateProjectiles(dt, rng);
   updateParticles(dt);

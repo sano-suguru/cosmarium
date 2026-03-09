@@ -1,5 +1,11 @@
 import { getTrackingBeam, trackingBeams } from '../beams.ts';
-import { AMP_BOOST_LINGER, CATALYST_BOOST_LINGER, REFLECT_FIELD_MAX_HP, SCRAMBLE_BOOST_LINGER } from '../constants.ts';
+import {
+  AMP_BOOST_LINGER,
+  CATALYST_BOOST_LINGER,
+  NEIGHBOR_RANGE,
+  REFLECT_FIELD_MAX_HP,
+  SCRAMBLE_BOOST_LINGER,
+} from '../constants.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-types.ts';
@@ -19,6 +25,18 @@ const AMP_MAX_TETHERS = 4;
 const AMP_TETHER_BEAM_LIFE = 0.7;
 const SCRAMBLE_RADIUS = 110;
 const CATALYST_RADIUS = 110;
+
+// static invariant: 全フィールド半径 ≤ NEIGHBOR_RANGE（これを超えると近傍検索の範囲外になる）
+const maxFieldRadius = Math.max(
+  REFLECT_FIELD_RADIUS,
+  BASTION_SHIELD_RADIUS,
+  AMP_RADIUS,
+  SCRAMBLE_RADIUS,
+  CATALYST_RADIUS,
+);
+if (maxFieldRadius > NEIGHBOR_RANGE) {
+  throw new Error(`フィールド半径 (${maxFieldRadius}) が NEIGHBOR_RANGE (${NEIGHBOR_RANGE}) を超えています`);
+}
 
 function tickReflectorShield(u: Unit, dt: number) {
   if (u.shieldCooldown <= 0) {
@@ -70,7 +88,42 @@ export function decayAndRegen(dt: number) {
   }
 }
 
-function applyReflectorAllyField(u: Unit, i: number, dt: number) {
+function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
+  for (let i = 0; i < trackingBeams.length; i++) {
+    const tb = getTrackingBeam(i);
+    if (tb.srcUnit === src && tb.tgtUnit === tgt) {
+      tb.life = tb.maxLife;
+      return true;
+    }
+  }
+  return false;
+}
+
+// tether/amp 用共有バッファ — 逐次ループのため同時使用は起きない
+const _tetherOi = new Int32Array(BASTION_MAX_TETHERS);
+const _tetherDist = new Float64Array(BASTION_MAX_TETHERS);
+
+function bubbleInsert(oiArr: Int32Array, distArr: Float64Array, start: number, oi: number, d: number) {
+  let p = start;
+  while (p > 0 && (distArr[p - 1] ?? 0) > d) {
+    oiArr[p] = oiArr[p - 1] ?? 0;
+    distArr[p] = distArr[p - 1] ?? 0;
+    p--;
+  }
+  oiArr[p] = oi;
+  distArr[p] = d;
+}
+
+const _ampOi = new Int32Array(AMP_MAX_TETHERS);
+const _ampDist = new Float64Array(AMP_MAX_TETHERS);
+
+const REFLECT_FIELD_RADIUS_SQ = REFLECT_FIELD_RADIUS * REFLECT_FIELD_RADIUS;
+const BASTION_SHIELD_RADIUS_SQ = BASTION_SHIELD_RADIUS * BASTION_SHIELD_RADIUS;
+const AMP_RADIUS_SQ = AMP_RADIUS * AMP_RADIUS;
+const SCRAMBLE_RADIUS_SQ = SCRAMBLE_RADIUS * SCRAMBLE_RADIUS;
+const CATALYST_RADIUS_SQ = CATALYST_RADIUS * CATALYST_RADIUS;
+
+function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
   if (u.maxEnergy <= 0) {
     return;
   }
@@ -79,11 +132,15 @@ function applyReflectorAllyField(u: Unit, i: number, dt: number) {
     return;
   }
   let granted = false;
-  const nn = getNeighbors(u.x, u.y, REFLECT_FIELD_RADIUS);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) {
+      continue;
+    }
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    if (dx * dx + dy * dy > REFLECT_FIELD_RADIUS_SQ) {
       continue;
     }
     if (o.reflectFieldHp <= 0) {
@@ -96,36 +153,7 @@ function applyReflectorAllyField(u: Unit, i: number, dt: number) {
   }
 }
 
-function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {
-  for (let i = 0; i < trackingBeams.length; i++) {
-    const tb = getTrackingBeam(i);
-    if (tb.srcUnit === src && tb.tgtUnit === tgt) {
-      tb.life = tb.maxLife;
-      return true;
-    }
-  }
-  return false;
-}
-
-// tetherNearbyAllies 用ソート済みバッファ — サイズは BASTION_MAX_TETHERS に結合。
-// 複数 Bastion が存在しても applyShieldsAndFields 内の逐次ループで呼ばれるため同時使用は起きない。
-const _tetherOi = new Int32Array(BASTION_MAX_TETHERS);
-const _tetherDist = new Float64Array(BASTION_MAX_TETHERS);
-
-/** 固定サイズバッファへの挿入ソート（tether/amp共用） */
-function bubbleInsert(oiArr: Int32Array, distArr: Float64Array, start: number, oi: number, d: number) {
-  let p = start;
-  while (p > 0 && (distArr[p - 1] ?? 0) > d) {
-    oiArr[p] = oiArr[p - 1] ?? 0;
-    distArr[p] = distArr[p - 1] ?? 0;
-    p--;
-  }
-  oiArr[p] = oi;
-  distArr[p] = d;
-}
-
-function tetherNearbyAllies(u: Unit, i: number) {
-  const nn = getNeighbors(u.x, u.y, BASTION_SHIELD_RADIUS);
+function tetherNearbyAllies(u: Unit, i: number, nn: number) {
   let count = 0;
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
@@ -136,6 +164,9 @@ function tetherNearbyAllies(u: Unit, i: number) {
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
+    if (d > BASTION_SHIELD_RADIUS_SQ) {
+      continue;
+    }
     if (count < BASTION_MAX_TETHERS) {
       bubbleInsert(_tetherOi, _tetherDist, count, oi, d);
       count++;
@@ -154,12 +185,7 @@ function tetherNearbyAllies(u: Unit, i: number) {
   }
 }
 
-// amplifyNearbyAllies 用ソート済みバッファ — tetherNearbyAllies とは独立。
-const _ampOi = new Int32Array(AMP_MAX_TETHERS);
-const _ampDist = new Float64Array(AMP_MAX_TETHERS);
-
-function amplifyNearbyAllies(u: Unit, i: number) {
-  const nn = getNeighbors(u.x, u.y, AMP_RADIUS);
+function collectAmpCandidates(u: Unit, i: number, nn: number): number {
   let count = 0;
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
@@ -173,6 +199,9 @@ function amplifyNearbyAllies(u: Unit, i: number) {
     const dx = o.x - u.x,
       dy = o.y - u.y;
     const d = dx * dx + dy * dy;
+    if (d > AMP_RADIUS_SQ) {
+      continue;
+    }
     if (count < AMP_MAX_TETHERS) {
       bubbleInsert(_ampOi, _ampDist, count, oi, d);
       count++;
@@ -180,6 +209,11 @@ function amplifyNearbyAllies(u: Unit, i: number) {
       bubbleInsert(_ampOi, _ampDist, count - 1, oi, d);
     }
   }
+  return count;
+}
+
+function amplifyNearbyAllies(u: Unit, i: number, nn: number) {
+  const count = collectAmpCandidates(u, i, nn);
   for (let j = 0; j < count; j++) {
     const oi = (_ampOi[j] ?? 0) as UnitIndex;
     const o = unit(oi);
@@ -191,8 +225,7 @@ function amplifyNearbyAllies(u: Unit, i: number) {
   }
 }
 
-function scrambleNearbyEnemies(u: Unit, i: number) {
-  const nn = getNeighbors(u.x, u.y, SCRAMBLE_RADIUS);
+function scrambleNearbyEnemies(u: Unit, i: number, nn: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
@@ -202,13 +235,17 @@ function scrambleNearbyEnemies(u: Unit, i: number) {
     if (unitType(o.type).scrambles) {
       continue;
     }
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    if (dx * dx + dy * dy > SCRAMBLE_RADIUS_SQ) {
+      continue;
+    }
     o.scrambleTimer = SCRAMBLE_BOOST_LINGER;
     emitSupport(u.type, u.team, o.type, o.team, 'scramble', 1);
   }
 }
 
-function catalyzeNearbyAllies(u: Unit, i: number) {
-  const nn = getNeighbors(u.x, u.y, CATALYST_RADIUS);
+function catalyzeNearbyAllies(u: Unit, i: number, nn: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
@@ -218,12 +255,37 @@ function catalyzeNearbyAllies(u: Unit, i: number) {
     if (unitType(o.type).catalyzes) {
       continue;
     }
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    if (dx * dx + dy * dy > CATALYST_RADIUS_SQ) {
+      continue;
+    }
     o.catalystTimer = CATALYST_BOOST_LINGER;
     emitSupport(u.type, u.team, o.type, o.team, 'catalyst', 1);
   }
 }
 
-export function applyShieldsAndFields(dt: number) {
+function applyUnitFields(u: Unit, i: number, nn: number, dt: number) {
+  const t = unitType(u.type);
+  if (t.reflects) {
+    applyReflectorAllyField(u, i, nn, dt);
+  }
+  if (t.shields) {
+    tetherNearbyAllies(u, i, nn);
+  }
+  if (t.amplifies) {
+    amplifyNearbyAllies(u, i, nn);
+  }
+  if (t.scrambles) {
+    scrambleNearbyEnemies(u, i, nn);
+  }
+  if (t.catalyzes) {
+    catalyzeNearbyAllies(u, i, nn);
+  }
+}
+
+/** 全ユニット combat 完了後にフィールド能力を独立パスで付与 */
+export function applyAllFields(dt: number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {
@@ -231,20 +293,9 @@ export function applyShieldsAndFields(dt: number) {
     }
     rem--;
     const t = unitType(u.type);
-    if (t.reflects) {
-      applyReflectorAllyField(u, i, dt);
-    }
-    if (t.shields) {
-      tetherNearbyAllies(u, i);
-    }
-    if (t.amplifies) {
-      amplifyNearbyAllies(u, i);
-    }
-    if (t.scrambles) {
-      scrambleNearbyEnemies(u, i);
-    }
-    if (t.catalyzes) {
-      catalyzeNearbyAllies(u, i);
+    if (t.reflects || t.shields || t.amplifies || t.scrambles || t.catalyzes) {
+      const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+      applyUnitFields(u, i, nn, dt);
     }
   }
 }

@@ -136,12 +136,12 @@ describe('explosion', () => {
     expect(addFreeze).toHaveBeenCalledWith(0.03);
   });
 
-  it('cost >= 12 (Carrier, type=7) → addAberration + addFreeze(0.05)', () => {
+  it('cost >= 8 (Carrier, type=7) → addAberration + addFreeze(0.03)', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     explosion(0, 0, 0, CARRIER_TYPE, rng);
-    expect(addAberration).toHaveBeenCalledWith(12 / 30);
-    expect(addFreeze).toHaveBeenCalledWith(0.05);
+    expect(addAberration).toHaveBeenCalledWith(9 / 30);
+    expect(addFreeze).toHaveBeenCalledWith(0.03);
   });
 
   it('cost >= 20 (Flagship, type=4) → addAberration + addFreeze(0.07)', () => {

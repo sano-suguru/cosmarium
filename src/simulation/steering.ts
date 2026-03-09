@@ -1,10 +1,11 @@
-import { PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
+import { NEIGHBOR_RANGE, PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
+import { unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-types.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { computeSquadronCohesion, computeSquadronLeaderObjective, computeSquadronLeashFactor } from './squadron.ts';
+import { findNearestGlobalEnemy, targetScore } from './target-search.ts';
 import { nearestEnemyCenter } from './team-center.ts';
 
 interface SteerForce {
@@ -48,7 +49,6 @@ const SEEK_MIN_DIST_SQ = 1;
 const WANDER_ONLY_SCALE = 0.5;
 
 const GLOBAL_TARGET_PROB = 0.012;
-const NEIGHBOR_RANGE = 200;
 
 const VET_SPEED_BONUS = 0.12;
 export const CATALYST_SPEED_MULT = 1.25;
@@ -68,36 +68,6 @@ const BOUNDARY_FORCE = 120;
 
 const SUPPORT_FOLLOW_WEIGHT = 0.15;
 const MASS_TIEBREAK_FACTOR = 0.01;
-
-const VET_TARGET_WEIGHT = 0.3;
-
-function targetScore(ux: number, uy: number, o: Unit, massWeight: number): number {
-  const d2 = (o.x - ux) * (o.x - ux) + (o.y - uy) * (o.y - uy);
-  const vf = 1 + VET_TARGET_WEIGHT * o.vet;
-  const mf = massWeight > 0 ? 1 + massWeight * unitType(o.type).mass : 1;
-  return d2 / (vf * vf * mf * mf);
-}
-
-function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
-  let bs = 1e18,
-    bi: UnitIndex = NO_UNIT;
-  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
-    const o = unit(i);
-    if (!o.alive) {
-      continue;
-    }
-    rem--;
-    if (o.team === u.team) {
-      continue;
-    }
-    const score = targetScore(u.x, u.y, o, massWeight);
-    if (score < bs) {
-      bs = score;
-      bi = i as UnitIndex;
-    }
-  }
-  return bi;
-}
 
 // Boids accumulator — computeBoidsForce がリセットし accumulateBoidsNeighbor が累積
 const _boids = { sx: 0, sy: 0, ax: 0, ay: 0, ac: 0, chx: 0, chy: 0, cc: 0 };
@@ -518,6 +488,11 @@ function resolveTarget(
 }
 
 export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
+  const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+  steerWithNeighbors(u, ui, nn, dt, rng);
+}
+
+export function steerWithNeighbors(u: Unit, ui: UnitIndex, nn: number, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) {
     applyKnockbackDrag(u, dt);
     return;
@@ -527,7 +502,6 @@ export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
     return;
   }
   const t = unitType(u.type);
-  const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
   const range = computeEffectiveRange(u, t.range);
   const massWeight = t.massWeight;
 

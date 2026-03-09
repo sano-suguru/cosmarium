@@ -9,6 +9,7 @@
  *   bun run src/analysis/batch.ts --out results.json      # JSON 出力
  *   bun run src/analysis/batch.ts --budget 100            # 予算指定
  *   bun run src/analysis/batch.ts --maxSteps 5000         # 最大ステップ数
+ *   bun run src/analysis/batch.ts --sequential             # 逐次実行（デフォルトは並列）
  *
  * 出力: 各試合の時系列スナップショット + サマリー統計 + ユニット別戦績を stdout or JSON ファイルに出力
  */
@@ -33,7 +34,17 @@ import { findTypeIndex, TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
 import { computeSummary } from './batch-summary.ts';
 import { collectUnitStats, installAllTrackers } from './batch-tracking.ts';
-import type { BatchConfig, BatchSummary, KillTracker, TrialResult, TrialSnapshot } from './batch-types.ts';
+import type {
+  BatchConfig,
+  BatchSummary,
+  KillTracker,
+  SerializableBatchConfig,
+  TrialResult,
+  TrialSnapshot,
+  WorkerMessage,
+  WorkerResult,
+} from './batch-types.ts';
+import { deserializeTrialResult } from './batch-types.ts';
 import type { BattleStateSnapshot } from './entropy.ts';
 import { battleComplexity, fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } from './entropy.ts';
 
@@ -79,21 +90,6 @@ function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracke
     spatial,
     positionRle,
   };
-}
-
-// ─── Unit Count by Type ──────────────────────────────────────────
-
-/** 初期ユニット数カウント + lifespan 登録を1回のプール走査で行う */
-function countSpawnedByType(activeTeams: number): Int32Array {
-  const counts = new Int32Array(TYPES.length);
-  const hwm = getUnitHWM();
-  for (let i = 0; i < hwm; i++) {
-    const u = unit(i);
-    if (u.alive && u.team < activeTeams) {
-      counts[u.type] = (counts[u.type] ?? 0) + 1;
-    }
-  }
-  return counts;
 }
 
 function countSurvivorsByType(activeTeams: number): Int32Array {
@@ -163,14 +159,10 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   const trialSeed = config.seed + trialIndex;
   const rng = config.createRng(trialSeed);
 
-  // フック登録を setupFleets より先に行い、初期ユニットの spawn もフック経由で lifespan 登録する
   let currentTime = 0;
   const trackers = installAllTrackers(() => currentTime);
 
-  // setupFleets はプール状態を初期化するため、呼び出し前のプール状態は破棄される
-  // spawnUnit 内でフックが発火し、初期ユニットの spawnTimes が自動登録される
   const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
-  const spawnedByType = countSpawnedByType(activeTeams);
 
   const gs = makeBatchGameLoopState(config.mode, activeTeams);
   const snapshots: TrialSnapshot[] = [];
@@ -216,7 +208,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     fleetCompositions,
     snapshots,
     complexity: battleComplexity(battleSnapshots),
-    unitStats: collectUnitStats(spawnedByType, survivorsByType, trackers.kill),
+    unitStats: collectUnitStats(trackers.spawnedByType, survivorsByType, trackers.kill),
     killMatrix: { data: trackers.kill.killMatrix, size },
     damageStats: { dealtByType: trackers.damage.dealtByType, receivedByType: trackers.damage.receivedByType },
     supportStats: {
@@ -327,23 +319,117 @@ export function runBatch(config: BatchConfig): BatchSummary {
   return computeSummary(config, trials);
 }
 
-if (import.meta.main) {
-  const config = parseArgs(process.argv.slice(2), createRng);
-  const summary = runBatch(config);
+export async function runBatchParallel(config: BatchConfig): Promise<BatchSummary> {
+  const os = await import('node:os');
+  const workerCount = Math.min(os.cpus().length, 8, config.trials);
+  const log = config.logger ?? console.error;
 
-  const outFile = config.outFile;
+  log(`並列実行: ${workerCount} workers × ${config.trials} trials`);
+
+  const serializableConfig: SerializableBatchConfig = {
+    trials: config.trials,
+    mode: config.mode,
+    teams: config.teams,
+    seed: config.seed,
+    budget: config.budget,
+    maxSteps: config.maxSteps,
+    snapshotInterval: config.snapshotInterval,
+    outFile: config.outFile,
+    fleets: config.fleets,
+  };
+
+  const results: TrialResult[] = new Array(config.trials);
+  let nextTrial = 0;
+
+  // Bun の Worker は file: URL + .ts 直接指定に対応（Node.js では不可）
+  const workerUrl = new URL('./batch-worker.ts', import.meta.url).href;
+
+  const workers: Worker[] = [];
+  for (let i = 0; i < workerCount; i++) {
+    workers.push(new Worker(workerUrl));
+  }
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let completed = 0;
+      let failed = false;
+
+      function terminateAll() {
+        for (const w of workers) {
+          w.terminate();
+        }
+      }
+
+      function dispatch(worker: Worker) {
+        if (failed || nextTrial >= config.trials) {
+          return;
+        }
+
+        const trialIndex = nextTrial++;
+        const msg: WorkerMessage = { trialIndex, config: serializableConfig };
+
+        worker.onerror = (e: ErrorEvent) => {
+          if (failed) {
+            return;
+          }
+          failed = true;
+          terminateAll();
+          reject(new Error(`Worker error (trial ${trialIndex}): ${e.message}`));
+        };
+
+        worker.onmessage = (e: MessageEvent<WorkerResult>) => {
+          if (failed) {
+            return;
+          }
+          const deserialized = deserializeTrialResult(e.data.result);
+          results[trialIndex] = deserialized;
+          logProgress(trialIndex, config.trials, deserialized, log);
+          completed++;
+          if (completed >= config.trials) {
+            resolve();
+          } else {
+            dispatch(worker);
+          }
+        };
+
+        worker.postMessage(msg);
+      }
+
+      for (const worker of workers) {
+        dispatch(worker);
+      }
+    });
+  } finally {
+    for (const worker of workers) {
+      worker.terminate();
+    }
+  }
+
+  return computeSummary(config, results);
+}
+
+async function outputSummary(summary: BatchSummary, outFile: string | null) {
   if (outFile) {
-    import('node:fs')
-      .then(({ writeFileSync }) => {
-        const replacer = (_key: string, value: unknown) => (value === Number.POSITIVE_INFINITY ? 'Infinity' : value);
-        writeFileSync(outFile, JSON.stringify(summary, replacer, 2));
-        console.error(`結果を ${outFile} に保存しました`);
-      })
-      .catch((e: unknown) => {
-        console.error(e);
-        process.exitCode = 1;
-      });
+    const { writeFileSync } = await import('node:fs');
+    const replacer = (_key: string, value: unknown) => (value === Number.POSITIVE_INFINITY ? 'Infinity' : value);
+    writeFileSync(outFile, JSON.stringify(summary, replacer, 2));
+    console.error(`結果を ${outFile} に保存しました`);
   } else {
     process.stdout.write(`${formatSummary(summary)}\n`);
   }
+}
+
+if (import.meta.main) {
+  (async () => {
+    const argv = process.argv.slice(2);
+    const sequential = argv.some((a) => a === '--sequential');
+    const filteredArgv = argv.filter((a) => a !== '--sequential');
+    const config = parseArgs(filteredArgv, createRng);
+
+    const summary = sequential ? runBatch(config) : await runBatchParallel(config);
+    await outputSummary(summary, config.outFile);
+  })().catch((e: unknown) => {
+    console.error(e);
+    process.exitCode = 1;
+  });
 }

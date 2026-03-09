@@ -207,7 +207,10 @@ export function resetState() {
 }
 
 /** テスト用 GameLoopState ファクトリ。state のプロパティをリアルタイムに参照する getter/setter でラップする */
-export function makeGameLoopState(updateCodexDemo: (dt: number) => void = () => undefined): GameLoopState {
+export function makeGameLoopState(
+  updateCodexDemo: (dt: number) => void = () => undefined,
+  battlePhase: GameLoopState['battlePhase'] = 'spectate',
+): GameLoopState {
   return {
     get codexOpen() {
       return state.codexOpen;
@@ -218,7 +221,7 @@ export function makeGameLoopState(updateCodexDemo: (dt: number) => void = () => 
     set reinforcementTimer(v: number) {
       state.reinforcementTimer = v;
     },
-    battlePhase: 'spectate',
+    battlePhase,
     activeTeamCount: 2,
     updateCodexDemo,
   };

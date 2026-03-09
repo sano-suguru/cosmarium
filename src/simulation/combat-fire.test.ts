@@ -13,7 +13,6 @@ import {
   unitType,
 } from '../unit-types.ts';
 import { buildHash } from './spatial-hash.ts';
-import { updateSwarmN } from './update.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -213,7 +212,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
+    unit(drone).swarmN = 3;
     combat(unit(drone), drone, 0.016, 0, rng);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
     expect(projectile(0).damage).toBeCloseTo(1.45);
@@ -228,7 +227,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
+    unit(drone).swarmN = 6;
     combat(unit(drone), drone, 0.016, 0, rng);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
     expect(projectile(0).damage).toBeCloseTo(1.9);
@@ -283,7 +282,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    updateSwarmN();
+    unit(drone).swarmN = 6;
     combat(unit(drone), drone, 0.016, 0, rng);
     const p = projectile(0);
     // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725

@@ -48,3 +48,4 @@ export const REFLECT_FIELD_MAX_HP = 15;
 export const AMP_BOOST_LINGER = 2;
 export const SCRAMBLE_BOOST_LINGER = 1.5;
 export const CATALYST_BOOST_LINGER = 2.0;
+export const NEIGHBOR_RANGE = 200;

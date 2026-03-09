@@ -26,6 +26,18 @@ export interface BatchConfig {
   readonly logger?: ((msg: string) => void) | undefined;
 }
 
+/** Worker にシリアライズ可能な BatchConfig サブセット（関数フィールド createRng / logger を除外） */
+export type SerializableBatchConfig = Omit<BatchConfig, 'createRng' | 'logger'>;
+
+export interface WorkerMessage {
+  readonly trialIndex: number;
+  readonly config: SerializableBatchConfig;
+}
+
+export interface WorkerResult {
+  readonly result: SerializedTrialResult;
+}
+
 export interface TrialSnapshot {
   readonly step: number;
   readonly elapsed: number;
@@ -170,4 +182,58 @@ export interface SynergyPair {
   /** coWinRate - max(soloA, soloB) */
   readonly synergy: number;
   readonly coCount: number;
+}
+
+// ─── Worker TypedArray シリアライズ ──────────────────────────────
+
+/** 2D Int32Array を structured clone 安全な形式に平坦化した表現 */
+interface FlatMatrix {
+  readonly flat: Int32Array;
+  readonly rows: number;
+  readonly cols: number;
+}
+
+function flattenMatrix(arrays: Int32Array[], rows: number, cols: number): FlatMatrix {
+  const flat = new Int32Array(rows * cols);
+  for (let r = 0; r < rows; r++) {
+    const row = arrays[r];
+    if (row) {
+      flat.set(row, r * cols);
+    }
+  }
+  return { flat, rows, cols };
+}
+
+function unflattenMatrix(fm: FlatMatrix): Int32Array[] {
+  const result: Int32Array[] = [];
+  for (let r = 0; r < fm.rows; r++) {
+    result.push(fm.flat.slice(r * fm.cols, (r + 1) * fm.cols));
+  }
+  return result;
+}
+
+/** Worker postMessage 用にシリアライズされた TrialResult（2D TypedArray → FlatMatrix） */
+export interface SerializedTrialResult extends Omit<TrialResult, 'killMatrix' | 'killContextStats'> {
+  readonly killMatrix: { readonly data: FlatMatrix; readonly size: number };
+  readonly killContextStats: { readonly contextCounts: FlatMatrix };
+}
+
+export function serializeTrialResult(r: TrialResult): SerializedTrialResult {
+  const kmSize = r.killMatrix.size;
+  const ctxRows = r.killContextStats.contextCounts.length;
+  const firstCtxRow = r.killContextStats.contextCounts[0];
+  const ctxCols = ctxRows > 0 && firstCtxRow ? firstCtxRow.length : 0;
+  return {
+    ...r,
+    killMatrix: { data: flattenMatrix(r.killMatrix.data, kmSize, kmSize), size: kmSize },
+    killContextStats: { contextCounts: flattenMatrix(r.killContextStats.contextCounts, ctxRows, ctxCols) },
+  };
+}
+
+export function deserializeTrialResult(s: SerializedTrialResult): TrialResult {
+  return {
+    ...s,
+    killMatrix: { data: unflattenMatrix(s.killMatrix.data), size: s.killMatrix.size },
+    killContextStats: { contextCounts: unflattenMatrix(s.killContextStats.contextCounts) },
+  };
 }

@@ -181,10 +181,10 @@ export const TYPES: UnitType[] = [
   }),
   resolve({
     name: 'Carrier',
-    cost: 12,
+    cost: 9,
     size: 22,
-    hp: 110,
-    speed: 60,
+    hp: 140,
+    speed: 75,
     turnRate: 1,
     fireRate: 1.2,
     range: 250,

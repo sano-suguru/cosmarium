@@ -134,6 +134,15 @@ export function createLifespanTracker(): LifespanTracker {
   };
 }
 
+/** 全 spawn をタイプ別にカウントするフック。Carrier 等による戦闘中 spawn も含む */
+function installSpawnCountHook(): { spawnedByType: Int32Array; unsubscribe: () => void } {
+  const spawnedByType = new Int32Array(TYPES.length);
+  const unsubscribe = onSpawnUnit((e) => {
+    accum(spawnedByType, e.type, 1);
+  });
+  return { spawnedByType, unsubscribe };
+}
+
 export function installLifespanSpawnHook(tracker: LifespanTracker, getTime: () => number): () => void {
   return onSpawnUnit((e) => {
     tracker.spawnTimes.set(e.unitIndex, getTime());
@@ -182,6 +191,7 @@ export function installAllTrackers(getCurrentTime: () => number) {
   const unsubLifespanKill = installLifespanKillHook(lifespan, getCurrentTime);
   const killContext = createKillContextTracker();
   const unsubCtx = installKillContextHook(killContext);
+  const { spawnedByType, unsubscribe: unsubSpawnCount } = installSpawnCountHook();
 
   function unsubscribeAll() {
     unsubKill();
@@ -191,9 +201,10 @@ export function installAllTrackers(getCurrentTime: () => number) {
     unsubLifespanSpawn();
     unsubLifespanKill();
     unsubCtx();
+    unsubSpawnCount();
   }
 
-  return { kill, damage, support, sequence, lifespan, killContext, unsubscribeAll };
+  return { kill, damage, support, sequence, lifespan, killContext, spawnedByType, unsubscribeAll };
 }
 
 // ─── Cross-Trial Aggregation ────────────────────────────────────

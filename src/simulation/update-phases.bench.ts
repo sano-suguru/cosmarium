@@ -1,13 +1,13 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
-import { asType, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, makeGameLoopState, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, SH_CIRCLE } from '../constants.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { updateChains } from './effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import { spawnParticle, spawnProjectile } from './spawn.ts';
-import { updateBeams, updateParticles, updateSwarmN, updateTrackingBeams, updateUnits } from './update.ts';
-import { applyShieldsAndFields, decayAndRegen } from './update-fields.ts';
+import { stepOnce, updateBeams, updateParticles, updateTrackingBeams } from './update.ts';
+import { applyAllFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
 const rng = makeRng();
@@ -34,33 +34,27 @@ describe('stepOnce フェーズ別 (200u/5Kp/100pr)', () => {
     resetPools();
   });
 
-  bench('updateSwarmN', () => {
-    setupWorld(200, 5000, 100);
-    updateSwarmN();
-    resetPools();
-  });
-
   bench('resetReflected', () => {
     setupWorld(200, 5000, 100);
     resetReflected();
     resetPools();
   });
 
-  bench('updateUnits', () => {
+  bench('stepOnce (swarm+steer+combat+fields)', () => {
     setupWorld(200, 5000, 100);
-    updateUnits(dt, 0, rng);
+    stepOnce(dt, 0, rng, makeGameLoopState(undefined, 'battle'));
+    resetPools();
+  });
+
+  bench('applyAllFields', () => {
+    setupWorld(200, 5000, 100);
+    applyAllFields(dt);
     resetPools();
   });
 
   bench('decayAndRegen', () => {
     setupWorld(200, 5000, 100);
     decayAndRegen(dt);
-    resetPools();
-  });
-
-  bench('applyShieldsAndFields', () => {
-    setupWorld(200, 5000, 100);
-    applyShieldsAndFields(dt);
     resetPools();
   });
 

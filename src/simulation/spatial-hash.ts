@@ -72,6 +72,11 @@ function collectCellNeighbors(key: number, count: number): number {
   return n;
 }
 
+/**
+ * 共有 neighborBuffer に近傍ユニットを収集し、件数を返す。
+ * バッファは次の getNeighbors 呼び出しで上書きされるため、返り値は即座に消費すること。
+ * getNeighborAt(j) で j < 返り値 の範囲でアクセス可能。
+ */
 export function getNeighbors(x: number, y: number, r: number): number {
   let n = 0;
   const cr = Math.ceil(r / CELL_SIZE);
