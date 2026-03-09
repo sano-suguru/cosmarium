@@ -1,0 +1,180 @@
+/* === MELEE RESULT === */
+.meleeInfo {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #9aa;
+  margin-bottom: 20px;
+}
+
+.meleeLabel {
+  color: #0ff;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+}
+
+.meleeSectionHeader {
+  position: relative;
+  font-family: "Orbitron", sans-serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: #0ff;
+  text-align: left;
+  padding-bottom: 8px;
+  margin: 20px 0 10px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+.meleeSectionHeader::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.15), transparent);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.2);
+}
+
+.scoreRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #ccc;
+  padding: 8px 10px;
+  border-radius: 2px;
+  margin: 2px 0;
+  opacity: 0;
+  animation: melee-row-in 0.4s ease-out forwards;
+}
+/* winner row — team color glow (background set via inline style) */
+.rank1 {
+  border-left: 2px solid currentColor;
+}
+
+.meleeRank {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  min-width: 28px;
+  text-align: right;
+  color: rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.2);
+}
+.rank1 .meleeRank {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  font-weight: 700;
+}
+.rank2 .meleeRank {
+  color: #c0c0c0;
+  text-shadow: 0 0 6px rgba(192, 192, 192, 0.4);
+}
+.rank3 .meleeRank {
+  color: #cd7f32;
+  text-shadow: 0 0 6px rgba(205, 127, 50, 0.4);
+}
+
+.meleeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rank1 .meleeDot {
+  width: 12px;
+  height: 12px;
+}
+
+.meleeTeamName {
+  color: #cde;
+  min-width: 72px;
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.rank1 .meleeTeamName {
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.killsWrap {
+  position: relative;
+  min-width: 100px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.killsBar {
+  height: 3px;
+  border-radius: 1px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.rank1 .killsBar {
+  opacity: 0.9;
+  height: 4px;
+  box-shadow: 0 0 6px currentColor;
+}
+.kills {
+  color: #aab;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rank1 .kills {
+  color: #dde;
+}
+
+.meleeStatus {
+  color: rgba(0, 255, 255, 0.4);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.15);
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.eliminated {
+  color: rgba(255, 0, 255, 0.5);
+  text-shadow: 0 0 4px rgba(255, 0, 255, 0.2);
+}
+.rank1 .meleeStatus {
+  color: rgba(0, 255, 255, 0.7);
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+}
+
+@keyframes melee-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* モバイル: melee 調整 */
+@media (pointer: coarse), (max-width: 768px) {
+  .meleeInfo {
+    gap: 16px;
+    font-size: 12px;
+  }
+  .scoreRow {
+    font-size: 12px;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .meleeTeamName {
+    min-width: 60px;
+  }
+  .killsWrap {
+    min-width: 72px;
+  }
+  .kills {
+    font-size: 11px;
+  }
+}

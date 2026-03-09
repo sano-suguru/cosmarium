@@ -1,6 +1,5 @@
 import './style.css';
 import './style-battle.css';
-import './style-result.css';
 
 import {
   addEnemyKill,
@@ -14,7 +13,7 @@ import {
 } from './battle-tracker.ts';
 import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
-import { countFleetUnits, DEFAULT_BUDGET } from './fleet-cost.ts';
+import { countFleetUnits } from './fleet-cost.ts';
 import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
 import type { MeleeResult } from './melee-tracker.ts';
@@ -32,7 +31,6 @@ import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
 import { decayScreenEffects, resetScreenEffects, screenEffects } from './screen-effects.ts';
-import { generateEnemyFleet } from './simulation/enemy-fleet.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
 import { onUnitKilled } from './simulation/squadron.ts';
@@ -42,19 +40,13 @@ import { rng, state } from './state.ts';
 import type { BattlePhase, BattleResult } from './types.ts';
 import { copyTeamCounts } from './types.ts';
 import { mountApp } from './ui/App.tsx';
-import { initResultDOM } from './ui/battle-result.ts';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { demoRng } from './ui/codex-demos.ts';
 import { getPlayerFleet } from './ui/fleet-compose.ts';
 import {
-  advanceRound,
-  goToCompose,
   goToMeleeResult,
-  goToMenu,
   goToResult,
   initUI,
-  rematch,
-  setEnemyFleet,
   setOnBattleStart,
   setOnMeleeStart,
   setOnSpectateStart,
@@ -87,20 +79,6 @@ initHUD();
 initKillFeed();
 initCamera();
 initMinimap();
-
-/** 敵艦隊を生成して編成画面へ遷移する共通ヘルパー */
-function generateAndCompose(preserveFleet: boolean) {
-  const { fleet, archetypeName } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-  setEnemyFleet(fleet, archetypeName);
-  goToCompose(preserveFleet);
-}
-
-initResultDOM({
-  menu: goToMenu,
-  recompose: () => generateAndCompose(true),
-  rematch,
-  nextRound: advanceRound,
-});
 
 function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';

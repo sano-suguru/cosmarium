@@ -31,15 +31,6 @@ export const DOM_ID_COMPOSE_RESET = 'composeReset';
 export const DOM_ID_COMPOSE_ENEMY = 'composeEnemy';
 export const DOM_ID_COMPOSE_CODEX_BTN = 'composeCodexBtn';
 
-export const DOM_ID_RESULT = 'result';
-export const DOM_ID_RESULT_TITLE = 'resultTitle';
-export const DOM_ID_RESULT_STATS = 'resultStats';
-export const DOM_ID_RESULT_MENU = 'resultMenu';
-export const DOM_ID_RESULT_RECOMPOSE = 'resultRecompose';
-export const DOM_ID_RESULT_REMATCH = 'resultRematch';
-export const DOM_ID_RESULT_NEXT_ROUND = 'resultNextRound';
-export const DOM_ID_RESULT_ROUND_INFO = 'resultRoundInfo';
-
 export const DOM_ID_COMPOSE_ROUND_INFO = 'composeRoundInfo';
 
 export const DOM_ID_HUD_ROUND_INFO = 'hudRoundInfo';

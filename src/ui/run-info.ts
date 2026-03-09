@@ -1,14 +1,15 @@
 import type { RunStatus } from '../types.ts';
+import { formatLivesText } from './format.ts';
 
 /** ラン情報の DOM ノード生成（横断ユーティリティ） */
-export function createRunInfoNodes(info: RunStatus): DocumentFragment {
+function createRunInfoNodes(info: RunStatus): DocumentFragment {
   const frag = document.createDocumentFragment();
 
   frag.append(`ROUND ${info.round} \u00a0 `);
 
   const heartsSpan = document.createElement('span');
   heartsSpan.className = 'lives';
-  heartsSpan.textContent = '\u2764 '.repeat(info.lives).trimEnd();
+  heartsSpan.textContent = formatLivesText(info.lives);
   frag.append(heartsSpan);
 
   frag.append(` \u00a0 ${info.wins}/${info.winTarget} WINS`);

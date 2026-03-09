@@ -7,7 +7,6 @@ import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
 import type { BattleResult, FleetComposition } from '../types.ts';
 import { MAX_TEAMS } from '../types.ts';
-import { hideResult, reopenResult, showMeleeResult, showRoundResult, showRunResult } from './battle-result.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
@@ -21,8 +20,9 @@ import {
   DOM_ID_SPEED,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
-import { getPlayerFleet, hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
+import { hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
 import { updateHudRoundInfo } from './hud.ts';
+import { resultData$ } from './signals.ts';
 
 interface GameControlEls {
   readonly hud: HTMLElement;
@@ -113,13 +113,13 @@ function resetCam() {
 }
 
 /** START → compose: 敵を生成して編成画面へ */
-export function goToCompose(preserveFleet: boolean) {
+function goToCompose(preserveFleet: boolean) {
   if (state.codexOpen) {
     toggleCodex();
   }
   state.gameState = 'compose';
   hidePlayUI();
-  hideResult();
+  resultData$.value = null;
   if (!preserveFleet) {
     resetCounts();
   }
@@ -140,7 +140,7 @@ function startBattle(playerFleet: FleetComposition) {
   state.gameState = 'play';
   resetCam();
   hideCompose();
-  hideResult();
+  resultData$.value = null;
   showPlayUI();
   seedRng(uniqueSeed());
   initBattle(playerFleet, currentEnemyFleet, rng);
@@ -162,11 +162,6 @@ export function startMelee() {
   onMeleeStart(numTeams);
 }
 
-/** REMATCH: 同じ編成・敵で再戦（シードのみ変更） */
-export function rematch() {
-  startBattle(getPlayerFleet());
-}
-
 /** play → result: バトル終了後の結果表示 */
 export function goToResult(result: BattleResult) {
   const outcome = processRoundEnd(result);
@@ -174,9 +169,9 @@ export function goToResult(result: BattleResult) {
   hidePlayUI();
 
   if (outcome.type === 'runComplete') {
-    showRunResult(outcome.runResult);
+    resultData$.value = { type: 'run', runResult: outcome.runResult };
   } else {
-    showRoundResult(outcome.roundResult, outcome.status);
+    resultData$.value = { type: 'round', roundResult: outcome.roundResult, runStatus: outcome.status };
   }
 }
 
@@ -184,7 +179,7 @@ export function goToResult(result: BattleResult) {
 export function goToMeleeResult(result: MeleeResult) {
   state.gameState = 'result';
   hidePlayUI();
-  showMeleeResult(result);
+  resultData$.value = { type: 'melee', meleeResult: result };
 }
 
 /** result/play → menu */
@@ -199,13 +194,8 @@ export function goToMenu() {
   state.gameState = 'menu';
   hidePlayUI();
   hideCompose();
-  hideResult();
+  resultData$.value = null;
   resetCounts();
-}
-
-export function setEnemyFleet(fleet: FleetComposition, archName: string) {
-  currentEnemyFleet = fleet;
-  currentEnemyArchName = archName;
 }
 
 function generateEnemy() {
@@ -254,14 +244,6 @@ export function onCodexToggle() {
   }
   if (state.gameState === 'play') {
     els().codexBtn.style.display = state.codexOpen ? 'none' : 'block';
-  }
-  if (state.gameState === 'result') {
-    if (state.codexOpen) {
-      hideResult();
-    } else {
-      // Codex 閉じ → result パネル再表示
-      reopenResult();
-    }
   }
   if (state.codexOpen) {
     setAutoFollow(false);

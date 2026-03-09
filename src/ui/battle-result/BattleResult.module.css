@@ -1,0 +1,191 @@
+/* === RESULT SCREEN === */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-result);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  animation: result-fade-in 0.6s ease-out;
+}
+
+@keyframes result-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.panel {
+  position: relative;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0, 20, 40, 0.95), rgba(0, 5, 12, 0.97));
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 2px;
+  padding: 48px 60px 40px;
+  text-align: center;
+  min-width: 360px;
+  max-width: 640px;
+  pointer-events: auto;
+  box-shadow:
+    0 0 30px rgba(0, 255, 255, 0.1),
+    0 0 60px rgba(0, 255, 255, 0.04),
+    0 0 2px rgba(255, 0, 255, 0.15),
+    inset 0 0 80px rgba(0, 255, 255, 0.02),
+    inset 0 1px 0 rgba(0, 255, 255, 0.1);
+  overflow: hidden;
+}
+/* scanline overlay */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 255, 0.015) 2px,
+    rgba(0, 255, 255, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+/* inner border frame */
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(0, 255, 255, 0.08);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.roundInfo {
+  position: relative;
+  z-index: 2;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: rgba(0, 255, 255, 0.6);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.title {
+  position: relative;
+  z-index: 2;
+  font-family: "Orbitron", sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 20px;
+}
+.title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.2), transparent);
+}
+.victory {
+  color: #0ff;
+  text-shadow:
+    0 0 20px #0ff,
+    0 0 50px rgba(0, 255, 255, 0.5),
+    0 0 80px rgba(0, 255, 255, 0.2);
+  animation: title-pulse 3s ease-in-out infinite;
+}
+.defeat {
+  color: #f0f;
+  text-shadow:
+    0 0 20px #f0f,
+    0 0 50px rgba(255, 0, 255, 0.5),
+    0 0 80px rgba(255, 0, 255, 0.2);
+  animation: title-pulse-mag 3s ease-in-out infinite;
+}
+
+@keyframes title-pulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 20px #0ff,
+      0 0 50px rgba(0, 255, 255, 0.5),
+      0 0 80px rgba(0, 255, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 30px #0ff,
+      0 0 70px rgba(0, 255, 255, 0.6),
+      0 0 120px rgba(0, 255, 255, 0.3),
+      0 0 160px rgba(255, 0, 255, 0.08);
+  }
+}
+@keyframes title-pulse-mag {
+  0%,
+  100% {
+    text-shadow:
+      0 0 20px #f0f,
+      0 0 50px rgba(255, 0, 255, 0.5),
+      0 0 80px rgba(255, 0, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 30px #f0f,
+      0 0 70px rgba(255, 0, 255, 0.6),
+      0 0 120px rgba(255, 0, 255, 0.3),
+      0 0 160px rgba(0, 255, 255, 0.08);
+  }
+}
+
+.stats {
+  position: relative;
+  z-index: 2;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: #aaa;
+  line-height: 2;
+  margin-bottom: 28px;
+}
+.label {
+  color: rgba(0, 255, 255, 0.5);
+}
+.lives {
+  color: #f55;
+  text-shadow: 0 0 6px rgba(255, 80, 80, 0.4);
+}
+
+.actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.actionBtn {
+  min-width: 160px;
+  padding: 12px 30px;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+}
+
+/* モバイル: result 調整 */
+@media (pointer: coarse), (max-width: 768px) {
+  .panel {
+    padding: 28px 16px 24px;
+    min-width: 280px;
+    max-width: calc(100vw - 32px);
+  }
+  .title {
+    font-size: 24px;
+    letter-spacing: 4px;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}
