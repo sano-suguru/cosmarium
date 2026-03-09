@@ -174,10 +174,8 @@ function demoAmplifier() {
 }
 
 function demoScrambler() {
-  // 味方Fighter 2体（対比用、射撃が鈍らない）
   spawnUnit(0, FIGHTER_TYPE, -80, -50, demoRng);
   spawnUnit(0, FIGHTER_TYPE, -80, 50, demoRng);
-  // 敵Drone 4体 + Fighter 2体（Scrambler範囲内、射撃が鈍る）
   for (let i = 0; i < 4; i++) {
     spawnUnit(1, DRONE_TYPE, 50 + demoRng() * 40, (demoRng() - 0.5) * 100, demoRng);
   }
@@ -186,13 +184,11 @@ function demoScrambler() {
 }
 
 function demoCatalyst() {
-  // 味方Drone 4体 + Fighter 1体（加速される対象）
   spawnUnit(0, DRONE_TYPE, -50, -60, demoRng);
   spawnUnit(0, DRONE_TYPE, -50, -20, demoRng);
   spawnUnit(0, DRONE_TYPE, -50, 20, demoRng);
   spawnUnit(0, DRONE_TYPE, -50, 60, demoRng);
   spawnUnit(0, FIGHTER_TYPE, -70, 0, demoRng);
-  // 敵Drone 3体（遠方、対比用）
   spawnUnit(1, DRONE_TYPE, 200, -40, demoRng);
   spawnUnit(1, DRONE_TYPE, 200, 0, demoRng);
   spawnUnit(1, DRONE_TYPE, 200, 40, demoRng);

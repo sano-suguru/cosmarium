@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { asType, resetState } from './__test__/pool-helper.ts';
 import { beams, getBeam } from './beams.ts';
 import { createRng, rng, seed, seedRng, state } from './state.ts';
+import { codexOpen$, codexSelected$, gameState$, timeScale$ } from './ui/signals.ts';
 
 afterEach(() => {
   resetState();
@@ -48,8 +49,8 @@ describe('直接代入', () => {
   });
 
   it('state.timeScale を更新できる', () => {
-    state.timeScale = 2.0;
-    expect(state.timeScale).toBe(2.0);
+    state.timeScale = 2;
+    expect(state.timeScale).toBe(2);
   });
 
   it('state.reinforcementTimer を更新できる', () => {
@@ -189,6 +190,42 @@ describe('PRNG (mulberry32)', () => {
     expect(samples.every((v) => v >= 0 && v < 1)).toBe(true);
     const unique = new Set(samples);
     expect(unique.size).toBeGreaterThan(90);
+  });
+});
+
+describe('signal bridge (ui/signals.ts)', () => {
+  it('state.gameState 代入で gameState$ が同期する', () => {
+    state.gameState = 'play';
+    expect(gameState$.value).toBe('play');
+    state.gameState = 'result';
+    expect(gameState$.value).toBe('result');
+  });
+
+  it('state.codexOpen 代入で codexOpen$ が同期する', () => {
+    state.codexOpen = true;
+    expect(codexOpen$.value).toBe(true);
+    state.codexOpen = false;
+    expect(codexOpen$.value).toBe(false);
+  });
+
+  it('state.codexSelected 代入で codexSelected$ が同期する', () => {
+    state.codexSelected = asType(5);
+    expect(codexSelected$.value).toBe(5);
+  });
+
+  it('state.timeScale 代入で timeScale$ が同期する', () => {
+    state.timeScale = 4;
+    expect(timeScale$.value).toBe(4);
+    state.timeScale = 2;
+    expect(timeScale$.value).toBe(2);
+  });
+
+  it('signal 読み取りが state プロパティと一致する', () => {
+    state.gameState = 'compose';
+    expect(state.gameState).toBe(gameState$.value);
+
+    state.timeScale = 4;
+    expect(state.timeScale).toBe(timeScale$.value);
   });
 });
 

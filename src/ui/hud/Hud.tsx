@@ -5,21 +5,15 @@ import { mothershipIdx, poolCounts, teamUnitCounts, unit } from '../../pools.ts'
 import { getRunInfo } from '../../run.ts';
 import type { BattlePhase, RunStatus, Team } from '../../types.ts';
 import { NO_UNIT, teamsOf } from '../../types.ts';
-import { formatLivesText } from '../format.ts';
+import { RunInfoBar } from '../shared/RunInfoBar.tsx';
+import { timeScale$ } from '../signals.ts';
 import styles from './Hud.module.css';
 
-// --- Signals (per-frame update) ---
 const hudCountA$ = signal(0);
 const hudCountB$ = signal(0);
 const hudParticles$ = signal(0);
 const hudFps$ = signal(0);
 
-// --- Signals (config / state-change) ---
-const hudSpeed$ = signal(1);
-
-export function setHudSpeed(speed: number) {
-  hudSpeed$.value = speed;
-}
 const hudBattlePhase$ = signal<BattlePhase>('spectate');
 const hudRoundInfo$ = signal<RunStatus | null>(null);
 
@@ -33,8 +27,6 @@ interface MhpBarData {
   readonly clr: string;
 }
 const hudMhpBars$ = signal<readonly MhpBarData[]>([]);
-
-// --- API: game-control / main から呼ばれる関数 ---
 
 export function setupMeleeHUD(numTeams: number) {
   hudMeleeTeams$.value = [...teamsOf(numTeams)];
@@ -147,19 +139,6 @@ export function updateHUD(displayFps: number, battlePhase: BattlePhase) {
     hudFps$.value = displayFps;
   }
 }
-
-// --- Components ---
-
-function RoundInfo({ info }: { info: RunStatus }) {
-  return (
-    <div class={styles.roundInfo}>
-      {`ROUND ${info.round} \u00a0 `}
-      <span class={styles.lives}>{formatLivesText(info.lives)}</span>
-      {` \u00a0 ${info.wins}/${info.winTarget} WINS`}
-    </div>
-  );
-}
-
 function MhpBar({ bar }: { bar: MhpBarData }) {
   return (
     <div class={styles.mhpItem}>
@@ -221,7 +200,6 @@ function resetHudState() {
   hudCountB$.value = 0;
   hudParticles$.value = 0;
   hudFps$.value = 0;
-  hudSpeed$.value = 1;
   hudBattlePhase$.value = 'spectate';
   hudRoundInfo$.value = null;
   hudMeleeTeams$.value = [];
@@ -240,7 +218,7 @@ export function Hud() {
     <>
       <MothershipHpBar />
       <div class={styles.container}>
-        {roundInfo && <RoundInfo info={roundInfo} />}
+        {roundInfo && <RunInfoBar info={roundInfo} class={styles.roundInfo} livesClass={styles.lives} />}
         <TeamRow />
         <div>
           <span class={styles.hl}>PARTICLES:</span> {hudParticles$.value}
@@ -250,7 +228,7 @@ export function Hud() {
           <span class={styles.hl} style={{ marginLeft: '8px' }}>
             SPD:
           </span>{' '}
-          {hudSpeed$.value}x
+          {timeScale$.value}x
         </div>
       </div>
     </>

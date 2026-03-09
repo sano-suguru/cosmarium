@@ -53,7 +53,6 @@ describe('compareMeleeTeams', () => {
   it('生存チームが全滅チームより上位', () => {
     const result = makeMeleeResult([makeStats(3, 0), makeStats(5, 2)]);
     const elimMap = new Map<number, number>();
-    // team 0 = 全滅, team 1 = 生存 → team 1 が上位 (比較関数は正)
     expect(compareMeleeTeams(0, 1, result, elimMap)).toBeGreaterThan(0);
     expect(compareMeleeTeams(1, 0, result, elimMap)).toBeLessThan(0);
   });
@@ -84,12 +83,7 @@ describe('compareMeleeTeams', () => {
 
 describe('buildMeleeRanking', () => {
   it('チームを正しい順位でソートする', () => {
-    const result = makeMeleeResult([
-      makeStats(3, 0), // team 0: 全滅, 3キル
-      makeStats(10, 4), // team 1: 生存, 10キル
-      makeStats(7, 0), // team 2: 全滅, 7キル
-      makeStats(5, 1), // team 3: 生存, 5キル
-    ]);
+    const result = makeMeleeResult([makeStats(3, 0), makeStats(10, 4), makeStats(7, 0), makeStats(5, 1)]);
     const elimMap = new Map([
       [0, 20],
       [2, 40],

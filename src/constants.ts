@@ -3,6 +3,7 @@
 // 単一モジュール（+ そのテスト）でしか使わないロジック固有の倍率・閾値は、そのモジュール内に定義する。
 //   例: AMP_DAMAGE_MULT → combat.ts, SCRAMBLE_RADIUS → update.ts
 
+import type { TimeScale } from './types.ts';
 import { MAX_TEAMS } from './types.ts';
 
 export const POOL_UNITS = 1600;
@@ -49,3 +50,5 @@ export const AMP_BOOST_LINGER = 2;
 export const SCRAMBLE_BOOST_LINGER = 1.5;
 export const CATALYST_BOOST_LINGER = 2.0;
 export const NEIGHBOR_RANGE = 200;
+
+export const SPEEDS = [1, 2, 4] as const satisfies readonly TimeScale[];

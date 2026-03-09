@@ -28,68 +28,7 @@
   <body>
     <div id="app"></div>
 
-    <div id="compose">
-      <div id="composeRoundInfo" class="compose-round-info"></div>
-      <div class="compose-header">
-        <h2>ENEMY FLEET</h2>
-        <div id="composeEnemy" class="compose-enemy-list"></div>
-      </div>
-      <div class="compose-body">
-        <div class="compose-budget-bar">
-          <span>FLEET COMPOSITION</span>
-          <span>BUDGET: <span id="composeBudget">0 / 200</span></span>
-        </div>
-        <div id="composeGrid" class="compose-grid"></div>
-        <div class="compose-footer">
-          <span id="composeTotal"></span>
-          <span id="composeRemaining"></span>
-        </div>
-      </div>
-      <div class="compose-actions">
-        <button class="mbtn" id="composeBack">BACK</button>
-        <button class="mbtn compose-reset" id="composeReset">RESET</button>
-        <button class="mbtn compose-launch" id="composeLaunch" disabled>LAUNCH BATTLE</button>
-      </div>
-    </div>
-    <button id="composeCodexBtn" class="compose-codex-btn">TAB: CODEX</button>
-
-    <button id="codexBtn" style="display: none">TAB: CODEX</button>
-    <button id="autoFollowBtn" style="display: none">⊕ FOLLOW</button>
-
-    <div id="codex">
-      <div id="codexSide">
-        <h3>UNIT CODEX</h3>
-        <div id="codexList"></div>
-      </div>
-      <div id="codexInfo">
-        <div id="codexDemo">
-          <div id="codexHint">戦術パターン — リアルタイムシミュレーション</div>
-        </div>
-        <div id="codexPanel">
-          <div class="cpLeft">
-            <div class="cpName" id="cxName">-</div>
-            <div class="cpDesc" id="cxDesc"></div>
-          </div>
-          <div class="cpRight">
-            <div class="cpStats" id="cxStats"></div>
-          </div>
-        </div>
-        <button id="codexClose">ESC</button>
-      </div>
-    </div>
-
     <div id="minimap" style="display: none"></div>
-
-    <div id="controls" style="display: none">
-      <span class="controls-desktop">[ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ TAB: Codex ] [ F: Follow ] [ +/-: Speed ] [ 1/2/3: Speed ]</span>
-      <span class="controls-touch">[ ピンチ: ズーム ] [ ドラッグ: パン ] [ ミニマップ: ジャンプ ] [ ▶: 速度 ]</span>
-    </div>
-    <div id="speed" style="display: none">
-      <span>SPEED</span>
-      <button class="sbtn active" data-spd="1">▶</button>
-      <button class="sbtn" data-spd="2">▶▶</button>
-      <button class="sbtn" data-spd="4">▶▶▶</button>
-    </div>
 
     <canvas id="c"></canvas>
 

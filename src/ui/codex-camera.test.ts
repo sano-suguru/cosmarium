@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { computeDemoBounds } from './codex.ts';
+import { computeDemoBounds } from './codex/codex-logic.ts';
 
 afterEach(() => {
   resetPools();

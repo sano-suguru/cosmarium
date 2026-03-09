@@ -1,5 +1,4 @@
 import './style.css';
-import './style-battle.css';
 
 import {
   addEnemyKill,
@@ -40,13 +39,13 @@ import { rng, state } from './state.ts';
 import type { BattlePhase, BattleResult } from './types.ts';
 import { copyTeamCounts } from './types.ts';
 import { mountApp } from './ui/App.tsx';
-import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
+import { syncDemoCamera, updateCodexDemo } from './ui/codex/codex-logic.ts';
 import { demoRng } from './ui/codex-demos.ts';
-import { getPlayerFleet } from './ui/fleet-compose.ts';
+import { getPlayerFleet } from './ui/fleet-compose/FleetCompose.tsx';
 import {
   goToMeleeResult,
   goToResult,
-  initUI,
+  initKeyboardControls,
   setOnBattleStart,
   setOnMeleeStart,
   setOnSpectateStart,
@@ -60,6 +59,7 @@ import {
   updateHudRoundInfo,
 } from './ui/hud/Hud.tsx';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
+import { initMinimapVisibility } from './ui/signals.ts';
 
 const BASE_SPEED = 0.55;
 /** result 状態のスロー再生倍率 */
@@ -73,9 +73,10 @@ addEventListener('resize', () => {
 });
 
 mountApp();
-initUI();
+initKeyboardControls();
 initCamera();
 initMinimap();
+initMinimapVisibility();
 
 function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';

@@ -5,7 +5,7 @@ import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../cons
 import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { restorePools, snapshotPools } from '../ui/codex.ts';
+import { restorePools, snapshotPools } from '../ui/codex/codex-logic.ts';
 import { chainLightning, resetChains, snapshotChains, updateChains } from './effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';

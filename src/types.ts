@@ -248,6 +248,8 @@ export type Color3 = [number, number, number];
 
 export type GameState = 'menu' | 'compose' | 'play' | 'result';
 
+export type TimeScale = 1 | 2 | 4;
+
 export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath';
 
 export type FleetEntry = { readonly type: UnitTypeIndex; readonly count: number };

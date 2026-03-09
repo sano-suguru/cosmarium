@@ -1,9 +1,8 @@
-import { beams, trackingBeams } from '../beams.ts';
-import { color, color3ToRgb } from '../colors.ts';
-import { isPurchasable } from '../fleet-cost.ts';
-import type { CameraSnapshot } from '../input/camera.ts';
-import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../input/camera.ts';
-import type { PoolCountsState } from '../pools.ts';
+import { beams, trackingBeams } from '../../beams.ts';
+import { isPurchasable } from '../../fleet-cost.ts';
+import type { CameraSnapshot } from '../../input/camera.ts';
+import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../../input/camera.ts';
+import type { PoolCountsState } from '../../pools.ts';
 import {
   clearAllPools,
   getParticleHWM,
@@ -17,43 +16,17 @@ import {
   setPoolCounts,
   teamUnitCounts,
   unit,
-} from '../pools.ts';
-import { demoFlag } from '../simulation/combat.ts';
-import { resetChains, restoreChains, snapshotChains } from '../simulation/effects.ts';
-import { spawnUnit } from '../simulation/spawn.ts';
-import { restoreSquadrons, snapshotSquadrons } from '../simulation/squadron.ts';
-import { state } from '../state.ts';
-import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
-import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../types.ts';
-import { DEFAULT_UNIT_TYPE, TYPE_INDICES, TYPES, unitType } from '../unit-types.ts';
-import { demoByFlag, demoDefault, demoRng } from './codex-demos.ts';
-import {
-  DOM_ID_CODEX,
-  DOM_ID_CODEX_DESC,
-  DOM_ID_CODEX_LIST,
-  DOM_ID_CODEX_NAME,
-  DOM_ID_CODEX_STATS,
-} from './dom-ids.ts';
-import { getElement } from './dom-util.ts';
-
-import { clearKillFeed } from './kill-feed/KillFeed.tsx';
-
-interface CodexEls {
-  readonly codex: HTMLElement;
-  readonly codexName: HTMLElement;
-  readonly codexDesc: HTMLElement;
-  readonly codexStats: HTMLElement;
-  readonly codexList: HTMLElement;
-}
-
-let _els: CodexEls | null = null;
-
-function els(): CodexEls {
-  if (!_els) {
-    throw new Error('initCodexDOM() has not been called');
-  }
-  return _els;
-}
+} from '../../pools.ts';
+import { demoFlag } from '../../simulation/combat.ts';
+import { resetChains, restoreChains, snapshotChains } from '../../simulation/effects.ts';
+import { spawnUnit } from '../../simulation/spawn.ts';
+import { restoreSquadrons, snapshotSquadrons } from '../../simulation/squadron.ts';
+import { state } from '../../state.ts';
+import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../../types.ts';
+import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../../types.ts';
+import { DEFAULT_UNIT_TYPE, unitType } from '../../unit-types.ts';
+import { demoByFlag, demoDefault, demoRng } from '../codex-demos.ts';
+import { clearKillFeed } from '../kill-feed/KillFeed.tsx';
 
 let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
@@ -159,7 +132,6 @@ function closeCodex() {
     restoreCamera(cameraSnapshotBeforeCodex);
     cameraSnapshotBeforeCodex = null;
   }
-  els().codex.classList.remove('open');
 }
 
 function countDemoEnemies(): number {
@@ -273,102 +245,9 @@ export function syncDemoCamera(): void {
   updateDemoCamera(bounds);
 }
 
-function updateCodexPanel() {
-  const d = els();
-  const sel = state.codexSelected;
-  const t = unitType(sel);
-  const c0 = color(state.codexSelected, 0),
-    c1 = color(state.codexSelected, 1);
-  const col = color3ToRgb(c0);
-  const col2 = color3ToRgb(c1);
-  d.codexName.textContent = t.name;
-  d.codexName.style.color = col;
-  d.codexDesc.textContent = t.description;
-
-  const mkBar = (label: string, current: number, max: number, color: string): DocumentFragment => {
-    const frag = document.createDocumentFragment();
-    const lbl = document.createElement('div');
-    lbl.textContent = `${label}: ${current}`;
-    frag.appendChild(lbl);
-    const barOuter = document.createElement('div');
-    barOuter.className = 'cpBar';
-    const barInner = document.createElement('div');
-    barInner.style.width = `${(current / max) * 100}%`;
-    barInner.style.background = `linear-gradient(to right, ${color} 60%, transparent)`;
-    barInner.style.boxShadow = `0 0 4px ${color}`;
-    barOuter.appendChild(barInner);
-    frag.appendChild(barOuter);
-    return frag;
-  };
-  d.codexStats.textContent = '';
-  d.codexStats.appendChild(mkBar('HP', t.hp, 200, '#0ff'));
-  d.codexStats.appendChild(mkBar('SPEED', t.speed, 260, '#0af'));
-  d.codexStats.appendChild(mkBar('DAMAGE', t.damage, 18, '#f0f'));
-  d.codexStats.appendChild(mkBar('RANGE', t.range, 600, '#a0f'));
-  d.codexStats.appendChild(mkBar('MASS', t.mass, 30, '#48f'));
-  const atkDiv = document.createElement('div');
-  atkDiv.style.marginTop = '8px';
-  atkDiv.style.color = col;
-  atkDiv.textContent = `: ${t.attackDesc}`;
-  d.codexStats.appendChild(atkDiv);
-  const teamDiv = document.createElement('div');
-  teamDiv.style.marginTop = '4px';
-  teamDiv.style.fontSize = '9px';
-  teamDiv.style.color = '#666';
-  teamDiv.appendChild(document.createTextNode('Team colors: '));
-  const spanA = document.createElement('span');
-  spanA.style.color = col;
-  spanA.textContent = 'A';
-  teamDiv.appendChild(spanA);
-  teamDiv.appendChild(document.createTextNode(' vs '));
-  const spanB = document.createElement('span');
-  spanB.style.color = col2;
-  spanB.textContent = 'B';
-  teamDiv.appendChild(spanB);
-  d.codexStats.appendChild(teamDiv);
-}
-
-function buildCodexUI() {
-  const list = els().codexList;
-  list.textContent = '';
-  for (const idx of TYPE_INDICES) {
-    const t = TYPES[idx];
-    if (!t) {
-      continue;
-    }
-    if (!isPurchasable(idx)) {
-      continue;
-    }
-    const entry = document.createElement('div');
-    entry.className = `cxItem${idx === state.codexSelected ? ' active' : ''}`;
-    const c = color(idx, 0);
-    const rgb = color3ToRgb(c);
-    const hue = 180 + (idx / Math.max(TYPES.length - 1, 1)) * 120;
-    const dotColor = `hsl(${hue}, 100%, 60%)`;
-    const dot = document.createElement('div');
-    dot.className = 'ciDot';
-    dot.style.background = dotColor;
-    dot.style.boxShadow = `0 0 6px ${dotColor}`;
-    entry.appendChild(dot);
-    const labelGroup = document.createElement('div');
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'ciName';
-    nameDiv.style.color = rgb;
-    nameDiv.textContent = t.name;
-    labelGroup.appendChild(nameDiv);
-    const typeDiv = document.createElement('div');
-    typeDiv.className = 'ciType';
-    typeDiv.textContent = t.attackDesc;
-    labelGroup.appendChild(typeDiv);
-    entry.appendChild(labelGroup);
-    entry.onclick = () => {
-      state.codexSelected = idx;
-      buildCodexUI();
-      setupCodexDemo(idx);
-      updateCodexPanel();
-    };
-    list.appendChild(entry);
-  }
+export function selectCodexUnit(idx: UnitTypeIndex) {
+  state.codexSelected = idx;
+  setupCodexDemo(idx);
 }
 
 export function toggleCodex() {
@@ -380,23 +259,10 @@ export function toggleCodex() {
     cameraSnapshotBeforeCodex = snapshotCamera();
     poolSnapshot = snapshotPools();
     state.codexOpen = true;
-    els().codex.classList.add('open');
     if (!isPurchasable(state.codexSelected)) {
       state.codexSelected = DEFAULT_UNIT_TYPE;
     }
-    buildCodexUI();
-    updateCodexPanel();
     setupCodexDemo(state.codexSelected);
     snapCamera();
   }
-}
-
-export function initCodexDOM() {
-  _els = {
-    codex: getElement(DOM_ID_CODEX),
-    codexName: getElement(DOM_ID_CODEX_NAME),
-    codexDesc: getElement(DOM_ID_CODEX_DESC),
-    codexStats: getElement(DOM_ID_CODEX_STATS),
-    codexList: getElement(DOM_ID_CODEX_LIST),
-  };
 }

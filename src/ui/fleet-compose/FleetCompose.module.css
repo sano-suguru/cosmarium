@@ -1,9 +1,9 @@
 /* === COMPOSE SCREEN === */
-#compose {
+.compose {
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: center;
   background: radial-gradient(ellipse at center, rgba(0, 10, 30, 0.97), #000);
@@ -11,16 +11,12 @@
   padding: 24px;
   gap: 16px;
 }
-#compose.open {
-  display: flex;
-}
-#compose > * {
+.compose > * {
   width: 100%;
   max-width: 960px;
 }
 
-.compose-round-info {
-  display: none;
+.roundInfo {
   text-align: center;
   font-family: "Share Tech Mono", monospace;
   font-size: 13px;
@@ -30,14 +26,11 @@
   border-bottom: 1px solid rgba(0, 255, 255, 0.15);
   margin-bottom: 8px;
 }
-.compose-round-info.active {
-  display: block;
-}
 
-.compose-header {
+.header {
   text-align: center;
 }
-.compose-header h2 {
+.headerTitle {
   font-family: "Orbitron", sans-serif;
   font-size: 16px;
   color: #f0f;
@@ -45,38 +38,38 @@
   margin-bottom: 8px;
   text-shadow: 0 0 8px #f0f;
 }
-.compose-enemy-list {
+.enemyList {
   font-family: "Share Tech Mono", monospace;
   font-size: 11px;
   color: #f88;
   line-height: 1.8;
 }
-.compose-enemy-arch {
+.enemyArch {
   color: #f0f;
   font-size: 12px;
   letter-spacing: 1px;
   margin-bottom: 4px;
 }
-.compose-enemy-units {
+.enemyUnits {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px 14px;
 }
-.compose-enemy-unit {
+.enemyUnit {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
 }
 
-.compose-body {
+.body {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.compose-budget-bar {
+.budgetBar {
   display: flex;
   justify-content: space-between;
   font-family: "Orbitron", sans-serif;
@@ -87,14 +80,14 @@
   border-bottom: 1px solid rgba(0, 255, 255, 0.15);
 }
 
-.compose-grid {
+.grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
   padding: 8px 0;
 }
 
-.cc-card {
+.card {
   background: rgba(0, 20, 40, 0.6);
   border: 1px solid rgba(0, 255, 255, 0.1);
   border-radius: 4px;
@@ -103,7 +96,7 @@
   flex-direction: column;
   gap: 4px;
 }
-.cc-name {
+.cardName {
   font-size: 12px;
   color: #cdf;
   letter-spacing: 1px;
@@ -111,34 +104,34 @@
   align-items: center;
   gap: 6px;
 }
-.cc-dot {
+.dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
   display: inline-block;
 }
-.cc-dot.team0 {
+.dotTeam0 {
   background: #0ff;
   box-shadow: 0 0 4px #0ff;
 }
-.cc-dot.team1 {
+.dotTeam1 {
   background: #f0f;
   box-shadow: 0 0 4px #f0f;
 }
-.cc-cost {
+.cardCost {
   font-family: "Share Tech Mono", monospace;
   font-size: 10px;
   color: #666;
 }
-.cc-controls {
+.controls {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
 }
-.cc-minus,
-.cc-plus {
+.minus,
+.plus {
   background: none;
   border: 1px solid rgba(0, 255, 255, 0.2);
   color: #0ff;
@@ -155,18 +148,18 @@
   touch-action: manipulation;
   user-select: none;
 }
-.cc-minus:hover:not(:disabled),
-.cc-plus:hover:not(:disabled) {
+.minus:hover:not(:disabled),
+.plus:hover:not(:disabled) {
   background: rgba(0, 255, 255, 0.1);
   border-color: #0ff;
 }
-.cc-minus:disabled,
-.cc-plus:disabled {
+.minus:disabled,
+.plus:disabled {
   color: #333;
   border-color: rgba(255, 255, 255, 0.05);
   cursor: default;
 }
-.cc-count {
+.count {
   font-family: "Share Tech Mono", monospace;
   font-size: 14px;
   color: #fff;
@@ -174,7 +167,7 @@
   text-align: center;
 }
 
-.compose-footer {
+.footer {
   display: flex;
   justify-content: space-between;
   font-family: "Share Tech Mono", monospace;
@@ -183,40 +176,40 @@
   padding: 4px;
 }
 
-.compose-actions {
+.actions {
   display: flex;
   justify-content: center;
   gap: 12px;
   padding: 8px 0;
 }
-.compose-actions .mbtn {
+/* .mbtn はグローバル定義 (style.css) */
+.actions :global(.mbtn) {
   min-width: 180px;
 }
-.compose-reset {
+.reset {
   border-color: rgba(255, 100, 100, 0.3);
   color: #f88;
 }
-.compose-reset:hover {
+.reset:hover {
   background: rgba(255, 100, 100, 0.07);
   border-color: #f88;
   text-shadow: 0 0 10px #f88;
 }
-.compose-launch {
+.launch {
   border-color: rgba(0, 255, 255, 0.4);
 }
-.compose-launch:disabled {
+.launch:disabled {
   color: #444;
   border-color: rgba(255, 255, 255, 0.08);
   cursor: default;
 }
-.compose-launch:disabled:hover {
+.launch:disabled:hover {
   background: none;
   transform: none;
   text-shadow: none;
 }
 
-.compose-codex-btn {
-  display: none;
+.codexBtn {
   position: fixed;
   top: 12px;
   right: 12px;
@@ -230,31 +223,32 @@
   cursor: pointer;
   letter-spacing: 1px;
 }
-.compose-codex-btn.open {
-  display: block;
-}
-.compose-codex-btn:hover {
+.codexBtn:hover {
   background: rgba(0, 255, 255, 0.1);
   border-color: #0ff;
 }
 
+.lives {
+  color: #f44;
+}
+
 /* モバイル: compose 調整 */
 @media (pointer: coarse), (max-width: 768px) {
-  #compose {
+  .compose {
     padding: 16px 12px;
   }
-  .compose-grid {
+  .grid {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   }
-  .cc-card {
+  .card {
     padding: 8px;
   }
-  .cc-minus,
-  .cc-plus {
+  .minus,
+  .plus {
     min-width: 44px;
     min-height: 44px;
   }
-  .compose-codex-btn {
+  .codexBtn {
     padding: 10px 16px;
     font-size: 13px;
     min-height: 44px;

@@ -2,7 +2,7 @@ import type { JSX } from 'preact';
 import { TEAM_UI_HEX_COLORS } from '../../colors.ts';
 import type { MeleeResult, TeamStats } from '../../melee-tracker.ts';
 import type { RoundResult, RunResult, RunStatus, Team } from '../../types.ts';
-import { formatLivesText } from '../format.ts';
+import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import styles from './BattleResult.module.css';
 import meleeStyles from './MeleeResult.module.css';
 import { buildElimMap, buildMeleeRanking, computeMaxKills } from './melee-ranking.ts';
@@ -35,9 +35,6 @@ export function BattleResult({ data, onMenu, onNextRound }: BattleResultProps) {
     </div>
   );
 }
-
-// --- Pure helpers ---
-
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -47,19 +44,6 @@ function formatTime(seconds: number): string {
 function teamUiHex(team: Team): string {
   return TEAM_UI_HEX_COLORS[team];
 }
-
-// --- Sub-components ---
-
-function RunInfo({ info }: { readonly info: RunStatus }) {
-  return (
-    <div class={styles.roundInfo}>
-      ROUND {info.round} &nbsp;
-      <span class={styles.lives}>{formatLivesText(info.lives)}</span>
-      &nbsp; {info.wins}/{info.winTarget} WINS
-    </div>
-  );
-}
-
 function StatRows({ lines }: { readonly lines: readonly (readonly [string, string])[] }) {
   return (
     <div class={styles.stats}>
@@ -95,7 +79,7 @@ function RoundResultView({
 }) {
   return (
     <>
-      <RunInfo info={runStatus} />
+      <RunInfoBar info={runStatus} class={styles.roundInfo} livesClass={styles.lives} />
       <VictoryTitle victory={roundResult.victory} winText="VICTORY" loseText="DEFEAT" />
       <StatRows
         lines={[
@@ -125,9 +109,6 @@ function RunResultView({ runResult }: { readonly runResult: RunResult }) {
     </>
   );
 }
-
-// --- Melee ---
-
 function MeleeTitle({ result }: { readonly result: MeleeResult }) {
   if (result.winnerTeam !== null) {
     const hex = teamUiHex(result.winnerTeam);

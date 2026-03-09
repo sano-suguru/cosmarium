@@ -31,7 +31,7 @@ import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
-import { _resetFleetCompose } from '../ui/fleet-compose.ts';
+import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
 import { _resetGameControl } from '../ui/game-control.ts';
 import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
 

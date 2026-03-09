@@ -1,4 +1,4 @@
-import type { GameState, UnitTypeIndex } from './types.ts';
+import type { GameState, TimeScale, UnitTypeIndex } from './types.ts';
 import { DEFAULT_UNIT_TYPE } from './unit-types.ts';
 
 function mulberry32(seed: number): () => number {
@@ -11,11 +11,16 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/**
+ * `gameState`, `codexOpen`, `codexSelected`, `timeScale` は
+ * `ui/signals.ts` で accessor property に置換される（Object.defineProperty）。
+ * 代入すると対応する signal が自動更新される。
+ */
 type State = {
   gameState: GameState;
   codexOpen: boolean;
   codexSelected: UnitTypeIndex;
-  timeScale: number;
+  timeScale: TimeScale;
   reinforcementTimer: number;
   /**
    * @internal simulation/ からは直接参照禁止。外部には `rng` closure ラッパーを使う。

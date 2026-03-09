@@ -1,3 +1,4 @@
+import { SPEEDS } from '../constants.ts';
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
@@ -5,47 +6,20 @@ import { _resetRunState, endRun, isRunActive, processRoundEnd, resetRun } from '
 import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
 import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
-import type { BattleResult, FleetComposition } from '../types.ts';
+import type { BattleResult, FleetComposition, TimeScale } from '../types.ts';
 import { MAX_TEAMS } from '../types.ts';
-// NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
-import { initCodexDOM, toggleCodex } from './codex.ts';
+// NOTE: codex → game-control の逆方向 import は循環依存になるため禁止
+import { toggleCodex } from './codex/codex-logic.ts';
+import { resetComposeCounts } from './fleet-compose/FleetCompose.tsx';
+import { updateHudRoundInfo } from './hud/Hud.tsx';
 import {
-  DOM_ID_AUTO_FOLLOW_BTN,
-  DOM_ID_CODEX_BTN,
-  DOM_ID_CODEX_CLOSE,
-  DOM_ID_CONTROLS,
-  DOM_ID_MINIMAP,
-  DOM_ID_SPEED,
-} from './dom-ids.ts';
-import { getElement } from './dom-util.ts';
-import { hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
-import { setHudSpeed, updateHudRoundInfo } from './hud/Hud.tsx';
-import { resultData$ } from './signals.ts';
-
-interface GameControlEls {
-  readonly codexBtn: HTMLElement;
-  readonly minimap: HTMLElement;
-  readonly controls: HTMLElement;
-  readonly speed: HTMLElement;
-  readonly autoFollowBtn: HTMLElement;
-}
-
-let _els: GameControlEls | null = null;
-
-function els(): GameControlEls {
-  if (!_els) {
-    throw new Error('initUI() has not been called');
-  }
-  return _els;
-}
-
-function setSpd(v: number) {
-  state.timeScale = v;
-  for (const b of document.querySelectorAll<HTMLElement>('.sbtn')) {
-    b.classList.toggle('active', Number.parseFloat(b.dataset.spd || '') === v);
-  }
-  setHudSpeed(v);
-}
+  autoFollowActive$,
+  composeEnemyArchName$,
+  composeEnemyFleet$,
+  composeVisible$,
+  playUiVisible$,
+  resultData$,
+} from './signals.ts';
 
 let currentEnemyFleet: FleetComposition = [];
 let currentEnemyArchName = '';
@@ -83,21 +57,11 @@ export function setOnMeleeStart(cb: MeleeStartCb) {
 }
 
 function showPlayUI() {
-  const d = els();
-  d.codexBtn.style.display = 'block';
-  d.autoFollowBtn.style.display = 'block';
-  d.minimap.style.display = 'block';
-  d.controls.style.display = 'block';
-  d.speed.style.display = 'flex';
+  playUiVisible$.value = true;
 }
 
 function hidePlayUI() {
-  const d = els();
-  d.codexBtn.style.display = 'none';
-  d.autoFollowBtn.style.display = 'none';
-  d.minimap.style.display = 'none';
-  d.controls.style.display = 'none';
-  d.speed.style.display = 'none';
+  playUiVisible$.value = false;
 }
 
 function resetCam() {
@@ -106,7 +70,6 @@ function resetCam() {
   cam.targetZ = 1;
 }
 
-/** START → compose: 敵を生成して編成画面へ */
 function goToCompose(preserveFleet: boolean) {
   if (state.codexOpen) {
     toggleCodex();
@@ -115,12 +78,13 @@ function goToCompose(preserveFleet: boolean) {
   hidePlayUI();
   resultData$.value = null;
   if (!preserveFleet) {
-    resetCounts();
+    resetComposeCounts();
   }
-  showCompose(currentEnemyFleet, currentEnemyArchName);
+  composeEnemyFleet$.value = currentEnemyFleet;
+  composeEnemyArchName$.value = currentEnemyArchName;
+  composeVisible$.value = true;
 }
 
-/** SPECTATE → play: 従来の無限戦闘 */
 export function startSpectate() {
   state.gameState = 'play';
   resetCam();
@@ -129,11 +93,10 @@ export function startSpectate() {
   onSpectateStart();
 }
 
-/** LAUNCH → play: バトル開始 */
-function startBattle(playerFleet: FleetComposition) {
+export function startBattle(playerFleet: FleetComposition) {
   state.gameState = 'play';
   resetCam();
-  hideCompose();
+  composeVisible$.value = false;
   resultData$.value = null;
   showPlayUI();
   seedRng(uniqueSeed());
@@ -141,7 +104,6 @@ function startBattle(playerFleet: FleetComposition) {
   onBattleStart();
 }
 
-/** MELEE → play: N勢力乱戦開始 */
 const MELEE_TOTAL_BUDGET = DEFAULT_BUDGET * 2; // 2-team battle と同等の総量
 
 export function startMelee() {
@@ -149,14 +111,13 @@ export function startMelee() {
   resetCam();
   showPlayUI();
   seedRng(uniqueSeed());
-  const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1)); // 2〜MAX_TEAMS
+  const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1));
   const perTeamBudget = Math.round(MELEE_TOTAL_BUDGET / numTeams);
   const fleets = Array.from({ length: numTeams }, () => generateEnemyFleet(perTeamBudget, rng).fleet);
   initMelee(fleets, rng);
   onMeleeStart(numTeams);
 }
 
-/** play → result: バトル終了後の結果表示 */
 export function goToResult(result: BattleResult) {
   const outcome = processRoundEnd(result);
   state.gameState = 'result';
@@ -169,14 +130,12 @@ export function goToResult(result: BattleResult) {
   }
 }
 
-/** play → result: MELEE 結果表示 */
 export function goToMeleeResult(result: MeleeResult) {
   state.gameState = 'result';
   hidePlayUI();
   resultData$.value = { type: 'melee', meleeResult: result };
 }
 
-/** result/play → menu */
 export function goToMenu() {
   if (state.codexOpen) {
     toggleCodex();
@@ -187,9 +146,9 @@ export function goToMenu() {
   updateHudRoundInfo();
   state.gameState = 'menu';
   hidePlayUI();
-  hideCompose();
+  composeVisible$.value = false;
   resultData$.value = null;
-  resetCounts();
+  resetComposeCounts();
 }
 
 function generateEnemy() {
@@ -198,14 +157,12 @@ function generateEnemy() {
   currentEnemyArchName = archetypeName;
 }
 
-/** Menu → ラン開始: ラウンド1の編成画面へ */
 export function startNewRun() {
   resetRun();
   generateEnemy();
   goToCompose(false);
 }
 
-/** NEXT ROUND: 次のラウンドへ進む */
 export function advanceRound() {
   if (!isRunActive()) {
     return;
@@ -231,16 +188,25 @@ export function onCodexToggle() {
   toggleCodex();
   if (state.gameState === 'compose') {
     if (state.codexOpen) {
-      hideCompose();
+      composeVisible$.value = false;
     } else {
-      showCompose(currentEnemyFleet, currentEnemyArchName);
+      composeEnemyFleet$.value = currentEnemyFleet;
+      composeEnemyArchName$.value = currentEnemyArchName;
+      composeVisible$.value = true;
     }
-  }
-  if (state.gameState === 'play') {
-    els().codexBtn.style.display = state.codexOpen ? 'none' : 'block';
   }
   if (state.codexOpen) {
     setAutoFollow(false);
+  }
+}
+
+export function setSpd(v: TimeScale) {
+  state.timeScale = v;
+}
+
+export function handleAutoFollowToggle() {
+  if (state.gameState === 'play' && !state.codexOpen) {
+    toggleAutoFollow();
   }
 }
 
@@ -258,6 +224,24 @@ function onResultKeydown(e: KeyboardEvent) {
   }
 }
 
+function unreachable(idx: number): never {
+  throw new RangeError(`Invalid speed index: ${idx}`);
+}
+
+function stepSpd(dir: number) {
+  const i = SPEEDS.indexOf(state.timeScale);
+  const def = SPEEDS.indexOf(1);
+  if (i < 0) {
+    setSpd(SPEEDS[def] ?? unreachable(def));
+  } else if (dir < 0) {
+    if (i > 0) {
+      setSpd(SPEEDS[i - 1] ?? unreachable(i - 1));
+    }
+  } else if (i < SPEEDS.length - 1) {
+    setSpd(SPEEDS[i + 1] ?? unreachable(i + 1));
+  }
+}
+
 function onPlayKeydown(e: KeyboardEvent) {
   if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
     stepSpd(-1);
@@ -267,7 +251,7 @@ function onPlayKeydown(e: KeyboardEvent) {
     e.preventDefault();
   } else if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') {
     const idx = Number(e.code.slice(-1)) - 1;
-    setSpd(speeds[idx] ?? unreachable(idx));
+    setSpd(SPEEDS[idx] ?? unreachable(idx));
     e.preventDefault();
   } else if (e.code === 'KeyF') {
     if (!state.codexOpen) {
@@ -277,56 +261,7 @@ function onPlayKeydown(e: KeyboardEvent) {
   }
 }
 
-const speeds = [1, 2, 4];
-
-function unreachable(idx: number): never {
-  throw new RangeError(`Invalid speed index: ${idx}`);
-}
-
-function stepSpd(dir: number) {
-  const i = speeds.indexOf(state.timeScale);
-  const def = speeds.indexOf(1);
-  if (i < 0) {
-    setSpd(speeds[def] ?? unreachable(def));
-  } else if (dir < 0) {
-    if (i > 0) {
-      setSpd(speeds[i - 1] ?? unreachable(i - 1));
-    }
-  } else if (i < speeds.length - 1) {
-    setSpd(speeds[i + 1] ?? unreachable(i + 1));
-  }
-}
-
-export function initUI() {
-  _els = {
-    codexBtn: getElement(DOM_ID_CODEX_BTN),
-    minimap: getElement(DOM_ID_MINIMAP),
-    controls: getElement(DOM_ID_CONTROLS),
-    speed: getElement(DOM_ID_SPEED),
-    autoFollowBtn: getElement(DOM_ID_AUTO_FOLLOW_BTN),
-  };
-
-  const elCodexClose = getElement(DOM_ID_CODEX_CLOSE);
-
-  _els.autoFollowBtn.addEventListener('click', () => {
-    if (state.gameState === 'play' && !state.codexOpen) {
-      toggleAutoFollow();
-    }
-  });
-
-  _els.codexBtn.addEventListener('click', () => {
-    onCodexToggle();
-  });
-  elCodexClose.addEventListener('click', () => {
-    onCodexToggle();
-  });
-
-  for (const btn of document.querySelectorAll<HTMLElement>('.sbtn[data-spd]')) {
-    btn.addEventListener('click', () => {
-      setSpd(Number.parseFloat(btn.dataset.spd || '1'));
-    });
-  }
-
+export function initKeyboardControls() {
   addEventListener('keydown', (e: KeyboardEvent) => {
     if (
       (e.code === 'Tab' || e.code === 'Escape') &&
@@ -343,9 +278,6 @@ export function initUI() {
   });
 
   onAutoFollowChange((on) => {
-    els().autoFollowBtn.classList.toggle('active', on);
+    autoFollowActive$.value = on;
   });
-
-  initComposeDOM(startBattle, goToMenu, onCodexToggle);
-  initCodexDOM();
 }
