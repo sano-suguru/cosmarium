@@ -8,7 +8,7 @@ Always respond in **Japanese**.
 
 ## Project Overview
 
-**COSMARIUM** — autonomous swarm fleet battle simulation. Units fight autonomously via Boids + engagement AI; player designs/composes fleets and spectates. Vanilla TypeScript + WebGL 2. Vite + Bun. No UI framework. Zero production dependencies. Deployed to Cloudflare Workers (Hono).
+**COSMARIUM** — autonomous swarm fleet battle simulation. Units fight autonomously via Boids + engagement AI; player designs/composes fleets and spectates. TypeScript + WebGL 2 + Preact (UI layer only). Vite + Bun. Deployed to Cloudflare Workers (Hono).
 
 ## Development
 
@@ -56,7 +56,7 @@ src/
   renderer/          # WebGL 2 rendering pipeline
   simulation/        # Game logic (spatial hash, combat-*, steering)
   input/camera.ts    # Camera + pointer/keyboard input
-  ui/                # Codex, HUD, game controls
+  ui/                # Preact components + CSS Modules (Codex, HUD, game controls)
 worker/
   index.ts           # Cloudflare Workers edge server (Hono + CSP headers)
 ```
@@ -96,7 +96,7 @@ Phase transitions: `main.ts` callbacks → `battle-tracker`/`melee-tracker` → 
 
 ## Key Rules (details in `.claude/rules/`)
 
-- **No classes** — plain typed objects, procedural functions, state mutation via assignment
+- **レイヤー分離** — シミュレーション/レンダリング層はクラスなし・手続き的・依存ゼロを維持。UI 層は Preact + CSS Modules
 - **Imports** — relative paths + explicit `.ts` extension, no barrel exports
 - **Dependency rules** (`bun run check:deps`): `simulation/` → `state.ts` forbidden, `simulation/` → `ui/` forbidden
 - **`types.ts` / `state.ts` changes cascade everywhere** — always validate with `bun run typecheck`

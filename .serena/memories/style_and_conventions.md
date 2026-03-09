@@ -27,8 +27,8 @@
 - Verify: `bun run check:deps`
 
 ## Naming & Design
-- Functional/procedural (no classes)
-- Game objects are plain typed objects
+- **Layer separation**: Simulation/rendering = functional/procedural (no classes). UI = Preact function components + CSS Modules
+- Game objects (simulation layer) are plain typed objects
 - State mutation via property assignment on `state` object
 - `poolCounts` via `incUnits()`/`decUnits()` functions (direct mutation is type error)
 - Beams: dynamic array, swap-and-pop for deletion

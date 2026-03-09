@@ -39,5 +39,9 @@
     "vite-plugin-glsl": "~1.5.5",
     "vitest": "^4.0.18",
     "wrangler": "^4.69.0"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.8.2",
+    "preact": "^10.28.4"
   }
 }

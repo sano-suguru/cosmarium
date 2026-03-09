@@ -41,6 +41,7 @@ import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import type { BattlePhase, BattleResult } from './types.ts';
 import { copyTeamCounts } from './types.ts';
+import { mountApp } from './ui/App.tsx';
 import { initResultDOM } from './ui/battle-result.ts';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { demoRng } from './ui/codex-demos.ts';
@@ -57,8 +58,6 @@ import {
   setOnBattleStart,
   setOnMeleeStart,
   setOnSpectateStart,
-  setOnStartCompose,
-  startNewRun,
 } from './ui/game-control.ts';
 import {
   hideMothershipHpBar,
@@ -82,6 +81,7 @@ addEventListener('resize', () => {
   createFBOs();
 });
 
+mountApp();
 initUI();
 initHUD();
 initKillFeed();
@@ -115,10 +115,6 @@ function handleMeleeFinalized(result: MeleeResult) {
   goToMeleeResult(result);
 }
 
-function handleStartCompose() {
-  startNewRun();
-}
-
 function handleBattleStart() {
   resetBattleTracking();
   resetScreenEffects();
@@ -148,7 +144,6 @@ function handleMeleeStart(numTeams: number) {
 
 setOnFinalize(handleBattleFinalized);
 setOnMeleeFinalize(handleMeleeFinalized);
-setOnStartCompose(handleStartCompose);
 setOnBattleStart(handleBattleStart);
 setOnSpectateStart(handleSpectateStart);
 setOnMeleeStart(handleMeleeStart);

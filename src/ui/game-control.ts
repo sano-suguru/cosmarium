@@ -12,15 +12,10 @@ import { hideResult, reopenResult, showMeleeResult, showRoundResult, showRunResu
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
   DOM_ID_AUTO_FOLLOW_BTN,
-  DOM_ID_BTN_MELEE,
-  DOM_ID_BTN_SPECTATE,
-  DOM_ID_BTN_START,
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
-  DOM_ID_CODEX_MENU_BTN,
   DOM_ID_CONTROLS,
   DOM_ID_HUD,
-  DOM_ID_MENU,
   DOM_ID_MINIMAP,
   DOM_ID_SPD_VALUE,
   DOM_ID_SPEED,
@@ -30,7 +25,6 @@ import { getPlayerFleet, hideCompose, initComposeDOM, resetCounts, showCompose }
 import { updateHudRoundInfo } from './hud.ts';
 
 interface GameControlEls {
-  readonly menu: HTMLElement;
   readonly hud: HTMLElement;
   readonly codexBtn: HTMLElement;
   readonly minimap: HTMLElement;
@@ -77,16 +71,11 @@ const throwBattleStart: TransitionCb = () => {
   throw new Error('setOnBattleStart() must be called before battle launch');
 };
 let onBattleStart: TransitionCb = throwBattleStart;
-let onStartCompose: TransitionCb = () => undefined;
 let onSpectateStart: TransitionCb = () => undefined;
 let onMeleeStart: MeleeStartCb = () => undefined;
 
 export function setOnBattleStart(cb: TransitionCb) {
   onBattleStart = cb;
-}
-
-export function setOnStartCompose(cb: TransitionCb) {
-  onStartCompose = cb;
 }
 
 export function setOnSpectateStart(cb: TransitionCb) {
@@ -129,7 +118,6 @@ export function goToCompose(preserveFleet: boolean) {
     toggleCodex();
   }
   state.gameState = 'compose';
-  els().menu.style.display = 'none';
   hidePlayUI();
   hideResult();
   if (!preserveFleet) {
@@ -139,10 +127,9 @@ export function goToCompose(preserveFleet: boolean) {
 }
 
 /** SPECTATE → play: 従来の無限戦闘 */
-function startSpectate() {
+export function startSpectate() {
   state.gameState = 'play';
   resetCam();
-  els().menu.style.display = 'none';
   showPlayUI();
   initUnits(rng);
   onSpectateStart();
@@ -163,10 +150,9 @@ function startBattle(playerFleet: FleetComposition) {
 /** MELEE → play: N勢力乱戦開始 */
 const MELEE_TOTAL_BUDGET = DEFAULT_BUDGET * 2; // 2-team battle と同等の総量
 
-function startMelee() {
+export function startMelee() {
   state.gameState = 'play';
   resetCam();
-  els().menu.style.display = 'none';
   showPlayUI();
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1)); // 2〜MAX_TEAMS
@@ -215,7 +201,6 @@ export function goToMenu() {
   hideCompose();
   hideResult();
   resetCounts();
-  els().menu.style.display = 'flex';
 }
 
 export function setEnemyFleet(fleet: FleetComposition, archName: string) {
@@ -251,17 +236,15 @@ export function _resetGameControl() {
   currentEnemyFleet = [];
   currentEnemyArchName = '';
   onBattleStart = throwBattleStart;
-  onStartCompose = () => undefined;
   onSpectateStart = () => undefined;
   onMeleeStart = () => undefined;
+  state.gameState = 'menu';
+  state.codexOpen = false;
   _resetRunState();
 }
 
-function onCodexToggle() {
+export function onCodexToggle() {
   toggleCodex();
-  if (state.gameState === 'menu') {
-    els().menu.style.display = state.codexOpen ? 'none' : 'flex';
-  }
   if (state.gameState === 'compose') {
     if (state.codexOpen) {
       hideCompose();
@@ -340,7 +323,6 @@ function stepSpd(dir: number) {
 
 export function initUI() {
   _els = {
-    menu: getElement(DOM_ID_MENU),
     hud: getElement(DOM_ID_HUD),
     codexBtn: getElement(DOM_ID_CODEX_BTN),
     minimap: getElement(DOM_ID_MINIMAP),
@@ -350,23 +332,7 @@ export function initUI() {
     autoFollowBtn: getElement(DOM_ID_AUTO_FOLLOW_BTN),
   };
 
-  const elBtnStart = getElement(DOM_ID_BTN_START);
-  const elBtnSpectate = getElement(DOM_ID_BTN_SPECTATE);
-  const elBtnMelee = getElement(DOM_ID_BTN_MELEE);
   const elCodexClose = getElement(DOM_ID_CODEX_CLOSE);
-  const elCodexMenuBtn = getElement(DOM_ID_CODEX_MENU_BTN);
-
-  elBtnStart.addEventListener('click', () => {
-    onStartCompose();
-  });
-
-  elBtnSpectate.addEventListener('click', () => {
-    startSpectate();
-  });
-
-  elBtnMelee.addEventListener('click', () => {
-    startMelee();
-  });
 
   _els.autoFollowBtn.addEventListener('click', () => {
     if (state.gameState === 'play' && !state.codexOpen) {
@@ -378,9 +344,6 @@ export function initUI() {
     onCodexToggle();
   });
   elCodexClose.addEventListener('click', () => {
-    onCodexToggle();
-  });
-  elCodexMenuBtn.addEventListener('click', () => {
     onCodexToggle();
   });
 

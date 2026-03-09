@@ -2,7 +2,7 @@
 
 > Guidance for AI agents working on this codebase. Source of truth is always the source code.
 
-**COSMARIUM** is a real-time space strategy/combat simulation game built with vanilla TypeScript, WebGL 2, and Vite. No UI framework. Zero production dependencies.
+**COSMARIUM** is a real-time space strategy/combat simulation game built with TypeScript, WebGL 2, Preact (UI layer only), and Vite.
 
 ## Language
 
@@ -70,7 +70,7 @@ src/
 ├── renderer/             # WebGL 2: VAO/FBO/buffers, instanced rendering, bloom, minimap
 ├── simulation/           # Game tick logic: spatial hash, spawn/kill, steering, combat, effects
 ├── input/camera.ts       # Camera state, input handling, screen shake
-└── ui/                   # Codex, fleet-compose, HUD, battle-result
+└── ui/                   # Preact components + CSS Modules (Codex, fleet-compose, HUD, battle-result)
 ```
 
 ## Main Loop (simplified)
@@ -157,10 +157,20 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 - **Always**: Relative paths with explicit `.ts` extension. No path aliases, no barrel exports.
 - **Example**: `import { spawn } from './spawn.ts';` not `import { spawn } from './index';`
 
-### Functional Style
-- No classes. Game objects are plain typed objects.
-- State mutations via assignment (not methods).
-- Most operations are procedural functions (spawn, kill, update).
+### Layer Separation (ADR-0001)
+
+プロジェクトはシミュレーション/レンダリング層と UI 層で設計方針を分離する。
+
+**シミュレーション/レンダリング層** (`simulation/`, `renderer/`, `state.ts`, `pools.ts` 等):
+- クラスなし。ゲームオブジェクトは plain typed objects
+- 手続き的関数（spawn, kill, update）による状態変更
+- 外部依存ゼロ
+
+**UI 層** (`src/ui/`):
+- Preact 関数コンポーネント + hooks
+- Preact Signals による状態管理
+- CSS Modules (`.module.css`) によるスコープ付きスタイル
+- React エコシステムのライブラリ利用可
 
 ### No Defensive Fallbacks
 No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. Resolve defaults at definition time; make types required. DOM elements: use `getElement()` (throws on missing), treat as non-null thereafter.

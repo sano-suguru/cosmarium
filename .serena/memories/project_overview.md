@@ -4,9 +4,10 @@
 Real-time space strategy/combat simulation game. Infinite mode only — a perpetual space war simulation.
 
 ## Tech Stack
-- **Language**: Vanilla TypeScript (strict mode)
+- **Language**: TypeScript (strict mode)
 - **Rendering**: HTML5 Canvas + WebGL 2 (instanced rendering, GLSL `#version 300 es`)
-- **Build**: Vite + Bun (zero production dependencies)
+- **UI**: Preact + Preact Signals + CSS Modules (UI layer only)
+- **Build**: Vite + Bun
 - **Testing**: Vitest
 - **Linting/Formatting**: Biome
 - **Shaders**: GLSL via vite-plugin-glsl (`#include` directives)
@@ -33,7 +34,7 @@ src/
 `frame()` → camera lerp/shake → `update(dt*timeScale)` → `renderFrame()`
 
 ## Core Design
-- Functional/procedural (no classes)
+- **Layer separation**: Simulation/rendering = no classes, procedural, zero deps. UI = Preact components + CSS Modules
 - Object pooling with `.alive` flag
 - Spatial hash rebuilt every frame
 - Instanced rendering with VAOs
