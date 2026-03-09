@@ -1,12 +1,13 @@
 import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
+import { _resetRunState, endRun, isRunActive, processRoundEnd, resetRun } from '../run.ts';
 import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
 import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
 import type { BattleResult, FleetComposition } from '../types.ts';
 import { MAX_TEAMS } from '../types.ts';
-import { hideResult, reopenResult, showMeleeResult, showResult } from './battle-result.ts';
+import { hideResult, reopenResult, showMeleeResult, showRoundResult, showRunResult } from './battle-result.ts';
 // NOTE: codex.ts → game-control.ts の逆方向 import は循環依存になるため禁止
 import { initCodexDOM, toggleCodex } from './codex.ts';
 import {
@@ -26,6 +27,7 @@ import {
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 import { getPlayerFleet, hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
+import { updateHudRoundInfo } from './hud.ts';
 
 interface GameControlEls {
   readonly menu: HTMLElement;
@@ -181,9 +183,15 @@ export function rematch() {
 
 /** play → result: バトル終了後の結果表示 */
 export function goToResult(result: BattleResult) {
+  const outcome = processRoundEnd(result);
   state.gameState = 'result';
   hidePlayUI();
-  showResult(result);
+
+  if (outcome.type === 'runComplete') {
+    showRunResult(outcome.runResult);
+  } else {
+    showRoundResult(outcome.roundResult, outcome.status);
+  }
 }
 
 /** play → result: MELEE 結果表示 */
@@ -198,6 +206,10 @@ export function goToMenu() {
   if (state.codexOpen) {
     toggleCodex();
   }
+  if (isRunActive()) {
+    endRun();
+  }
+  updateHudRoundInfo();
   state.gameState = 'menu';
   hidePlayUI();
   hideCompose();
@@ -211,6 +223,28 @@ export function setEnemyFleet(fleet: FleetComposition, archName: string) {
   currentEnemyArchName = archName;
 }
 
+function generateEnemy() {
+  const { fleet, archetypeName } = generateEnemyFleet(DEFAULT_BUDGET, rng);
+  currentEnemyFleet = fleet;
+  currentEnemyArchName = archetypeName;
+}
+
+/** Menu → ラン開始: ラウンド1の編成画面へ */
+export function startNewRun() {
+  resetRun();
+  generateEnemy();
+  goToCompose(false);
+}
+
+/** NEXT ROUND: 次のラウンドへ進む */
+export function advanceRound() {
+  if (!isRunActive()) {
+    return;
+  }
+  generateEnemy();
+  goToCompose(true);
+}
+
 /** テスト専用: モジュールレベル変数をリセット */
 export function _resetGameControl() {
   seedCounter = 0;
@@ -220,6 +254,7 @@ export function _resetGameControl() {
   onStartCompose = () => undefined;
   onSpectateStart = () => undefined;
   onMeleeStart = () => undefined;
+  _resetRunState();
 }
 
 function onCodexToggle() {

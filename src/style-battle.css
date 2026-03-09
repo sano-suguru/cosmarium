@@ -60,6 +60,21 @@
   max-width: 960px;
 }
 
+.compose-round-info {
+  display: none;
+  text-align: center;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: rgba(0, 255, 255, 0.7);
+  letter-spacing: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+  margin-bottom: 8px;
+}
+.compose-round-info.active {
+  display: block;
+}
+
 .compose-header {
   text-align: center;
 }

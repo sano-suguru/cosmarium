@@ -1,16 +1,19 @@
 import { TEAM_HEX_COLORS } from '../colors.ts';
 import { mothershipIdx, poolCounts, teamUnitCounts, unit } from '../pools.ts';
+import { getRunInfo } from '../run.ts';
 import type { BattlePhase, Team } from '../types.ts';
 import { NO_UNIT, teamsOf } from '../types.ts';
 import {
   DOM_ID_COUNT_A,
   DOM_ID_COUNT_B,
   DOM_ID_FPS,
+  DOM_ID_HUD_ROUND_INFO,
   DOM_ID_MELEE_TEAMS,
   DOM_ID_MOTHERSHIP_HP,
   DOM_ID_PARTICLE_NUM,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
+import { updateRunInfoElement } from './run-info.ts';
 
 interface HudState {
   readonly countA: HTMLElement;
@@ -20,6 +23,7 @@ interface HudState {
   readonly teamRow: HTMLElement;
   readonly meleeContainer: HTMLElement;
   readonly mothershipHp: HTMLElement;
+  readonly roundInfo: HTMLElement;
   mhpBars: { el: HTMLElement; team: Team; prevWidth: string; prevClr: string }[];
   meleeSpans: { el: HTMLSpanElement; team: Team }[];
 }
@@ -42,6 +46,7 @@ export function initHUD() {
     teamRow: getElement('hudTeamRow'),
     meleeContainer: getElement(DOM_ID_MELEE_TEAMS),
     mothershipHp: getElement(DOM_ID_MOTHERSHIP_HP),
+    roundInfo: getElement(DOM_ID_HUD_ROUND_INFO),
     mhpBars: [],
     meleeSpans: [],
   };
@@ -145,6 +150,12 @@ export function hideMothershipHpBar() {
   s.mothershipHp.style.display = 'none';
   s.mothershipHp.textContent = '';
   s.mhpBars = [];
+}
+
+/** ラウンド情報を更新（状態遷移時に1回だけ呼ぶ） */
+export function updateHudRoundInfo() {
+  const s = st();
+  updateRunInfoElement(s.roundInfo, getRunInfo());
 }
 
 export function updateHUD(displayFps: number, battlePhase: BattlePhase) {

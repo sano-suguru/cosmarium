@@ -1,25 +1,33 @@
 import { TEAM_UI_HEX_COLORS } from '../colors.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
-import type { BattleResult, Team } from '../types.ts';
+import type { RoundResult, RunResult, RunStatus, Team } from '../types.ts';
 import {
   DOM_ID_RESULT,
   DOM_ID_RESULT_MENU,
+  DOM_ID_RESULT_NEXT_ROUND,
   DOM_ID_RESULT_RECOMPOSE,
   DOM_ID_RESULT_REMATCH,
+  DOM_ID_RESULT_ROUND_INFO,
   DOM_ID_RESULT_STATS,
   DOM_ID_RESULT_TITLE,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
+import { createRunInfoNodes } from './run-info.ts';
 
 type ResultCb = () => void;
 
 let onRecompose: ResultCb = () => undefined;
 let onRematch: ResultCb = () => undefined;
+let onNextRound: ResultCb = () => undefined;
 
 interface ResultEls {
   readonly result: HTMLElement;
   readonly title: HTMLElement;
   readonly stats: HTMLElement;
+  readonly roundInfo: HTMLElement;
+  readonly recompose: HTMLElement;
+  readonly rematch: HTMLElement;
+  readonly nextRound: HTMLElement;
 }
 
 let _els: ResultEls | undefined;
@@ -31,30 +39,44 @@ function els(): ResultEls {
   return _els;
 }
 
-export function initResultDOM(menuCb: ResultCb, recomposeCb: ResultCb, rematchCb: ResultCb) {
-  onRecompose = recomposeCb;
-  onRematch = rematchCb;
+type ResultCallbacks = {
+  readonly menu: ResultCb;
+  readonly recompose: ResultCb;
+  readonly rematch: ResultCb;
+  readonly nextRound: ResultCb;
+};
+
+export function initResultDOM(cbs: ResultCallbacks) {
+  onRecompose = cbs.recompose;
+  onRematch = cbs.rematch;
+  onNextRound = cbs.nextRound;
 
   _els = {
     result: getElement(DOM_ID_RESULT),
     title: getElement(DOM_ID_RESULT_TITLE),
     stats: getElement(DOM_ID_RESULT_STATS),
+    roundInfo: getElement(DOM_ID_RESULT_ROUND_INFO),
+    recompose: getElement(DOM_ID_RESULT_RECOMPOSE),
+    rematch: getElement(DOM_ID_RESULT_REMATCH),
+    nextRound: getElement(DOM_ID_RESULT_NEXT_ROUND),
   };
 
   const elMenu = getElement(DOM_ID_RESULT_MENU);
-  const elRecompose = getElement(DOM_ID_RESULT_RECOMPOSE);
-  const elRematch = getElement(DOM_ID_RESULT_REMATCH);
 
   elMenu.addEventListener('click', () => {
-    menuCb();
+    cbs.menu();
   });
 
-  elRecompose.addEventListener('click', () => {
+  _els.recompose.addEventListener('click', () => {
     onRecompose();
   });
 
-  elRematch.addEventListener('click', () => {
+  _els.rematch.addEventListener('click', () => {
     onRematch();
+  });
+
+  _els.nextRound.addEventListener('click', () => {
+    onNextRound();
   });
 }
 
@@ -71,38 +93,27 @@ function resetResultPanel() {
   d.title.className = 'result-title';
   d.title.removeAttribute('style');
   d.stats.textContent = '';
-  getElement(DOM_ID_RESULT_RECOMPOSE).style.display = '';
-  getElement(DOM_ID_RESULT_REMATCH).style.display = '';
+  d.recompose.style.display = '';
+  d.rematch.style.display = '';
+  d.nextRound.style.display = 'none';
+  d.roundInfo.textContent = '';
+  d.roundInfo.classList.remove('active');
 }
 
-export function showResult(result: BattleResult) {
-  const d = els();
-  resetResultPanel();
-
-  if (result.victory) {
-    d.title.textContent = 'VICTORY';
-    d.title.className = 'result-title victory';
-  } else {
-    d.title.textContent = 'DEFEAT';
-    d.title.className = 'result-title defeat';
-  }
-
-  const lines: [string, string][] = [
-    ['戦闘時間:', formatTime(result.elapsed)],
-    ['残存艦艇:', `${result.playerSurvivors} / ${result.initialPlayerUnits}`],
-    ['撃破敵艦:', String(result.enemyKills)],
-    ['自軍損失:', String(result.playerLosses)],
-  ];
+function appendStatRows(container: HTMLElement, lines: [string, string][]) {
   for (const [label, value] of lines) {
     const row = document.createElement('div');
     const span = document.createElement('span');
     span.className = 'label';
     span.textContent = label;
     row.append(span, `  ${value}`);
-    d.stats.appendChild(row);
+    container.appendChild(row);
   }
+}
 
-  d.result.classList.add('open');
+function setVictoryTitle(el: HTMLElement, victory: boolean, winText: string, loseText: string) {
+  el.textContent = victory ? winText : loseText;
+  el.className = victory ? 'result-title victory' : 'result-title defeat';
 }
 
 function teamUiHex(team: Team): string {
@@ -279,8 +290,54 @@ export function showMeleeResult(result: MeleeResult) {
   }
 
   // MELEE: RECOMPOSE/REMATCH を非表示、MENU のみ
-  getElement(DOM_ID_RESULT_RECOMPOSE).style.display = 'none';
-  getElement(DOM_ID_RESULT_REMATCH).style.display = 'none';
+  d.recompose.style.display = 'none';
+  d.rematch.style.display = 'none';
+
+  d.result.classList.add('open');
+}
+
+export function showRoundResult(roundResult: RoundResult, runStatus: RunStatus) {
+  const d = els();
+  resetResultPanel();
+
+  d.roundInfo.append(createRunInfoNodes(runStatus));
+  d.roundInfo.classList.add('active');
+
+  setVictoryTitle(d.title, roundResult.victory, 'VICTORY', 'DEFEAT');
+
+  appendStatRows(d.stats, [
+    ['戦闘時間:', formatTime(roundResult.elapsed)],
+    ['残存艦艇:', `${roundResult.playerSurvivors} / ${roundResult.initialPlayerUnits}`],
+    ['撃破敵艦:', String(roundResult.enemyKills)],
+    ['自軍損失:', String(roundResult.playerLosses)],
+  ]);
+
+  d.recompose.style.display = 'none';
+  d.rematch.style.display = 'none';
+  d.nextRound.style.display = '';
+
+  d.result.classList.add('open');
+}
+
+export function showRunResult(runResult: RunResult) {
+  const d = els();
+  resetResultPanel();
+
+  d.roundInfo.textContent = `${runResult.rounds} ROUNDS`;
+  d.roundInfo.classList.add('active');
+
+  setVictoryTitle(d.title, runResult.cleared, 'RUN CLEAR', 'RUN OVER');
+
+  appendStatRows(d.stats, [
+    ['勝利:', `${runResult.wins}`],
+    ['敗北:', `${runResult.losses}`],
+    ['総撃破:', `${runResult.totalKills}`],
+    ['総損失:', `${runResult.totalLosses}`],
+  ]);
+
+  d.recompose.style.display = 'none';
+  d.rematch.style.display = 'none';
+  d.nextRound.style.display = 'none';
 
   d.result.classList.add('open');
 }

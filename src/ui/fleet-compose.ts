@@ -1,4 +1,5 @@
 import { DEFAULT_BUDGET, SORTED_TYPE_INDICES } from '../fleet-cost.ts';
+import { getRunInfo } from '../run.ts';
 import type { FleetComposition, FleetEntry } from '../types.ts';
 import { TYPE_INDICES, TYPES } from '../unit-types.ts';
 import {
@@ -11,9 +12,11 @@ import {
   DOM_ID_COMPOSE_LAUNCH,
   DOM_ID_COMPOSE_REMAINING,
   DOM_ID_COMPOSE_RESET,
+  DOM_ID_COMPOSE_ROUND_INFO,
   DOM_ID_COMPOSE_TOTAL,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
+import { updateRunInfoElement } from './run-info.ts';
 
 const counts: number[] = TYPES.map(() => 0);
 let enemyFleet: FleetComposition = [];
@@ -36,6 +39,7 @@ interface ComposeEls {
   readonly launch: HTMLButtonElement;
   readonly enemy: HTMLElement;
   readonly codexBtn: HTMLElement;
+  readonly roundInfo: HTMLElement;
 }
 
 let _els: ComposeEls | undefined;
@@ -245,6 +249,7 @@ export function initComposeDOM(launchCb: LaunchCb, backCb: BackCb, codexToggleCb
     launch: getElement(DOM_ID_COMPOSE_LAUNCH, HTMLButtonElement),
     enemy: getElement(DOM_ID_COMPOSE_ENEMY),
     codexBtn: getElement(DOM_ID_COMPOSE_CODEX_BTN),
+    roundInfo: getElement(DOM_ID_COMPOSE_ROUND_INFO),
   };
 
   const elBack = getElement(DOM_ID_COMPOSE_BACK);
@@ -290,9 +295,14 @@ export function showCompose(enemy: FleetComposition, archName: string) {
   enemyArchName = archName;
   renderEnemyFleet();
   refreshUI();
+  updateComposeRoundInfo();
   const d = els();
   d.compose.classList.add('open');
   d.codexBtn.classList.add('open');
+}
+
+function updateComposeRoundInfo() {
+  updateRunInfoElement(els().roundInfo, getRunInfo());
 }
 
 export function hideCompose() {

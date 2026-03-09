@@ -46,6 +46,7 @@ import { syncDemoCamera, updateCodexDemo } from './ui/codex.ts';
 import { demoRng } from './ui/codex-demos.ts';
 import { getPlayerFleet } from './ui/fleet-compose.ts';
 import {
+  advanceRound,
   goToCompose,
   goToMeleeResult,
   goToMenu,
@@ -57,6 +58,7 @@ import {
   setOnMeleeStart,
   setOnSpectateStart,
   setOnStartCompose,
+  startNewRun,
 } from './ui/game-control.ts';
 import {
   hideMothershipHpBar,
@@ -65,6 +67,7 @@ import {
   showMothershipHpBar,
   teardownMeleeHUD,
   updateHUD,
+  updateHudRoundInfo,
 } from './ui/hud.ts';
 import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
 
@@ -92,7 +95,12 @@ function generateAndCompose(preserveFleet: boolean) {
   goToCompose(preserveFleet);
 }
 
-initResultDOM(goToMenu, () => generateAndCompose(true), rematch);
+initResultDOM({
+  menu: goToMenu,
+  recompose: () => generateAndCompose(true),
+  rematch,
+  nextRound: advanceRound,
+});
 
 function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';
@@ -108,7 +116,7 @@ function handleMeleeFinalized(result: MeleeResult) {
 }
 
 function handleStartCompose() {
-  generateAndCompose(false);
+  startNewRun();
 }
 
 function handleBattleStart() {
@@ -119,6 +127,7 @@ function handleBattleStart() {
   gameLoopState.battlePhase = 'battle';
   gameLoopState.activeTeamCount = 2;
   showMothershipHpBar(2);
+  updateHudRoundInfo();
 }
 
 function handleSpectateStart() {

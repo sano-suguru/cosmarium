@@ -264,6 +264,27 @@ export type BattleResult = {
   readonly initialPlayerUnits: number;
 };
 
+export type RoundResult = BattleResult & {
+  readonly round: number;
+};
+
+export type RunStatus = {
+  readonly round: number;
+  readonly lives: number;
+  readonly wins: number;
+  readonly winTarget: number;
+};
+
+export type RunResult = {
+  readonly cleared: boolean;
+  readonly rounds: number;
+  readonly wins: number;
+  readonly losses: number;
+  readonly totalKills: number;
+  readonly totalLosses: number;
+  readonly roundResults: readonly RoundResult[];
+};
+
 /** チーム上限。Team / TeamCounts の基数を決定する（変更時は Team 定義も更新すること） */
 export const MAX_TEAMS = 5;
 

@@ -119,6 +119,24 @@ canvas#c {
   border: 1px solid rgba(0, 255, 255, 0.1);
   border-radius: 3px;
 }
+.hud-round-info {
+  display: none;
+  color: rgba(0, 255, 255, 0.8);
+  letter-spacing: 1px;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+}
+.hud-round-info.active {
+  display: block;
+}
+.lives {
+  color: #f55;
+  text-shadow: 0 0 6px rgba(255, 80, 80, 0.4);
+}
+.hud-round-info .lives {
+  text-shadow: 0 0 4px rgba(255, 80, 80, 0.4);
+}
 .hl {
   color: #666;
 }

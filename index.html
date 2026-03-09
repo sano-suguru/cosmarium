@@ -48,6 +48,7 @@
     </div>
 
     <div id="compose">
+      <div id="composeRoundInfo" class="compose-round-info"></div>
       <div class="compose-header">
         <h2>ENEMY FLEET</h2>
         <div id="composeEnemy" class="compose-enemy-list"></div>
@@ -73,12 +74,14 @@
 
     <div id="result">
       <div class="result-panel">
+        <div id="resultRoundInfo" class="result-round-info"></div>
         <div id="resultTitle" class="result-title">VICTORY</div>
         <div id="resultStats" class="result-stats"></div>
         <div class="result-actions">
           <button class="mbtn" id="resultMenu">MENU</button>
           <button class="mbtn" id="resultRecompose">RECOMPOSE</button>
           <button class="mbtn" id="resultRematch">REMATCH</button>
+          <button class="mbtn" id="resultNextRound" style="display:none">NEXT ROUND</button>
         </div>
       </div>
     </div>
@@ -86,6 +89,7 @@
     <div id="mothershipHp" style="display: none"></div>
 
     <div id="hud" style="display: none">
+      <div id="hudRoundInfo" class="hud-round-info"></div>
       <div id="hudTeamRow">
         <span class="hl">UNITS:</span>
         <span class="hc" id="cA">0</span>

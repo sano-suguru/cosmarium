@@ -68,6 +68,20 @@
   pointer-events: none;
 }
 
+.result-round-info {
+  position: relative;
+  z-index: 2;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: rgba(0, 255, 255, 0.6);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: none;
+}
+.result-round-info.active {
+  display: block;
+}
+
 .result-title {
   position: relative;
   z-index: 2;
