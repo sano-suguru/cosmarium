@@ -3,6 +3,8 @@ import { BattleResult } from './battle-result/BattleResult.tsx';
 import { DOM_ID_UI_ROOT } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 import { advanceRound, goToMenu, onCodexToggle, startMelee, startNewRun, startSpectate } from './game-control.ts';
+import { Hud } from './hud/Hud.tsx';
+import { KillFeed } from './kill-feed/KillFeed.tsx';
 import { Menu } from './menu/Menu.tsx';
 import { codexOpen$, gameState$, resultData$ } from './signals.ts';
 
@@ -16,6 +18,12 @@ function App() {
       )}
       {resultData && !codexOpen$.value && (
         <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />
+      )}
+      {gameState$.value === 'play' && !codexOpen$.value && (
+        <>
+          <Hud />
+          <KillFeed />
+        </>
       )}
     </>
   );

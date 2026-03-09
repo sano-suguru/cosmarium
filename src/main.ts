@@ -53,14 +53,13 @@ import {
 } from './ui/game-control.ts';
 import {
   hideMothershipHpBar,
-  initHUD,
   setupMeleeHUD,
   showMothershipHpBar,
   teardownMeleeHUD,
   updateHUD,
   updateHudRoundInfo,
-} from './ui/hud.ts';
-import { addKillFeedEntry, initKillFeed } from './ui/kill-feed.ts';
+} from './ui/hud/Hud.tsx';
+import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
 
 const BASE_SPEED = 0.55;
 /** result 状態のスロー再生倍率 */
@@ -75,8 +74,6 @@ addEventListener('resize', () => {
 
 mountApp();
 initUI();
-initHUD();
-initKillFeed();
 initCamera();
 initMinimap();
 

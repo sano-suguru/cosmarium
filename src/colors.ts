@@ -9,10 +9,14 @@ const PURPLE: Color3 = [0.7, 0.3, 0.9];
 const AMBER: Color3 = [0.95, 0.8, 0.15];
 const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, VERMILION, GREEN, PURPLE, AMBER];
 
+export function color3ToRgb(c: Color3): string {
+  return `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
+}
+
 function color3ToHex(c: Color3): string {
-  const r = Math.round(c[0] * 255);
-  const g = Math.round(c[1] * 255);
-  const b = Math.round(c[2] * 255);
+  const r = (c[0] * 255) | 0;
+  const g = (c[1] * 255) | 0;
+  const b = (c[2] * 255) | 0;
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 export const TEAM_HEX_COLORS: Readonly<TeamTuple<string>> = mapTeamTuple(TEAM_BASE, color3ToHex);

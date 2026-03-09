@@ -1,5 +1,5 @@
 import { beams, trackingBeams } from '../beams.ts';
-import { color } from '../colors.ts';
+import { color, color3ToRgb } from '../colors.ts';
 import { isPurchasable } from '../fleet-cost.ts';
 import type { CameraSnapshot } from '../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../input/camera.ts';
@@ -36,7 +36,7 @@ import {
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 
-import { clearKillFeed } from './kill-feed.ts';
+import { clearKillFeed } from './kill-feed/KillFeed.tsx';
 
 interface CodexEls {
   readonly codex: HTMLElement;
@@ -279,8 +279,8 @@ function updateCodexPanel() {
   const t = unitType(sel);
   const c0 = color(state.codexSelected, 0),
     c1 = color(state.codexSelected, 1);
-  const col = `rgb(${(c0[0] * 255) | 0},${(c0[1] * 255) | 0},${(c0[2] * 255) | 0})`;
-  const col2 = `rgb(${(c1[0] * 255) | 0},${(c1[1] * 255) | 0},${(c1[2] * 255) | 0})`;
+  const col = color3ToRgb(c0);
+  const col2 = color3ToRgb(c1);
   d.codexName.textContent = t.name;
   d.codexName.style.color = col;
   d.codexDesc.textContent = t.description;
@@ -342,7 +342,7 @@ function buildCodexUI() {
     const entry = document.createElement('div');
     entry.className = `cxItem${idx === state.codexSelected ? ' active' : ''}`;
     const c = color(idx, 0);
-    const rgb = `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
+    const rgb = color3ToRgb(c);
     const hue = 180 + (idx / Math.max(TYPES.length - 1, 1)) * 120;
     const dotColor = `hsl(${hue}, 100%, 60%)`;
     const dot = document.createElement('div');

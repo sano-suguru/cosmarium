@@ -14,23 +14,19 @@ import {
   DOM_ID_CODEX_BTN,
   DOM_ID_CODEX_CLOSE,
   DOM_ID_CONTROLS,
-  DOM_ID_HUD,
   DOM_ID_MINIMAP,
-  DOM_ID_SPD_VALUE,
   DOM_ID_SPEED,
 } from './dom-ids.ts';
 import { getElement } from './dom-util.ts';
 import { hideCompose, initComposeDOM, resetCounts, showCompose } from './fleet-compose.ts';
-import { updateHudRoundInfo } from './hud.ts';
+import { setHudSpeed, updateHudRoundInfo } from './hud/Hud.tsx';
 import { resultData$ } from './signals.ts';
 
 interface GameControlEls {
-  readonly hud: HTMLElement;
   readonly codexBtn: HTMLElement;
   readonly minimap: HTMLElement;
   readonly controls: HTMLElement;
   readonly speed: HTMLElement;
-  readonly spdValue: HTMLElement;
   readonly autoFollowBtn: HTMLElement;
 }
 
@@ -48,7 +44,7 @@ function setSpd(v: number) {
   for (const b of document.querySelectorAll<HTMLElement>('.sbtn')) {
     b.classList.toggle('active', Number.parseFloat(b.dataset.spd || '') === v);
   }
-  els().spdValue.textContent = `${v}x`;
+  setHudSpeed(v);
 }
 
 let currentEnemyFleet: FleetComposition = [];
@@ -88,7 +84,6 @@ export function setOnMeleeStart(cb: MeleeStartCb) {
 
 function showPlayUI() {
   const d = els();
-  d.hud.style.display = 'block';
   d.codexBtn.style.display = 'block';
   d.autoFollowBtn.style.display = 'block';
   d.minimap.style.display = 'block';
@@ -98,7 +93,6 @@ function showPlayUI() {
 
 function hidePlayUI() {
   const d = els();
-  d.hud.style.display = 'none';
   d.codexBtn.style.display = 'none';
   d.autoFollowBtn.style.display = 'none';
   d.minimap.style.display = 'none';
@@ -305,12 +299,10 @@ function stepSpd(dir: number) {
 
 export function initUI() {
   _els = {
-    hud: getElement(DOM_ID_HUD),
     codexBtn: getElement(DOM_ID_CODEX_BTN),
     minimap: getElement(DOM_ID_MINIMAP),
     controls: getElement(DOM_ID_CONTROLS),
     speed: getElement(DOM_ID_SPEED),
-    spdValue: getElement(DOM_ID_SPD_VALUE),
     autoFollowBtn: getElement(DOM_ID_AUTO_FOLLOW_BTN),
   };
 
