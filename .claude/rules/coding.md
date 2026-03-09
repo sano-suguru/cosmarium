@@ -15,7 +15,7 @@ Favor structural correctness over minimal diffs. Make all necessary changes — 
 - **poolCounts**: `Readonly<>` export. Modify only via `incUnits()`/`decUnits()` etc.
 - **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` — centralized `noUncheckedIndexedAccess` checks
 - **beams**: Dynamic array — swap-and-pop for deletion (order not preserved)
-- **レイヤー分離 (ADR-0001)**: シミュレーション/レンダリング層はクラスなし・plain typed objects。UI 層は Preact 関数コンポーネント + CSS Modules
+- **レイヤー分離**: シミュレーション/レンダリング層はクラスなし・plain typed objects。UI 層は Preact 関数コンポーネント + CSS Modules
 - **Import**: Relative paths + explicit `.ts` extension. No path aliases, no barrel exports
 - **Constant placement**: `constants.ts` for multi-module constants only. Single-module thresholds stay local
 - **Japanese UI**: Menu descriptions and unit abilities in Japanese

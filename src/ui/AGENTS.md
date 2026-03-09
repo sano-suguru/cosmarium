@@ -6,7 +6,7 @@
 
 Preact 関数コンポーネント + Preact Signals + CSS Modules でUI層を構成。WebGL Canvas とは分離。Codex デモのみ simulation の `spawnUnit()` で実ユニットを生成し Canvas 上に描画。
 
-レイヤー分離(ADR-0001): UI 層は Preact エコシステムを採用。シミュレーション/レンダリング層はクラスなし・手続き的・依存ゼロ。
+レイヤー分離: UI 層は Preact エコシステムを採用。シミュレーション/レンダリング層はクラスなし・手続き的・依存ゼロ。
 
 ## ファイル一覧
 

@@ -157,7 +157,7 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 - **Always**: Relative paths with explicit `.ts` extension. No path aliases, no barrel exports.
 - **Example**: `import { spawn } from './spawn.ts';` not `import { spawn } from './index';`
 
-### Layer Separation (ADR-0001)
+### Layer Separation
 
 プロジェクトはシミュレーション/レンダリング層と UI 層で設計方針を分離する。
 
