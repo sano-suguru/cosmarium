@@ -88,8 +88,10 @@
     box-shadow 0.15s ease-out;
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 768px) {
   .container {
+    font-size: 10px;
+    padding: 6px 8px;
     top: calc(12px + env(safe-area-inset-top, 0px));
     left: calc(12px + env(safe-area-inset-left, 0px));
   }

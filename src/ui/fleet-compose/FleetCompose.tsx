@@ -4,6 +4,7 @@ import { DEFAULT_BUDGET, SORTED_TYPE_INDICES } from '../../fleet-cost.ts';
 import { getRunInfo } from '../../run.ts';
 import type { FleetComposition, FleetEntry } from '../../types.ts';
 import { TYPE_INDICES, TYPES } from '../../unit-types.ts';
+import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import { composeEnemyArchName$, composeEnemyFleet$ } from '../signals.ts';
 import styles from './FleetCompose.module.css';
@@ -220,13 +221,18 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
           </div>
         </div>
         <div class={styles.actions}>
-          <button type="button" class="mbtn" onClick={onBack}>
+          <button type="button" class={btnStyles.btn} onClick={onBack}>
             BACK
           </button>
-          <button type="button" class={`mbtn ${styles.reset}`} onClick={handleReset}>
+          <button type="button" class={`${btnStyles.btn} ${styles.reset}`} onClick={handleReset}>
             RESET
           </button>
-          <button type="button" class={`mbtn ${styles.launch}`} disabled={total === 0} onClick={handleLaunch}>
+          <button
+            type="button"
+            class={`${btnStyles.btn} ${styles.launch}`}
+            disabled={total === 0}
+            onClick={handleLaunch}
+          >
             LAUNCH BATTLE
           </button>
         </div>

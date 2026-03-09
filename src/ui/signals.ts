@@ -1,4 +1,4 @@
-import { effect, signal } from '@preact/signals';
+import { signal } from '@preact/signals';
 import { state } from '../state.ts';
 import type { FleetComposition, GameState, TimeScale, UnitTypeIndex } from '../types.ts';
 import type { ResultData } from './battle-result/result-data.ts';
@@ -57,14 +57,3 @@ Object.defineProperty(state, 'codexSelected', {
   enumerable: true,
   configurable: true,
 });
-
-/** minimap の display を signal に連動させる。initMinimap() 後に1回だけ呼ぶ。 */
-export function initMinimapVisibility() {
-  const el = document.getElementById('minimap');
-  if (!el) {
-    return;
-  }
-  effect(() => {
-    el.style.display = playUiVisible$.value && !codexOpen$.value ? 'block' : 'none';
-  });
-}

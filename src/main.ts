@@ -59,7 +59,6 @@ import {
   updateHudRoundInfo,
 } from './ui/hud/Hud.tsx';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
-import { initMinimapVisibility } from './ui/signals.ts';
 
 const BASE_SPEED = 0.55;
 /** result 状態のスロー再生倍率 */
@@ -76,7 +75,6 @@ mountApp();
 initKeyboardControls();
 initCamera();
 initMinimap();
-initMinimapVisibility();
 
 function handleBattleFinalized(result: BattleResult) {
   gameLoopState.battlePhase = 'aftermath';

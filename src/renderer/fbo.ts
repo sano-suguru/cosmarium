@@ -1,5 +1,5 @@
 import type { FBO } from '../types.ts';
-import { devError } from '../ui/dev-overlay.ts';
+import { devError } from '../ui/dev-overlay/DevOverlay.tsx';
 import { required } from './assert.ts';
 import { gl, viewport } from './webgl-setup.ts';
 

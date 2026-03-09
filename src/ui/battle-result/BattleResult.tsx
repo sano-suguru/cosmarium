@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 import { TEAM_UI_HEX_COLORS } from '../../colors.ts';
 import type { MeleeResult, TeamStats } from '../../melee-tracker.ts';
 import type { RoundResult, RunResult, RunStatus, Team } from '../../types.ts';
+import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import styles from './BattleResult.module.css';
 import meleeStyles from './MeleeResult.module.css';
@@ -22,11 +23,11 @@ export function BattleResult({ data, onMenu, onNextRound }: BattleResultProps) {
         {data.type === 'run' && <RunResultView runResult={data.runResult} />}
         {data.type === 'melee' && <MeleeResultView meleeResult={data.meleeResult} />}
         <div class={styles.actions}>
-          <button type="button" class={`mbtn ${styles.actionBtn}`} onClick={onMenu}>
+          <button type="button" class={`${btnStyles.btn} ${styles.actionBtn}`} onClick={onMenu}>
             MENU
           </button>
           {data.type === 'round' && (
-            <button type="button" class={`mbtn ${styles.actionBtn}`} onClick={onNextRound}>
+            <button type="button" class={`${btnStyles.btn} ${styles.actionBtn}`} onClick={onNextRound}>
               NEXT ROUND
             </button>
           )}

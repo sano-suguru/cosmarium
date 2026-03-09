@@ -1,6 +1,9 @@
+import { effect } from '@preact/signals';
 import { render } from 'preact';
+import { useEffect } from 'preact/hooks';
 import { BattleResult } from './battle-result/BattleResult.tsx';
 import { Codex } from './codex/Codex.tsx';
+import { DevOverlay } from './dev-overlay/DevOverlay.tsx';
 import { getElement } from './dom-util.ts';
 import { FleetCompose } from './fleet-compose/FleetCompose.tsx';
 import {
@@ -21,6 +24,16 @@ import { PlayControls } from './play-controls/PlayControls.tsx';
 import { codexOpen$, composeVisible$, gameState$, playUiVisible$, resultData$ } from './signals.ts';
 
 function App() {
+  useEffect(() => {
+    const el = document.getElementById('minimap');
+    if (!el) {
+      return;
+    }
+    return effect(() => {
+      el.style.display = playUiVisible$.value && !codexOpen$.value ? 'block' : 'none';
+    });
+  }, []);
+
   const resultData = resultData$.value;
 
   return (
@@ -48,6 +61,7 @@ function App() {
         />
       )}
       {codexOpen$.value && <Codex onClose={onCodexToggle} />}
+      {import.meta.env.DEV && <DevOverlay />}
     </>
   );
 }

@@ -1,0 +1,21 @@
+/* 共通ボタンスタイル — Menu, FleetCompose, BattleResult で使用 */
+.btn {
+  background: none;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  color: #0ff;
+  padding: 14px 50px;
+  margin: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+  min-width: 320px;
+  text-align: center;
+}
+.btn:hover {
+  background: rgba(0, 255, 255, 0.07);
+  border-color: #0ff;
+  text-shadow: 0 0 10px #0ff;
+  transform: scale(1.02);
+}
