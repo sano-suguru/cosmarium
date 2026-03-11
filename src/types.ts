@@ -300,6 +300,14 @@ export type BattleTeam = 0 | 1;
 /** 全チームを列挙する定数配列。`for (const t of TEAMS)` でキャスト不要なループが可能 */
 export const TEAMS: readonly Team[] = [0, 1, 2, 3, 4];
 
+export function teamAt(index: number): Team {
+  const team = TEAMS[index];
+  if (team === undefined) {
+    throw new Error(`Invalid team index: ${index}`);
+  }
+  return team;
+}
+
 /** アクティブなチーム数分だけ Team を yield する。break 忘れリスクを排除 */
 export function* teamsOf(n: number): Generator<Team> {
   for (const t of TEAMS) {

@@ -14,7 +14,7 @@ import {
 } from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Armament, BattlePhase, ProductionState, Team, TeamTuple, Unit } from '../types.ts';
-import { MAX_TEAMS, NO_UNIT, TEAM0, TEAM1, TEAMS } from '../types.ts';
+import { MAX_TEAMS, NO_UNIT, TEAM0, TEAM1, teamAt } from '../types.ts';
 import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import { combat, combatMothershipTick } from './combat.ts';
 import type { ShakeFn } from './combat-context.ts';
@@ -141,12 +141,10 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
     _variantArmament[t] = null;
   }
   for (let t = 0; t < activeTeamCount; t++) {
-    const team = TEAMS[t];
-    if (team !== undefined) {
-      const vDef = getVariantDef(mothershipVariant[team]);
-      _variantAttackCdMul[team] = vDef.attackCdMul;
-      _variantArmament[team] = vDef.armament;
-    }
+    const team = teamAt(t);
+    const vDef = getVariantDef(mothershipVariant[team]);
+    _variantAttackCdMul[team] = vDef.attackCdMul;
+    _variantArmament[team] = vDef.armament;
   }
 
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
@@ -205,8 +203,8 @@ function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
   let alive = 0;
   let last: Team = TEAM0;
   for (let i = 0; i < activeTeamCount; i++) {
-    const t = TEAMS[i];
-    if (t !== undefined && mothershipIdx[t] !== NO_UNIT) {
+    const t = teamAt(i);
+    if (mothershipIdx[t] !== NO_UNIT) {
       alive++;
       last = t;
     }
@@ -256,10 +254,8 @@ export function stepOnce(
         const aliveMs = countAliveMotherships(gameState.activeTeamCount);
         const cap = computeProductionCap(Math.max(1, aliveMs));
         for (let t = 0; t < gameState.activeTeamCount; t++) {
-          const team = TEAMS[t];
-          if (team !== undefined) {
-            tickProduction(dt, team, rng, gameState.productions[team], cap);
-          }
+          const team = teamAt(t);
+          tickProduction(dt, team, rng, gameState.productions[team], cap);
         }
         return checkMeleeWin(gameState.activeTeamCount);
       }

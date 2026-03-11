@@ -42,7 +42,7 @@ import type {
   TeamTuple,
   UnitTypeIndex,
 } from '../types.ts';
-import { TEAMS } from '../types.ts';
+import { teamAt } from '../types.ts';
 import { findTypeIndex } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
@@ -87,8 +87,8 @@ function collectPositions(activeTeams: number): readonly number[] {
 function collectTeamCounts(activeTeams: number): Int32Array {
   const counts = new Int32Array(activeTeams);
   for (let t = 0; t < activeTeams; t++) {
-    const team = TEAMS[t];
-    counts[t] = team !== undefined ? (teamUnitCounts[team] ?? 0) : 0;
+    const team = teamAt(t);
+    counts[t] = teamUnitCounts[team] ?? 0;
   }
   return counts;
 }

@@ -24,6 +24,7 @@ import {
   NO_VARIANT,
   TEAM0,
   TEAMS,
+  teamAt,
 } from './types.ts';
 import { DEFAULT_UNIT_TYPE } from './unit-type-accessors.ts';
 
@@ -454,10 +455,7 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
 export function countAliveMotherships(teamCount: number): number {
   let count = 0;
   for (let t = 0; t < teamCount; t++) {
-    const team = TEAMS[t];
-    if (team === undefined) {
-      continue;
-    }
+    const team = teamAt(t);
     const idx = _mothershipIdx[team];
     if (idx !== NO_UNIT && unitPool[idx]?.alive) {
       count++;

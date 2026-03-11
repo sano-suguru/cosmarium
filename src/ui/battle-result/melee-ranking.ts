@@ -1,6 +1,6 @@
 import type { EliminationEvent, MeleeResult } from '../../melee-tracker.ts';
 import type { Team } from '../../types.ts';
-import { TEAMS } from '../../types.ts';
+import { teamAt } from '../../types.ts';
 
 export function compareMeleeTeams(a: Team, b: Team, result: MeleeResult, elimMap: Map<number, number>): number {
   const sa = result.teamStats[a];
@@ -29,10 +29,7 @@ export function compareMeleeTeams(a: Team, b: Team, result: MeleeResult, elimMap
 export function buildMeleeRanking(result: MeleeResult, elimMap: Map<number, number>): Team[] {
   const ranking: Team[] = [];
   for (let i = 0; i < result.numTeams; i++) {
-    const team = TEAMS[i];
-    if (team !== undefined) {
-      ranking.push(team);
-    }
+    ranking.push(teamAt(i));
   }
   ranking.sort((a, b) => compareMeleeTeams(a, b, result, elimMap));
   return ranking;
