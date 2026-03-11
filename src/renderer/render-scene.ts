@@ -23,7 +23,7 @@ import { lerpX, lerpY } from '../interpolation.ts';
 import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, projectile, unit } from '../pools.ts';
 import type { Beam, Color3, Unit, UnitType } from '../types.ts';
 import { devWarn } from '../ui/dev-overlay/DevOverlay.tsx';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
 import { renderSquadronTethers } from './squadron-tether.ts';

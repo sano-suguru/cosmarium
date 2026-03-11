@@ -6,9 +6,10 @@ import {
   REFLECT_FIELD_MAX_HP,
   SCRAMBLE_BOOST_LINGER,
 } from '../constants.ts';
+import { unitIdx } from '../pool-index.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { emitSupport } from './hooks.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { addTrackingBeam } from './spawn.ts';
@@ -174,14 +175,15 @@ function tetherNearbyAllies(u: Unit, i: number, nn: number) {
       bubbleInsert(_tetherOi, _tetherDist, count - 1, oi, d);
     }
   }
+  const ui = unitIdx(i);
   for (let j = 0; j < count; j++) {
-    const oi = (_tetherOi[j] ?? 0) as UnitIndex;
+    const oi = unitIdx(_tetherOi[j] ?? 0);
     const o = unit(oi);
-    if (!refreshTetherBeam(i as UnitIndex, oi)) {
-      addTrackingBeam(i as UnitIndex, oi, 0.3, 0.6, 1.0, TETHER_BEAM_LIFE, 1.5);
+    if (!refreshTetherBeam(ui, oi)) {
+      addTrackingBeam(ui, oi, 0.3, 0.6, 1.0, TETHER_BEAM_LIFE, 1.5);
     }
     o.shieldLingerTimer = SHIELD_LINGER;
-    o.shieldSourceUnit = i as UnitIndex;
+    o.shieldSourceUnit = ui;
   }
 }
 
@@ -214,11 +216,12 @@ function collectAmpCandidates(u: Unit, i: number, nn: number): number {
 
 function amplifyNearbyAllies(u: Unit, i: number, nn: number) {
   const count = collectAmpCandidates(u, i, nn);
+  const ui = unitIdx(i);
   for (let j = 0; j < count; j++) {
-    const oi = (_ampOi[j] ?? 0) as UnitIndex;
+    const oi = unitIdx(_ampOi[j] ?? 0);
     const o = unit(oi);
-    if (!refreshTetherBeam(i as UnitIndex, oi)) {
-      addTrackingBeam(i as UnitIndex, oi, 1.0, 0.6, 0.15, AMP_TETHER_BEAM_LIFE, 1.5);
+    if (!refreshTetherBeam(ui, oi)) {
+      addTrackingBeam(ui, oi, 1.0, 0.6, 0.15, AMP_TETHER_BEAM_LIFE, 1.5);
     }
     o.ampBoostTimer = AMP_BOOST_LINGER;
     emitSupport(u.type, u.team, o.type, o.team, 'amp', 1);

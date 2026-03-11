@@ -7,13 +7,11 @@ import {
   getPlayerEnemyKills,
   onBattleEnd,
   resetBattleTracking,
-  setInitialPlayerUnits,
   setOnFinalize,
 } from './battle-tracker.ts';
 import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
-import { countFleetUnits } from './fleet-cost.ts';
-import { cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
+import { addShake, cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
 import type { MeleeResult } from './melee-tracker.ts';
 import {
@@ -31,17 +29,17 @@ import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
 import { decayScreenEffects, resetScreenEffects, screenEffects } from './screen-effects.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
+import { emptyProductions } from './simulation/production.ts';
 import { onKillUnitPermanent } from './simulation/spawn.ts';
 import { onUnitKilled } from './simulation/squadron.ts';
 import type { GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import type { BattlePhase, BattleResult } from './types.ts';
-import { copyTeamCounts } from './types.ts';
+import type { BattlePhase, BattleResult, ProductionState, TeamTuple } from './types.ts';
+import { copyTeamCounts, TEAM0, TEAM1 } from './types.ts';
 import { mountApp } from './ui/App.tsx';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex/codex-logic.ts';
 import { demoRng } from './ui/codex-demos.ts';
-import { getPlayerFleet } from './ui/fleet-compose/FleetCompose.tsx';
 import {
   goToMeleeResult,
   goToResult,
@@ -57,6 +55,7 @@ import {
   teardownMeleeHUD,
   updateHUD,
   updateHudRoundInfo,
+  updateProductionHud,
 } from './ui/hud/Hud.tsx';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
 
@@ -89,11 +88,11 @@ function handleMeleeFinalized(result: MeleeResult) {
   goToMeleeResult(result);
 }
 
-function handleBattleStart() {
+function handleBattleStart(productions: [ProductionState, ProductionState]) {
   resetBattleTracking();
   resetScreenEffects();
-  const fleet = getPlayerFleet();
-  setInitialPlayerUnits(countFleetUnits(fleet));
+  gameLoopState.productions[TEAM0] = productions[0];
+  gameLoopState.productions[TEAM1] = productions[1];
   gameLoopState.battlePhase = 'battle';
   gameLoopState.activeTeamCount = 2;
   showMothershipHpBar(2);
@@ -102,14 +101,16 @@ function handleBattleStart() {
 
 function handleSpectateStart() {
   resetScreenEffects();
+  gameLoopState.productions = emptyProductions();
   gameLoopState.battlePhase = 'spectate';
   gameLoopState.activeTeamCount = 2;
   showMothershipHpBar(2);
 }
 
-function handleMeleeStart(numTeams: number) {
+function handleMeleeStart(numTeams: number, productions: TeamTuple<ProductionState>) {
   resetMeleeTracking(numTeams, copyTeamCounts(teamUnitCounts));
   resetScreenEffects();
+  gameLoopState.productions = productions;
   gameLoopState.battlePhase = 'melee';
   gameLoopState.activeTeamCount = numTeams;
   setupMeleeHUD(numTeams);
@@ -129,7 +130,7 @@ onKillUnitPermanent((e) => {
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
   // 敵チーム(1)の撃破をカウント（BATTLE モードのみ）
-  if (e.victimTeam === 1 && gameLoopState.battlePhase === 'battle') {
+  if (e.victimTeam === TEAM1 && gameLoopState.battlePhase === 'battle') {
     addEnemyKill();
   }
   onUnitKilled(e.victimSquadronIdx, e.victim, getUnitHWM());
@@ -161,6 +162,7 @@ const gameLoopState: GameLoopState = {
   battlePhase: 'spectate' as BattlePhase,
   activeTeamCount: 2,
   updateCodexDemo,
+  productions: emptyProductions(),
 };
 
 function updatePlay(dt: number, t: number) {
@@ -181,7 +183,7 @@ function updatePlay(dt: number, t: number) {
     } else if (gameLoopState.battlePhase === 'melee') {
       advanceMeleeElapsed(SIM_DT);
     }
-    const w = stepOnce(SIM_DT, t, rng, gameLoopState);
+    const w = stepOnce(SIM_DT, rng, gameLoopState, addShake);
     if (w !== null) {
       if (gameLoopState.battlePhase === 'melee') {
         onMeleeEnd(w);
@@ -190,7 +192,7 @@ function updatePlay(dt: number, t: number) {
         if (w === 'draw') {
           throw new Error('Unexpected draw in non-melee mode');
         }
-        onBattleEnd(w, { survivors: teamUnitCounts[0], enemyKills: getPlayerEnemyKills() });
+        onBattleEnd(w, { survivors: teamUnitCounts[TEAM0], enemyKills: getPlayerEnemyKills() });
         gameLoopState.battlePhase = 'battleEnding';
       }
     }
@@ -207,6 +209,9 @@ function updatePlay(dt: number, t: number) {
   updateAutoFollow(hotspot());
   renderFrame(t);
   updateHUD(displayFps, bp);
+  if (bp === 'battle') {
+    updateProductionHud(gameLoopState.productions[TEAM0]);
+  }
   if (frameCount % 2 === 0) {
     drawMinimap();
   }
@@ -252,7 +257,7 @@ function frame(now: number) {
     setAutoFollow(false);
     demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () => {
       savePrevPositions();
-      stepOnce(SIM_DT, t, demoRng, gameLoopState);
+      stepOnce(SIM_DT, demoRng, gameLoopState, addShake);
     });
     setInterpAlpha(demoAccumulator / SIM_DT);
     syncDemoCamera();
@@ -262,7 +267,7 @@ function frame(now: number) {
   } else if (state.gameState === 'result') {
     simAccumulator = drainAccumulator(simAccumulator + dt * AFTERMATH_SPEED * BASE_SPEED, () => {
       savePrevPositions();
-      stepOnce(SIM_DT, t, rng, gameLoopState);
+      stepOnce(SIM_DT, rng, gameLoopState, addShake);
     });
     setInterpAlpha(simAccumulator / SIM_DT);
     renderFrame(t);

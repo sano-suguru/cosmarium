@@ -1,12 +1,11 @@
-import type { FleetComposition, UnitTypeIndex } from './types.ts';
-import { TYPE_INDICES, TYPES } from './unit-types.ts';
+import type { UnitTypeIndex } from './types.ts';
+import { TYPE_INDICES } from './unit-type-accessors.ts';
+import { TYPES } from './unit-types.ts';
 
-/** プレイヤーの初期予算 */
-export const DEFAULT_BUDGET = 200;
-
-/** 購入可能なユニットタイプか（cost > 0） */
+/** 購入可能なユニットタイプか（cost > 0 かつ clusterSize > 0） */
 export function isPurchasable(typeIdx: UnitTypeIndex): boolean {
-  return (TYPES[typeIdx]?.cost ?? 0) > 0;
+  const t = TYPES[typeIdx];
+  return t !== undefined && t.cost > 0 && t.clusterSize > 0;
 }
 
 /** コスト昇順 → 同コストはTYPES配列順でソート。購入不可タイプは除外 */
@@ -17,11 +16,3 @@ export const SORTED_TYPE_INDICES: readonly UnitTypeIndex[] = TYPE_INDICES.filter
     return ca !== cb ? ca - cb : a - b;
   },
 );
-
-export function countFleetUnits(fleet: FleetComposition): number {
-  let n = 0;
-  for (const e of fleet) {
-    n += e.count;
-  }
-  return n;
-}

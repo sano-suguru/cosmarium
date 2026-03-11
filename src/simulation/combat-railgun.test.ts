@@ -3,18 +3,11 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { poolCounts, unit } from '../pools.ts';
 import { rng } from '../state.ts';
-import { FIGHTER_TYPE, SNIPER_TYPE } from '../unit-types.ts';
-import { buildHash } from './spatial-hash.ts';
-
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
+import { FIGHTER_TYPE, SNIPER_TYPE } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { _resetSweepHits } from './combat-sweep.ts';
+import { buildHash } from './spatial-hash.ts';
 
 afterEach(() => {
   resetPools();
@@ -25,6 +18,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const shake = vi.fn();
+
 describe('combat — RAILGUN', () => {
   it('sniper: Sniper (shape=8) → ヒットスキャン + tracerビーム', () => {
     const sniper = spawnAt(0, SNIPER_TYPE, 0, 0); // shape=8, rng=600
@@ -32,7 +27,7 @@ describe('combat — RAILGUN', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
-    combat(unit(sniper), sniper, 0.016, 0, rng);
+    combat(unit(sniper), sniper, 0.016, rng, 1, shake);
     // ヒットスキャンなのでプロジェクタイルは生成されない
     expect(poolCounts.projectiles).toBe(0);
     // tracerビームが追加される

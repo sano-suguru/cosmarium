@@ -3,7 +3,6 @@ import '../__test__/bench-helper.ts';
 import { asType, makeGameLoopState, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS } from '../constants.ts';
 import { unit } from '../pools.ts';
-import type { UnitIndex } from '../types.ts';
 import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
 import { stepOnce } from './update.ts';
@@ -17,7 +16,7 @@ describe('steer 単体', () => {
     rng.reset();
     const idx = spawnAt(0, asType(1), 2000, 2000);
     buildHash();
-    steer(unit(idx), idx as UnitIndex, dt, rng);
+    steer(unit(idx), idx, dt, rng);
     resetPools();
   });
 
@@ -30,7 +29,7 @@ describe('steer 単体', () => {
       spawnAt(1, asType(1), 2000 + rng() * 200, 2000 + rng() * 200);
     }
     buildHash();
-    steer(unit(first), first as UnitIndex, dt, rng);
+    steer(unit(first), first, dt, rng);
     resetPools();
   });
 });
@@ -44,7 +43,7 @@ describe('stepOnce (全ユニット処理)', () => {
       spawnAt(0, asType(1), rng() * 4000, rng() * 4000);
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
-    stepOnce(dt, 0, rng, makeGameLoopState(undefined, 'battle'));
+    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), () => undefined);
     resetPools();
   });
 
@@ -54,7 +53,7 @@ describe('stepOnce (全ユニット処理)', () => {
       spawnAt(0, asType(1), rng() * 4000, rng() * 4000);
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
-    stepOnce(dt, 0, rng, makeGameLoopState(undefined, 'battle'));
+    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), () => undefined);
     resetPools();
   });
 });

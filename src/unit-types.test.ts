@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { asType } from './__test__/pool-helper.ts';
 import type { UnitTypeIndex } from './types.ts';
-import { invSqrtMass, TYPES, unitType, unitTypeIndex } from './unit-types.ts';
+import { invSqrtMass, unitType, unitTypeIndex } from './unit-type-accessors.ts';
+import { TYPES } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
   it('要素数が20', () => {
@@ -83,6 +84,12 @@ describe('TYPES 配列', () => {
     expect(unitType(asType(9)).rams).toBe(true);
   });
 
+  it('Lancer は retreatHpRatio を持たない（rams と退避は矛盾）', () => {
+    const lancer = unitType(9 as UnitTypeIndex);
+    expect(lancer.rams).toBe(true);
+    expect(lancer.retreatHpRatio).toBeUndefined();
+  });
+
   it('特殊フラグ: idx 10 (Launcher) は homing を持つ', () => {
     expect(unitType(asType(10)).homing).toBe(true);
   });
@@ -119,6 +126,15 @@ describe('TYPES 配列', () => {
       expect(t.emp).toBe(false);
       expect(t.teleports).toBe(false);
       expect(t.chain).toBe(false);
+    }
+  });
+});
+
+describe('UnitType.role', () => {
+  it('全タイプに有効な role が設定されている', () => {
+    const validRoles = new Set(['attack', 'support', 'special']);
+    for (const t of TYPES) {
+      expect(validRoles.has(t.role)).toBe(true);
     }
   });
 });

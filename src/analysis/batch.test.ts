@@ -17,7 +17,6 @@ function makeTestConfig(overrides?: Partial<BatchConfig>): BatchConfig {
     mode: 'battle',
     teams: 2,
     seed: 42,
-    budget: 50,
     maxSteps: 600,
     snapshotInterval: 300,
     outFile: null,
@@ -126,11 +125,23 @@ describe('parseFleetArg', () => {
     const fleet = parseFleetArg('drone:3,FIGHTER:2');
     expect(fleet).toHaveLength(2);
   });
+
+  it('count <= 0 のエントリを除外する', () => {
+    const fleet = parseFleetArg('Drone:0,Fighter:5');
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.count).toBe(5);
+  });
+
+  it('負の count を除外する', () => {
+    const fleet = parseFleetArg('Drone:-3,Fighter:2');
+    expect(fleet).toHaveLength(1);
+    expect(fleet[0]?.count).toBe(2);
+  });
 });
 
 describe('runBatch', () => {
   it('battle モードで指定回数の試合を実行する', () => {
-    const summary = runBatch(makeTestConfig({ seed: 99, budget: 50, maxSteps: 300, snapshotInterval: 60 }));
+    const summary = runBatch(makeTestConfig({ seed: 99, maxSteps: 300, snapshotInterval: 60 }));
 
     expect(summary.trials).toHaveLength(2);
     expect(summary.config.trials).toBe(2);
@@ -145,7 +156,7 @@ describe('runBatch', () => {
 
   it('melee モードで N 勢力対戦を実行する', () => {
     const summary = runBatch(
-      makeTestConfig({ trials: 1, mode: 'melee', teams: 3, budget: 50, maxSteps: 300, snapshotInterval: 60 }),
+      makeTestConfig({ trials: 1, mode: 'melee', teams: 3, maxSteps: 300, snapshotInterval: 60 }),
     );
 
     expect(summary.trials).toHaveLength(1);
@@ -155,15 +166,18 @@ describe('runBatch', () => {
   });
 
   it('異なるシードで異なる結果を生む', () => {
-    const run = (seed: number) => runBatch(makeTestConfig({ trials: 1, seed, budget: 50, maxSteps: 300 }));
+    const run = (seed: number) => runBatch(makeTestConfig({ trials: 1, seed, maxSteps: 300, snapshotInterval: 60 }));
 
     const a = run(1);
     const b = run(99999);
 
-    const snapshotA = a.trials[0]?.snapshots[0];
-    const snapshotB = b.trials[0]?.snapshots[0];
-    // 空間エントロピーが完全に一致する確率は極めて低い
-    expect(snapshotA?.spatial).not.toBe(snapshotB?.spatial);
+    // 生産システムでは step 0 は母艦のみで同一のため、後のスナップショットで比較
+    const snapshotsA = a.trials[0]?.snapshots ?? [];
+    const snapshotsB = b.trials[0]?.snapshots ?? [];
+    const lastA = snapshotsA[snapshotsA.length - 1];
+    const lastB = snapshotsB[snapshotsB.length - 1];
+    // 最終スナップショットの空間エントロピーが完全に一致する確率は極めて低い
+    expect(lastA?.spatial).not.toBe(lastB?.spatial);
   });
 
   it('スナップショットに有効なエントロピー値が含まれる', () => {
@@ -181,7 +195,7 @@ describe('runBatch', () => {
   });
 
   it('艦隊構成が記録される', () => {
-    const summary = runBatch(makeTestConfig({ trials: 1, budget: 50, maxSteps: 300 }));
+    const summary = runBatch(makeTestConfig({ trials: 1, maxSteps: 300 }));
 
     const trial = summary.trials[0];
     expect(trial).toBeDefined();
@@ -208,16 +222,22 @@ describe('runBatch', () => {
     const fleet0: FleetComposition = [{ type: asType(0), count: 10 }];
     const fleet1: FleetComposition = [{ type: asType(1), count: 5 }];
 
-    const summary = runBatch(makeTestConfig({ trials: 1, budget: 200, maxSteps: 300, fleets: [fleet0, fleet1] }));
+    const summary = runBatch(makeTestConfig({ trials: 1, maxSteps: 300, fleets: [fleet0, fleet1] }));
 
     const trial = summary.trials[0];
     expect(trial).toBeDefined();
-    expect(trial?.fleetCompositions[0]).toEqual(fleet0);
-    expect(trial?.fleetCompositions[1]).toEqual(fleet1);
+    // fleetToSetup は CLI 指定の count をそのまま使用する
+    const comp0 = trial?.fleetCompositions[0] ?? [];
+    const comp1 = trial?.fleetCompositions[1] ?? [];
+    expect(comp0.length).toBe(1);
+    expect(comp0[0]?.type).toBe(fleet0[0]?.type);
+    expect(comp0[0]?.count).toBe(10); // CLI 指定値がそのまま保持される
+    expect(comp1.length).toBe(1);
+    expect(comp1[0]?.type).toBe(fleet1[0]?.type);
   });
 
   it('生存統計が記録される', () => {
-    const summary = runBatch(makeTestConfig({ budget: 80 }));
+    const summary = runBatch(makeTestConfig({}));
 
     expect(summary.unitSummary.length).toBeGreaterThan(0);
     for (const us of summary.unitSummary) {
@@ -357,7 +377,7 @@ describe('runBatch', () => {
       { type: asType(2), count: 2 },
     ];
     const summary = runBatch(
-      makeTestConfig({ trials: 6, maxSteps: 200, budget: 30, snapshotInterval: 200, fleets: [fleet, fleet] }),
+      makeTestConfig({ trials: 6, maxSteps: 200, snapshotInterval: 200, fleets: [fleet, fleet] }),
     );
 
     expect(summary.synergyPairs).toBeDefined();

@@ -12,21 +12,14 @@ import {
   SCORCHER_TYPE,
   unitType,
   unitTypeIndex,
-} from '../unit-types.ts';
+} from '../unit-type-accessors.ts';
+import { combat, demoFlag } from './combat.ts';
+import { resetReflected } from './combat-reflect.ts';
 import { AMP_DAMAGE_MULT, CATALYST_COOLDOWN_MULT, SCRAMBLE_COOLDOWN_MULT } from './combat-support.ts';
+import { _resetSweepHits } from './combat-sweep.ts';
 import { buildHash } from './spatial-hash.ts';
 import { onKillUnit } from './spawn.ts';
 import { AMP_RANGE_MULT, SCRAMBLE_RANGE_MULT } from './steering.ts';
-
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
-import { combat, demoFlag } from './combat.ts';
-import { resetReflected } from './combat-reflect.ts';
-import { _resetSweepHits } from './combat-sweep.ts';
 
 afterEach(() => {
   resetPools();
@@ -37,6 +30,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const shake = vi.fn();
+
 describe('combat — 共通', () => {
   it('stun>0 → 即return（何も起きない）', () => {
     const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
@@ -45,7 +40,7 @@ describe('combat — 共通', () => {
     u.cooldown = 0;
     u.target = NO_UNIT;
     buildHash();
-    combat(u, idx, 0.016, 0, rng);
+    combat(u, idx, 0.016, rng, 1, shake);
     // cooldown はスタン中変化しない
     expect(u.cooldown).toBe(0);
   });
@@ -57,7 +52,7 @@ describe('combat — 共通', () => {
     u.abilityCooldown = 0.5;
     u.target = NO_UNIT;
     buildHash();
-    combat(u, idx, 0.016, 0, rng);
+    combat(u, idx, 0.016, rng, 1, shake);
     expect(u.cooldown).toBeCloseTo(1.0 - 0.016);
     expect(u.abilityCooldown).toBeCloseTo(0.5 - 0.016);
   });
@@ -94,7 +89,7 @@ describe('combat — COOLDOWN REGRESSION', () => {
     const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
     unit(fighter).cooldown = 1.0;
     buildHash();
-    combat(unit(fighter), fighter, 0.1, 0, rng);
+    combat(unit(fighter), fighter, 0.1, rng, 1, shake);
     expect(unit(fighter).cooldown).toBeCloseTo(0.9);
   });
 
@@ -104,7 +99,7 @@ describe('combat — COOLDOWN REGRESSION', () => {
     unit(cruiser).cooldown = 1.0;
     unit(cruiser).target = enemy;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    combat(unit(cruiser), cruiser, 0.1, rng, 1, shake);
     expect(unit(cruiser).cooldown).toBeCloseTo(0.9);
   });
 });
@@ -127,7 +122,7 @@ describe('combat — AMPLIFIER buff effects', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).ampBoostTimer = 1.0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
 
     // バフにより射程が拡張されるので射撃が発生
     expect(baseRange + 5).toBeLessThan(extendedRange);
@@ -145,7 +140,7 @@ describe('combat — AMPLIFIER buff effects', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).ampBoostTimer = 0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
 
     // 射程外なので射撃せず、cooldownは0以下のまま
     expect(unit(fighter).cooldown).toBeLessThanOrEqual(0);
@@ -158,7 +153,7 @@ describe('combat — AMPLIFIER buff effects', () => {
     unit(fighter).target = enemy;
     unit(fighter).ampBoostTimer = 1.0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     expect(projectile(0).damage).toBeCloseTo(unitType(FIGHTER_TYPE_C).damage * AMP_DAMAGE_MULT);
   });
 
@@ -168,7 +163,7 @@ describe('combat — AMPLIFIER buff effects', () => {
     unit(amp).target = enemy;
     unit(amp).cooldown = 0;
     buildHash();
-    combat(unit(amp), amp, 0.016, 0, rng);
+    combat(unit(amp), amp, 0.016, rng, 1, shake);
     // Amplifierは通常射撃にフォールスルーするのでcooldownがfireRate以上にリセットされる
     expect(unit(amp).cooldown).toBeGreaterThan(0);
   });
@@ -190,7 +185,7 @@ describe('combat — KillEvent 伝播', () => {
     const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
     const enemy = spawnAt(1, DRONE_TYPE, 5, 0); // hp=3
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -206,7 +201,7 @@ describe('combat — KillEvent 伝播', () => {
     unit(lancer).hp = 1; // 自傷で死亡
     const enemy = spawnAt(1, DRONE_TYPE, 5, 0); // hp=3, mass=1
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // Drone は Lancer の衝突ダメージで死亡、Lancer は自傷 ceil(Drone.mass)=1 で死亡
     expect(unit(enemy).alive).toBe(false);
     expect(unit(lancer).alive).toBe(false);
@@ -229,7 +224,7 @@ describe('combat — KillEvent 伝播', () => {
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 2.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
     expect(unit(enemy).alive).toBe(false);
     expect(events).toHaveLength(1);
     expect(events[0]?.killerTeam).toBe(0);
@@ -251,7 +246,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
     unit(fighter).target = NO_UNIT;
     buildHash();
     const dt = 0.5;
-    combat(unit(fighter), fighter, dt, 0, rng);
+    combat(unit(fighter), fighter, dt, rng, 1, shake);
     // scramble 中はクールダウンが dt * SCRAMBLE_COOLDOWN_MULT だけ減少
     expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * SCRAMBLE_COOLDOWN_MULT, 2);
   });
@@ -271,7 +266,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).scrambleTimer = 1.0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     // 射程外なので射撃せず
     expect(unit(fighter).cooldown).toBeLessThanOrEqual(0);
   });
@@ -288,7 +283,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).scrambleTimer = 0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     // scramble なしなら通常射程内で射撃成功
     expect(unit(fighter).cooldown).toBeGreaterThan(0);
   });
@@ -305,7 +300,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
     unit(fighter).ampBoostTimer = 1.0;
     unit(fighter).scrambleTimer = 1.0;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     // 乗算射程内なので射撃成功
     expect(unit(fighter).cooldown).toBeGreaterThan(0);
   });
@@ -316,7 +311,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
     unit(scrambler).target = enemy;
     unit(scrambler).cooldown = 0;
     buildHash();
-    combat(unit(scrambler), scrambler, 0.016, 0, rng);
+    combat(unit(scrambler), scrambler, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(0);
   });
 
@@ -335,7 +330,7 @@ describe('combat — CATALYST buff effects', () => {
     unit(fighter).target = NO_UNIT;
     buildHash();
     const dt = 0.5;
-    combat(unit(fighter), fighter, dt, 0, rng);
+    combat(unit(fighter), fighter, dt, rng, 1, shake);
     expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * CATALYST_COOLDOWN_MULT, 2);
   });
 
@@ -347,7 +342,7 @@ describe('combat — CATALYST buff effects', () => {
     unit(fighter).target = NO_UNIT;
     buildHash();
     const dt = 0.5;
-    combat(unit(fighter), fighter, dt, 0, rng);
+    combat(unit(fighter), fighter, dt, rng, 1, shake);
     expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt * SCRAMBLE_COOLDOWN_MULT * CATALYST_COOLDOWN_MULT, 2);
   });
 
@@ -358,7 +353,7 @@ describe('combat — CATALYST buff effects', () => {
     unit(fighter).target = NO_UNIT;
     buildHash();
     const dt = 0.5;
-    combat(unit(fighter), fighter, dt, 0, rng);
+    combat(unit(fighter), fighter, dt, rng, 1, shake);
     expect(unit(fighter).cooldown).toBeCloseTo(1.0 - dt, 2);
   });
 
@@ -369,7 +364,7 @@ describe('combat — CATALYST buff effects', () => {
     unit(catalyst).cooldown = 0;
     unit(catalyst).angle = 0;
     buildHash();
-    combat(unit(catalyst), catalyst, 0.016, 0, rng);
+    combat(unit(catalyst), catalyst, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBeGreaterThan(0);
   });
 

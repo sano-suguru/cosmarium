@@ -24,6 +24,7 @@ import { resetChains } from '../simulation/effects.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
 import type { KillContext } from '../simulation/on-kill-effects.ts';
 import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
+import { emptyProductions } from '../simulation/production.ts';
 import type { Killer } from '../simulation/spawn.ts';
 import { _resetKillUnitHooks, _resetSpawnUnitHooks, killUnit, spawnUnit } from '../simulation/spawn.ts';
 import { resetTeamCenters } from '../simulation/team-center.ts';
@@ -33,7 +34,7 @@ import type { Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
 import { _resetGameControl } from '../ui/game-control.ts';
-import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
+import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
 
 export function resetPools() {
   const uHwm = getUnitHWM();
@@ -224,6 +225,7 @@ export function makeGameLoopState(
     battlePhase,
     activeTeamCount: 2,
     updateCodexDemo,
+    productions: emptyProductions(),
   };
 }
 

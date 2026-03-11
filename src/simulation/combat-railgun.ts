@@ -2,7 +2,7 @@ import { effectColor } from '../colors.ts';
 import { SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { Color3, UnitIndex } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
@@ -107,7 +107,7 @@ function applyRailgunHits(
       return hit.dist;
     }
 
-    let actualDmg = applyTetherAbsorb(o, dmg, ORPHAN_TETHER_PROJECTILE_MULT, ctx.ui, ctx.rng);
+    let actualDmg = applyTetherAbsorb(o, dmg, ORPHAN_TETHER_PROJECTILE_MULT, ctx.ui, ctx.rng, ctx.shake);
     actualDmg = absorbByBastionShield(o, actualDmg);
     o.hp -= actualDmg;
     o.hitFlash = 1;
@@ -115,7 +115,7 @@ function applyRailgunHits(
     knockback(oi, ox + dx * hit.dist, oy + dy * hit.dist, dmg * 12);
     emitDamage(ctx.u.type, ctx.u.team, o.type, o.team, actualDmg, kind);
     if (o.hp <= 0) {
-      destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
+      destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], ctx.shake);
     }
 
     railgunHitFx(o.x, o.y, ang, ctx.c, ctx.rng);

@@ -24,7 +24,7 @@ import { restoreSquadrons, snapshotSquadrons } from '../../simulation/squadron.t
 import { state } from '../../state.ts';
 import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../../types.ts';
 import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../../types.ts';
-import { DEFAULT_UNIT_TYPE, unitType } from '../../unit-types.ts';
+import { DEFAULT_UNIT_TYPE, unitType } from '../../unit-type-accessors.ts';
 import { demoByFlag, demoDefault, demoRng } from '../codex-demos.ts';
 import { clearKillFeed } from '../kill-feed/KillFeed.tsx';
 

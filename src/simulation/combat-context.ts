@@ -1,5 +1,7 @@
 import type { Color3, Unit, UnitIndex, UnitType } from '../types.ts';
 
+export type ShakeFn = (intensity: number, x: number, y: number) => void;
+
 export interface CombatContext {
   u: Unit;
   ui: UnitIndex;
@@ -9,4 +11,5 @@ export interface CombatContext {
   t: UnitType;
   range: number;
   rng: () => number;
+  shake: ShakeFn;
 }

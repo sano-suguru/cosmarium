@@ -118,6 +118,8 @@ export type ReflectableProjectile = Pick<
 
 export interface UnitType {
   name: string;
+  /** UI 表示用のロール分類 */
+  role: UnitRole;
   cost: number;
   size: number;
   hp: number;
@@ -171,6 +173,8 @@ export interface UnitType {
   maxEnergy: number;
   energyRegen: number;
   shieldCooldown: number;
+  /** 1回の生産でスポーンする基礎クラスター数 */
+  clusterSize: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe/shots は number 型のため対象外。'burst' は UnitType プロパティ名ではなく shots > 1 の派生フラグ */
@@ -262,8 +266,6 @@ export type BattleResult = {
   readonly elapsed: number;
   readonly playerSurvivors: number;
   readonly enemyKills: number;
-  readonly playerLosses: number;
-  readonly initialPlayerUnits: number;
 };
 
 export type RoundResult = BattleResult & {
@@ -283,7 +285,6 @@ export type RunResult = {
   readonly wins: number;
   readonly losses: number;
   readonly totalKills: number;
-  readonly totalLosses: number;
   readonly roundResults: readonly RoundResult[];
 };
 
@@ -355,3 +356,35 @@ export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
 export const NO_SQUADRON = -1 as SquadronIndex;
 export const NO_SOURCE_TYPE = -1 as UnitTypeIndex;
+
+/** ユニットタイプのロール分類 */
+export type UnitRole = 'attack' | 'support' | 'special';
+
+/** 母艦バリアント: 0=Hive, 1=Dreadnought, 2=Reactor */
+export type MothershipVariant = 0 | 1 | 2;
+
+/** バリアント未選択 / 未割り当て。MothershipVariantOrNone union で型安全を確保するためブランド化不要 */
+export const NO_VARIANT = -1 as const;
+export type MothershipVariantOrNone = MothershipVariant | typeof NO_VARIANT;
+
+/** 搭載主砲の性能パラメータ */
+export type Armament = { readonly fireRate: number; readonly damage: number; readonly range: number };
+
+/** 順次生産スロット */
+export type ProductionSlot = {
+  readonly type: UnitTypeIndex;
+  readonly count: number;
+};
+
+export interface FleetSetup {
+  readonly variant: MothershipVariant;
+  readonly slots: readonly (ProductionSlot | null)[];
+}
+
+/** チーム1つ分の生産キュー状態。slots（不変）と timers（可変）の並行配列 */
+export interface ProductionState {
+  /** 不変: 初期化時に確定するスロット配列 */
+  readonly slots: readonly (ProductionSlot | null)[];
+  /** 可変: slots と並行。各スロットの蓄積時間（秒）。毎tick更新 */
+  readonly timers: number[];
+}

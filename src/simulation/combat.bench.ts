@@ -2,12 +2,13 @@ import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
 import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import { unitTypeIndex } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';
 
 const rng = makeRng();
 const dt = 1 / 30;
+const shake = () => undefined;
 
 const FIGHTER = unitTypeIndex('Fighter');
 const SCORCHER = unitTypeIndex('Scorcher');
@@ -22,7 +23,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, 0, rng);
+    combat(u, a, dt, rng, 1, shake);
     resetPools();
   });
 
@@ -33,7 +34,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, 0, rng);
+    combat(u, a, dt, rng, 1, shake);
     resetPools();
   });
 
@@ -46,7 +47,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, 0, rng);
+    combat(u, a, dt, rng, 1, shake);
     resetPools();
   });
 
@@ -59,7 +60,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, 0, rng);
+    combat(u, a, dt, rng, 1, shake);
     resetPools();
   });
 });

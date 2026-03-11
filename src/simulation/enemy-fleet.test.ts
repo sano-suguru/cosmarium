@@ -1,66 +1,83 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
-import { DEFAULT_BUDGET } from '../fleet-cost.ts';
+import { filledSlots, SLOT_COUNT } from '../production-config.ts';
 import { rng } from '../state.ts';
 import { TYPES } from '../unit-types.ts';
-import { generateEnemyFleet } from './enemy-fleet.ts';
+import { generateEnemySetup } from './enemy-fleet.ts';
 
 afterEach(() => {
   resetPools();
   resetState();
 });
 
-function fleetCost(fleet: readonly { type: number; count: number }[]): number {
-  let sum = 0;
-  for (const e of fleet) {
-    sum += (TYPES[e.type]?.cost ?? 0) * e.count;
-  }
-  return sum;
-}
+describe('generateEnemySetup', () => {
+  it('スロット数が SLOT_COUNT と一致する', () => {
+    const { setup } = generateEnemySetup(rng);
+    expect(setup.slots.length).toBe(SLOT_COUNT);
+  });
 
-describe('generateEnemyFleet', () => {
-  it('never returns an empty fleet', () => {
+  it('バリアントが 0 | 1 | 2 の範囲', () => {
     for (let i = 0; i < 50; i++) {
-      const { fleet } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-      expect(fleet.length).toBeGreaterThan(0);
+      const { setup } = generateEnemySetup(rng);
+      expect(setup.variant).toBeGreaterThanOrEqual(0);
+      expect(setup.variant).toBeLessThanOrEqual(2);
     }
   });
 
-  it('stays within budget', () => {
+  it('各スロットの type は cost > 0 のユニット', () => {
     for (let i = 0; i < 50; i++) {
-      const { fleet } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-      expect(fleetCost(fleet)).toBeLessThanOrEqual(DEFAULT_BUDGET);
-    }
-  });
-
-  it('every entry has a positive count', () => {
-    for (let i = 0; i < 50; i++) {
-      const { fleet } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-      for (const e of fleet) {
-        expect(e.count).toBeGreaterThan(0);
+      const { setup } = generateEnemySetup(rng);
+      for (const slot of setup.slots) {
+        if (slot) {
+          const t = TYPES[slot.type];
+          expect(t).toBeDefined();
+          expect(t?.cost).toBeGreaterThan(0);
+        }
       }
     }
   });
 
-  it('returns a non-empty archetype name', () => {
-    const { archetypeName } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-    expect(archetypeName.length).toBeGreaterThan(0);
-  });
-
-  it('uses most of the budget', () => {
-    let totalUsed = 0;
-    const runs = 50;
-    for (let i = 0; i < runs; i++) {
-      const { fleet } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-      totalUsed += fleetCost(fleet);
+  it('各スロットの count がそのユニットの clusterSize と一致', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateEnemySetup(rng);
+      for (const slot of setup.slots) {
+        if (slot) {
+          const t = TYPES[slot.type];
+          expect(slot.count).toBe(t?.clusterSize);
+        }
+      }
     }
-    const avgUsed = totalUsed / runs;
-    expect(avgUsed).toBeGreaterThan(DEFAULT_BUDGET * 0.7);
   });
 
-  it('works with a minimal budget', () => {
-    const { fleet } = generateEnemyFleet(1, rng);
-    expect(fleet.length).toBeGreaterThan(0);
+  it('アーキタイプ名が非空文字列', () => {
+    for (let i = 0; i < 50; i++) {
+      const { archetypeName } = generateEnemySetup(rng);
+      expect(archetypeName.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('スロット間で type の重複がない（非復元抽出）', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateEnemySetup(rng);
+      const filled = filledSlots(setup.slots);
+      const types = filled.map((s) => s.type);
+      const unique = new Set(types);
+      expect(unique.size).toBe(types.length);
+    }
+  });
+
+  it('50回ループでクラッシュしない', () => {
+    for (let i = 0; i < 50; i++) {
+      expect(() => generateEnemySetup(rng)).not.toThrow();
+    }
+  });
+
+  it('最低1つの non-null スロットが含まれる', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateEnemySetup(rng);
+      const hasNonNull = filledSlots(setup.slots).length > 0;
+      expect(hasNonNull).toBe(true);
+    }
   });
 });

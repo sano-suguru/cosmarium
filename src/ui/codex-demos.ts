@@ -2,7 +2,7 @@ import { unit } from '../pools.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { DemoFlag, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, SCORCHER_TYPE } from '../unit-types.ts';
+import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, SCORCHER_TYPE } from '../unit-type-accessors.ts';
 
 /** Codexデモは決定性に影響しないためMath.randomを使用 */
 export const demoRng: () => number = Math.random;

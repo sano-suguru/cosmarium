@@ -69,5 +69,5 @@ Maintain passing `bun run typecheck` at each unit. Don't change multiple modules
 - N-team 対応: 敵判定は `o.team !== u.team` パターンを使用（2-team 前提の `1 - team` は不可）
 - `Team` 型は 0-4 を許容するが、実行時のチーム数は `gameLoopState.activeTeamCount` で決まる（SPECTATE/BATTLE=2, MELEE=2-5）
 - `MAX_TEAMS` / `Team` / `TeamCounts` は `types.ts` に集約。`TeamCounts` は `MAX_TEAMS` から自動導出
-- Pool loops require `i as UnitIndex` cast (also `ParticleIndex`, `ProjectileIndex`)
+- Pool loops: use `unitIdx(i)` / `particleIdx(i)` / `projectileIdx(i)` / `squadronIdx(i)` from `pools.ts`
 - `u.target` of `NO_UNIT` (-1) means no target; always check `.alive`

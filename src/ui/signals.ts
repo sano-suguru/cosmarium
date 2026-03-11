@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import { state } from '../state.ts';
-import type { FleetComposition, GameState, TimeScale, UnitTypeIndex } from '../types.ts';
+import type { FleetSetup, GameState, TimeScale, UnitTypeIndex } from '../types.ts';
 import type { ResultData } from './battle-result/result-data.ts';
 
 // Signal を単一の真実の源泉にする。
@@ -13,7 +13,7 @@ export const codexSelected$ = signal<UnitTypeIndex>(state.codexSelected as UnitT
 export const resultData$ = signal<ResultData | null>(null);
 
 export const composeVisible$ = signal(false);
-export const composeEnemyFleet$ = signal<FleetComposition>([]);
+export const composeEnemySetup$ = signal<FleetSetup | null>(null);
 export const composeEnemyArchName$ = signal('');
 
 export const playUiVisible$ = signal(false);

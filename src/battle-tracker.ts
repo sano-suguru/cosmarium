@@ -28,7 +28,6 @@ export function setOnFinalize(cb: FinalizeCb) {
 }
 
 let battleElapsed = 0;
-let initialPlayerUnits = 0;
 let playerEnemyKills = 0;
 let battleEndTimer = -1;
 let battleWinner: Team | null = null;
@@ -37,7 +36,6 @@ let snapshotEnemyKills = 0;
 
 export function resetBattleTracking() {
   battleElapsed = 0;
-  initialPlayerUnits = 0;
   playerEnemyKills = 0;
   battleEndTimer = -1;
   battleWinner = null;
@@ -76,8 +74,6 @@ function finalizeBattle() {
     elapsed: battleElapsed,
     playerSurvivors: snapshotSurvivors,
     enemyKills: snapshotEnemyKills,
-    playerLosses: initialPlayerUnits - snapshotSurvivors,
-    initialPlayerUnits,
   };
   onFinalize(result);
 }
@@ -99,8 +95,4 @@ export function advanceBattleEndTimer(dt: number) {
       finalizeBattle();
     }
   }
-}
-
-export function setInitialPlayerUnits(n: number) {
-  initialPlayerUnits = n;
 }

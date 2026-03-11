@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
+import { unitIdx } from '../pool-index.ts';
 import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
-import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex/codex-logic.ts';
 import { chainLightning, resetChains, snapshotChains, updateChains } from './effects.ts';
@@ -11,18 +11,13 @@ import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
 
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
 afterEach(() => {
   resetPools();
   resetState();
 });
 
-const DUMMY_KILLER: Killer = { index: NO_UNIT as UnitIndex, team: 0, type: asType(0) };
+const shake = vi.fn();
+const DUMMY_KILLER: Killer = { index: NO_UNIT, team: 0, type: asType(0) };
 
 // ---------------------------------------------------------------------------
 // snapshotPools → clearAllPools → restorePools ラウンドトリップ
@@ -118,8 +113,8 @@ describe('snapshot & restore ラウンドトリップ', () => {
 
   it('trackingBeamsが復元される', () => {
     trackingBeams.push({
-      srcUnit: 0 as UnitIndex,
-      tgtUnit: 1 as UnitIndex,
+      srcUnit: unitIdx(0),
+      tgtUnit: unitIdx(1),
       x1: 0,
       y1: 0,
       x2: 50,
@@ -175,8 +170,8 @@ describe('clearAllPools', () => {
     spawnProjectile(0, 0, 1, 0, 1, 5, 0, 2, 1, 0, 0);
     addBeam(0, 0, 10, 10, 1, 0, 0, 1, 2);
     trackingBeams.push({
-      srcUnit: 0 as UnitIndex,
-      tgtUnit: 1 as UnitIndex,
+      srcUnit: unitIdx(0),
+      tgtUnit: unitIdx(1),
       x1: 0,
       y1: 0,
       x2: 10,
@@ -282,7 +277,7 @@ describe('pendingChains snapshot & restore', () => {
     spawnAt(1, asType(1), 150, 0);
     buildHash();
 
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng, shake);
 
     // ch=0は即時発火、ch>=1がpendingChainsに入る
     const beforeSnapshot = snapshotChains();
@@ -306,11 +301,11 @@ describe('pendingChains snapshot & restore', () => {
     spawnAt(1, asType(1), 100, 0);
     buildHash();
 
-    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng);
+    chainLightning(0, 0, 0, 10, 5, [1, 0, 0], DUMMY_KILLER, rng, shake);
     const snapshot = snapshotPools();
 
     // pendingChainsを進行させて消費
-    updateChains(1.0, rng);
+    updateChains(1.0, rng, shake);
     expect(snapshotChains()).toHaveLength(0);
 
     // 復元すると元のpendingChainsが復活

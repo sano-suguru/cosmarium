@@ -1,7 +1,8 @@
+import { unitIdx } from '../pool-index.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 
 const VET_TARGET_WEIGHT = 0.3;
 
@@ -27,7 +28,7 @@ export function findNearestGlobalEnemy(u: Unit, massWeight: number): UnitIndex {
     const score = targetScore(u.x, u.y, o, massWeight);
     if (score < bs) {
       bs = score;
-      bi = i as UnitIndex;
+      bi = unitIdx(i);
     }
   }
   return bi;

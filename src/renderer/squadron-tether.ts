@@ -1,8 +1,8 @@
 import { teamBaseColor } from '../colors.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
+import { unitIdx } from '../pool-index.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import { getSquadronTetherTarget } from '../simulation/squadron.ts';
-import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import type { BeamEmitFn, BeamVisibilityFn } from './beam-segment.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
@@ -17,7 +17,7 @@ export function renderSquadronTethers(now: number, emit: BeamEmitFn, isVisible: 
       continue;
     }
     rem--;
-    const tgt = getSquadronTetherTarget(u, i as UnitIndex);
+    const tgt = getSquadronTetherTarget(u, unitIdx(i));
     if (tgt === NO_UNIT) {
       continue;
     }

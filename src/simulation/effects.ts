@@ -1,12 +1,12 @@
 import { effectColor, trailColor } from '../colors.ts';
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, SH_TRAIL, TAU } from '../constants.ts';
-import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import { addAberration, addFlash, addFreeze } from '../screen-effects.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Color3, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-types.ts';
+import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-type-accessors.ts';
+import type { ShakeFn } from './combat-context.ts';
 import { emitDamage } from './hooks.ts';
 import type { KillContext } from './on-kill-effects.ts';
 import { applyOnKillEffects, DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
@@ -88,7 +88,7 @@ function updateKillerVet(killer: Killer) {
   }
 }
 
-export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex, rng: () => number) {
+export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex, rng: () => number, shake: ShakeFn) {
   const ut = unitType(type);
   const size = ut.size;
   const cost = ut.cost;
@@ -110,7 +110,7 @@ export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex,
   if (cost >= 8) {
     spawnParticle(x, y, 0, 0, 0.55, size * 2.5 * 1.3, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, SH_EXPLOSION_RING);
     spawnParticle(x, y, 0, 0, 0.3, size * 1.8 * 1.3, c[0], c[1], c[2], SH_EXPLOSION_RING);
-    addShake(size * 1.2, x, y);
+    shake(size * 1.2, x, y);
     addAberration(cost / 30);
     if (cost >= 12) {
       addFlash(cost / 25);
@@ -123,7 +123,7 @@ export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex,
       addFreeze(0.03);
     }
   } else if (size >= 14) {
-    addShake(size * 0.8, x, y);
+    shake(size * 0.8, x, y);
   }
 
   applyKnockbackToNeighbors(x, y, size);
@@ -134,6 +134,7 @@ export function destroyUnit(
   killer: UnitIndex | Killer,
   rng: () => number,
   killContext: KillContext,
+  shake: ShakeFn,
 ): void {
   let resolved: Killer | undefined;
   if (typeof killer === 'number') {
@@ -148,7 +149,7 @@ export function destroyUnit(
   }
   const snap = killUnit(i, resolved, killContext);
   if (snap) {
-    explosion(snap.x, snap.y, snap.team, snap.type, rng);
+    explosion(snap.x, snap.y, snap.team, snap.type, rng, shake);
     if (resolved) {
       updateKillerVet(resolved);
       applyOnKillEffects(resolved.index, resolved.team, killContext);
@@ -163,6 +164,7 @@ export function destroyMutualKill(
   bHpDepleted: boolean,
   rng: () => number,
   killContext: KillContext,
+  shake: ShakeFn,
 ): void {
   const killerA: Killer = { index: a, team: unit(a).team, type: unit(a).type };
   const killerB: Killer = { index: b, team: unit(b).team, type: unit(b).type };
@@ -177,10 +179,10 @@ export function destroyMutualKill(
   }
 
   if (snapB) {
-    explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng);
+    explosion(snapB.x, snapB.y, snapB.team, snapB.type, rng, shake);
   }
   if (snapA) {
-    explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng);
+    explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng, shake);
   }
 
   // vet加算 + on-kill効果（相打ちではkillerもdeadのため除外）
@@ -300,7 +302,7 @@ export function restoreChains(snapshot: ReturnType<typeof snapshotChains>) {
 }
 
 /** @returns true if all hops are done and the chain should be removed */
-function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): boolean {
+function advanceChainHops(pc: PendingChain, dt: number, rng: () => number, shake: ShakeFn): boolean {
   pc.elapsed += dt;
   while (pc.nextHop < pc.hops.length && pc.elapsed >= (pc.nextHop + 1) * CHAIN_HOP_DELAY) {
     const hop = pc.hops[pc.nextHop];
@@ -308,19 +310,19 @@ function advanceChainHops(pc: PendingChain, dt: number, rng: () => number): bool
       pc.nextHop = pc.hops.length;
       break;
     }
-    fireChainHop(hop, pc.sourceKiller, rng);
+    fireChainHop(hop, pc.sourceKiller, rng, shake);
     pc.nextHop += 1;
   }
   return pc.nextHop >= pc.hops.length;
 }
 
-export function updateChains(dt: number, rng: () => number) {
+export function updateChains(dt: number, rng: () => number, shake: ShakeFn) {
   for (let i = pendingChains.length - 1; i >= 0; i--) {
     const pc = pendingChains[i];
     if (pc === undefined) {
       continue;
     }
-    if (advanceChainHops(pc, dt, rng)) {
+    if (advanceChainHops(pc, dt, rng, shake)) {
       swapRemove(pendingChains, i);
     }
   }
@@ -345,7 +347,7 @@ function emitChainVisual(fx: number, fy: number, tx: number, ty: number, col: Co
   }
 }
 
-function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
+function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number, shake: ShakeFn) {
   const from = hop.fromIndex !== NO_UNIT ? unit(hop.fromIndex) : undefined;
   const fx = from?.alive ? from.x : hop.fromX;
   const fy = from?.alive ? from.y : hop.fromY;
@@ -360,7 +362,7 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number) {
     const kind = 'chain';
     emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, hop.damage, kind);
     if (o.hp <= 0) {
-      destroyUnit(hop.targetIndex, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
+      destroyUnit(hop.targetIndex, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], shake);
     }
   }
 }
@@ -394,6 +396,7 @@ function applyChainHit(
   col: Color3,
   sourceKiller: Killer,
   rng: () => number,
+  shake: ShakeFn,
 ): { hx: number; hy: number } {
   const o = unit(bi);
   const hx = o.x,
@@ -406,7 +409,7 @@ function applyChainHit(
   const chainKind = 'chain';
   emitDamage(sourceKiller.type, sourceKiller.team, o.type, o.team, dd, chainKind);
   if (o.hp <= 0) {
-    destroyUnit(bi, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[chainKind]);
+    destroyUnit(bi, sourceKiller, rng, DAMAGE_KIND_TO_KILL_CONTEXT[chainKind], shake);
   }
   return { hx, hy };
 }
@@ -420,6 +423,7 @@ export function chainLightning(
   col: Color3,
   sourceKiller: Killer,
   rng: () => number,
+  shake: ShakeFn,
 ) {
   let cx = sx,
     cy = sy;
@@ -433,7 +437,7 @@ export function chainLightning(
     }
     hit.add(bi);
     if (ch === 0) {
-      const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng);
+      const pos = applyChainHit(cx, cy, bi, damage, ch, col, sourceKiller, rng, shake);
       cx = pos.hx;
       cy = pos.hy;
       prevTarget = unit(bi).alive ? bi : NO_UNIT;

@@ -10,10 +10,11 @@ const SQUADRON_OBJECTIVE_MIN = 5.0;
 const SQUADRON_OBJECTIVE_MAX = 10.0;
 const SQUADRON_OBJECTIVE_SCATTER = 200;
 
+import { squadronIdx, unitIdx } from '../pool-index.ts';
 import { squadron, unit } from '../pools.ts';
 import type { Squadron, SquadronIndex, Team, Unit, UnitIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { nearestEnemyCenter, teamCenterOf } from './team-center.ts';
 
 /** チーム内で最少メンバーの分隊を返す（空きスロットは0メンバーとして扱い均等配分） */
@@ -23,7 +24,7 @@ function findSquadronForTeam(team: Team): SquadronIndex {
 
   const base = team * SQUADRONS_PER_TEAM;
   for (let i = 0; i < SQUADRONS_PER_TEAM; i++) {
-    const si = (base + i) as SquadronIndex;
+    const si = squadronIdx(base + i);
     const s = squadron(si);
     const count = s.alive ? s.memberCount : 0;
     if (count < minCount) {
@@ -81,7 +82,7 @@ export function formSquadrons(team: Team, unitHWM: number): void {
     if (!u.alive || u.team !== team) {
       continue;
     }
-    assignToSquadron(i as UnitIndex, team);
+    assignToSquadron(unitIdx(i), team);
   }
 }
 
@@ -100,7 +101,7 @@ export function succeedLeader(si: SquadronIndex, unitHWM: number): void {
       const mass = unitType(u.type).mass;
       if (mass > bestMass) {
         bestMass = mass;
-        bestIdx = i as UnitIndex;
+        bestIdx = unitIdx(i);
       }
     }
   }

@@ -1,6 +1,7 @@
-import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx } from '../pools.ts';
-import type { BattleTeam, FleetComposition, Team, UnitTypeIndex } from '../types.ts';
-import { NO_UNIT, TEAM0, TEAM1, teamsOf } from '../types.ts';
+import { getVariantDef } from '../mothership-variants.ts';
+import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx, setMothershipVariant, unit } from '../pools.ts';
+import type { FleetSetup, MothershipVariant, ProductionState, Team, TeamTuple, UnitTypeIndex } from '../types.ts';
+import { NO_UNIT, teamsOf } from '../types.ts';
 import {
   AMPLIFIER_TYPE,
   ARCER_TYPE,
@@ -22,14 +23,12 @@ import {
   SCRAMBLER_TYPE,
   SNIPER_TYPE,
   TELEPORTER_TYPE,
-} from '../unit-types.ts';
+} from '../unit-type-accessors.ts';
 import { resetChains } from './effects.ts';
+import { emptyProductions, initProductionState } from './production.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, meleeOrigin } from './spawn-coordinates.ts';
 import { formSquadrons } from './squadron.ts';
-
-const BATTLE_SPREAD_BASE = 400;
-const BATTLE_SPREAD_PER_UNIT = 4;
 
 interface InitSpawn {
   readonly type: UnitTypeIndex;
@@ -79,7 +78,7 @@ export function initUnits(rng: () => number) {
   }
 }
 
-function spawnMothership(team: Team, cx: number, cy: number, rng: () => number) {
+function spawnMothership(team: Team, cx: number, cy: number, rng: () => number, variant?: MothershipVariant) {
   if (mothershipIdx[team] !== NO_UNIT) {
     return;
   }
@@ -88,52 +87,44 @@ function spawnMothership(team: Team, cx: number, cy: number, rng: () => number) 
     throw new RangeError(`Failed to spawn mothership for team ${team}: unit pool exhausted`);
   }
   incMotherships(team, idx);
-}
-
-/** FleetComposition ベースで両チームをスポーンする（バトルモード用） */
-export function initBattle(playerFleet: FleetComposition, enemyFleet: FleetComposition, rng: () => number) {
-  resetField();
-
-  for (const team of [0, 1] as const) {
-    const [cx, cy] = battleOrigin(team);
-    spawnMothership(team, cx, cy, rng);
+  if (variant !== undefined) {
+    setMothershipVariant(team, variant);
+    const def = getVariantDef(variant);
+    const u = unit(idx);
+    u.maxHp = Math.round(u.maxHp * def.hpMul);
+    u.hp = u.maxHp;
   }
-
-  const spawn = (team: BattleTeam, fleet: FleetComposition) => {
-    const [cx, cy] = battleOrigin(team);
-    for (const { type, count } of fleet) {
-      const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
-      for (let j = 0; j < count; j++) {
-        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
-      }
-    }
-  };
-
-  spawn(0, playerFleet);
-  spawn(1, enemyFleet);
-
-  const hwm = getUnitHWM();
-  formSquadrons(TEAM0, hwm);
-  formSquadrons(TEAM1, hwm);
 }
 
-/** N勢力を円周配置でスポーンする（MELEEモード用） */
-export function initMelee(fleets: readonly FleetComposition[], rng: () => number) {
+/** 母艦のみスポーン（生産駆動バトル用） */
+export function initBattleProduction(
+  rng: () => number,
+  playerSetup: FleetSetup,
+  enemySetup: FleetSetup,
+): [ProductionState, ProductionState] {
   resetField();
-  const numTeams = fleets.length;
+  const [cx0, cy0] = battleOrigin(0);
+  spawnMothership(0, cx0, cy0, rng, playerSetup.variant);
+  const [cx1, cy1] = battleOrigin(1);
+  spawnMothership(1, cx1, cy1, rng, enemySetup.variant);
+  return [initProductionState(playerSetup.slots), initProductionState(enemySetup.slots)];
+}
+
+/** N勢力の母艦のみ円周配置でスポーン（生産駆動メレー用） */
+export function initMeleeProduction(
+  rng: () => number,
+  setups: readonly FleetSetup[],
+  numTeams: number,
+): TeamTuple<ProductionState> {
+  resetField();
+  const productions = emptyProductions();
   for (const team of teamsOf(numTeams)) {
-    const [cx, cy] = meleeOrigin(team, numTeams);
-    spawnMothership(team, cx, cy, rng);
-    const fleet = fleets[team];
-    if (!fleet) {
-      continue;
+    const setup = setups[team];
+    if (setup) {
+      const [cx, cy] = meleeOrigin(team, numTeams);
+      spawnMothership(team, cx, cy, rng, setup.variant);
+      productions[team] = initProductionState(setup.slots);
     }
-    for (const { type, count } of fleet) {
-      const spread = BATTLE_SPREAD_BASE + count * BATTLE_SPREAD_PER_UNIT;
-      for (let j = 0; j < count; j++) {
-        spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
-      }
-    }
-    formSquadrons(team, getUnitHWM());
   }
+  return productions;
 }

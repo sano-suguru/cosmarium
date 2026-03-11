@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { asType } from './__test__/pool-helper.ts';
-import { countFleetUnits, SORTED_TYPE_INDICES } from './fleet-cost.ts';
+import { isPurchasable, SORTED_TYPE_INDICES } from './fleet-cost.ts';
+import type { UnitTypeIndex } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
 describe('TYPES[i].cost', () => {
@@ -18,25 +18,10 @@ describe('TYPES[i].cost', () => {
   });
 });
 
-describe('countFleetUnits', () => {
-  it('sums all entry counts', () => {
-    const fleet = [
-      { type: asType(0), count: 5 },
-      { type: asType(1), count: 3 },
-      { type: asType(2), count: 7 },
-    ];
-    expect(countFleetUnits(fleet)).toBe(15);
-  });
-
-  it('returns 0 for empty fleet', () => {
-    expect(countFleetUnits([])).toBe(0);
-  });
-});
-
 describe('SORTED_TYPE_INDICES', () => {
   it('contains every purchasable type index exactly once', () => {
     const sorted = [...SORTED_TYPE_INDICES].sort((a, b) => a - b);
-    const expected = TYPES.map((_, i) => i).filter((i) => (TYPES[i]?.cost ?? 0) > 0);
+    const expected = TYPES.map((_, i) => i).filter((i) => isPurchasable(i as UnitTypeIndex));
     expect(sorted).toEqual(expected);
   });
 

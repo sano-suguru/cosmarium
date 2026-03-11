@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect } from 'preact/hooks';
 import { color, color3ToRgb } from '../../colors.ts';
 import type { Team, UnitTypeIndex } from '../../types.ts';
-import { unitType } from '../../unit-types.ts';
+import { unitType } from '../../unit-type-accessors.ts';
 import styles from './KillFeed.module.css';
 
 const MAX_ENTRIES = 6;

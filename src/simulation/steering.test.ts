@@ -3,7 +3,7 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng, seedRng } from '../state.ts';
-import type { UnitIndex, UnitType, UnitTypeIndex } from '../types.ts';
+import type { UnitType, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import {
   AMPLIFIER_TYPE,
@@ -15,7 +15,7 @@ import {
   LANCER_TYPE,
   SNIPER_TYPE,
   unitType,
-} from '../unit-types.ts';
+} from '../unit-type-accessors.ts';
 import { buildHash } from './spatial-hash.ts';
 import {
   BOUNDARY_MARGIN,
@@ -136,7 +136,7 @@ describe('steer — ターゲット探索', () => {
     const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0);
     spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
-    steer(unit(ally), ally as UnitIndex, 0.016, rng);
+    steer(unit(ally), ally, 0.016, rng);
     expect(unit(ally).target).toBe(nearEnemy);
   });
 
@@ -147,7 +147,7 @@ describe('steer — ターゲット探索', () => {
     unit(nearEnemy).vet = 0;
     unit(vetEnemy).vet = 2;
     buildHash();
-    steer(unit(ally), ally as UnitIndex, 0.016, rng);
+    steer(unit(ally), ally, 0.016, rng);
     // score: 80/(1+0)=80 vs 100/(1+0.6)=62.5 → vet=2が選ばれる
     expect(unit(ally).target).toBe(vetEnemy);
   });
@@ -159,7 +159,7 @@ describe('steer — ターゲット探索', () => {
     unit(nearEnemy).vet = 0;
     unit(farVetEnemy).vet = 2;
     buildHash();
-    steer(unit(ally), ally as UnitIndex, 0.016, rng);
+    steer(unit(ally), ally, 0.016, rng);
     // score: 80/(1+0)=80 vs 300/(1+0.6)=187.5 → 近い敵が選ばれる
     expect(unit(ally).target).toBe(nearEnemy);
   });
@@ -170,7 +170,7 @@ describe('steer — ターゲット探索', () => {
     unit(ally).target = enemy;
     unit(enemy).alive = false;
     buildHash();
-    steer(unit(ally), ally as UnitIndex, 0.016, rng);
+    steer(unit(ally), ally, 0.016, rng);
     // 死亡ターゲットはクリアされるべき
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
@@ -185,7 +185,7 @@ describe('steer — massWeight ターゲット優先', () => {
     spawnAt(1, DRONE_TYPE, 100, 0); // mass=1, 距離100
     const flagship = spawnAt(1, FLAGSHIP_TYPE, 180, 0); // mass=30, 距離180（neighbor radius 200以内）
     buildHash();
-    steer(unit(sniper), sniper as UnitIndex, 0.016, rng);
+    steer(unit(sniper), sniper, 0.016, rng);
     // score(drone) = 100²/(1.15²) = 10000/1.3225 ≈ 7561
     // score(flagship) = 180²/((1+0.15*30)²) = 32400/30.25 ≈ 1071
     // → Flagship が優先される
@@ -198,7 +198,7 @@ describe('steer — massWeight ターゲット優先', () => {
     const drone = spawnAt(1, DRONE_TYPE, 100, 0); // 距離100
     spawnAt(1, FLAGSHIP_TYPE, 300, 0); // 距離300
     buildHash();
-    steer(unit(fighter), fighter as UnitIndex, 0.016, rng);
+    steer(unit(fighter), fighter, 0.016, rng);
     expect(unit(fighter).target).toBe(drone);
   });
 });
@@ -210,7 +210,7 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
+      steer(unit(sniper), sniper, 0.033, rng);
     }
     // 後退: x が減少（敵から離れる方向）
     expect(unit(sniper).x).toBeLessThan(0);
@@ -222,7 +222,7 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
+      steer(unit(sniper), sniper, 0.033, rng);
     }
     // 前進: x が増加（敵に近づく方向）
     expect(unit(sniper).x).toBeGreaterThan(0);
@@ -234,7 +234,7 @@ describe('steer — engageMin/engageMax カスタム距離管理', () => {
     unit(sniper).target = enemy;
     buildHash();
     for (let i = 0; i < 30; i++) {
-      steer(unit(sniper), sniper as UnitIndex, 0.033, rng);
+      steer(unit(sniper), sniper, 0.033, rng);
     }
     // 後退: y が減少（敵から離れる方向）
     expect(unit(sniper).y).toBeLessThan(0);
@@ -247,7 +247,7 @@ describe('steer — LANCER型', () => {
     const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
     unit(lancer).target = enemy;
     buildHash();
-    steer(unit(lancer), lancer as UnitIndex, 0.033, rng);
+    steer(unit(lancer), lancer, 0.033, rng);
     // ターゲットはx正方向なので、vxが正方向に増加
     expect(unit(lancer).vx).toBeGreaterThan(0);
   });
@@ -260,7 +260,7 @@ describe('steer — ヒーラー追従', () => {
     spawnAt(0, DRONE_TYPE, -100, 0); // mass=1
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(unit(healer), healer as UnitIndex, 0.033, rng);
+      steer(unit(healer), healer, 0.033, rng);
     }
     // Flagship (x=100) 方向に引き寄せ → xが正方向に移動
     expect(unit(healer).x).toBeGreaterThan(0);
@@ -274,7 +274,7 @@ describe('steer — ヒーラー追従', () => {
     unit(drone).hp = unit(drone).maxHp * 0.5;
     for (let i = 0; i < 60; i++) {
       buildHash();
-      steer(unit(healer), healer as UnitIndex, 0.033, rng);
+      steer(unit(healer), healer, 0.033, rng);
     }
     // Drone (y=100) のHP減少スコアが高い → y正方向に移動
     expect(unit(healer).y).toBeGreaterThan(0);
@@ -289,7 +289,7 @@ describe('steer — ヒーラー追従', () => {
     unit(flagship).hp = unit(flagship).maxHp * 0.5;
     for (let i = 0; i < 60; i++) {
       buildHash();
-      steer(unit(healer), healer as UnitIndex, 0.033, rng);
+      steer(unit(healer), healer, 0.033, rng);
     }
     // Flagship (y=100) のmassタイブレーカーで勝つ → y正方向に移動
     expect(unit(healer).y).toBeGreaterThan(0);
@@ -303,7 +303,7 @@ describe('steer — サポート重心追従', () => {
     spawnAt(0, DRONE_TYPE, -50, 100);
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+      steer(unit(amp), amp, 0.033, rng);
     }
     // 味方重心は y 正方向
     expect(unit(amp).y).toBeGreaterThan(0);
@@ -317,7 +317,7 @@ describe('steer — サポート重心追従', () => {
     spawnAt(0, DRONE_TYPE, 100, -100);
     for (let i = 0; i < 60; i++) {
       buildHash();
-      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+      steer(unit(amp), amp, 0.033, rng);
     }
     // 重心は x 正方向
     expect(unit(amp).x).toBeGreaterThan(0);
@@ -327,7 +327,7 @@ describe('steer — サポート重心追従', () => {
     const amp = spawnAt(0, AMPLIFIER_TYPE, 0, 0);
     for (let i = 0; i < 5; i++) {
       buildHash();
-      steer(unit(amp), amp as UnitIndex, 0.033, rng);
+      steer(unit(amp), amp, 0.033, rng);
     }
     expect(unit(amp).x).not.toBeNaN();
     expect(unit(amp).y).not.toBeNaN();
@@ -375,8 +375,8 @@ describe('steer — Boids Separation', () => {
     buildHash();
     for (let i = 0; i < 30; i++) {
       buildHash();
-      steer(unit(u1), u1 as UnitIndex, 0.033, rng);
-      steer(unit(u2), u2 as UnitIndex, 0.033, rng);
+      steer(unit(u1), u1, 0.033, rng);
+      steer(unit(u2), u2, 0.033, rng);
     }
     expect(unit(u1).x).toBeLessThan(unit(u2).x);
   });
@@ -395,8 +395,8 @@ describe('steer — Boids Separation', () => {
     buildHash();
     for (let i = 0; i < 10; i++) {
       buildHash();
-      steer(unit(drone), drone as UnitIndex, 0.033, rng);
-      steer(unit(flagship), flagship as UnitIndex, 0.033, rng);
+      steer(unit(drone), drone, 0.033, rng);
+      steer(unit(flagship), flagship, 0.033, rng);
     }
     const droneDrift = Math.abs(unit(drone).x - droneStartX);
     const flagshipDrift = Math.abs(unit(flagship).x - flagshipStartX);
@@ -418,7 +418,7 @@ describe('steer — Boids Alignment', () => {
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(unit(subject), subject as UnitIndex, 0.033, rng);
+      steer(unit(subject), subject, 0.033, rng);
     }
     expect(unit(subject).vx).toBeGreaterThan(0);
   });
@@ -434,7 +434,7 @@ describe('steer — Boids Cohesion', () => {
     buildHash();
     for (let i = 0; i < 50; i++) {
       buildHash();
-      steer(unit(loner), loner as UnitIndex, 0.033, rng);
+      steer(unit(loner), loner, 0.033, rng);
     }
     expect(unit(loner).x).toBeGreaterThan(0);
   });
@@ -619,12 +619,13 @@ describe('steer — boost mechanism', () => {
   async function mockBoostType(base: UnitTypeIndex, boost: NonNullable<UnitType['boost']>) {
     const { boost: _, ...rest } = unitType(base);
     const mock: UnitType = { ...rest, boost };
-    const mod = await import('../unit-types.ts');
-    vi.spyOn(mod, 'unitType').mockImplementation((id) => {
+    const accessors = await import('../unit-type-accessors.ts');
+    const { TYPES } = await import('../unit-types.ts');
+    vi.spyOn(accessors, 'unitType').mockImplementation((id: UnitTypeIndex) => {
       if (id === base) {
         return mock;
       }
-      const t = mod.TYPES[id];
+      const t = TYPES[id];
       if (!t) {
         throw new Error(`Unknown type id: ${id}`);
       }
@@ -753,7 +754,7 @@ describe('steer — HP退避ポテンシャル', () => {
     const { boost: _, ...rest } = unitType(base);
     const mock: UnitType = { ...rest, retreatHpRatio };
     const { TYPES } = await import('../unit-types.ts');
-    vi.spyOn(await import('../unit-types.ts'), 'unitType').mockImplementation((id) => {
+    vi.spyOn(await import('../unit-type-accessors.ts'), 'unitType').mockImplementation((id: UnitTypeIndex) => {
       if (id === base) {
         return mock;
       }
@@ -958,12 +959,13 @@ describe('steer — Catalyst バフ', () => {
   async function mockBoostTypeForCatalyst(base: UnitTypeIndex, boost: NonNullable<UnitType['boost']>) {
     const { boost: _, ...rest } = unitType(base);
     const mock: UnitType = { ...rest, boost };
-    const mod = await import('../unit-types.ts');
-    vi.spyOn(mod, 'unitType').mockImplementation((id) => {
+    const accessors = await import('../unit-type-accessors.ts');
+    const { TYPES } = await import('../unit-types.ts');
+    vi.spyOn(accessors, 'unitType').mockImplementation((id: UnitTypeIndex) => {
       if (id === base) {
         return mock;
       }
-      const t = mod.TYPES[id];
+      const t = TYPES[id];
       if (!t) {
         throw new Error(`Unknown type id: ${id}`);
       }

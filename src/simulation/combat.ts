@@ -1,11 +1,13 @@
 import { effectColor } from '../colors.ts';
+import { unitIdx } from '../pool-index.ts';
 import { unit } from '../pools.ts';
-import type { DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
-import { DEFAULT_UNIT_TYPE, unitType } from '../unit-types.ts';
-import type { CombatContext } from './combat-context.ts';
+import type { Armament, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
+import { DEFAULT_UNIT_TYPE, unitType } from '../unit-type-accessors.ts';
+import type { CombatContext, ShakeFn } from './combat-context.ts';
 import { fireNormal } from './combat-fire.ts';
 import { flagshipBarrage } from './combat-flagship.ts';
 import { focusBeam } from './combat-focus-beam.ts';
+import { mothershipCombat } from './combat-mothership.ts';
 import { reflectProjectiles } from './combat-reflect.ts';
 import { castChain, dischargeEmp, healAllies, launchDrones, ramTarget, teleport } from './combat-special.ts';
 import {
@@ -23,8 +25,8 @@ import { computeEffectiveRange } from './steering.ts';
 // GC回避用の再利用シングルトン。combat() 呼び出し時に全フィールドを上書きする。
 // シングルスレッド前提: ワーカー分離時は per-call 割り当てに変更が必要
 const _ctx: CombatContext = {
-  u: unit(0 as UnitIndex),
-  ui: 0 as UnitIndex,
+  u: unit(unitIdx(0)),
+  ui: unitIdx(0),
   dt: 0,
   c: [0, 0, 0],
   vd: 0,
@@ -32,6 +34,9 @@ const _ctx: CombatContext = {
   range: 0,
   rng: () => {
     throw new Error('CombatContext.rng called before combat() initialization');
+  },
+  shake: () => {
+    throw new Error('CombatContext.shake called before combat() initialization');
   },
 };
 
@@ -90,28 +95,44 @@ function tryExclusiveFire(ctx: CombatContext): boolean {
   return false;
 }
 
-export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: () => number) {
-  const t = unitType(u.type);
+/** 共通の戦闘コンテキスト初期化。stun 時は false を返し、呼び出し元は即 return すべき。
+ *  attackCdMul は通常射撃の cooldown のみに適用。abilityCooldown には適用しない（意図的仕様） */
+function fillCombatCtx(
+  u: Unit,
+  ui: UnitIndex,
+  dt: number,
+  rng: () => number,
+  attackCdMul: number,
+  shake: ShakeFn,
+): boolean {
   if (u.stun > 0) {
-    return;
+    return false;
   }
+  const t = unitType(u.type);
   const scrCd = u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1;
   const catCd = u.catalystTimer > 0 ? CATALYST_COOLDOWN_MULT : 1;
-  u.cooldown -= dt * scrCd * catCd;
+  u.cooldown -= dt * scrCd * catCd * attackCdMul;
   u.abilityCooldown -= dt * scrCd * catCd;
   const c = effectColor(u.type, u.team);
   const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
-  const vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.u = u;
   _ctx.ui = ui;
   _ctx.dt = dt;
   _ctx.c = c;
-  _ctx.vd = vd;
+  _ctx.vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.t = t;
   _ctx.range = computeEffectiveRange(u, t.range);
   _ctx.rng = rng;
+  _ctx.shake = shake;
+  return true;
+}
 
-  if (t.rams) {
+export function combat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, attackCdMul: number, shake: ShakeFn) {
+  if (!fillCombatCtx(u, ui, dt, rng, attackCdMul, shake)) {
+    return;
+  }
+
+  if (_ctx.t.rams) {
     ramTarget(_ctx);
     return;
   }
@@ -119,9 +140,30 @@ export function combat(u: Unit, ui: UnitIndex, dt: number, _now: number, rng: ()
     return;
   }
   // teleport() が false を返すワープ待機中フレームでも、blinkDepart が設定した cooldown により射撃は抑制される
-  const blinked = t.teleports && teleport(_ctx);
+  const blinked = _ctx.t.teleports && teleport(_ctx);
   if (!blinked && !tryExclusiveFire(_ctx)) {
     fireNormal(_ctx);
+  }
+}
+
+/**
+ * 母艦専用の戦闘ティック。cooldown 減衰 + 搭載主砲射撃を処理する。
+ * armament が null のバリアント（Hive/Reactor）では cooldown 減衰のみ実行。
+ */
+export function combatMothershipTick(
+  u: Unit,
+  ui: UnitIndex,
+  dt: number,
+  rng: () => number,
+  attackCdMul: number,
+  armament: Armament | null,
+  shake: ShakeFn,
+) {
+  if (!fillCombatCtx(u, ui, dt, rng, attackCdMul, shake)) {
+    return;
+  }
+  if (armament) {
+    mothershipCombat(_ctx, armament);
   }
 }
 

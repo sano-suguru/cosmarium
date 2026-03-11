@@ -13,6 +13,17 @@ module.exports = {
       },
     },
     {
+      name: 'no-input-in-simulation',
+      severity: 'error',
+      comment: 'simulation モジュールは input/ を直接 import してはいけない。コールバック注入で依存を逆転させること。',
+      from: {
+        path: '^src/simulation/',
+      },
+      to: {
+        path: '^src/input/',
+      },
+    },
+    {
       name: 'no-ui-in-simulation',
       severity: 'error',
       comment: 'simulation モジュールは ui/ を直接 import してはいけない。コールバック注入で依存を逆転させること。',

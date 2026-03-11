@@ -9,10 +9,18 @@ import {
 } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
+import { particleIdx, projectileIdx, unitIdx } from '../pool-index.ts';
 import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
-import type { ParticleIndex, ProjectileIndex, UnitIndex } from '../types.ts';
+import type { UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT, TEAM0, TEAM1 } from '../types.ts';
-import { BOMBER_TYPE, CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, unitType, unitTypeIndex } from '../unit-types.ts';
+import {
+  BOMBER_TYPE,
+  CRUISER_TYPE,
+  DRONE_TYPE,
+  FIGHTER_TYPE,
+  unitType,
+  unitTypeIndex,
+} from '../unit-type-accessors.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import {
   addBeam,
@@ -85,7 +93,7 @@ describe('spawnProjectile', () => {
   });
 
   it('オプション引数が反映される', () => {
-    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, { homing: true, aoe: 70, target: 42 as UnitIndex });
+    const idx = spawnProjectile(0, 0, 0, 0, 1, 5, 1, 2, 1, 1, 1, { homing: true, aoe: 70, target: unitIdx(42) });
     expect(idx).toBe(0);
     const p = projectile(0);
     expect(p.homing).toBe(true);
@@ -131,7 +139,7 @@ describe('spawnUnit', () => {
   it('dead スロットを再利用する', () => {
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
-    kill(0 as UnitIndex);
+    kill(unitIdx(0));
     const reused = spawnUnit(1, FIGHTER_TYPE, 50, 50, testRng);
     expect(reused).toBe(0);
     expect(unit(0).team).toBe(1);
@@ -143,15 +151,15 @@ describe('killUnit', () => {
   it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
     expect(poolCounts.units).toBe(1);
-    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(unit(0).alive).toBe(false);
     expect(poolCounts.units).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
-    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
-    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(poolCounts.units).toBe(0);
   });
 
@@ -162,7 +170,7 @@ describe('killUnit', () => {
     });
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
     spawnUnit(1, FIGHTER_TYPE, 100, 100, testRng);
-    killUnit(0 as UnitIndex, captureKiller(1 as UnitIndex), KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), captureKiller(unitIdx(1)), KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.victim).toBe(0);
     expect(calls[0]?.killer).toBe(1);
@@ -176,10 +184,10 @@ describe('killUnit', () => {
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng); // index 0, team 0
     spawnUnit(1, FIGHTER_TYPE, 100, 100, testRng); // index 1, team 1
     // 相打ち: 両方の killer 情報を alive 時点でキャプチャ
-    const killer0 = captureKiller(0 as UnitIndex);
-    const killer1 = captureKiller(1 as UnitIndex);
-    killUnit(0 as UnitIndex, killer1, KILL_CONTEXT.ProjectileDirect);
-    killUnit(1 as UnitIndex, killer0, KILL_CONTEXT.ProjectileDirect);
+    const killer0 = captureKiller(unitIdx(0));
+    const killer1 = captureKiller(unitIdx(1));
+    killUnit(unitIdx(0), killer1, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(1), killer0, KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(2);
     // 2回目: victim=team1, killer=team0（killerFrom で事前キャプチャ済み）
     expect(calls[1]?.victimTeam).toBe(1);
@@ -192,14 +200,14 @@ describe('killUnit', () => {
       calls.push({ victim: e.victim, killer: e.killer });
     });
     spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
-    killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.killer).toBe(NO_UNIT);
   });
 
   it('alive ユニットの KilledUnitSnapshot を正しく返す', () => {
     spawnUnit(1, BOMBER_TYPE, 100, 200, testRng);
-    const snap = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    const snap = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap).toBeDefined();
     expect(snap?.x).toBe(100);
     expect(snap?.y).toBe(200);
@@ -209,8 +217,8 @@ describe('killUnit', () => {
 
   it('二重 kill は undefined を返す', () => {
     spawnUnit(0, FIGHTER_TYPE, 50, 60, testRng);
-    const first = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
-    const second = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    const first = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    const second = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(first).toBeDefined();
     expect(second).toBeUndefined();
   });
@@ -218,8 +226,8 @@ describe('killUnit', () => {
   it('返り値は独立オブジェクトで、2回 kill しても互いに影響しない', () => {
     spawnUnit(0, FIGHTER_TYPE, 10, 20, testRng);
     spawnUnit(1, BOMBER_TYPE, 30, 40, testRng);
-    const snap1 = killUnit(0 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
-    const snap2 = killUnit(1 as UnitIndex, undefined, KILL_CONTEXT.ProjectileDirect);
+    const snap1 = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    const snap2 = killUnit(unitIdx(1), undefined, KILL_CONTEXT.ProjectileDirect);
     expect(snap1).not.toBe(snap2);
     expect(snap1?.x).toBe(10);
     expect(snap2?.x).toBe(30);
@@ -258,15 +266,15 @@ describe('killParticle', () => {
   it('パーティクルを無効化し poolCounts.particleCount を減少させる', () => {
     spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
     expect(poolCounts.particles).toBe(1);
-    killParticle(0 as ParticleIndex);
+    killParticle(particleIdx(0));
     expect(particle(0).alive).toBe(false);
     expect(poolCounts.particles).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
-    killParticle(0 as ParticleIndex);
-    killParticle(0 as ParticleIndex);
+    killParticle(particleIdx(0));
+    killParticle(particleIdx(0));
     expect(poolCounts.particles).toBe(0);
   });
 });
@@ -275,15 +283,15 @@ describe('killProjectile', () => {
   it('プロジェクタイルを無効化し poolCounts.projectileCount を減少させる', () => {
     spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
     expect(poolCounts.projectiles).toBe(1);
-    killProjectile(0 as ProjectileIndex);
+    killProjectile(projectileIdx(0));
     expect(projectile(0).alive).toBe(false);
     expect(poolCounts.projectiles).toBe(0);
   });
 
   it('二重killしても poolCounts が負にならない', () => {
     spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
-    killProjectile(0 as ProjectileIndex);
-    killProjectile(0 as ProjectileIndex);
+    killProjectile(projectileIdx(0));
+    killProjectile(projectileIdx(0));
     expect(poolCounts.projectiles).toBe(0);
   });
 });

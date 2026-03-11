@@ -1,9 +1,8 @@
 import { SH_CIRCLE, SH_DIAMOND_RING, SH_EXPLOSION_RING } from '../constants.ts';
-import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { DRONE_TYPE, unitType } from '../unit-types.ts';
+import { DRONE_TYPE, unitType } from '../unit-type-accessors.ts';
 import { aimAt, tgtDistOrClear } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
 import { chainLightning, destroyMutualKill, destroyUnit } from './effects.ts';
@@ -67,13 +66,13 @@ function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitT
   ramCollisionSparks((u.x + o.x) / 2, (u.y + o.y) / 2, ctx.rng);
   const killCtx = DAMAGE_KIND_TO_KILL_CONTEXT[kind];
   if (o.hp <= 0 && u.hp <= 0) {
-    destroyMutualKill(ui, oi, true, true, ctx.rng, killCtx);
+    destroyMutualKill(ui, oi, true, true, ctx.rng, killCtx, ctx.shake);
     return true;
   }
   if (o.hp <= 0) {
-    destroyUnit(oi, ui, ctx.rng, killCtx);
+    destroyUnit(oi, ui, ctx.rng, killCtx, ctx.shake);
   } else if (u.hp <= 0) {
-    destroyUnit(ui, oi, ctx.rng, killCtx);
+    destroyUnit(ui, oi, ctx.rng, killCtx, ctx.shake);
     return true;
   }
   return false;
@@ -169,7 +168,7 @@ export function dischargeEmp(ctx: CombatContext) {
       oo.hitFlash = 1;
       emitDamage(u.type, u.team, oo.type, oo.team, t.damage, empKind);
       if (oo.hp <= 0) {
-        destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[empKind]);
+        destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[empKind], ctx.shake);
       }
     }
   }
@@ -233,7 +232,7 @@ function blinkArrive(ctx: CombatContext) {
   spawnParticle(u.x, u.y, 0, 0, 0.2, 14, 1, 1, 1, SH_EXPLOSION_RING);
   spawnParticle(u.x, u.y, 0, 0, 0.25, 10, c[0], c[1], c[2], SH_DIAMOND_RING);
 
-  addShake(1.2, u.x, u.y);
+  ctx.shake(1.2, u.x, u.y);
 
   const nn = getNeighbors(u.x, u.y, BLINK_IMPACT_RADIUS);
   for (let i = 0; i < nn; i++) {
@@ -332,7 +331,7 @@ export function castChain(ctx: CombatContext): void {
     if (!killer) {
       return;
     }
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, killer, ctx.rng);
+    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, killer, ctx.rng, ctx.shake);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }

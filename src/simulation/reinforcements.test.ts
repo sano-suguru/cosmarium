@@ -3,7 +3,8 @@ import { asType, fillUnitPool, resetPools, resetState, spawnAt } from '../__test
 import { POOL_UNITS } from '../constants.ts';
 import { incMotherships, poolCounts, setUnitCount, unit } from '../pools.ts';
 import { rng, state } from '../state.ts';
-import { TYPES, unitTypeIndex } from '../unit-types.ts';
+import { unitTypeIndex } from '../unit-type-accessors.ts';
+import { TYPES } from '../unit-types.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import {
   REINFORCE_INTERVAL,

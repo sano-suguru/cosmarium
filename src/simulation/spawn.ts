@@ -1,5 +1,6 @@
 import { acquireBeam, acquireTrackingBeam, beams, trackingBeams } from '../beams.ts';
 import { POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
+import { projectileIdx, unitIdx } from '../pool-index.ts';
 import {
   advanceParticleHWM,
   advanceProjectileHWM,
@@ -20,7 +21,7 @@ import {
 } from '../pools.ts';
 import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
-import { DEFAULT_UNIT_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-types.ts';
+import { DEFAULT_UNIT_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 import type { KillContext } from './on-kill-effects.ts';
 
@@ -91,7 +92,7 @@ const spawnUnitHooks: SpawnUnitHook[] = [];
 // GC回避: SpawnEvent 深度インデックスド・スタック（再入安全・Carrier等のフック内spawnUnit対応）
 const _seStack = Array.from(
   { length: EVENT_STACK_MAX_DEPTH },
-  (): SpawnEvent => ({ unitIndex: 0 as UnitIndex, team: TEAM0, type: DEFAULT_UNIT_TYPE }),
+  (): SpawnEvent => ({ unitIndex: unitIdx(0), team: TEAM0, type: DEFAULT_UNIT_TYPE }),
 );
 let _seDepth = 0;
 
@@ -158,7 +159,7 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
       u.squadronIdx = NO_SQUADRON;
       advanceUnitHWM(i);
       incUnits(team);
-      const idx = i as UnitIndex;
+      const idx = unitIdx(i);
       if (spawnUnitHooks.length > 0) {
         const d = _seDepth++;
         const se = stackAt(_seStack, d);
@@ -180,19 +181,19 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
 const _keWK = Array.from(
   { length: EVENT_STACK_MAX_DEPTH },
   (): KillEvent & { killerTeam: Team; killerType: UnitTypeIndex } => ({
-    victim: 0 as UnitIndex,
+    victim: unitIdx(0),
     victimTeam: TEAM0,
     victimType: DEFAULT_UNIT_TYPE,
     victimSquadronIdx: NO_SQUADRON,
     victimTeamRemaining: 0,
     killContext: 0,
-    killer: 0 as UnitIndex,
+    killer: unitIdx(0),
     killerTeam: TEAM0,
     killerType: DEFAULT_UNIT_TYPE,
   }),
 );
 const _keNK = Array.from({ length: EVENT_STACK_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
-  victim: 0 as UnitIndex,
+  victim: unitIdx(0),
   victimTeam: TEAM0,
   victimType: DEFAULT_UNIT_TYPE,
   victimSquadronIdx: NO_SQUADRON,
@@ -364,7 +365,7 @@ export function spawnProjectile(
       }
       advanceProjectileHWM(i);
       incProjectiles();
-      return i as ProjectileIndex;
+      return projectileIdx(i);
     }
   }
   return NO_PROJECTILE;

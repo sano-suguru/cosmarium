@@ -1,12 +1,11 @@
 import { SPEEDS } from '../constants.ts';
-import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
 import { _resetRunState, endRun, isRunActive, processRoundEnd, resetRun } from '../run.ts';
-import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
-import { initBattle, initMelee, initUnits } from '../simulation/init.ts';
+import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
+import { initBattleProduction, initMeleeProduction, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
-import type { BattleResult, FleetComposition, TimeScale } from '../types.ts';
+import type { BattleResult, FleetSetup, ProductionState, TeamTuple, TimeScale } from '../types.ts';
 import { MAX_TEAMS } from '../types.ts';
 // NOTE: codex → game-control の逆方向 import は循環依存になるため禁止
 import { toggleCodex } from './codex/codex-logic.ts';
@@ -15,13 +14,15 @@ import { updateHudRoundInfo } from './hud/Hud.tsx';
 import {
   autoFollowActive$,
   composeEnemyArchName$,
-  composeEnemyFleet$,
+  composeEnemySetup$,
   composeVisible$,
   playUiVisible$,
   resultData$,
 } from './signals.ts';
 
-let currentEnemyFleet: FleetComposition = [];
+const DEFAULT_ENEMY_SETUP: FleetSetup = { variant: 0, slots: [] };
+
+let currentEnemySetup: FleetSetup = DEFAULT_ENEMY_SETUP;
 let currentEnemyArchName = '';
 
 let seedCounter = 0;
@@ -35,20 +36,21 @@ function uniqueSeed(): number {
   return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
 }
 
-type TransitionCb = () => void;
-type MeleeStartCb = (numTeams: number) => void;
-const throwBattleStart: TransitionCb = () => {
+type BattleStartCb = (productions: [ProductionState, ProductionState]) => void;
+type SpectateStartCb = () => void;
+type MeleeStartCb = (numTeams: number, productions: TeamTuple<ProductionState>) => void;
+const throwBattleStart: BattleStartCb = () => {
   throw new Error('setOnBattleStart() must be called before battle launch');
 };
-let onBattleStart: TransitionCb = throwBattleStart;
-let onSpectateStart: TransitionCb = () => undefined;
+let onBattleStart: BattleStartCb = throwBattleStart;
+let onSpectateStart: SpectateStartCb = () => undefined;
 let onMeleeStart: MeleeStartCb = () => undefined;
 
-export function setOnBattleStart(cb: TransitionCb) {
+export function setOnBattleStart(cb: BattleStartCb) {
   onBattleStart = cb;
 }
 
-export function setOnSpectateStart(cb: TransitionCb) {
+export function setOnSpectateStart(cb: SpectateStartCb) {
   onSpectateStart = cb;
 }
 
@@ -80,7 +82,7 @@ function goToCompose(preserveFleet: boolean) {
   if (!preserveFleet) {
     resetComposeCounts();
   }
-  composeEnemyFleet$.value = currentEnemyFleet;
+  composeEnemySetup$.value = currentEnemySetup;
   composeEnemyArchName$.value = currentEnemyArchName;
   composeVisible$.value = true;
 }
@@ -93,18 +95,17 @@ export function startSpectate() {
   onSpectateStart();
 }
 
-export function startBattle(playerFleet: FleetComposition) {
+export function startBattle(setup: FleetSetup) {
   state.gameState = 'play';
   resetCam();
   composeVisible$.value = false;
   resultData$.value = null;
   showPlayUI();
   seedRng(uniqueSeed());
-  initBattle(playerFleet, currentEnemyFleet, rng);
-  onBattleStart();
+  // 両チームとも母艦のみスポーン — ユニットはタイマー駆動で生産
+  const productions = initBattleProduction(rng, setup, currentEnemySetup);
+  onBattleStart(productions);
 }
-
-const MELEE_TOTAL_BUDGET = DEFAULT_BUDGET * 2; // 2-team battle と同等の総量
 
 export function startMelee() {
   state.gameState = 'play';
@@ -112,10 +113,9 @@ export function startMelee() {
   showPlayUI();
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1));
-  const perTeamBudget = Math.round(MELEE_TOTAL_BUDGET / numTeams);
-  const fleets = Array.from({ length: numTeams }, () => generateEnemyFleet(perTeamBudget, rng).fleet);
-  initMelee(fleets, rng);
-  onMeleeStart(numTeams);
+  const setups = Array.from({ length: numTeams }, () => generateEnemySetup(rng).setup);
+  const productions = initMeleeProduction(rng, setups, numTeams);
+  onMeleeStart(numTeams, productions);
 }
 
 export function goToResult(result: BattleResult) {
@@ -152,8 +152,8 @@ export function goToMenu() {
 }
 
 function generateEnemy() {
-  const { fleet, archetypeName } = generateEnemyFleet(DEFAULT_BUDGET, rng);
-  currentEnemyFleet = fleet;
+  const { setup, archetypeName } = generateEnemySetup(rng);
+  currentEnemySetup = setup;
   currentEnemyArchName = archetypeName;
 }
 
@@ -174,11 +174,13 @@ export function advanceRound() {
 /** テスト専用: モジュールレベル変数をリセット */
 export function _resetGameControl() {
   seedCounter = 0;
-  currentEnemyFleet = [];
+  currentEnemySetup = DEFAULT_ENEMY_SETUP;
   currentEnemyArchName = '';
   onBattleStart = throwBattleStart;
   onSpectateStart = () => undefined;
-  onMeleeStart = () => undefined;
+  onMeleeStart = () => {
+    throw new Error('setOnMeleeStart() must be called before melee launch');
+  };
   state.gameState = 'menu';
   state.codexOpen = false;
   _resetRunState();
@@ -190,7 +192,7 @@ export function onCodexToggle() {
     if (state.codexOpen) {
       composeVisible$.value = false;
     } else {
-      composeEnemyFleet$.value = currentEnemyFleet;
+      composeEnemySetup$.value = currentEnemySetup;
       composeEnemyArchName$.value = currentEnemyArchName;
       composeVisible$.value = true;
     }

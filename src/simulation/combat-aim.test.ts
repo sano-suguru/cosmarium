@@ -2,18 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
-import { buildHash } from './spatial-hash.ts';
-
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
 import { combat } from './combat.ts';
 import { aimAt } from './combat-aim.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { _resetSweepHits } from './combat-sweep.ts';
+import { buildHash } from './spatial-hash.ts';
 
 afterEach(() => {
   resetPools();
@@ -23,6 +16,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
+
+const shake = vi.fn();
 
 describe('aimAt — 偏差射撃の照準計算', () => {
   it('静止目標 → 直射角度と同じ', () => {
@@ -99,7 +94,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(2);
     // vy > 0 → 弾のvy成分が正方向にずれる（上を狙う）
     const p = projectile(0);
@@ -114,7 +109,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, 0, rng);
+    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
     const p = projectile(0);
     // 直射方向は +x なので vy ≈ 0 (u.vy*0.3 分の微小オフセットのみ)
     expect(Math.abs(p.vy)).toBeLessThan(1);
@@ -126,7 +121,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
-    combat(unit(sniper), sniper, 0.016, 0, rng);
+    combat(unit(sniper), sniper, 0.016, rng, 1, shake);
     // ヒットスキャンなのでプロジェクタイルは生成されない
     expect(poolCounts.projectiles).toBe(0);
     // 敵にダメージが入る
@@ -140,7 +135,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(reflector).cooldown = 0;
     unit(reflector).target = enemy;
     buildHash();
-    combat(unit(reflector), reflector, 0.016, 0, rng);
+    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(1);
     const p = projectile(0);
     // leadAccuracy=0.15 なのでわずかに上方向にずれる
@@ -154,7 +149,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(flagship).cooldown = 0;
     unit(flagship).target = enemy;
     buildHash();
-    combat(unit(flagship), flagship, 0.016, 0, rng);
+    combat(unit(flagship), flagship, 0.016, rng, 1, shake);
     // チャージ開始 → sweepBaseAngle が直射 (0) より正方向にずれている
     expect(unit(flagship).sweepBaseAngle).toBeGreaterThan(0);
   });

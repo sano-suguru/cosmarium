@@ -1,3 +1,4 @@
+import { unitIdx } from '../pool-index.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
 import type { UnitIndex } from '../types.ts';
 import { MAX_TEAMS } from '../types.ts';
@@ -48,7 +49,7 @@ export function buildHash(activeTeamCount: number = MAX_TEAMS) {
       hashMap.set(k, a);
       _used.push(a);
     }
-    a.push(i as UnitIndex);
+    a.push(unitIdx(i));
     accumulateUnit(u.team, u.x, u.y);
   }
   endTeamCenterUpdate(activeTeamCount);

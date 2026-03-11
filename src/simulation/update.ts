@@ -1,13 +1,26 @@
 import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
 import { NEIGHBOR_RANGE, REF_FPS } from '../constants.ts';
-import { getParticleHWM, getUnitHWM, mothershipIdx, particle, poolCounts, unit } from '../pools.ts';
+import { getVariantDef } from '../mothership-variants.ts';
+import { particleIdx, unitIdx } from '../pool-index.ts';
+import {
+  countAliveMotherships,
+  getParticleHWM,
+  getUnitHWM,
+  mothershipIdx,
+  mothershipVariant,
+  particle,
+  poolCounts,
+  unit,
+} from '../pools.ts';
 import { swapRemove } from '../swap-remove.ts';
-import type { BattlePhase, ParticleIndex, Team, Unit, UnitIndex } from '../types.ts';
-import { NO_UNIT, TEAM0, TEAM1, TEAMS } from '../types.ts';
-import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-types.ts';
-import { combat } from './combat.ts';
+import type { Armament, BattlePhase, ProductionState, Team, TeamTuple, Unit } from '../types.ts';
+import { MAX_TEAMS, NO_UNIT, TEAM0, TEAM1, TEAMS } from '../types.ts';
+import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
+import { combat, combatMothershipTick } from './combat.ts';
+import type { ShakeFn } from './combat-context.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { boostBurst, boostTrail, flagshipTrail, trail, updateChains } from './effects.ts';
+import { computeProductionCap, tickProduction } from './production.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
@@ -16,6 +29,9 @@ import { updateSquadronObjectives } from './squadron.ts';
 import { steerWithNeighbors } from './steering.ts';
 import { applyAllFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
+
+/** 全チーム分の生産状態タプル */
+export type Productions = TeamTuple<ProductionState>;
 
 const SWARM_RADIUS = 80;
 const SWARM_RADIUS_SQ = SWARM_RADIUS * SWARM_RADIUS;
@@ -39,7 +55,7 @@ export function updateParticles(dt: number) {
     pp.vy *= drag;
     pp.life -= dt;
     if (pp.life <= 0) {
-      killParticle(i as ParticleIndex);
+      killParticle(particleIdx(i));
     }
   }
 }
@@ -114,7 +130,25 @@ function processTrailAndBoost(u: Unit, dt: number, rng: () => number, wasNotBoos
   }
 }
 
-function processAllUnits(dt: number, now: number, rng: () => number) {
+// チーム単位のバリアント情報プリコンピュート用 static 配列
+const _variantAttackCdMul: TeamTuple<number> = [1, 1, 1, 1, 1];
+const _variantArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
+
+function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
+  // 全スロットをニュートラル値にリセット（高インデックスに前フレームの stale 値が残るのを防止）
+  for (let t = 0; t < MAX_TEAMS; t++) {
+    _variantAttackCdMul[t] = 1;
+    _variantArmament[t] = null;
+  }
+  for (let t = 0; t < activeTeamCount; t++) {
+    const team = TEAMS[t];
+    if (team !== undefined) {
+      const vDef = getVariantDef(mothershipVariant[team]);
+      _variantAttackCdMul[team] = vDef.attackCdMul;
+      _variantArmament[team] = vDef.armament;
+    }
+  }
+
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {
@@ -122,13 +156,18 @@ function processAllUnits(dt: number, now: number, rng: () => number) {
     }
     rem--;
 
+    const ui = unitIdx(i);
     const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
     u.swarmN = unitType(u.type).swarm ? countSwarmFromNeighbors(u, nn) : 0;
-    steerWithNeighbors(u, i as UnitIndex, nn, dt, rng);
+    steerWithNeighbors(u, ui, nn, dt, rng);
 
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
-    combat(u, i as UnitIndex, dt, now, rng);
+    if (u.type === MOTHERSHIP_TYPE) {
+      combatMothershipTick(u, ui, dt, rng, _variantAttackCdMul[u.team], _variantArmament[u.team], shake);
+    } else {
+      combat(u, ui, dt, rng, _variantAttackCdMul[u.team], shake);
+    }
     if (u.alive && u.hp < prevHp) {
       u.hitFlash = 1;
     }
@@ -141,6 +180,7 @@ export interface GameLoopState extends ReinforcementState {
   battlePhase: BattlePhase;
   activeTeamCount: number;
   updateCodexDemo: (dt: number) => void;
+  productions: Productions;
 }
 
 /**
@@ -180,20 +220,25 @@ function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
   return null;
 }
 
-export function stepOnce(dt: number, now: number, rng: () => number, gameState: GameLoopState): Team | 'draw' | null {
+export function stepOnce(
+  dt: number,
+  rng: () => number,
+  gameState: GameLoopState,
+  shake: ShakeFn,
+): Team | 'draw' | null {
   const co = gameState.codexOpen;
   buildHash(gameState.activeTeamCount);
   resetReflected();
   updateSquadronObjectives(dt, rng);
 
-  processAllUnits(dt, now, rng);
+  processAllUnits(dt, rng, gameState.activeTeamCount, shake);
   decayAndRegen(dt);
   applyAllFields(dt);
 
-  updateProjectiles(dt, rng);
+  updateProjectiles(dt, rng, shake);
   updateParticles(dt);
   updateBeams(dt);
-  updateChains(dt, rng);
+  updateChains(dt, rng, shake);
   updateTrackingBeams(dt);
 
   if (!co) {
@@ -201,10 +246,23 @@ export function stepOnce(dt: number, now: number, rng: () => number, gameState: 
       case 'spectate':
         reinforce(dt, rng, gameState);
         break;
-      case 'battle':
+      case 'battle': {
+        const cap = computeProductionCap(2);
+        tickProduction(dt, TEAM0, rng, gameState.productions[0], cap);
+        tickProduction(dt, TEAM1, rng, gameState.productions[1], cap);
         return checkBattleWin();
-      case 'melee':
+      }
+      case 'melee': {
+        const aliveMs = countAliveMotherships(gameState.activeTeamCount);
+        const cap = computeProductionCap(Math.max(1, aliveMs));
+        for (let t = 0; t < gameState.activeTeamCount; t++) {
+          const team = TEAMS[t];
+          if (team !== undefined) {
+            tickProduction(dt, team, rng, gameState.productions[team], cap);
+          }
+        }
         return checkMeleeWin(gameState.activeTeamCount);
+      }
       case 'battleEnding':
       case 'meleeEnding':
       case 'aftermath':

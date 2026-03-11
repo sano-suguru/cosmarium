@@ -1,5 +1,5 @@
 import type { GameState, TimeScale, UnitTypeIndex } from './types.ts';
-import { DEFAULT_UNIT_TYPE } from './unit-types.ts';
+import { DEFAULT_UNIT_TYPE } from './unit-type-accessors.ts';
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0;

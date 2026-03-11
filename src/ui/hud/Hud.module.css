@@ -88,6 +88,11 @@
     box-shadow 0.15s ease-out;
 }
 
+.production {
+  color: #0f8;
+  text-shadow: 0 0 4px rgba(0, 255, 128, 0.3);
+}
+
 @media (pointer: coarse), (max-width: 768px) {
   .container {
     font-size: 10px;

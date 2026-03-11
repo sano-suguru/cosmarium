@@ -1,6 +1,10 @@
 import { beams, clearBeamPools, trackingBeams } from './beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_SQUADRONS, POOL_UNITS } from './constants.ts';
+
+import { particleIdx } from './pool-index.ts';
 import type {
+  MothershipVariant,
+  MothershipVariantOrNone,
   Particle,
   ParticleIndex,
   Projectile,
@@ -11,8 +15,17 @@ import type {
   Unit,
   UnitIndex,
 } from './types.ts';
-import { assignTeamTuple, NO_PARTICLE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0, TEAMS } from './types.ts';
-import { DEFAULT_UNIT_TYPE } from './unit-types.ts';
+import {
+  assignTeamTuple,
+  NO_PARTICLE,
+  NO_SOURCE_TYPE,
+  NO_SQUADRON,
+  NO_UNIT,
+  NO_VARIANT,
+  TEAM0,
+  TEAMS,
+} from './types.ts';
+import { DEFAULT_UNIT_TYPE } from './unit-type-accessors.ts';
 
 const unitPool: Unit[] = [];
 const particlePool: Particle[] = [];
@@ -49,7 +62,7 @@ export function allocParticleSlot(): ParticleIndex {
     throw new RangeError('particle free stack corrupted');
   }
   _particleInFree[v] = 0;
-  return v as unknown as ParticleIndex;
+  return particleIdx(v);
 }
 
 export function freeParticleSlot(i: ParticleIndex) {
@@ -128,10 +141,22 @@ export function restoreHWM(units: number, particles: number, projectiles: number
 const _counts = { units: 0, particles: 0, projectiles: 0 };
 const _teamUnits: TeamCounts = [0, 0, 0, 0, 0];
 const _mothershipIdx: TeamTuple<UnitIndex> = [NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT];
+const _mothershipVariant: TeamTuple<MothershipVariantOrNone> = [
+  NO_VARIANT,
+  NO_VARIANT,
+  NO_VARIANT,
+  NO_VARIANT,
+  NO_VARIANT,
+];
 
 export const poolCounts: Readonly<{ units: number; particles: number; projectiles: number }> = _counts;
 export const teamUnitCounts: Readonly<TeamCounts> = _teamUnits;
 export const mothershipIdx: Readonly<TeamTuple<UnitIndex>> = _mothershipIdx;
+export const mothershipVariant: Readonly<TeamTuple<MothershipVariantOrNone>> = _mothershipVariant;
+
+export function setMothershipVariant(team: Team, variant: MothershipVariant) {
+  _mothershipVariant[team] = variant;
+}
 
 /** 母艦のユニットインデックスを登録する。チームにつき1体まで（二重登録で RangeError） */
 export function incMotherships(team: Team, unitIndex: UnitIndex) {
@@ -149,6 +174,8 @@ export function decMotherships(team: Team) {
     throw new RangeError(`mothershipIdx[${team}] already NO_UNIT`);
   }
   _mothershipIdx[team] = NO_UNIT;
+  // 母艦撃沈時バリアントリセット
+  _mothershipVariant[team] = NO_VARIANT;
 }
 export function incUnits(team: Team) {
   if (_counts.units >= POOL_UNITS) {
@@ -198,6 +225,7 @@ export function resetPoolCounts() {
   _teamUnits.fill(0);
   for (const t of TEAMS) {
     _mothershipIdx[t] = NO_UNIT;
+    _mothershipVariant[t] = NO_VARIANT;
   }
   _initParticleFreeStack();
 }
@@ -420,4 +448,20 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     sourceUnit: NO_UNIT,
     sourceType: NO_SOURCE_TYPE,
   };
+}
+
+/** teamCount チーム中、母艦が生存している数を返す */
+export function countAliveMotherships(teamCount: number): number {
+  let count = 0;
+  for (let t = 0; t < teamCount; t++) {
+    const team = TEAMS[t];
+    if (team === undefined) {
+      continue;
+    }
+    const idx = _mothershipIdx[team];
+    if (idx !== NO_UNIT && unitPool[idx]?.alive) {
+      count++;
+    }
+  }
+  return count;
 }

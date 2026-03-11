@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { SQUADRONS_PER_TEAM } from '../constants.ts';
+import { squadronIdx } from '../pool-index.ts';
 import { getUnitHWM, squadron, unit } from '../pools.ts';
 import type { SquadronIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
-import { DRONE_TYPE, FLAGSHIP_TYPE } from '../unit-types.ts';
+import { DRONE_TYPE, FLAGSHIP_TYPE } from '../unit-type-accessors.ts';
 import { buildHash } from './spatial-hash.ts';
 import {
   assignToSquadron,
@@ -101,7 +102,7 @@ describe('formSquadrons', () => {
 
 /** テスト用: 2ユニットを同一分隊に手動配置する */
 function setupColocatedSquadron(a: ReturnType<typeof spawnAt>, b: ReturnType<typeof spawnAt>): SquadronIndex {
-  const si = 0 as SquadronIndex;
+  const si = squadronIdx(0);
   const s = squadron(si);
   s.alive = true;
   s.team = TEAM0;
@@ -134,7 +135,7 @@ describe('succeedLeader', () => {
     // type 0 = Drone (mass=1), type 4 = Flagship (mass=30)
     const drone = spawnAt(0, DRONE_TYPE, 0, 0);
     const flagship = spawnAt(0, FLAGSHIP_TYPE, 10, 0);
-    const si = 0 as SquadronIndex;
+    const si = squadronIdx(0);
     const s = squadron(si);
     s.alive = true;
     s.team = TEAM0;
@@ -344,7 +345,7 @@ describe('computeSquadronCohesion', () => {
     const memberFar = spawnAt(0, DRONE_TYPE, 400, 0);
 
     // 2体とも同じ分隊に配置（手動で分隊設定）
-    const si = 0 as SquadronIndex;
+    const si = squadronIdx(0);
     const s = squadron(si);
     s.alive = true;
     s.team = TEAM0;

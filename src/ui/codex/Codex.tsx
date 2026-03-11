@@ -1,6 +1,7 @@
 import { color, color3ToRgb } from '../../colors.ts';
 import { isPurchasable } from '../../fleet-cost.ts';
-import { TYPE_INDICES, TYPES, unitType } from '../../unit-types.ts';
+import { TYPE_INDICES, unitType } from '../../unit-type-accessors.ts';
+import { TYPES } from '../../unit-types.ts';
 import { codexSelected$ } from '../signals.ts';
 import styles from './Codex.module.css';
 import { selectCodexUnit } from './codex-logic.ts';

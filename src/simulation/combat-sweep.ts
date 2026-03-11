@@ -1,4 +1,5 @@
 import { BEAM_DECAY_RATE, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
+import { unitIdx } from '../pool-index.ts';
 import { unit } from '../pools.ts';
 import type { Color3, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -72,8 +73,13 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: CombatContext['u'],
     SH_CIRCLE,
   );
   if (n.hp <= 0) {
-    destroyUnit(ni, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
+    destroyUnit(ni, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], ctx.shake);
   }
+}
+
+function readSweepSnapshot(i: number): UnitIndex {
+  // _sweepSnapshotCount でループ範囲制限済み。?? 0 は noUncheckedIndexedAccess 型対策
+  return unitIdx(_sweepSnapshot[i] ?? 0);
 }
 
 function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: number) {
@@ -99,7 +105,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   const hi = Math.max(relPrev, relCurr) + TOL;
 
   for (let i = 0; i < _sweepSnapshotCount; i++) {
-    const ni = _sweepSnapshot[i] as UnitIndex;
+    const ni = readSweepSnapshot(i);
     const n = unit(ni);
     if (!n.alive || n.team === u.team) {
       continue;
@@ -119,7 +125,7 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
       continue;
     }
     sweepHitMap.get(ctx.ui)?.add(ni);
-    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui);
+    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui, ctx.shake);
     if (dmg < 0) {
       continue;
     }

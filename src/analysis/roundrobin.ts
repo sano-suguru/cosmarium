@@ -100,7 +100,6 @@ function runMatchup(
       mode: 'battle',
       teams: 2,
       seed: config.seed + matchIndex * config.trials + t,
-      budget: config.budget,
       maxSteps: config.maxSteps,
       snapshotInterval: config.maxSteps,
       outFile: null,

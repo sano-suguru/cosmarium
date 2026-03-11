@@ -1,4 +1,5 @@
-import type { Beam, TrackingBeam, UnitIndex } from './types.ts';
+import { unitIdx } from './pool-index.ts';
+import type { Beam, TrackingBeam } from './types.ts';
 
 export const beams: Beam[] = [];
 
@@ -51,8 +52,8 @@ export function releaseBeam(b: Beam): void {
 export function acquireTrackingBeam(): TrackingBeam {
   return (
     _trackingBeamPool.pop() ?? {
-      srcUnit: 0 as UnitIndex,
-      tgtUnit: 0 as UnitIndex,
+      srcUnit: unitIdx(0),
+      tgtUnit: unitIdx(0),
       x1: 0,
       y1: 0,
       x2: 0,

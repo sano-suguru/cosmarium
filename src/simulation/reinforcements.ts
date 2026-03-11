@@ -22,7 +22,7 @@ import {
   SCRAMBLER_TYPE,
   SNIPER_TYPE,
   TELEPORTER_TYPE,
-} from '../unit-types.ts';
+} from '../unit-type-accessors.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, reinforcementOrigin } from './spawn-coordinates.ts';
 import { assignToSquadron } from './squadron.ts';

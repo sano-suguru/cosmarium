@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
+import { unitIdx } from './pool-index.ts';
 import {
+  countAliveMotherships,
   decParticles,
   decProjectiles,
   decUnits,
+  incMotherships,
   incParticles,
   incProjectiles,
   incUnits,
+  mothershipVariant,
   particle,
   poolCounts,
   projectile,
@@ -17,7 +21,7 @@ import {
   unit,
 } from './pools.ts';
 import type { TeamCounts, TeamTuple, UnitIndex } from './types.ts';
-import { NO_UNIT } from './types.ts';
+import { NO_UNIT, NO_VARIANT, TEAMS } from './types.ts';
 
 /** 2チーム分のカウントから TeamCounts タプルを生成するヘルパー */
 function tc(t0: number, t1: number): TeamCounts {
@@ -126,6 +130,13 @@ describe('resetPoolCounts', () => {
     expect(poolCounts.particles).toBe(0);
     expect(poolCounts.projectiles).toBe(0);
   });
+
+  it('リセット後に全チームの mothershipVariant が NO_VARIANT', () => {
+    resetPoolCounts();
+    for (const t of TEAMS) {
+      expect(mothershipVariant[t]).toBe(NO_VARIANT);
+    }
+  });
 });
 
 describe('setUnitCount', () => {
@@ -226,7 +237,7 @@ describe('setPoolCounts', () => {
 
   it('mothershipIndices が範囲外で RangeError', () => {
     expect(() =>
-      setPoolCounts(pc({ mothershipIndices: [POOL_UNITS as UnitIndex, NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT] })),
+      setPoolCounts(pc({ mothershipIndices: [unitIdx(POOL_UNITS), NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT] })),
     ).toThrow(RangeError);
   });
 
@@ -235,7 +246,7 @@ describe('setPoolCounts', () => {
       pc({
         units: 1,
         teamUnits: tc(1, 0),
-        mothershipIndices: [0 as UnitIndex, NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT],
+        mothershipIndices: [unitIdx(0), NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT],
       }),
     );
     expect(poolCounts.units).toBe(1);
@@ -266,5 +277,40 @@ describe('teamUnitCounts', () => {
   it('チーム別カウントが0の状態で decUnits は RangeError', () => {
     incUnits(1);
     expect(() => decUnits(0)).toThrow(RangeError);
+  });
+});
+
+describe('countAliveMotherships', () => {
+  it('母艦なしで0を返す', () => {
+    expect(countAliveMotherships(2)).toBe(0);
+  });
+
+  it('2チーム中1体生存で1を返す', () => {
+    unit(0).alive = true;
+    incUnits(0);
+    incMotherships(0, unitIdx(0));
+    expect(countAliveMotherships(2)).toBe(1);
+  });
+
+  it('2チーム中2体生存で2を返す', () => {
+    unit(0).alive = true;
+    incUnits(0);
+    incMotherships(0, unitIdx(0));
+    unit(1).alive = true;
+    incUnits(1);
+    incMotherships(1, unitIdx(1));
+    expect(countAliveMotherships(2)).toBe(2);
+  });
+
+  it('母艦が dead なら数えない', () => {
+    unit(0).alive = true;
+    incUnits(0);
+    incMotherships(0, unitIdx(0));
+    unit(1).alive = true;
+    incUnits(1);
+    incMotherships(1, unitIdx(1));
+    // team 1 の母艦を撃沈
+    unit(1).alive = false;
+    expect(countAliveMotherships(2)).toBe(1);
   });
 });

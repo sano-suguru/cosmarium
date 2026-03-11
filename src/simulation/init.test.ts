@@ -1,19 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  asType,
-  resetPools,
-  resetState,
-  reviveParticle,
-  reviveProjectile,
-  reviveUnit,
-} from '../__test__/pool-helper.ts';
+import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { DEFAULT_BUDGET } from '../fleet-cost.ts';
-import { getUnitHWM, mothershipIdx, particle, poolCounts, projectile, teamUnitCounts, unit } from '../pools.ts';
+import { getUnitHWM, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { rng } from '../state.ts';
+import type { FleetSetup, MothershipVariant } from '../types.ts';
 import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
-import { unitTypeIndex } from '../unit-types.ts';
+import { unitTypeIndex } from '../unit-type-accessors.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -21,11 +14,10 @@ vi.mock('../input/camera.ts', () => ({
   initCamera: vi.fn(),
 }));
 
-import { generateEnemyFleet } from './enemy-fleet.ts';
-import { INIT_SPAWNS, initBattle, initMelee, initUnits } from './init.ts';
+import { INIT_SPAWNS, initBattleProduction, initMeleeProduction, initUnits } from './init.ts';
 
-function generateFleets(numTeams: number, budget: number): ReturnType<typeof generateEnemyFleet>['fleet'][] {
-  return Array.from({ length: numTeams }, () => generateEnemyFleet(budget, rng).fleet);
+function setup(variant: MothershipVariant = 0): FleetSetup {
+  return { variant, slots: [] };
 }
 
 afterEach(() => {
@@ -126,69 +118,8 @@ describe('initUnits', () => {
   });
 });
 
-describe('initMelee', () => {
-  it('2勢力で各チームにユニットがスポーンされる', () => {
-    initMelee(generateFleets(2, DEFAULT_BUDGET), rng);
-    expect(poolCounts.units).toBeGreaterThan(0);
-    expect(teamUnitCounts[0]).toBeGreaterThan(0);
-    expect(teamUnitCounts[1]).toBeGreaterThan(0);
-  });
-
-  it('5勢力で全チームにユニットがスポーンされる', () => {
-    initMelee(generateFleets(5, DEFAULT_BUDGET), rng);
-    expect(poolCounts.units).toBeGreaterThan(0);
-    for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
-      expect(teamUnitCounts[t]).toBeGreaterThan(0);
-    }
-  });
-
-  it('各チームのユニット配置が異なる中心位置を持つ', () => {
-    initMelee(generateFleets(3, DEFAULT_BUDGET), rng);
-    // チーム別の平均位置を計算
-    const cx = [0, 0, 0];
-    const counts = [0, 0, 0];
-    for (let i = 0; i < POOL_UNITS; i++) {
-      const u = unit(i);
-      if (!u.alive) {
-        continue;
-      }
-      const t: number = u.team;
-      cx[t] = (cx[t] ?? 0) + u.x;
-      counts[t] = (counts[t] ?? 0) + 1;
-    }
-    // 各チームの平均X座標が異なることを確認（円周配置）
-    const avgX = cx.map((sum, i) => ((counts[i] ?? 1) > 0 ? (sum ?? 0) / (counts[i] ?? 1) : 0));
-    // 少なくとも2つのチームの平均位置が有意に異なる
-    const diff01 = Math.abs((avgX[0] ?? 0) - (avgX[1] ?? 0));
-    const diff02 = Math.abs((avgX[0] ?? 0) - (avgX[2] ?? 0));
-    expect(diff01 + diff02).toBeGreaterThan(100);
-  });
-});
-
-describe('initBattle — 母艦自動配備', () => {
+describe('母艦自動配備', () => {
   const MOTHERSHIP = unitTypeIndex('Mothership');
-  const playerFleet = [{ type: asType(0), count: 5 }];
-  const enemyFleet = [{ type: asType(0), count: 5 }];
-
-  it('各チームに Mothership タイプのユニットが1体存在する', () => {
-    initBattle(playerFleet, enemyFleet, rng);
-    for (let t = 0; t < 2; t++) {
-      let mothershipCount = 0;
-      for (let i = 0; i < getUnitHWM(); i++) {
-        const u = unit(i);
-        if (u.alive && u.team === t && u.type === MOTHERSHIP) {
-          mothershipCount++;
-        }
-      }
-      expect(mothershipCount).toBe(1);
-    }
-  });
-
-  it('mothershipIdx が各チームで有効値', () => {
-    initBattle(playerFleet, enemyFleet, rng);
-    expect(mothershipIdx[0]).not.toBe(NO_UNIT);
-    expect(mothershipIdx[1]).not.toBe(NO_UNIT);
-  });
 
   it('SPECTATE (initUnits) でも各チームに母艦がスポーンされる', () => {
     initUnits(rng);
@@ -203,8 +134,8 @@ describe('initBattle — 母艦自動配備', () => {
     expect(mothershipCount).toBe(2);
   });
 
-  it('MELEE (initMelee) で各チームに母艦がスポーンされる', () => {
-    initMelee(generateFleets(3, DEFAULT_BUDGET), rng);
+  it('MELEE (initMeleeProduction) で各チームに母艦がスポーンされる', () => {
+    initMeleeProduction(rng, [setup(0), setup(1), setup(2)], 3);
     for (const t of [TEAM0, TEAM1, TEAM2]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);
     }
@@ -218,6 +149,46 @@ describe('initBattle — 母艦自動配備', () => {
         }
       }
       expect(mothershipCount).toBe(1);
+    }
+  });
+});
+
+describe('initBattleProduction — HP バリアント', () => {
+  it('Dreadnought (hpMul=1.5) の母艦は maxHp === hp かつ Hive より高い', () => {
+    // Dreadnought(1) vs Hive(0)
+    initBattleProduction(rng, setup(1), setup(0));
+    const dreadIdx = mothershipIdx[0];
+    const hiveIdx = mothershipIdx[1];
+    expect(dreadIdx).not.toBe(NO_UNIT);
+    expect(hiveIdx).not.toBe(NO_UNIT);
+
+    const dread = unit(dreadIdx);
+    const hive = unit(hiveIdx);
+
+    expect(dread.maxHp).toBe(dread.hp);
+    expect(hive.maxHp).toBe(hive.hp);
+    expect(dread.maxHp).toBeGreaterThan(hive.maxHp);
+    // hpMul=1.5 の Dreadnought は Hive(hpMul=1.0) の 1.5 倍
+    expect(dread.maxHp).toBe(Math.round(hive.maxHp * 1.5));
+  });
+});
+
+describe('initMeleeProduction', () => {
+  it('N勢力で母艦のみスポーンされる', () => {
+    initMeleeProduction(rng, [setup(0), setup(1), setup(2)], 3);
+    expect(poolCounts.units).toBe(3);
+    for (const t of [TEAM0, TEAM1, TEAM2]) {
+      expect(mothershipIdx[t]).not.toBe(NO_UNIT);
+    }
+    expect(mothershipIdx[TEAM3]).toBe(NO_UNIT);
+    expect(mothershipIdx[TEAM4]).toBe(NO_UNIT);
+  });
+
+  it('バリアントが各チームに適用される', () => {
+    initMeleeProduction(rng, [setup(0), setup(1), setup(2), setup(0), setup(2)], 5);
+    expect(poolCounts.units).toBe(5);
+    for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
+      expect(mothershipIdx[t]).not.toBe(NO_UNIT);
     }
   });
 });

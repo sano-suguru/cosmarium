@@ -56,11 +56,77 @@
   justify-content: center;
   gap: 6px 14px;
 }
+.enemyVariant {
+  color: #f88;
+  font-size: 11px;
+}
 .enemyUnit {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+}
+
+/* === VARIANT SELECTOR === */
+.variantSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.variantTitle {
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  color: #0ff;
+  letter-spacing: 2px;
+  text-align: center;
+}
+.variantGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.variantCard {
+  background: rgba(0, 20, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  font-family: "Share Tech Mono", monospace;
+  color: #8ab;
+}
+.variantCard:hover {
+  background: rgba(0, 40, 60, 0.7);
+  border-color: rgba(0, 255, 255, 0.3);
+}
+.variantCard:focus-visible {
+  background: rgba(0, 40, 60, 0.7);
+  border-color: rgba(0, 255, 255, 0.3);
+  outline: 1px solid rgba(0, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+.variantActive {
+  border-color: #0ff;
+  background: rgba(0, 60, 80, 0.5);
+  color: #0ff;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
+}
+.variantName {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.variantDesc {
+  font-size: 10px;
+  color: #688;
+  line-height: 1.4;
+}
+.variantActive .variantDesc {
+  color: #0aa;
 }
 
 .body {
@@ -80,30 +146,87 @@
   border-bottom: 1px solid rgba(0, 255, 255, 0.15);
 }
 
-.grid {
+/* === SLOT GRID === */
+.slotGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(var(--slot-count, 5), 1fr);
   gap: 10px;
   padding: 8px 0;
 }
 
-.card {
+.slotCard {
   background: rgba(0, 20, 40, 0.6);
   border: 1px solid rgba(0, 255, 255, 0.1);
   border-radius: 4px;
-  padding: 10px;
+  padding: 12px 10px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  font-family: "Share Tech Mono", monospace;
+  min-height: 120px;
+}
+.slotFilled {
+  border-color: rgba(0, 255, 255, 0.3);
+  background: rgba(0, 30, 50, 0.7);
+}
+.slotLabel {
+  font-family: "Orbitron", sans-serif;
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 2px;
+}
+.slotInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: 4px;
 }
-.cardName {
-  font-size: 12px;
+.slotName {
+  font-size: 13px;
   color: #cdf;
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
+.slotStats {
+  font-size: 11px;
+  color: #0f8;
+  text-shadow: 0 0 4px rgba(0, 255, 128, 0.3);
+}
+.slotDuplicate {
+  font-size: 9px;
+  color: #ff0;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+.slotEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #444;
+}
+.slotSelect {
+  background: rgba(0, 10, 20, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  color: #0ff;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  padding: 6px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  width: 100%;
+}
+.slotSelect:focus {
+  border-color: #0ff;
+  outline: none;
+}
+
 .dot {
   width: 8px;
   height: 8px;
@@ -118,62 +241,6 @@
 .dotTeam1 {
   background: #f0f;
   box-shadow: 0 0 4px #f0f;
-}
-.cardCost {
-  font-family: "Share Tech Mono", monospace;
-  font-size: 10px;
-  color: #666;
-}
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-}
-.minus,
-.plus {
-  background: none;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  color: #0ff;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
-  font-family: "Share Tech Mono", monospace;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: manipulation;
-  user-select: none;
-}
-.minus:hover:not(:disabled),
-.plus:hover:not(:disabled) {
-  background: rgba(0, 255, 255, 0.1);
-  border-color: #0ff;
-}
-.minus:disabled,
-.plus:disabled {
-  color: #333;
-  border-color: rgba(255, 255, 255, 0.05);
-  cursor: default;
-}
-.count {
-  font-family: "Share Tech Mono", monospace;
-  font-size: 14px;
-  color: #fff;
-  min-width: 28px;
-  text-align: center;
-}
-
-.footer {
-  display: flex;
-  justify-content: space-between;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 11px;
-  color: #888;
-  padding: 4px;
 }
 
 .actions {
@@ -236,16 +303,15 @@
   .compose {
     padding: 16px 12px;
   }
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  .slotGrid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
-  .card {
-    padding: 8px;
+  .slotCard {
+    padding: 10px 8px;
   }
-  .minus,
-  .plus {
-    min-width: 44px;
+  .slotSelect {
     min-height: 44px;
+    font-size: 12px;
   }
   .codexBtn {
     padding: 10px 16px;

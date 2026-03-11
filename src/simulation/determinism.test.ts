@@ -6,17 +6,7 @@ import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { stepOnce } from './update.ts';
 
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
-vi.mock('../ui/game-control.ts', () => ({
-  setSpd: vi.fn(),
-  initUI: vi.fn(),
-  _resetGameControl: vi.fn(),
-}));
+const shake = vi.fn();
 
 afterEach(() => {
   resetPools();
@@ -67,7 +57,7 @@ function runSimulation(seed: number, ticks: number): UnitSnapshot[] {
   const gs = makeGameLoopState();
 
   for (let i = 0; i < ticks; i++) {
-    stepOnce(SIM_DT, i * SIM_DT, rng, gs);
+    stepOnce(SIM_DT, rng, gs, shake);
   }
 
   return captureSnapshot();
@@ -168,7 +158,7 @@ describe('determinism', () => {
     initUnits(rng);
     const gsA = makeGameLoopState();
     for (let i = 0; i < 3; i++) {
-      stepOnce(SIM_DT, i * SIM_DT, rng, gsA);
+      stepOnce(SIM_DT, rng, gsA, shake);
     }
     const snapA = captureSnapshot();
 
@@ -179,11 +169,9 @@ describe('determinism', () => {
     initUnits(rng);
     const gsB = makeGameLoopState();
     let accumulator = SIM_DT * 3;
-    let step = 0;
     while (accumulator >= SIM_DT) {
-      stepOnce(SIM_DT, step * SIM_DT, rng, gsB);
+      stepOnce(SIM_DT, rng, gsB, shake);
       accumulator -= SIM_DT;
-      step++;
     }
     const snapB = captureSnapshot();
 

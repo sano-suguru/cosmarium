@@ -2,7 +2,7 @@ import { NEIGHBOR_RANGE, PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { invSqrtMass, unitType } from '../unit-types.ts';
+import { invSqrtMass, unitType } from '../unit-type-accessors.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { computeSquadronCohesion, computeSquadronLeaderObjective, computeSquadronLeashFactor } from './squadron.ts';
 import { findNearestGlobalEnemy, targetScore } from './target-search.ts';
@@ -27,7 +27,7 @@ interface ResolveResult {
   readonly fx: number;
   readonly fy: number;
 }
-const _resolveResult = { target: NO_UNIT as UnitIndex, fx: 0, fy: 0 };
+const _resolveResult: { target: UnitIndex; fx: number; fy: number } = { target: NO_UNIT, fx: 0, fy: 0 };
 
 const SEPARATION_SCALE = 400;
 const SEPARATION_WEIGHT = 3;

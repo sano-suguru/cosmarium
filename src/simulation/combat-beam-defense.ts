@@ -3,7 +3,8 @@ import { SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING } from '../constants.ts';
 import { unit } from '../pools.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
+import type { ShakeFn } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
@@ -53,7 +54,14 @@ export function consumeReflectorShieldHp(u: Unit, damage: number, cooldown: numb
 }
 
 /** Reflector反射とBastionシールド反射の共通処理を集約（重複排除） */
-function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): void {
+function reflectBeamDamage(
+  n: Unit,
+  ni: UnitIndex,
+  baseDmg: number,
+  rng: () => number,
+  killerIndex: UnitIndex,
+  shake: ShakeFn,
+): void {
   const attacker = unit(killerIndex);
   if (!attacker.alive) {
     return;
@@ -87,17 +95,24 @@ function reflectBeamDamage(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => n
   }
 
   if (attacker.hp <= 0) {
-    destroyUnit(killerIndex, ni, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
+    destroyUnit(killerIndex, ni, rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], shake);
   }
 }
 
-function tryReflectBeam(n: Unit, ni: UnitIndex, baseDmg: number, rng: () => number, killerIndex: UnitIndex): boolean {
+function tryReflectBeam(
+  n: Unit,
+  ni: UnitIndex,
+  baseDmg: number,
+  rng: () => number,
+  killerIndex: UnitIndex,
+  shake: ShakeFn,
+): boolean {
   const nt = unitType(n.type);
   if (!nt.reflects || n.energy <= 0 || n.shieldCooldown > 0) {
     return false;
   }
   consumeReflectorShieldHp(n, baseDmg, nt.shieldCooldown);
-  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
+  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex, shake);
   return true;
 }
 
@@ -107,12 +122,13 @@ function tryReflectFieldBeam(
   baseDmg: number,
   rng: () => number,
   killerIndex: UnitIndex,
+  shake: ShakeFn,
 ): boolean {
   if (n.reflectFieldHp <= 0) {
     return false;
   }
   n.reflectFieldHp = Math.max(0, n.reflectFieldHp - baseDmg);
-  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex);
+  reflectBeamDamage(n, ni, baseDmg, rng, killerIndex, shake);
   return true;
 }
 
@@ -137,6 +153,7 @@ export function applyTetherAbsorb(
   orphanMult: number,
   killerIndex: UnitIndex,
   rng: () => number,
+  shake: ShakeFn,
 ): number {
   if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
     const src = unit(n.shieldSourceUnit);
@@ -151,7 +168,7 @@ export function applyTetherAbsorb(
         emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, tetherKind);
       }
       if (src.hp <= 0) {
-        destroyUnit(n.shieldSourceUnit, killerIndex, rng, DAMAGE_KIND_TO_KILL_CONTEXT[tetherKind]);
+        destroyUnit(n.shieldSourceUnit, killerIndex, rng, DAMAGE_KIND_TO_KILL_CONTEXT[tetherKind], shake);
         n.shieldSourceUnit = NO_UNIT;
       }
       return dmg * (1 - BASTION_ABSORB_RATIO);
@@ -172,14 +189,15 @@ export function applyBeamDefenses(
   baseDmg: number,
   rng: () => number,
   killerIndex: UnitIndex,
+  shake: ShakeFn,
 ): number {
-  if (tryReflectBeam(n, ni, baseDmg, rng, killerIndex)) {
+  if (tryReflectBeam(n, ni, baseDmg, rng, killerIndex, shake)) {
     return -1;
   }
-  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerIndex)) {
+  if (tryReflectFieldBeam(n, ni, baseDmg, rng, killerIndex, shake)) {
     return -1;
   }
-  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerIndex, rng);
+  let dmg = applyTetherAbsorb(n, baseDmg, ORPHAN_TETHER_BEAM_MULT, killerIndex, rng, shake);
   dmg = absorbByBastionShield(n, dmg);
   return dmg;
 }

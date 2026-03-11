@@ -29,7 +29,8 @@ type DefaultKeys =
   | 'supportFollow'
   | 'maxEnergy'
   | 'energyRegen'
-  | 'shieldCooldown';
+  | 'shieldCooldown'
+  | 'clusterSize';
 
 const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   aoe: 0,
@@ -57,6 +58,7 @@ const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   maxEnergy: 0,
   energyRegen: 0,
   shieldCooldown: 0,
+  clusterSize: 1,
 };
 
 export function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, DefaultKeys>>): UnitType {

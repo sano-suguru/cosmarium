@@ -17,8 +17,6 @@ function makeBattleResult(overrides: Partial<BattleResult> = {}): BattleResult {
     elapsed: 30,
     playerSurvivors: 10,
     enemyKills: 5,
-    playerLosses: 2,
-    initialPlayerUnits: 12,
     ...overrides,
   };
 }
@@ -110,9 +108,9 @@ describe('run', () => {
 
     it('accumulates stats across rounds', () => {
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5, playerLosses: 2 }));
-      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3, playerLosses: 4 }));
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 7, playerLosses: 1 }));
+      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
+      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
+      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 7 }));
 
       const info = getRunInfo();
       expect(info?.round).toBe(4);
@@ -136,33 +134,32 @@ describe('run', () => {
       resetRun();
       // Win enough to clear
       for (let i = 0; i < RUN_WIN_TARGET; i++) {
-        processRoundEnd(makeBattleResult({ victory: true, enemyKills: 2, playerLosses: 1 }));
+        processRoundEnd(makeBattleResult({ victory: true, enemyKills: 2 }));
       }
       // Last call returned runComplete — let's test from scratch with known final
       _resetRunState();
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5, playerLosses: 2 }));
-      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3, playerLosses: 4 }));
+      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
+      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
       // Lose remaining lives to trigger runComplete
       for (let i = 0; i < RUN_MAX_LIVES - 1; i++) {
-        processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1, playerLosses: 1 }));
+        processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
       }
       // The last processRoundEnd returned runComplete — need to capture it
       _resetRunState();
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5, playerLosses: 2 }));
-      let lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3, playerLosses: 4 }));
+      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
+      let lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
       for (let i = 0; i < RUN_MAX_LIVES - 2; i++) {
-        lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1, playerLosses: 1 }));
+        lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
       }
       // Final defeat
-      lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1, playerLosses: 1 }));
+      lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
       expect(lastOutcome.type).toBe('runComplete');
       if (lastOutcome.type === 'runComplete') {
         expect(lastOutcome.runResult.rounds).toBe(RUN_MAX_LIVES + 1);
         expect(lastOutcome.runResult.wins).toBe(1);
         expect(lastOutcome.runResult.totalKills).toBe(5 + 3 + (RUN_MAX_LIVES - 1));
-        expect(lastOutcome.runResult.totalLosses).toBe(2 + 4 + (RUN_MAX_LIVES - 1));
         expect(lastOutcome.runResult.roundResults).toHaveLength(RUN_MAX_LIVES + 1);
       }
     });

@@ -3,7 +3,7 @@
  */
 
 import { KILL_CONTEXT_LABEL_LIST } from '../simulation/on-kill-effects.ts';
-import { unitTypeName } from '../unit-types.ts';
+import { unitTypeName } from '../unit-type-accessors.ts';
 import type { BatchSummary, KillMatrix, SynergyPair, TrialResult, UnitTypeSummary } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
@@ -316,7 +316,7 @@ export function formatSummary(summary: BatchSummary): string {
   lines.push('===============================================');
   lines.push('  COSMARIUM バッチ対戦分析');
   lines.push('===============================================');
-  lines.push(`  モード: ${summary.config.mode} | 試合数: ${summary.config.trials} | 予算: ${summary.config.budget}`);
+  lines.push(`  モード: ${summary.config.mode} | 試合数: ${summary.config.trials}`);
   lines.push(`  シード: ${summary.config.seed} | 最大ステップ: ${summary.config.maxSteps}`);
   lines.push('-----------------------------------------------');
   lines.push(`  平均ステップ数:       ${summary.stats.avgSteps.toFixed(1)}`);

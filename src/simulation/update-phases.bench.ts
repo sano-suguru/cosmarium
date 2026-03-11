@@ -11,6 +11,7 @@ import { applyAllFields, decayAndRegen } from './update-fields.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
 const rng = makeRng();
+const shake = () => undefined;
 const dt = 1 / REF_FPS;
 
 function setupWorld(units: number, particles: number, projectiles: number) {
@@ -42,7 +43,7 @@ describe('stepOnce フェーズ別 (200u/5Kp/100pr)', () => {
 
   bench('stepOnce (swarm+steer+combat+fields)', () => {
     setupWorld(200, 5000, 100);
-    stepOnce(dt, 0, rng, makeGameLoopState(undefined, 'battle'));
+    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), shake);
     resetPools();
   });
 
@@ -60,7 +61,7 @@ describe('stepOnce フェーズ別 (200u/5Kp/100pr)', () => {
 
   bench('updateProjectiles', () => {
     setupWorld(200, 5000, 100);
-    updateProjectiles(dt, rng);
+    updateProjectiles(dt, rng, shake);
     resetPools();
   });
 
@@ -78,7 +79,7 @@ describe('stepOnce フェーズ別 (200u/5Kp/100pr)', () => {
 
   bench('updateChains', () => {
     setupWorld(200, 5000, 100);
-    updateChains(dt, rng);
+    updateChains(dt, rng, shake);
     resetPools();
   });
 

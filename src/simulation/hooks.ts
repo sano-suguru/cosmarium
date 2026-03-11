@@ -10,7 +10,7 @@
  */
 
 import type { Team, UnitTypeIndex } from '../types.ts';
-import { DEFAULT_UNIT_TYPE } from '../unit-types.ts';
+import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
 import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 
 export type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';

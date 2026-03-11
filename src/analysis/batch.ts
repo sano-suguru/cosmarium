@@ -7,7 +7,6 @@
  *   bun run src/analysis/batch.ts --mode melee --teams 3  # 3勢力メレー
  *   bun run src/analysis/batch.ts --seed 42               # 固定シード
  *   bun run src/analysis/batch.ts --out results.json      # JSON 出力
- *   bun run src/analysis/batch.ts --budget 100            # 予算指定
  *   bun run src/analysis/batch.ts --maxSteps 5000         # 最大ステップ数
  *   bun run src/analysis/batch.ts --sequential             # 逐次実行（デフォルトは並列）
  *
@@ -15,7 +14,6 @@
  */
 
 import { SIM_DT, WORLD_SIZE } from '../constants.ts';
-import { DEFAULT_BUDGET } from '../fleet-cost.ts';
 import { createRng } from '../state.ts';
 
 /** 3 分 @ 60fps */
@@ -24,13 +22,28 @@ const DEFAULT_MAX_STEPS = 10800;
 const DEFAULT_SNAPSHOT_INTERVAL = 60;
 
 import { getUnitHWM, teamUnitCounts, unit } from '../pools.ts';
-import { generateEnemyFleet } from '../simulation/enemy-fleet.ts';
-import { initBattle, initMelee } from '../simulation/init.ts';
+import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
+import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
+import { initBattleProduction, initMeleeProduction } from '../simulation/init.ts';
+import { emptyProductions } from '../simulation/production.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { stepOnce } from '../simulation/update.ts';
 
-import type { FleetComposition, Team, UnitTypeIndex } from '../types.ts';
-import { findTypeIndex, TYPES } from '../unit-types.ts';
+/** バッチシミュレーションではカメラシェイク不要 */
+const _noopShake = () => undefined;
+
+import type {
+  FleetComposition,
+  FleetSetup,
+  MothershipVariant,
+  ProductionSlot,
+  ProductionState,
+  Team,
+  TeamTuple,
+  UnitTypeIndex,
+} from '../types.ts';
+import { findTypeIndex } from '../unit-type-accessors.ts';
+import { TYPES } from '../unit-types.ts';
 import { formatSummary } from './batch-format.ts';
 import { computeSummary } from './batch-summary.ts';
 import { collectUnitStats, installAllTrackers } from './batch-tracking.ts';
@@ -119,13 +132,40 @@ function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): 
     set reinforcementTimer(v: number) {
       reinforcementTimer = v;
     },
+    productions: emptyProductions(),
   };
+}
+
+/** ProductionSlot 配列から FleetComposition を導出（diversity/reporting 用） */
+function slotsToComposition(slots: readonly (ProductionSlot | null)[]): FleetComposition {
+  return filledSlots(slots).map((s) => ({ type: s.type, count: s.count }));
+}
+
+/** CLI の FleetComposition → FleetSetup 変換。count は1サイクルの生産数として転用 */
+function fleetToSetup(fleet: FleetComposition, variant: MothershipVariant = 0): FleetSetup {
+  if (fleet.length > SLOT_COUNT) {
+    throw new RangeError(`Fleet has ${fleet.length} entries but max ${SLOT_COUNT} slots allowed`);
+  }
+  const slots: (ProductionSlot | null)[] = Array.from({ length: SLOT_COUNT }, () => null);
+  for (let i = 0; i < fleet.length; i++) {
+    const entry = fleet[i];
+    if (entry && entry.count > 0) {
+      slots[i] = createProductionSlot(entry.type, entry.count);
+    }
+  }
+  return { variant, slots };
 }
 
 function setupFleets(
   config: BatchConfig,
   rng: () => number,
-): { fleetDiversities: number[]; fleetCompositions: FleetComposition[]; activeTeams: number } {
+): {
+  fleetDiversities: number[];
+  fleetCompositions: FleetComposition[];
+  setups: FleetSetup[];
+  activeTeams: number;
+  productions: TeamTuple<ProductionState>;
+} {
   const activeTeams = config.mode === 'battle' ? 2 : config.teams;
 
   if (config.fleets && config.fleets.length !== activeTeams) {
@@ -136,23 +176,34 @@ function setupFleets(
 
   const fleetDiversities: number[] = [];
   const fleetCompositions: FleetComposition[] = [];
+  const setups: FleetSetup[] = [];
 
-  if (config.mode === 'battle') {
-    const playerFleet = config.fleets?.[0] ?? generateEnemyFleet(config.budget, rng).fleet;
-    const enemyFleet = config.fleets?.[1] ?? generateEnemyFleet(config.budget, rng).fleet;
-    fleetDiversities.push(fleetDiversity(playerFleet), fleetDiversity(enemyFleet));
-    fleetCompositions.push(playerFleet, enemyFleet);
-    initBattle(playerFleet, enemyFleet, rng);
-  } else {
-    for (let t = 0; t < activeTeams; t++) {
-      const fleet = config.fleets?.[t] ?? generateEnemyFleet(config.budget, rng).fleet;
-      fleetDiversities.push(fleetDiversity(fleet));
-      fleetCompositions.push(fleet);
-    }
-    initMelee(fleetCompositions, rng);
+  for (let t = 0; t < activeTeams; t++) {
+    const cliFleet = config.fleets?.[t];
+    const setup = cliFleet ? fleetToSetup(cliFleet) : generateEnemySetup(rng).setup;
+    setups.push(setup);
+    const comp = slotsToComposition(setup.slots);
+    fleetCompositions.push(comp);
+    fleetDiversities.push(fleetDiversity(comp));
   }
 
-  return { fleetDiversities, fleetCompositions, activeTeams };
+  let productions: TeamTuple<ProductionState>;
+  if (config.mode === 'battle') {
+    const s0 = setups[0];
+    const s1 = setups[1];
+    if (!s0 || !s1) {
+      throw new Error('Battle mode requires exactly 2 fleet setups');
+    }
+    const battleProds = initBattleProduction(rng, s0, s1);
+    const base = emptyProductions();
+    base[0] = battleProds[0];
+    base[1] = battleProds[1];
+    productions = base;
+  } else {
+    productions = initMeleeProduction(rng, setups, activeTeams);
+  }
+
+  return { fleetDiversities, fleetCompositions, setups, activeTeams, productions };
 }
 
 export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
@@ -162,9 +213,10 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   let currentTime = 0;
   const trackers = installAllTrackers(() => currentTime);
 
-  const { fleetDiversities, fleetCompositions, activeTeams } = setupFleets(config, rng);
+  const { fleetDiversities, fleetCompositions, activeTeams, productions } = setupFleets(config, rng);
 
   const gs = makeBatchGameLoopState(config.mode, activeTeams);
+  gs.productions = productions;
   const snapshots: TrialSnapshot[] = [];
   let winner: Team | 'draw' | null = null;
   let step = 0;
@@ -173,7 +225,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     for (; step < config.maxSteps; step++) {
       const now = step * SIM_DT;
       currentTime = now;
-      const result = stepOnce(SIM_DT, now, rng, gs);
+      const result = stepOnce(SIM_DT, rng, gs, _noopShake);
 
       if (step % config.snapshotInterval === 0) {
         snapshots.push(takeSnapshot(step, now, activeTeams, trackers.kill));
@@ -260,7 +312,7 @@ export function parseFleetArg(value: string): FleetComposition {
       continue;
     }
     const count = Number.parseInt(countStr, 10);
-    if (Number.isNaN(count)) {
+    if (Number.isNaN(count) || count <= 0) {
       continue;
     }
     entries.push({ type: typeIdx, count });
@@ -279,7 +331,6 @@ function parseArgs(argv: readonly string[], createRng: (seed: number) => () => n
     mode: pairs.get('--mode') === 'melee' ? 'melee' : 'battle',
     teams: parseIntArg(pairs, '--teams', 3),
     seed: parseIntArg(pairs, '--seed', 12345),
-    budget: parseIntArg(pairs, '--budget', DEFAULT_BUDGET),
     maxSteps: parseIntArg(pairs, '--maxSteps', DEFAULT_MAX_STEPS),
     snapshotInterval: parseIntArg(pairs, '--interval', DEFAULT_SNAPSHOT_INTERVAL),
     outFile: pairs.get('--out') ?? null,
@@ -331,7 +382,6 @@ export async function runBatchParallel(config: BatchConfig): Promise<BatchSummar
     mode: config.mode,
     teams: config.teams,
     seed: config.seed,
-    budget: config.budget,
     maxSteps: config.maxSteps,
     snapshotInterval: config.snapshotInterval,
     outFile: config.outFile,

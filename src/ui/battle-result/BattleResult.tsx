@@ -85,9 +85,8 @@ function RoundResultView({
       <StatRows
         lines={[
           ['戦闘時間:', formatTime(roundResult.elapsed)],
-          ['残存艦艇:', `${roundResult.playerSurvivors} / ${roundResult.initialPlayerUnits}`],
+          ['残存艦艇:', String(roundResult.playerSurvivors)],
           ['撃破敵艦:', String(roundResult.enemyKills)],
-          ['自軍損失:', String(roundResult.playerLosses)],
         ]}
       />
     </>
@@ -104,7 +103,6 @@ function RunResultView({ runResult }: { readonly runResult: RunResult }) {
           ['勝利:', `${runResult.wins}`],
           ['敗北:', `${runResult.losses}`],
           ['総撃破:', `${runResult.totalKills}`],
-          ['総損失:', `${runResult.totalLosses}`],
         ]}
       />
     </>

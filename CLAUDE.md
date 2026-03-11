@@ -48,7 +48,7 @@ src/
   beams.ts           # beam/trackingBeam dynamic arrays
   colors.ts          # Team/trail color tables
   unit-types.ts      # Unit type definitions
-  fleet-cost.ts      # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
+  fleet-cost.ts      # SORTED_TYPE_INDICES, cost helpers
   battle-tracker.ts  # Battle mode elapsed/win/result aggregation
   melee-tracker.ts   # Melee mode (N-team) elapsed/win/result aggregation
   screen-effects.ts  # Post-process screen effect parameters
@@ -71,7 +71,7 @@ frame() → dt clamp(0.05) → camera update + decay
       → buildHash() [spatial acceleration]
       → per unit: steer → combat → trail + effects
       → reflector pass → projectiles → particles → beams
-      → [if !codexOpen] reinforce() + win check
+      → [if !codexOpen] production (battle/melee) or reinforce (spectate) + win check
       → [if codexOpen] updateCodexDemo()
   → render()
       → GPU buffer upload → drawArraysInstanced
@@ -89,7 +89,7 @@ Affects 4 layers when toggled: simulation (skip steer/combat for non-demo units,
 
 `BattlePhase` (in `GameLoopState`, passed to `stepOnce()`): `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`
 - **Spectate**: AI vs AI, no player fleet
-- **Battle**: Player fleet (team 0) vs enemy (team 1), budget-limited (`DEFAULT_BUDGET = 200`)
+- **Battle**: Player fleet (team 0) vs enemy (team 1), production-based (mothership + slots)
 - **Melee**: N-team free-for-all (2–5 teams via `activeTeamCount`), uses `melee-tracker.ts`
 
 Phase transitions: `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`

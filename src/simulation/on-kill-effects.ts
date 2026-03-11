@@ -1,7 +1,7 @@
 import { unit } from '../pools.ts';
 import type { Team, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import type { DamageKind } from './hooks.ts';
 
 const BLINK_KILL_CD = 0.8;

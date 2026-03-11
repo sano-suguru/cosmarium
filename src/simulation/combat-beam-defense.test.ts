@@ -4,19 +4,12 @@ import { beams } from '../beams.ts';
 import { REFLECT_FIELD_MAX_HP } from '../constants.ts';
 import { unit } from '../pools.ts';
 import { rng } from '../state.ts';
-import { CRUISER_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE, SCORCHER_TYPE, unitType } from '../unit-types.ts';
-import { REFLECT_BEAM_DAMAGE_MULT } from './combat-beam-defense.ts';
-import { buildHash } from './spatial-hash.ts';
-
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
+import { CRUISER_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE, SCORCHER_TYPE, unitType } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
+import { REFLECT_BEAM_DAMAGE_MULT } from './combat-beam-defense.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { _resetSweepHits } from './combat-sweep.ts';
+import { buildHash } from './spatial-hash.ts';
 
 afterEach(() => {
   resetPools();
@@ -26,6 +19,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
+
+const shake = vi.fn();
 
 describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
   it('攻撃元に直接ダメージが返る', () => {
@@ -37,7 +32,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     unit(scorcher).beamOn = 1.0;
     const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     const expectedDmg = unitType(SCORCHER_TYPE).damage * (1.0 + 0.016 * 0.8) * 1.0 * REFLECT_BEAM_DAMAGE_MULT;
     expect(unit(scorcher).hp).toBeCloseTo(hpBefore - expectedDmg);
@@ -54,7 +49,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     unit(scorcher).beamOn = 1.0;
     const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     expect(unit(scorcher).hp).toBeLessThan(hpBefore);
   });
@@ -69,7 +64,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     expect(unit(bystander).hp).toBe(100);
   });
@@ -82,7 +77,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     // 反射ビーム + 元のフォーカスビーム
     expect(beams.length).toBeGreaterThanOrEqual(2);
@@ -104,7 +99,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     unit(scorcher).beamOn = 1.0;
     unit(scorcher).hp = 0.01; // ほぼ死亡
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     expect(unit(scorcher).alive).toBe(false);
   });
@@ -122,7 +117,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     buildHash();
 
     expect(() => {
-      combat(unit(cruiser), cruiser, 0.1, 0, rng);
+      combat(unit(cruiser), cruiser, 0.1, rng, 1, shake);
     }).not.toThrow();
   });
 
@@ -140,7 +135,7 @@ describe('combat — BEAM REFLECT (リトロリフレクション)', () => {
     buildHash();
 
     expect(() => {
-      combat(unit(cruiser), cruiser, 0.1, 0, rng);
+      combat(unit(cruiser), cruiser, 0.1, rng, 1, shake);
     }).not.toThrow();
     expect(unit(cruiser).alive).toBe(false);
   });
@@ -158,7 +153,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).beamOn = 1.0;
     const hpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     const baseDmg = unitType(SCORCHER_TYPE).damage * (1.0 + 0.016 * 0.8) * 1.0;
     const expectedDmg = baseDmg * REFLECT_BEAM_DAMAGE_MULT;
@@ -177,7 +172,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     const baseDmg = unitType(SCORCHER_TYPE).damage * (1.0 + 0.016 * 0.8) * 1.0;
     expect(unit(ally).reflectFieldHp).toBeCloseTo(REFLECT_FIELD_MAX_HP - baseDmg);
@@ -194,7 +189,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).beamOn = 1.0;
     const attackerHpBefore = unit(scorcher).hp;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     // 攻撃者のHPは変化しない（反射されない）
     expect(unit(scorcher).hp).toBe(attackerHpBefore);
@@ -213,7 +208,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).beamOn = 1.0;
     unit(scorcher).hp = 0.01;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     expect(unit(scorcher).alive).toBe(false);
   });
@@ -227,7 +222,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     const reflBeam = beams.find((b) => b.x1 === unit(ally).x && b.y1 === unit(ally).y);
     expect(reflBeam).toBeDefined();
@@ -246,7 +241,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     expect(unit(ally).reflectFieldHp).toBe(0);
   });
@@ -261,7 +256,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(scorcher).cooldown = 0;
     unit(scorcher).beamOn = 1.0;
     buildHash();
-    combat(unit(scorcher), scorcher, 0.016, 0, rng);
+    combat(unit(scorcher), scorcher, 0.016, rng, 1, shake);
 
     // Reflector本体のenergyが消費される（tryReflectBeamが先に発火）
     expect(unit(reflector).energy).toBeLessThan(energyBefore);
@@ -283,7 +278,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     unit(cruiser).angle = 0;
     const cruiserHpBefore = unit(cruiser).hp;
     buildHash();
-    combat(unit(cruiser), cruiser, 0.1, 0, rng);
+    combat(unit(cruiser), cruiser, 0.1, rng, 1, shake);
 
     // Sweep beam が反射されて攻撃者がダメージを受ける
     expect(unit(cruiser).hp).toBeLessThan(cruiserHpBefore);
@@ -306,7 +301,7 @@ describe('combat — FIELD BEAM REFLECT (reflectFieldHp によるビーム反射
     buildHash();
 
     expect(() => {
-      combat(unit(cruiser), cruiser, 0.1, 0, rng);
+      combat(unit(cruiser), cruiser, 0.1, rng, 1, shake);
     }).not.toThrow();
     expect(unit(cruiser).alive).toBe(false);
   });

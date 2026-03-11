@@ -17,19 +17,12 @@ import {
   REFLECTOR_TYPE,
   TELEPORTER_TYPE,
   unitType,
-} from '../unit-types.ts';
-import { buildHash } from './spatial-hash.ts';
-
-vi.mock('../input/camera.ts', () => ({
-  addShake: vi.fn(),
-  cam: { x: 0, y: 0, z: 1, targetZ: 1, targetX: 0, targetY: 0, shakeX: 0, shakeY: 0, shake: 0 },
-  initCamera: vi.fn(),
-}));
-
+} from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { HEALER_AMOUNT, HEALER_COOLDOWN } from './combat-special.ts';
 import { _resetSweepHits } from './combat-sweep.ts';
+import { buildHash } from './spatial-hash.ts';
 
 afterEach(() => {
   resetPools();
@@ -40,6 +33,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const shake = vi.fn();
+
 describe('combat — LANCER', () => {
   it('衝突時に敵にダメージ (mass×2.5×vd) + 自傷 (敵mass×2)', () => {
     const lancerType = unitType(LANCER_TYPE);
@@ -49,7 +44,7 @@ describe('combat — LANCER', () => {
     buildHash();
     const lancerHpBefore = unit(lancer).hp;
     const enemyHpBefore = unit(enemy).hp;
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // size合計 > distance=5 → 衝突, vet=0 → vd=1
     expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 2.5 * 1));
     expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass * 2));
@@ -61,7 +56,7 @@ describe('combat — LANCER', () => {
     unit(enemy).kbVx = 0;
     unit(enemy).kbVy = 0;
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // ノックバックで敵のkbVxが変化
     expect(unit(enemy).kbVx).not.toBe(0);
   });
@@ -70,7 +65,7 @@ describe('combat — LANCER', () => {
     const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
     const enemy = spawnAt(1, DRONE_TYPE, 5, 0); // hp=3, size=4
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // Lancer damage = ceil(12*3*1) = 36 >> 3 → 敵は死亡
     expect(unit(enemy).alive).toBe(false);
   });
@@ -80,7 +75,7 @@ describe('combat — LANCER', () => {
     unit(lancer).hp = 1; // HP1にする
     spawnAt(1, FLAGSHIP_TYPE, 5, 0); // mass=30
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // self damage = ceil(Flagship.mass) = ceil(30) = 30 >> 1
     expect(unit(lancer).alive).toBe(false);
   });
@@ -91,7 +86,7 @@ describe('combat — LANCER', () => {
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const enemyHpBefore = unit(enemy).hp;
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // ramDmg = ceil(12 * 2.5 * 1 * 0.5) = 15
     expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 2.5 * 1 * 0.5));
   });
@@ -101,7 +96,7 @@ describe('combat — LANCER', () => {
     const enemy = spawnAt(1, REFLECTOR_TYPE, 5, 0);
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     const ramDmg = Math.ceil(12 * 2.5 * 1 * 0.5);
     expect(unit(enemy).reflectFieldHp).toBe(Math.max(0, REFLECT_FIELD_MAX_HP - ramDmg));
   });
@@ -112,7 +107,7 @@ describe('combat — LANCER', () => {
     unit(enemy).reflectFieldHp = REFLECT_FIELD_MAX_HP;
     const lancerHpBefore = unit(lancer).hp;
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // selfDmg = ceil(3 * 2 * 1.5) = 9
     expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(3 * 2 * 1.5));
   });
@@ -124,7 +119,7 @@ describe('combat — LANCER', () => {
     const enemyHpBefore = unit(enemy).hp;
     const lancerHpBefore = unit(lancer).hp;
     buildHash();
-    combat(unit(lancer), lancer, 0.016, 0, rng);
+    combat(unit(lancer), lancer, 0.016, rng, 1, shake);
     // ramDmg = ceil(12 * 2.5 * 1) = 30 (フルダメージ)
     expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(12 * 2.5 * 1));
     // selfDmg = ceil(3 * 2 * 1) = 6 (通常)
@@ -139,7 +134,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(unit(ally).hp).toBe(5 + HEALER_AMOUNT);
   });
 
@@ -149,7 +144,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 9;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(unit(ally).hp).toBe(10);
   });
 
@@ -159,7 +154,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(unit(healer).abilityCooldown).toBeCloseTo(HEALER_COOLDOWN);
   });
 
@@ -168,7 +163,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 0;
     unit(healer).hp = 5;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(unit(healer).hp).toBe(5); // 変化なし
   });
 
@@ -178,7 +173,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 0;
     unit(ally).hp = 5;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(beams.length).toBeGreaterThan(0);
   });
 
@@ -188,7 +183,7 @@ describe('combat — HEALER', () => {
     unit(healer).abilityCooldown = 1.0;
     unit(ally).hp = 5;
     buildHash();
-    combat(unit(healer), healer, 0.016, 0, rng);
+    combat(unit(healer), healer, 0.016, rng, 1, shake);
     expect(unit(ally).hp).toBe(5);
   });
 });
@@ -199,7 +194,7 @@ describe('combat — CARRIER', () => {
     unit(carrier).spawnCooldown = 0; // クールダウン切れ
     const ucBefore = poolCounts.units;
     buildHash();
-    combat(unit(carrier), carrier, 0.016, 0, rng);
+    combat(unit(carrier), carrier, 0.016, rng, 1, shake);
     // Drone×4 生成
     expect(poolCounts.units).toBe(ucBefore + 4);
     // DRONE_TYPE が生成されている
@@ -217,7 +212,7 @@ describe('combat — CARRIER', () => {
     unit(carrier).spawnCooldown = 5.0;
     const ucBefore = poolCounts.units;
     buildHash();
-    combat(unit(carrier), carrier, 0.016, 0, rng);
+    combat(unit(carrier), carrier, 0.016, rng, 1, shake);
     expect(poolCounts.units).toBe(ucBefore);
   });
 
@@ -225,7 +220,7 @@ describe('combat — CARRIER', () => {
     const carrier = spawnAt(0, CARRIER_TYPE, 0, 0);
     unit(carrier).spawnCooldown = 0;
     buildHash();
-    combat(unit(carrier), carrier, 0.016, 0, rng);
+    combat(unit(carrier), carrier, 0.016, rng, 1, shake);
     // spawnCooldown = 4 + random * 2 (PRNG sequence value)
     expect(unit(carrier).spawnCooldown).toBeGreaterThan(4);
     expect(unit(carrier).spawnCooldown).toBeLessThan(6);
@@ -241,7 +236,7 @@ describe('combat — DISRUPTOR', () => {
     unit(disruptor).target = enemy;
     buildHash();
     const hpBefore = unit(enemy).hp;
-    combat(unit(disruptor), disruptor, 0.016, 0, rng);
+    combat(unit(disruptor), disruptor, 0.016, rng, 1, shake);
     expect(unit(enemy).stun).toBe(1.5);
     expect(unit(enemy).hp).toBe(hpBefore - disruptorType.damage);
   });
@@ -251,7 +246,7 @@ describe('combat — DISRUPTOR', () => {
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = NO_UNIT;
     buildHash();
-    combat(unit(disruptor), disruptor, 0.016, 0, rng);
+    combat(unit(disruptor), disruptor, 0.016, rng, 1, shake);
     expect(poolCounts.particles).toBe(0); // パーティクルなし = 何も実行されず
   });
 
@@ -262,7 +257,7 @@ describe('combat — DISRUPTOR', () => {
     unit(disruptor).abilityCooldown = 0;
     unit(disruptor).target = enemy;
     buildHash();
-    combat(unit(disruptor), disruptor, 0.016, 0, rng);
+    combat(unit(disruptor), disruptor, 0.016, rng, 1, shake);
     expect(unit(ally).stun).toBe(0);
     expect(unit(enemy).stun).toBe(1.5);
   });
@@ -275,7 +270,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     expect(unit(tp).blinkCount).toBe(3);
     expect(unit(tp).teleportTimer).toBeCloseTo(0.25);
@@ -291,11 +286,11 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(0);
     expect(unit(tp).blinkCount).toBe(2);
     expect(poolCounts.projectiles).toBe(2);
@@ -310,12 +305,12 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     expect(unit(tp).blinkCount).toBe(2);
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(0);
     expect(unit(tp).blinkCount).toBe(1);
     expect(poolCounts.projectiles).toBe(2);
@@ -329,11 +324,11 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkCount).toBe(0);
     expect(unit(tp).blinkPhase).toBe(0);
     expect(unit(tp).teleportTimer).toBeGreaterThanOrEqual(2.5);
@@ -348,21 +343,21 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // ブリンク1: 出発→到着
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(2);
     // ブリンク2: 出発→到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(4);
     // ブリンク3: 出発→到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(6);
     expect(unit(tp).blinkCount).toBe(0);
   });
@@ -374,7 +369,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     unit(tp).cooldown = 999;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).teleportTimer).toBeCloseTo(3.0 - 0.016);
     expect(poolCounts.projectiles).toBe(0);
   });
@@ -386,7 +381,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     unit(tp).cooldown = 999;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).teleportTimer).toBeCloseTo(-0.016);
     expect(poolCounts.projectiles).toBe(0);
     expect(unit(tp).blinkCount).toBe(0);
@@ -400,7 +395,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     unit(enemy).alive = false;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkCount).toBe(0);
     expect(unit(tp).target).toBe(NO_UNIT);
   });
@@ -411,7 +406,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).blinkCount = 2;
     unit(tp).target = NO_UNIT;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkCount).toBe(0);
   });
 
@@ -423,10 +418,10 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).cooldown).toBeGreaterThanOrEqual(0.14);
     expect(poolCounts.projectiles).toBe(2);
   });
@@ -438,10 +433,10 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(projectile(0).sourceUnit).toBe(tp);
     expect(projectile(1).sourceUnit).toBe(tp);
   });
@@ -452,7 +447,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).teleportTimer = 0;
     unit(tp).target = enemy;
     buildHash();
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     expect(poolCounts.projectiles).toBe(0);
     expect(unit(tp).teleportTimer).toBeCloseTo(0.25);
@@ -465,13 +460,13 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     // ワープ中にターゲット死亡
     unit(enemy).alive = false;
     // 到着
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(0);
     expect(poolCounts.projectiles).toBe(0);
   });
@@ -484,7 +479,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(tp).blinkPhase).toBe(1);
     // 到着地点の近くに敵を移動
     const tpU = unit(tp);
@@ -496,7 +491,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     // hashを再構築して到着
     buildHash();
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(nearby).stun).toBeGreaterThanOrEqual(0.25);
     expect(unit(nearby).kbVx).not.toBe(0);
   });
@@ -509,7 +504,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     // 味方を到着地点の近くに移動
     const tpU = unit(tp);
     unit(ally).x = tpU.x + 20;
@@ -519,7 +514,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(ally).vy = 0;
     buildHash();
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(ally).stun).toBe(0);
     expect(unit(ally).vx).toBe(0);
     expect(unit(ally).vy).toBe(0);
@@ -533,7 +528,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(tp).target = enemy;
     buildHash();
     // 出発
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     // 遠い敵を着地点から半径80超の位置に配置
     const tpU = unit(tp);
     unit(farEnemy).x = tpU.x + 150;
@@ -543,7 +538,7 @@ describe('combat — TELEPORTER (3連ブリンク)', () => {
     unit(farEnemy).vy = 0;
     buildHash();
     unit(tp).teleportTimer = 0;
-    combat(unit(tp), tp, 0.016, 0, rng);
+    combat(unit(tp), tp, 0.016, rng, 1, shake);
     expect(unit(farEnemy).stun).toBe(0);
     expect(unit(farEnemy).vx).toBe(0);
     expect(unit(farEnemy).vy).toBe(0);
@@ -557,7 +552,7 @@ describe('combat — CHAIN LIGHTNING', () => {
     unit(arcer).cooldown = 0;
     unit(arcer).target = enemy;
     buildHash();
-    combat(unit(arcer), arcer, 0.016, 0, rng);
+    combat(unit(arcer), arcer, 0.016, rng, 1, shake);
     // cooldown = fireRate = 2
     expect(unit(arcer).cooldown).toBeCloseTo(unitType(ARCER_TYPE).fireRate);
     // ビーム + ダメージ
@@ -569,7 +564,7 @@ describe('combat — CHAIN LIGHTNING', () => {
     unit(arcer).cooldown = 0;
     unit(arcer).target = NO_UNIT;
     buildHash();
-    combat(unit(arcer), arcer, 0.016, 0, rng);
+    combat(unit(arcer), arcer, 0.016, rng, 1, shake);
     expect(beams.length).toBe(0);
   });
 });

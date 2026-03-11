@@ -1,8 +1,7 @@
 import { BEAM_DECAY_RATE, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { addShake } from '../input/camera.ts';
 import { unit } from '../pools.ts';
 import { NO_UNIT } from '../types.ts';
-import { FLAGSHIP_ENGINE_OFFSETS } from '../unit-types.ts';
+import { FLAGSHIP_ENGINE_OFFSETS } from '../unit-type-accessors.ts';
 import { aimAt } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
@@ -53,7 +52,7 @@ function flagshipChargeVfx(ctx: CombatContext, progress: number) {
     }
   }
 
-  addShake(0.4 * progress * ctx.dt * REF_FPS, u.x, u.y);
+  ctx.shake(0.4 * progress * ctx.dt * REF_FPS, u.x, u.y);
 }
 
 function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: number) {
@@ -148,7 +147,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
     addBeam(mx, my, mx + dx * 240, my + dy * 240, c[0] * 0.7, c[1] * 0.7, c[2] * 0.7, 0.06, 2.5, true, 8);
   }
 
-  addShake(6, u.x, u.y);
+  ctx.shake(6, u.x, u.y);
 }
 
 function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
@@ -200,7 +199,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
     addBeam(ox, oy, ox + baDx * t.range * 0.5, oy + baDy * t.range * 0.5, c[0], c[1], c[2], 0.06, 4.0, true, 6);
   }
 
-  addShake(4, u.x, u.y);
+  ctx.shake(4, u.x, u.y);
 }
 
 /**

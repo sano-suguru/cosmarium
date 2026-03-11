@@ -8,7 +8,6 @@ function makeMinimalConfig(): BatchConfig {
     mode: 'battle',
     teams: 2,
     seed: 1,
-    budget: 100,
     maxSteps: 1000,
     snapshotInterval: 100,
     outFile: null,

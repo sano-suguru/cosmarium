@@ -7,6 +7,7 @@ import { spawnParticle } from './spawn.ts';
 import { stepOnce } from './update.ts';
 
 const rng = makeRng();
+const shake = () => undefined;
 const gameLoopState = makeGameLoopState();
 
 function spawnParticles(n: number) {
@@ -20,7 +21,7 @@ describe('stepOnce 1tick', () => {
 
   bench('空の世界 (0 units, 0 particles)', () => {
     rng.reset();
-    stepOnce(dt, 0, rng, gameLoopState);
+    stepOnce(dt, rng, gameLoopState, shake);
   });
 
   bench('50 units, 0 particles', () => {
@@ -29,7 +30,7 @@ describe('stepOnce 1tick', () => {
       spawnAt(0, asType(1), rng() * 4000, rng() * 4000);
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
-    stepOnce(dt, 0, rng, gameLoopState);
+    stepOnce(dt, rng, gameLoopState, shake);
     resetPools();
   });
 
@@ -40,7 +41,7 @@ describe('stepOnce 1tick', () => {
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
     spawnParticles(1000);
-    stepOnce(dt, 0, rng, gameLoopState);
+    stepOnce(dt, rng, gameLoopState, shake);
     resetPools();
   });
 
@@ -51,7 +52,7 @@ describe('stepOnce 1tick', () => {
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
     spawnParticles(10000);
-    stepOnce(dt, 0, rng, gameLoopState);
+    stepOnce(dt, rng, gameLoopState, shake);
     resetPools();
   });
 
@@ -62,7 +63,7 @@ describe('stepOnce 1tick', () => {
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
     spawnParticles(10000);
-    stepOnce(dt, 0, rng, gameLoopState);
+    stepOnce(dt, rng, gameLoopState, shake);
     resetPools();
   });
 });

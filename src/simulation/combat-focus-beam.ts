@@ -33,7 +33,7 @@ export function focusBeam(ctx: CombatContext) {
 
   if (u.cooldown <= 0) {
     u.cooldown = t.fireRate;
-    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui);
+    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui, ctx.shake);
     if (!u.alive) {
       return;
     }
@@ -62,7 +62,7 @@ export function focusBeam(ctx: CombatContext) {
       );
     }
     if (o.hp <= 0) {
-      destroyUnit(u.target, ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind]);
+      destroyUnit(u.target, ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], ctx.shake);
       u.beamOn = 0;
     }
   }

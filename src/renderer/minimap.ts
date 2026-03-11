@@ -3,7 +3,7 @@ import { WORLD_SIZE } from '../constants.ts';
 import { cam, setAutoFollow } from '../input/camera.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
 import { getUnitHWM, poolCounts, unit } from '../pools.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { MINIMAP_MAX, minimapBuffer, minimapData, minimapDataI32, mmVAO, writeSlots } from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';

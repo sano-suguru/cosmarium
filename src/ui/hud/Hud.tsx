@@ -1,10 +1,13 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { TEAM_HEX_COLORS } from '../../colors.ts';
-import { mothershipIdx, poolCounts, teamUnitCounts, unit } from '../../pools.ts';
+import { getVariantDef } from '../../mothership-variants.ts';
+import { mothershipIdx, mothershipVariant, poolCounts, teamUnitCounts, unit } from '../../pools.ts';
+import { getProductionTime } from '../../production-config.ts';
 import { getRunInfo } from '../../run.ts';
-import type { BattlePhase, RunStatus, Team } from '../../types.ts';
-import { NO_UNIT, teamsOf } from '../../types.ts';
+import type { BattlePhase, ProductionSlot, ProductionState, RunStatus, Team } from '../../types.ts';
+import { NO_UNIT, TEAM0, teamsOf } from '../../types.ts';
+import { TYPES } from '../../unit-types.ts';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import { timeScale$ } from '../signals.ts';
 import styles from './Hud.module.css';
@@ -27,6 +30,81 @@ interface MhpBarData {
   readonly clr: string;
 }
 const hudMhpBars$ = signal<readonly MhpBarData[]>([]);
+
+interface SlotHudEntry {
+  readonly slotIndex: number;
+  readonly name: string;
+  readonly clusterSize: number;
+  readonly timerPct: number;
+}
+const hudProductionSlots$ = signal<readonly SlotHudEntry[]>([]);
+
+/** 5%刻みに量子化して変更検出の頻度を下げる */
+function computeTimerPct(slot: ProductionSlot, timer: number, variantMul: number): number {
+  const productionTime = getProductionTime(slot.type, variantMul);
+  const pctRaw = Math.min(timer / productionTime, 1);
+  return Math.round(pctRaw * 20) / 20;
+}
+
+/** 前回の HUD エントリと比較し、変更があれば true を返す */
+function hasProductionHudChanged(prev: readonly SlotHudEntry[], ps: ProductionState, variantMul: number): boolean {
+  let idx = 0;
+  for (let i = 0; i < ps.slots.length; i++) {
+    const slot = ps.slots[i];
+    if (!slot) {
+      continue;
+    }
+    const timer = ps.timers[i] ?? 0;
+    const p = prev[idx];
+    const t = TYPES[slot.type];
+    if (
+      !p ||
+      p.timerPct !== computeTimerPct(slot, timer, variantMul) ||
+      p.slotIndex !== i ||
+      p.name !== (t?.name ?? '?') ||
+      p.clusterSize !== slot.count
+    ) {
+      return true;
+    }
+    idx++;
+  }
+  return idx !== prev.length;
+}
+
+/** HUD エントリを構築する（変更確認済みの場合のみ呼ぶこと） */
+function buildEntries(ps: ProductionState, variantMul: number): readonly SlotHudEntry[] {
+  const result: SlotHudEntry[] = [];
+  for (let i = 0; i < ps.slots.length; i++) {
+    const slot = ps.slots[i];
+    if (!slot) {
+      continue;
+    }
+    const timer = ps.timers[i] ?? 0;
+    const t = TYPES[slot.type];
+    result.push({
+      slotIndex: i,
+      name: t?.name ?? '?',
+      clusterSize: slot.count,
+      timerPct: computeTimerPct(slot, timer, variantMul),
+    });
+  }
+  return result;
+}
+
+/** 変更がなければ signal 更新をスキップ */
+export function updateProductionHud(ps: ProductionState): void {
+  if (ps.slots.length === 0) {
+    if (hudProductionSlots$.peek().length !== 0) {
+      hudProductionSlots$.value = [];
+    }
+    return;
+  }
+  const variantMul = getVariantDef(mothershipVariant[TEAM0]).productionRateMul;
+  const prev = hudProductionSlots$.peek();
+  if (hasProductionHudChanged(prev, ps, variantMul)) {
+    hudProductionSlots$.value = buildEntries(ps, variantMul);
+  }
+}
 
 export function setupMeleeHUD(numTeams: number) {
   hudMeleeTeams$.value = [...teamsOf(numTeams)];
@@ -195,6 +273,25 @@ function TeamRow() {
   );
 }
 
+function ProductionBar() {
+  const entries = hudProductionSlots$.value;
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div class={styles.production}>
+      <span class={styles.hl}>PRODUCTION:</span>{' '}
+      {entries.map((e, i) => (
+        <span key={e.slotIndex}>
+          {i > 0 && ' | '}
+          {e.name} x{e.clusterSize} [{(e.timerPct * 100).toFixed(0)}%]
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function resetHudState() {
   hudCountA$.value = 0;
   hudCountB$.value = 0;
@@ -205,6 +302,7 @@ function resetHudState() {
   hudMeleeTeams$.value = [];
   hudMeleeTeamCounts$.value = [];
   hudMhpBars$.value = [];
+  hudProductionSlots$.value = [];
 }
 
 export function Hud() {
@@ -220,6 +318,7 @@ export function Hud() {
       <div class={styles.container}>
         {roundInfo && <RunInfoBar info={roundInfo} class={styles.roundInfo} livesClass={styles.lives} />}
         <TeamRow />
+        <ProductionBar />
         <div>
           <span class={styles.hl}>PARTICLES:</span> {hudParticles$.value}
         </div>

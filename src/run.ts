@@ -14,7 +14,6 @@ type RunState = {
   lives: number;
   wins: number;
   totalKills: number;
-  totalLosses: number;
   roundResults: RoundResult[];
 };
 
@@ -24,7 +23,6 @@ const run: RunState = {
   lives: 0,
   wins: 0,
   totalKills: 0,
-  totalLosses: 0,
   roundResults: [],
 };
 
@@ -34,7 +32,6 @@ function clearRunFields(active: boolean, round: number, lives: number) {
   run.lives = lives;
   run.wins = 0;
   run.totalKills = 0;
-  run.totalLosses = 0;
   run.roundResults.length = 0;
 }
 
@@ -62,7 +59,6 @@ function recordRoundResult(battleResult: BattleResult): RoundResult {
 
   run.roundResults.push(roundResult);
   run.totalKills += battleResult.enemyKills;
-  run.totalLosses += battleResult.playerLosses;
 
   if (battleResult.victory) {
     run.wins += 1;
@@ -89,7 +85,6 @@ function buildRunResult(): RunResult {
     wins: run.wins,
     losses: run.round - 1 - run.wins,
     totalKills: run.totalKills,
-    totalLosses: run.totalLosses,
     roundResults: [...run.roundResults],
   };
 }

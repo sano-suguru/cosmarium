@@ -1,11 +1,12 @@
 import { effectColor } from '../colors.ts';
 import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
-import { addShake } from '../input/camera.ts';
+import { projectileIdx } from '../pool-index.ts';
 import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
 import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
-import { unitType } from '../unit-types.ts';
+import { unitType } from '../unit-type-accessors.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
+import type { ShakeFn } from './combat-context.ts';
 import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
@@ -49,7 +50,7 @@ function emitProjectileDamage(
   }
 }
 
-function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
+function detonateAoe(p: Projectile, rng: () => number, shake: ShakeFn, skipUnit?: UnitIndex) {
   const nn = getNeighbors(p.x, p.y, p.aoe);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
@@ -71,7 +72,7 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
       emitProjectileDamage(p, o.type, o.team, aoeDmg, aoeKind);
       knockback(oi, p.x, p.y, 220);
       if (o.hp <= 0) {
-        destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind]);
+        destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind], shake);
       }
     }
   }
@@ -92,11 +93,11 @@ function detonateAoe(p: Projectile, rng: () => number, skipUnit?: UnitIndex) {
   }
   spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
   spawnParticle(p.x, p.y, 0, 0, 0.45, p.aoe * 0.9 * 1.3, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
-  addShake(3, p.x, p.y);
+  shake(3, p.x, p.y);
 }
 
-function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number) {
-  destroyUnit(oi, sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT.direct);
+function killByProjectile(oi: UnitIndex, sourceUnit: UnitIndex, rng: () => number, shake: ShakeFn) {
+  destroyUnit(oi, sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT.direct, shake);
 }
 function tryReflectField(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number): boolean {
   if (o.reflectFieldHp <= 0) {
@@ -129,11 +130,11 @@ function hitSparkFx(p: Projectile, rng: () => number) {
   }
 }
 
-function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number) {
+function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number, shake: ShakeFn) {
   if (tryReflectField(p, oi, o, rng)) {
     return;
   }
-  let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng);
+  let dmg = applyTetherAbsorb(o, p.damage, ORPHAN_TETHER_PROJECTILE_MULT, p.sourceUnit, rng, shake);
   dmg = absorbByBastionShield(o, dmg);
   o.hp -= dmg;
   o.hitFlash = 1;
@@ -143,11 +144,11 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
   spawnParticle(p.x, p.y, 0, 0, 0.08, p.size * 2.5, 1, 1, 1, SH_CIRCLE);
   spawnParticle(p.x, p.y, 0, 0, 0.12, p.size * 4, p.r, p.g, p.b, SH_EXPLOSION_RING);
   if (o.hp <= 0) {
-    killByProjectile(oi, p.sourceUnit, rng);
+    killByProjectile(oi, p.sourceUnit, rng, shake);
   }
 }
 
-function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number): boolean {
+function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number, shake: ShakeFn): boolean {
   const nn = getNeighbors(p.x, p.y, 30);
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j),
@@ -159,9 +160,9 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
     if ((o.x - p.x) * (o.x - p.x) + (o.y - p.y) * (o.y - p.y) >= hs * hs) {
       continue;
     }
-    applyProjectileDamage(p, oi, o, rng);
+    applyProjectileDamage(p, oi, o, rng, shake);
     if (p.aoe > 0) {
-      detonateAoe(p, rng, oi);
+      detonateAoe(p, rng, shake, oi);
     }
     killProjectile(pi);
     return true;
@@ -228,13 +229,14 @@ function projectileTrail(p: Projectile, dt: number, rng: () => number) {
   }
 }
 
-export function updateProjectiles(dt: number, rng: () => number) {
+export function updateProjectiles(dt: number, rng: () => number, shake: ShakeFn) {
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) {
       continue;
     }
     rem--;
+    const pi = projectileIdx(i);
 
     if (p.homing && p.target !== NO_UNIT) {
       steerHomingProjectile(p, dt);
@@ -247,12 +249,12 @@ export function updateProjectiles(dt: number, rng: () => number) {
 
     if (p.life <= 0) {
       if (p.aoe > 0) {
-        detonateAoe(p, rng);
+        detonateAoe(p, rng, shake);
       }
-      killProjectile(i as ProjectileIndex);
+      killProjectile(pi);
       continue;
     }
 
-    detectProjectileHit(p, i as ProjectileIndex, rng);
+    detectProjectileHit(p, pi, rng, shake);
   }
 }

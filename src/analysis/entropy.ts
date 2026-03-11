@@ -1,5 +1,6 @@
 import type { FleetComposition } from '../types.ts';
-import { TYPES, unitTypeCost } from '../unit-types.ts';
+import { unitTypeCost } from '../unit-type-accessors.ts';
+import { TYPES } from '../unit-types.ts';
 
 // ─── Shannon Entropy ───────────────────────────────────────────────
 

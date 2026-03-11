@@ -14,7 +14,6 @@ export interface BatchConfig {
   readonly mode: 'battle' | 'melee';
   readonly teams: number;
   readonly seed: number;
-  readonly budget: number;
   readonly maxSteps: number;
   readonly snapshotInterval: number;
   readonly outFile: string | null;
