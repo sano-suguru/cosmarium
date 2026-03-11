@@ -6,7 +6,8 @@ import { required } from './assert.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
 import type { BloomScales } from './fbo.ts';
 import { fbos } from './fbo.ts';
-import { renderScene, WRAP_PERIOD } from './render-scene.ts';
+import { renderScene } from './render-scene.ts';
+import { WRAP_PERIOD } from './render-write.ts';
 import {
   bloomLocations,
   bloomProgram,

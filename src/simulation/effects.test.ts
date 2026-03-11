@@ -31,17 +31,8 @@ import { addAberration, addFreeze } from '../screen-effects.ts';
 
 const shake = vi.fn();
 
-import {
-  boostBurst,
-  boostTrail,
-  CHAIN_DAMAGE_DECAY,
-  chainLightning,
-  destroyMutualKill,
-  destroyUnit,
-  explosion,
-  trail,
-  updateChains,
-} from './effects.ts';
+import { CHAIN_DAMAGE_DECAY, chainLightning, updateChains } from './chain-lightning.ts';
+import { boostBurst, boostTrail, destroyMutualKill, destroyUnit, explosion, trail } from './effects.ts';
 
 const DUMMY_KILLER: Killer = { index: NO_UNIT, team: 0, type: DRONE_TYPE };
 

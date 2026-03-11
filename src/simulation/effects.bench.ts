@@ -2,7 +2,8 @@ import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
 import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { unitTypeIndex } from '../unit-type-accessors.ts';
-import { chainLightning, explosion } from './effects.ts';
+import { chainLightning } from './chain-lightning.ts';
+import { explosion } from './effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import { captureKiller } from './spawn.ts';
 

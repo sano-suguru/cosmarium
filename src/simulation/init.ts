@@ -24,7 +24,7 @@ import {
   SNIPER_TYPE,
   TELEPORTER_TYPE,
 } from '../unit-type-accessors.ts';
-import { resetChains } from './effects.ts';
+import { resetChains } from './chain-lightning.ts';
 import { emptyProductions, initProductionState } from './production.ts';
 import { spawnUnit } from './spawn.ts';
 import { battleOrigin, meleeOrigin } from './spawn-coordinates.ts';

@@ -10,7 +10,10 @@
 
 | ファイル | 役割 |
 |---------|------|
-| render-scene.ts | writeInstance()でinstanceDataに書込み。描画順制御 |
+| render-scene.ts | renderScene()エントリポイント。renderUnits/Particles/Projectilesを呼出し |
+| render-write.ts | writeInstance/writeOverlay/カリング判定。共有バッファ書込み状態を管理 |
+| render-beams.ts | renderBeams/renderTrackingBeams/renderLightningBeam。WRAP_PERIODをエクスポート |
+| render-overlays.ts | renderOverlays/renderBuffOverlays/renderHpBar/renderStunStars等オーバーレイ描画 |
 | shaders.ts | GLSLインポート→compile→link。mainLocations/bloomLocations等を公開 |
 | minimap.ts | initMinimap + drawMinimap。scissor/viewport切替、mmVAO使用 |
 | buffers.ts | VAO3つ(mainVAO/mmVAO/qVAO)初期化。instanceData Float32Array確保 |
@@ -19,7 +22,7 @@
 | webgl-setup.ts | Canvas取得(#c)、WebGL2コンテキスト初期化、resize() |
 | utils.ts | required() — WebGLリソース生成失敗チェック |
 
-テスト: `render-scene.test.ts` — writeInstance/描画順/instanceData書込みの検証。
+テスト: `render-scene.test.ts` — writeInstance/描画順/instanceData書込みの検証。render-write.tsの関数を使用。
 
 ## 変更ガイド
 

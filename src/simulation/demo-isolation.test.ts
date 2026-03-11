@@ -6,7 +6,7 @@ import { unitIdx } from '../pool-index.ts';
 import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
 import { NO_UNIT } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex/codex-logic.ts';
-import { chainLightning, resetChains, snapshotChains, updateChains } from './effects.ts';
+import { chainLightning, resetChains, snapshotChains, updateChains } from './chain-lightning.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';

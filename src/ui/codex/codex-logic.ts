@@ -17,8 +17,8 @@ import {
   teamUnitCounts,
   unit,
 } from '../../pools.ts';
+import { resetChains, restoreChains, snapshotChains } from '../../simulation/chain-lightning.ts';
 import { demoFlag } from '../../simulation/combat.ts';
-import { resetChains, restoreChains, snapshotChains } from '../../simulation/effects.ts';
 import { spawnUnit } from '../../simulation/spawn.ts';
 import { restoreSquadrons, snapshotSquadrons } from '../../simulation/squadron.ts';
 import { state } from '../../state.ts';

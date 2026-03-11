@@ -19,8 +19,8 @@ import {
   squadron,
   unit,
 } from '../pools.ts';
+import { resetChains } from '../simulation/chain-lightning.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
-import { resetChains } from '../simulation/effects.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
 import type { KillContext } from '../simulation/on-kill-effects.ts';
 import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
