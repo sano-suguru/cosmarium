@@ -16,9 +16,9 @@ afterEach(() => {
 
 describe('runRoundRobin', () => {
   it('少数ユニットタイプでラウンドロビンを実行する', () => {
-    // 予算を非常に小さくして高コストユニットが参加できないようにし、対戦数を減らす
+    // コスト上限を非常に小さくして高コストユニットが参加できないようにし、対戦数を減らす
     const summary = runRoundRobin({
-      budget: 3,
+      costCap: 3,
       trials: 2,
       seed: 42,
       maxSteps: 300,
@@ -27,7 +27,7 @@ describe('runRoundRobin', () => {
       logger: () => undefined,
     });
 
-    // cost <= 3 のユニットのみ実際に対戦可能（budget=3 で1体以上購入できるもの）
+    // cost <= 3 のユニットのみ実際に対戦可能（costCap=3 で1体以上購入できるもの）
     const eligibleCount = TYPES.filter((t) => t.cost > 0 && t.cost <= 3).length;
     const expectedMatchups = (eligibleCount * (eligibleCount - 1)) / 2;
     // 対戦は両方のユニットが購入可能なペアのみ
@@ -49,7 +49,7 @@ describe('runRoundRobin', () => {
 
   it('ランキングが勝率降順でソートされている', () => {
     const summary = runRoundRobin({
-      budget: 3,
+      costCap: 3,
       trials: 2,
       seed: 99,
       maxSteps: 300,
@@ -71,7 +71,7 @@ describe('runRoundRobin', () => {
 
   it('相性リストが正しく分類される', () => {
     const summary = runRoundRobin({
-      budget: 3,
+      costCap: 3,
       trials: 4,
       seed: 42,
       maxSteps: 300,

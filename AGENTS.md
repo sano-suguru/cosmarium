@@ -57,7 +57,7 @@ src/
 ├── beams.ts              # beam/trackingBeam dynamic arrays
 ├── colors.ts             # Team colors, trail color tables
 ├── unit-types.ts         # 19 unit type definitions with properties
-├── fleet-cost.ts         # DEFAULT_BUDGET, SORTED_TYPE_INDICES, cost helpers
+├── fleet-cost.ts         # SORTED_TYPE_INDICES, cost helpers
 ├── battle-tracker.ts     # Battle mode elapsed/win/result aggregation
 ├── melee-tracker.ts      # Melee mode (N-team) elapsed/win/result aggregation
 ├── drain-accumulator.ts  # drainAccumulator() — fixed-step accumulator logic
@@ -192,7 +192,7 @@ No scattered `?? defaultValue`, redundant null checks, or defensive try-catch. R
 ## Game Modes
 
 - **Spectate** (`battlePhase = 'spectate'`): AI vs AI, no player fleet — equivalent to the former "Infinite" mode
-- **Battle** (`battlePhase = 'battle'`): Player fleet (team 0) vs enemy fleet (team 1), budget-limited via `fleet-cost.ts` (`DEFAULT_BUDGET = 200`)
+- **Battle** (`battlePhase = 'battle'`): Player fleet (team 0) vs enemy fleet (team 1), production-line based via `fleet-cost.ts`
 - **Melee** (`battlePhase = 'melee'`): N-team free-for-all (2–5 teams, `activeTeamCount`). Uses `melee-tracker.ts` for per-team elimination events
 - Phase transitions flow through `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`
 

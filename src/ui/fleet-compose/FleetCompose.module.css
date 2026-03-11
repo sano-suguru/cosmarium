@@ -135,7 +135,7 @@
   flex-direction: column;
   gap: 8px;
 }
-.budgetBar {
+.productionHeader {
   display: flex;
   justify-content: space-between;
   font-family: "Orbitron", sans-serif;

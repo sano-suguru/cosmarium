@@ -232,7 +232,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         <EnemyFleetHeader />
         <VariantSelector />
         <div class={styles.body}>
-          <div class={styles.budgetBar}>
+          <div class={styles.productionHeader}>
             <span>PRODUCTION LINE</span>
           </div>
           <div class={styles.slotGrid} style={{ '--slot-count': String(SLOT_COUNT) }}>

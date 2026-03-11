@@ -3,7 +3,7 @@
  *
  * 使い方:
  *   bun run src/analysis/roundrobin.ts                          # デフォルト
- *   bun run src/analysis/roundrobin.ts --budget 30 --trials 10  # 予算・試行回数指定
+ *   bun run src/analysis/roundrobin.ts --cost-cap 30 --trials 10  # コスト上限・試行回数指定
  *   bun run src/analysis/roundrobin.ts --seed 42                # 固定シード
  *   bun run src/analysis/roundrobin.ts --maxSteps 5000          # 最大ステップ数
  *   bun run src/analysis/roundrobin.ts --out results.json       # JSON 出力
@@ -11,7 +11,7 @@
 
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import { createRng } from '../state.ts';
-import type { UnitTypeIndex } from '../types.ts';
+import type { FleetEntry, UnitTypeIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { collectArgPairs, parseIntArg, runTrial } from './batch.ts';
 import type { BatchConfig } from './batch-types.ts';
@@ -43,7 +43,7 @@ interface RoundRobinRanking {
 }
 
 interface RoundRobinSummary {
-  readonly budget: number;
+  readonly costCap: number;
   readonly trialsPerMatchup: number;
   readonly seed: number;
   readonly matchups: readonly MatchupResult[];
@@ -51,7 +51,7 @@ interface RoundRobinSummary {
 }
 
 interface RoundRobinConfig {
-  readonly budget: number;
+  readonly costCap: number;
   readonly trials: number;
   readonly seed: number;
   readonly maxSteps: number;
@@ -63,13 +63,13 @@ interface RoundRobinConfig {
 
 // ─── Core ─────────────────────────────────────────────────────────
 
-/** 指定予算内でモノタイプ艦隊を構築。cost <= 0 または購入不可なら null */
-function buildMonoFleet(typeIndex: UnitTypeIndex, budget: number): { type: UnitTypeIndex; count: number }[] | null {
+/** 指定コスト上限内でモノタイプ艦隊を構築。cost <= 0 または購入不可なら null */
+function buildMonoFleet(typeIndex: UnitTypeIndex, costCap: number): FleetEntry[] | null {
   const t = TYPES[typeIndex];
   if (!t || t.cost <= 0) {
     return null;
   }
-  const count = Math.floor(budget / t.cost);
+  const count = Math.floor(costCap / t.cost);
   if (count <= 0) {
     return null;
   }
@@ -80,16 +80,11 @@ function buildMonoFleet(typeIndex: UnitTypeIndex, budget: number): { type: UnitT
 function runMatchup(
   typeA: UnitTypeIndex,
   typeB: UnitTypeIndex,
+  fleetA: FleetEntry[],
+  fleetB: FleetEntry[],
   config: RoundRobinConfig,
   matchIndex: number,
-): MatchupResult | null {
-  const fleetA = buildMonoFleet(typeA, config.budget);
-  const fleetB = buildMonoFleet(typeB, config.budget);
-
-  if (!fleetA || !fleetB) {
-    return null;
-  }
-
+): MatchupResult {
   let winsA = 0;
   let winsB = 0;
   let draws = 0;
@@ -224,7 +219,14 @@ function computeRankings(matchups: readonly MatchupResult[]): RoundRobinRanking[
 
 /** 全ユニットタイプの総当たり対戦を実行し、勝率ランキングと相性データを返す */
 export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
-  const validTypes = SORTED_TYPE_INDICES.filter((t) => buildMonoFleet(t, config.budget) !== null);
+  const fleetMap = new Map<UnitTypeIndex, FleetEntry[]>();
+  for (const t of SORTED_TYPE_INDICES) {
+    const fleet = buildMonoFleet(t, config.costCap);
+    if (fleet) {
+      fleetMap.set(t, fleet);
+    }
+  }
+  const validTypes = [...fleetMap.keys()];
   const totalMatchups = (validTypes.length * (validTypes.length - 1)) / 2;
   const matchups: MatchupResult[] = [];
   let matchIndex = 0;
@@ -237,11 +239,13 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
       if (typeA === undefined || typeB === undefined) {
         continue;
       }
-      const result = runMatchup(typeA, typeB, config, matchIndex);
-      matchIndex++;
-      if (!result) {
+      const fleetA = fleetMap.get(typeA);
+      const fleetB = fleetMap.get(typeB);
+      if (!fleetA || !fleetB) {
         continue;
       }
+      const result = runMatchup(typeA, typeB, fleetA, fleetB, config, matchIndex);
+      matchIndex++;
       matchups.push(result);
       log(
         `  [${matchups.length}/${totalMatchups}] ${result.nameA} vs ${result.nameB}: ${result.winsA}-${result.winsB}-${result.draws}`,
@@ -250,7 +254,7 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
   }
 
   return {
-    budget: config.budget,
+    costCap: config.costCap,
     trialsPerMatchup: config.trials,
     seed: config.seed,
     matchups,
@@ -266,7 +270,7 @@ function formatRoundRobin(summary: RoundRobinSummary): string {
   lines.push('===============================================');
   lines.push('  COSMARIUM ラウンドロビントーナメント');
   lines.push('===============================================');
-  lines.push(`  予算: ${summary.budget} | 試行/組: ${summary.trialsPerMatchup} | シード: ${summary.seed}`);
+  lines.push(`  コスト上限: ${summary.costCap} | 試行/組: ${summary.trialsPerMatchup} | シード: ${summary.seed}`);
   lines.push(`  対戦組数: ${summary.matchups.length}`);
   lines.push('');
   lines.push('  --- 勝率ランキング ---');
@@ -294,7 +298,7 @@ function parseRoundRobinArgs(argv: readonly string[], createRng: (seed: number) 
   const pairs = collectArgPairs(argv);
 
   return {
-    budget: parseIntArg(pairs, '--budget', 30),
+    costCap: parseIntArg(pairs, '--cost-cap', 30),
     trials: parseIntArg(pairs, '--trials', 10),
     seed: parseIntArg(pairs, '--seed', 42),
     maxSteps: parseIntArg(pairs, '--maxSteps', 10800),

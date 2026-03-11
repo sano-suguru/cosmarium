@@ -54,7 +54,7 @@ function spawnCluster(
   return true;
 }
 
-/** 1パス: 全スロットを走査し、ready なスロットから最大1クラスターずつスポーン。消費した予算を返す */
+/** 1パス: 全スロットを走査し、ready なスロットから最大1クラスターずつスポーン。消費した容量を返す */
 function roundRobinPass(
   ps: ProductionState,
   team: Team,
@@ -62,12 +62,12 @@ function roundRobinPass(
   unitCap: number,
   cx: number,
   cy: number,
-  budget: number,
+  capacity: number,
   prodTimes: Float64Array,
 ): number {
   let spent = 0;
   for (let i = 0; i < ps.slots.length; i++) {
-    if (budget - spent <= 0 || teamUnitCounts[team] >= unitCap) {
+    if (capacity - spent <= 0 || teamUnitCounts[team] >= unitCap) {
       break;
     }
     const slot = ps.slots[i];
@@ -100,13 +100,13 @@ function roundRobinSpawn(
   cy: number,
   prodTimes: Float64Array,
 ): void {
-  let spawnBudget = MAX_CLUSTERS_PER_TICK;
-  while (spawnBudget > 0) {
-    const spent = roundRobinPass(ps, team, rng, unitCap, cx, cy, spawnBudget, prodTimes);
+  let remainingCapacity = MAX_CLUSTERS_PER_TICK;
+  while (remainingCapacity > 0) {
+    const spent = roundRobinPass(ps, team, rng, unitCap, cx, cy, remainingCapacity, prodTimes);
     if (spent === 0) {
       break;
     }
-    spawnBudget -= spent;
+    remainingCapacity -= spent;
   }
 }
 
