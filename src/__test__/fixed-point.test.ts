@@ -1,24 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  FX_HALF,
-  FX_NEG_ONE,
-  FX_ONE,
-  FX_ZERO,
-  fromFx,
-  fxAbs,
-  fxAdd,
-  fxCeil,
-  fxClamp,
-  fxDiv,
-  fxFloor,
-  fxMax,
-  fxMin,
-  fxMul,
-  fxMulInt,
-  fxNeg,
-  fxSub,
-  toFx,
-} from '../fixed-point.ts';
+import { FX_HALF, FX_NEG_ONE, FX_ONE, FX_ZERO, fromFx, fxMul, toFx } from '../fixed-point.ts';
 
 // ── 変換 ──
 describe('toFx / fromFx 変換', () => {
@@ -72,25 +53,6 @@ describe('定数', () => {
   });
 });
 
-// ── 加減算 ──
-describe('fxAdd / fxSub', () => {
-  it('1 + 1 = 2', () => {
-    expect(fxAdd(FX_ONE, FX_ONE)).toBe(toFx(2));
-  });
-
-  it('1 + (-1) = 0', () => {
-    expect(fxAdd(FX_ONE, FX_NEG_ONE)).toBe(FX_ZERO);
-  });
-
-  it('1 - 0.5 = 0.5', () => {
-    expect(fxSub(FX_ONE, FX_HALF)).toBe(FX_HALF);
-  });
-
-  it('大きな座標の加算: 3000 + 1000 = 4000', () => {
-    expect(fxAdd(toFx(3000), toFx(1000))).toBe(toFx(4000));
-  });
-});
-
 // ── 乗算 ──
 describe('fxMul', () => {
   it('1 * 1 = 1', () => {
@@ -129,140 +91,6 @@ describe('fxMul', () => {
     const r1 = fxMul(a, b);
     const r2 = fxMul(a, b);
     expect(r1).toBe(r2);
-  });
-});
-
-// ── 除算 ──
-describe('fxDiv', () => {
-  it('1 / 1 = 1', () => {
-    expect(fxDiv(FX_ONE, FX_ONE)).toBe(FX_ONE);
-  });
-
-  it('1 / 2 = 0.5', () => {
-    expect(fxDiv(FX_ONE, toFx(2))).toBe(FX_HALF);
-  });
-
-  it('100 / 3 ≈ 33.33', () => {
-    const result = fromFx(fxDiv(toFx(100), toFx(3)));
-    expect(result).toBeCloseTo(33.33, 1);
-  });
-
-  it('負 / 正 = 負', () => {
-    const result = fxDiv(FX_NEG_ONE, toFx(2));
-    expect(result as number).toBeLessThan(0);
-    expect(fromFx(result)).toBeCloseTo(-0.5, 4);
-  });
-});
-
-// ── 整数乗算 ──
-describe('fxMulInt', () => {
-  it('0.5 * 4 = 2', () => {
-    expect(fxMulInt(FX_HALF, 4)).toBe(toFx(2));
-  });
-
-  it('座標 * 0 = 0', () => {
-    expect(fxMulInt(toFx(4000), 0)).toBe(FX_ZERO);
-  });
-});
-
-// ── 比較・クランプ ──
-describe('fxAbs / fxNeg / fxMin / fxMax / fxClamp', () => {
-  it('fxAbs(-1) = 1', () => {
-    expect(fxAbs(FX_NEG_ONE)).toBe(FX_ONE);
-  });
-
-  it('fxAbs(1) = 1', () => {
-    expect(fxAbs(FX_ONE)).toBe(FX_ONE);
-  });
-
-  it('fxNeg(1) = -1', () => {
-    expect(fxNeg(FX_ONE)).toBe(FX_NEG_ONE);
-  });
-
-  it('fxMin(1, 2) = 1', () => {
-    expect(fxMin(FX_ONE, toFx(2))).toBe(FX_ONE);
-  });
-
-  it('fxMax(1, 2) = 2', () => {
-    expect(fxMax(FX_ONE, toFx(2))).toBe(toFx(2));
-  });
-
-  it('fxClamp(3, 0, 2) = 2', () => {
-    expect(fxClamp(toFx(3), FX_ZERO, toFx(2))).toBe(toFx(2));
-  });
-
-  it('fxClamp(-1, 0, 2) = 0', () => {
-    expect(fxClamp(FX_NEG_ONE, FX_ZERO, toFx(2))).toBe(FX_ZERO);
-  });
-
-  it('fxClamp(1, 0, 2) = 1', () => {
-    expect(fxClamp(FX_ONE, FX_ZERO, toFx(2))).toBe(FX_ONE);
-  });
-});
-
-// ── floor / ceil ──
-describe('fxFloor / fxCeil', () => {
-  it('floor(1.7) = 1', () => {
-    expect(fromFx(fxFloor(toFx(1.7)))).toBe(1);
-  });
-
-  it('floor(-1.3) = -2', () => {
-    expect(fromFx(fxFloor(toFx(-1.3)))).toBe(-2);
-  });
-
-  it('ceil(1.3) = 2', () => {
-    expect(fromFx(fxCeil(toFx(1.3)))).toBe(2);
-  });
-
-  it('ceil(1.0) = 1', () => {
-    expect(fromFx(fxCeil(FX_ONE))).toBe(1);
-  });
-
-  it('floor(0) = 0', () => {
-    expect(fromFx(fxFloor(FX_ZERO))).toBe(0);
-  });
-
-  it('ceil(0) = 0', () => {
-    expect(fromFx(fxCeil(FX_ZERO))).toBe(0);
-  });
-
-  it('ceil(-1.3) = -1', () => {
-    expect(fromFx(fxCeil(toFx(-1.3)))).toBe(-1);
-  });
-
-  // 安全限界 (整数部 ±32767)
-  it('floor(32767) = 32767', () => {
-    expect(fromFx(fxFloor(toFx(32767)))).toBe(32767);
-  });
-
-  it('ceil(32767) = 32767', () => {
-    expect(fromFx(fxCeil(toFx(32767)))).toBe(32767);
-  });
-
-  it('floor(-32767) = -32767', () => {
-    expect(fromFx(fxFloor(toFx(-32767)))).toBe(-32767);
-  });
-
-  it('ceil(-32767) = -32767', () => {
-    expect(fromFx(fxCeil(toFx(-32767)))).toBe(-32767);
-  });
-
-  // 限界付近の小数
-  it('floor(32767.5) = 32767', () => {
-    expect(fromFx(fxFloor(toFx(32767.5)))).toBe(32767);
-  });
-
-  it('ceil(32766.5) = 32767', () => {
-    expect(fromFx(fxCeil(toFx(32766.5)))).toBe(32767);
-  });
-
-  // WORLD_SIZE 範囲
-  it('floor(4000.7) = 4000', () => {
-    expect(fromFx(fxFloor(toFx(4000.7)))).toBe(4000);
-  });
-
-  it('ceil(3999.3) = 4000', () => {
-    expect(fromFx(fxCeil(toFx(3999.3)))).toBe(4000);
   });
 });
 

@@ -1,5 +1,5 @@
 import type { FxQ16 } from './fixed-point.ts';
-import { FX_ONE, FX_SCALE, FX_ZERO, fxMul, toFx } from './fixed-point.ts';
+import { FX_HALF, FX_ONE, FX_SCALE, FX_ZERO, fxMul, toFx } from './fixed-point.ts';
 
 export const FX_PI = toFx(Math.PI);
 export const FX_TAU = toFx(Math.PI * 2);
@@ -130,7 +130,7 @@ export function fxExpDecay(lnBase: FxQ16, t: FxQ16): FxQ16 {
   const x3 = fxMul(x2, x);
   const x4 = fxMul(x3, x);
 
-  const half = (FX_SCALE >> 1) as FxQ16;
+  const half = FX_HALF;
   const sixth = ((FX_SCALE / 6 + 0.5) | 0) as FxQ16;
   const twentyFourth = ((FX_SCALE / 24 + 0.5) | 0) as FxQ16;
 
