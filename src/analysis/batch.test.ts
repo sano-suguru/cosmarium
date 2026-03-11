@@ -2,9 +2,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import { seedRng, state } from '../state.ts';
-import type { FleetComposition } from '../types.ts';
-import { collectArgPairs, parseFleetArg, parseIntArg, runBatch } from './batch.ts';
+import type { FleetComposition } from '../types-fleet.ts';
+import { parseFleetArg } from './batch-cli.ts';
+import { runBatch } from './batch-runner.ts';
 import type { BatchConfig, BatchSummary } from './batch-types.ts';
+import { collectArgPairs, parseIntArg } from './cli-utils.ts';
 
 function testCreateRng(seed: number): () => number {
   seedRng(seed);

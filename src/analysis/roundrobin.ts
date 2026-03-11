@@ -1,65 +1,22 @@
 /**
  * ラウンドロビントーナメント — 全ユニット型のモノタイプ艦隊同士を総当たり対戦
- *
- * 使い方:
- *   bun run src/analysis/roundrobin.ts                          # デフォルト
- *   bun run src/analysis/roundrobin.ts --cost-cap 30 --trials 10  # コスト上限・試行回数指定
- *   bun run src/analysis/roundrobin.ts --seed 42                # 固定シード
- *   bun run src/analysis/roundrobin.ts --maxSteps 5000          # 最大ステップ数
- *   bun run src/analysis/roundrobin.ts --out results.json       # JSON 出力
  */
 
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import { createRng } from '../state.ts';
-import type { FleetEntry, UnitTypeIndex } from '../types.ts';
+import type { UnitTypeIndex } from '../types.ts';
+import type { FleetEntry } from '../types-fleet.ts';
 import { TYPES } from '../unit-types.ts';
-import { collectArgPairs, parseIntArg, runTrial } from './batch.ts';
-import type { BatchConfig } from './batch-types.ts';
+import { runTrial } from './batch.ts';
+import type {
+  BatchConfig,
+  MatchupResult,
+  RoundRobinConfig,
+  RoundRobinRanking,
+  RoundRobinSummary,
+} from './batch-types.ts';
 import { typeName } from './batch-types.ts';
-
-// ─── Types ────────────────────────────────────────────────────────
-
-interface MatchupResult {
-  readonly typeA: UnitTypeIndex;
-  readonly typeB: UnitTypeIndex;
-  readonly nameA: string;
-  readonly nameB: string;
-  readonly winsA: number;
-  readonly winsB: number;
-  readonly draws: number;
-  readonly trials: number;
-}
-
-interface RoundRobinRanking {
-  readonly typeIndex: UnitTypeIndex;
-  readonly name: string;
-  readonly totalWins: number;
-  readonly totalLosses: number;
-  readonly totalDraws: number;
-  readonly totalMatches: number;
-  readonly winRate: number;
-  readonly strongAgainst: readonly string[];
-  readonly weakAgainst: readonly string[];
-}
-
-interface RoundRobinSummary {
-  readonly costCap: number;
-  readonly trialsPerMatchup: number;
-  readonly seed: number;
-  readonly matchups: readonly MatchupResult[];
-  readonly rankings: readonly RoundRobinRanking[];
-}
-
-interface RoundRobinConfig {
-  readonly costCap: number;
-  readonly trials: number;
-  readonly seed: number;
-  readonly maxSteps: number;
-  readonly outFile: string | null;
-  readonly createRng: (seed: number) => () => number;
-  /** 進捗ログ出力関数。デフォルトは console.error */
-  readonly logger?: ((msg: string) => void) | undefined;
-}
+import { formatRoundRobin, parseRoundRobinArgs } from './roundrobin-format.ts';
 
 // ─── Core ─────────────────────────────────────────────────────────
 
@@ -259,51 +216,6 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
     seed: config.seed,
     matchups,
     rankings: computeRankings(matchups),
-  };
-}
-
-// ─── Format ───────────────────────────────────────────────────────
-
-function formatRoundRobin(summary: RoundRobinSummary): string {
-  const lines: string[] = [];
-  lines.push('');
-  lines.push('===============================================');
-  lines.push('  COSMARIUM ラウンドロビントーナメント');
-  lines.push('===============================================');
-  lines.push(`  コスト上限: ${summary.costCap} | 試行/組: ${summary.trialsPerMatchup} | シード: ${summary.seed}`);
-  lines.push(`  対戦組数: ${summary.matchups.length}`);
-  lines.push('');
-  lines.push('  --- 勝率ランキング ---');
-  lines.push('  ユニット        | 勝率   | 勝  | 負  | 分  | 得意な相手              | 苦手な相手');
-  lines.push('  ----------------|--------|-----|-----|-----|-------------------------|-------------------------');
-
-  for (const r of summary.rankings) {
-    const name = r.name.padEnd(16);
-    const wr = `${(r.winRate * 100).toFixed(1)}%`.padStart(6);
-    const w = String(r.totalWins).padStart(3);
-    const l = String(r.totalLosses).padStart(3);
-    const d = String(r.totalDraws).padStart(3);
-    const strong = r.strongAgainst.length > 0 ? r.strongAgainst.join(', ') : '-';
-    const weak = r.weakAgainst.length > 0 ? r.weakAgainst.join(', ') : '-';
-    lines.push(`  ${name}| ${wr} | ${w} | ${l} | ${d} | ${strong.padEnd(23)} | ${weak}`);
-  }
-
-  lines.push('===============================================');
-  return lines.join('\n');
-}
-
-// ─── CLI ──────────────────────────────────────────────────────────
-
-function parseRoundRobinArgs(argv: readonly string[], createRng: (seed: number) => () => number): RoundRobinConfig {
-  const pairs = collectArgPairs(argv);
-
-  return {
-    costCap: parseIntArg(pairs, '--cost-cap', 30),
-    trials: parseIntArg(pairs, '--trials', 10),
-    seed: parseIntArg(pairs, '--seed', 42),
-    maxSteps: parseIntArg(pairs, '--maxSteps', 10800),
-    outFile: pairs.get('--out') ?? null,
-    createRng,
   };
 }
 

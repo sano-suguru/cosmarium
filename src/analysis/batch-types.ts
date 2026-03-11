@@ -2,7 +2,8 @@
  * バッチ対戦システム — 型定義
  */
 
-import type { FleetComposition } from '../types.ts';
+import type { UnitTypeIndex } from '../types.ts';
+import type { FleetComposition } from '../types-fleet.ts';
 import { TYPES } from '../unit-types.ts';
 
 export function typeName(idx: number): string {
@@ -181,6 +182,50 @@ export interface SynergyPair {
   /** coWinRate - max(soloA, soloB) */
   readonly synergy: number;
   readonly coCount: number;
+}
+
+// ─── RoundRobin Types ───────────────────────────────────────────
+
+export interface MatchupResult {
+  readonly typeA: UnitTypeIndex;
+  readonly typeB: UnitTypeIndex;
+  readonly nameA: string;
+  readonly nameB: string;
+  readonly winsA: number;
+  readonly winsB: number;
+  readonly draws: number;
+  readonly trials: number;
+}
+
+export interface RoundRobinRanking {
+  readonly typeIndex: UnitTypeIndex;
+  readonly name: string;
+  readonly totalWins: number;
+  readonly totalLosses: number;
+  readonly totalDraws: number;
+  readonly totalMatches: number;
+  readonly winRate: number;
+  readonly strongAgainst: readonly string[];
+  readonly weakAgainst: readonly string[];
+}
+
+export interface RoundRobinSummary {
+  readonly costCap: number;
+  readonly trialsPerMatchup: number;
+  readonly seed: number;
+  readonly matchups: readonly MatchupResult[];
+  readonly rankings: readonly RoundRobinRanking[];
+}
+
+export interface RoundRobinConfig {
+  readonly costCap: number;
+  readonly trials: number;
+  readonly seed: number;
+  readonly maxSteps: number;
+  readonly outFile: string | null;
+  readonly createRng: (seed: number) => () => number;
+  /** 進捗ログ出力関数。デフォルトは console.error */
+  readonly logger?: ((msg: string) => void) | undefined;
 }
 
 // ─── Worker TypedArray シリアライズ ──────────────────────────────
