@@ -1,11 +1,12 @@
 import { SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Armament, Color3 } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { aimAt } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
-import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import { spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 const DREADNOUGHT_PROJ_SPEED = 320;
 const DREADNOUGHT_PROJ_SIZE = 7;

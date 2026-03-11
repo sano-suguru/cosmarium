@@ -1,6 +1,6 @@
 import { effectColor } from '../colors.ts';
 import { unitIdx } from '../pool-index.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Armament, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { DEFAULT_UNIT_TYPE, unitType } from '../unit-type-accessors.ts';
 import type { CombatContext, ShakeFn } from './combat-context.ts';
@@ -9,7 +9,7 @@ import { flagshipBarrage } from './combat-flagship.ts';
 import { focusBeam } from './combat-focus-beam.ts';
 import { mothershipCombat } from './combat-mothership.ts';
 import { reflectProjectiles } from './combat-reflect.ts';
-import { castChain, dischargeEmp, healAllies, launchDrones, ramTarget, teleport } from './combat-special.ts';
+import { castChain, dischargeEmp, healAllies, launchDrones, ramTarget } from './combat-special.ts';
 import {
   AMP_DAMAGE_MULT,
   amplifyAllies,
@@ -20,6 +20,7 @@ import {
   shieldAllies,
 } from './combat-support.ts';
 import { sweepBeam } from './combat-sweep.ts';
+import { teleport } from './combat-teleport.ts';
 import { computeEffectiveRange } from './steering.ts';
 
 // GC回避用の再利用シングルトン。combat() 呼び出し時に全フィールドを上書きする。

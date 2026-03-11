@@ -11,8 +11,9 @@ const SQUADRON_OBJECTIVE_MAX = 10.0;
 const SQUADRON_OBJECTIVE_SCATTER = 200;
 
 import { squadronIdx, unitIdx } from '../pool-index.ts';
-import { squadron, unit } from '../pools.ts';
-import type { Squadron, SquadronIndex, Team, Unit, UnitIndex } from '../types.ts';
+import { squadron, unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import type { Squadron, SquadronIndex, Unit, UnitIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { nearestEnemyCenter, teamCenterOf } from './team-center.ts';

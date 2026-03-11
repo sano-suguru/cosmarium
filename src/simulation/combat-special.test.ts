@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, REFLECT_FIELD_MAX_HP } from '../constants.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { poolCounts } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import {

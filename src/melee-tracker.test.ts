@@ -10,8 +10,8 @@ import {
 } from './melee-tracker.ts';
 import { teamUnitCounts } from './pools.ts';
 import { captureKiller } from './simulation/spawn.ts';
-import type { TeamCounts } from './types.ts';
-import { copyTeamCounts } from './types.ts';
+import type { TeamCounts } from './team.ts';
+import { copyTeamCounts } from './team.ts';
 
 /** ユニット未スポーン時用のゼロカウント */
 const ZERO_COUNTS: TeamCounts = [0, 0, 0, 0, 0];

@@ -2,7 +2,7 @@ import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
 import { asType, makeGameLoopState, makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { buildHash } from './spatial-hash.ts';
 import { steer } from './steering.ts';
 import { stepOnce } from './update.ts';

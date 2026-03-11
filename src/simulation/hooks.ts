@@ -9,8 +9,9 @@
  * 各フックは副作用（状態蓄積）のみ行い、制御フローを変更しないこと。
  */
 
-import type { Team, UnitTypeIndex } from '../types.ts';
-import { TEAM0 } from '../types.ts';
+import type { Team } from '../team.ts';
+import { TEAM0 } from '../team.ts';
+import type { UnitTypeIndex } from '../types.ts';
 import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
 import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 

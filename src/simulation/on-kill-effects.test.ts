@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 
 vi.mock('../input/camera.ts', () => ({

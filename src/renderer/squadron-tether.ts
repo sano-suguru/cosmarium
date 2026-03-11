@@ -1,7 +1,8 @@
 import { teamBaseColor } from '../colors.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
 import { unitIdx } from '../pool-index.ts';
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { getSquadronTetherTarget } from '../simulation/squadron.ts';
 import { NO_UNIT } from '../types.ts';
 import type { BeamEmitFn, BeamVisibilityFn } from './beam-segment.ts';

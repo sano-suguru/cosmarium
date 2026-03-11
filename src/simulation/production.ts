@@ -1,9 +1,11 @@
 import { POOL_UNITS } from '../constants.ts';
 import { getVariantDef } from '../mothership-variants.ts';
-import { mothershipIdx, mothershipVariant, poolCounts, teamUnitCounts, unit } from '../pools.ts';
+import { mothershipIdx, mothershipVariant, poolCounts, teamUnitCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { getProductionTime, MAX_CLUSTERS_PER_TICK, SLOT_COUNT } from '../production-config.ts';
-import type { ProductionSlot, ProductionState, Team, TeamTuple } from '../types.ts';
+import type { Team, TeamTuple } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
+import type { ProductionSlot, ProductionState } from '../types-fleet.ts';
 import { spawnUnit } from './spawn.ts';
 import { assignToSquadron } from './squadron.ts';
 

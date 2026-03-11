@@ -11,17 +11,18 @@ import {
   incProjectiles,
   incUnits,
   mothershipVariant,
-  particle,
   poolCounts,
-  projectile,
   resetPoolCounts,
   setPoolCounts,
   setUnitCount,
   teamUnitCounts,
-  unit,
 } from './pools.ts';
-import type { TeamCounts, TeamTuple, UnitIndex } from './types.ts';
-import { NO_UNIT, NO_VARIANT, TEAMS } from './types.ts';
+import { particle, projectile, unit } from './pools-query.ts';
+import type { TeamCounts, TeamTuple } from './team.ts';
+import { TEAMS } from './team.ts';
+import type { UnitIndex } from './types.ts';
+import { NO_UNIT } from './types.ts';
+import { NO_VARIANT } from './types-fleet.ts';
 
 /** 2チーム分のカウントから TeamCounts タプルを生成するヘルパー */
 function tc(t0: number, t1: number): TeamCounts {

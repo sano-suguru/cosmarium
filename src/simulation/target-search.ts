@@ -1,5 +1,6 @@
 import { unitIdx } from '../pool-index.ts';
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';

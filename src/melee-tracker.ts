@@ -7,10 +7,9 @@
  * - `advanceMeleeEndTimer(dt)` で delay 後に finalize コールバックを呼ぶ
  */
 import { teamUnitCounts } from './pools.ts';
-import { onKillUnit } from './simulation/spawn.ts';
-import type { Team, TeamCounts, TeamTuple } from './types.ts';
-import { TEAMS, teamsOf } from './types.ts';
-
+import { onKillUnit } from './simulation/spawn-hooks.ts';
+import type { Team, TeamCounts, TeamTuple } from './team.ts';
+import { TEAMS, teamsOf } from './team.ts';
 export interface EliminationEvent {
   readonly team: Team;
   /** 全滅時の経過時間（秒） */

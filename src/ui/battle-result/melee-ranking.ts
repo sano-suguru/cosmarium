@@ -1,7 +1,6 @@
 import type { EliminationEvent, MeleeResult } from '../../melee-tracker.ts';
-import type { Team } from '../../types.ts';
-import { teamAt } from '../../types.ts';
-
+import type { Team } from '../../team.ts';
+import { teamAt } from '../../team.ts';
 export function compareMeleeTeams(a: Team, b: Team, result: MeleeResult, elimMap: Map<number, number>): number {
   const sa = result.teamStats[a];
   const sb = result.teamStats[b];

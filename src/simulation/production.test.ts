@@ -8,11 +8,12 @@ import {
   mothershipIdx,
   setMothershipVariant,
   teamUnitCounts,
-  unit,
 } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { MAX_CLUSTERS_PER_TICK } from '../production-config.ts';
-import type { MothershipVariant, ProductionSlot, Team } from '../types.ts';
-import { TEAM0 } from '../types.ts';
+import type { Team } from '../team.ts';
+import { TEAM0 } from '../team.ts';
+import type { MothershipVariant, ProductionSlot } from '../types-fleet.ts';
 import { DRONE_TYPE, FIGHTER_TYPE, MOTHERSHIP_TYPE } from '../unit-type-accessors.ts';
 import { computeProductionCap, initProductionState, tickProduction } from './production.ts';
 import { spawnUnit } from './spawn.ts';

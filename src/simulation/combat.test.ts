@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { poolCounts } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { NO_UNIT } from '../types.ts';
 import {
@@ -18,7 +19,7 @@ import { resetReflected } from './combat-reflect.ts';
 import { AMP_DAMAGE_MULT, CATALYST_COOLDOWN_MULT, SCRAMBLE_COOLDOWN_MULT } from './combat-support.ts';
 import { _resetSweepHits } from './combat-sweep.ts';
 import { buildHash } from './spatial-hash.ts';
-import { onKillUnit } from './spawn.ts';
+import { onKillUnit } from './spawn-hooks.ts';
 import { AMP_RANGE_MULT, SCRAMBLE_RANGE_MULT } from './steering.ts';
 
 afterEach(() => {

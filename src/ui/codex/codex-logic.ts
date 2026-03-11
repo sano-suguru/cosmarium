@@ -9,21 +9,20 @@ import {
   getProjectileHWM,
   getUnitHWM,
   mothershipIdx,
-  particle,
   poolCounts,
-  projectile,
   restoreHWM,
   setPoolCounts,
   teamUnitCounts,
-  unit,
 } from '../../pools.ts';
+import { particle, projectile, unit } from '../../pools-query.ts';
 import { resetChains, restoreChains, snapshotChains } from '../../simulation/chain-lightning.ts';
 import { demoFlag } from '../../simulation/combat.ts';
 import { spawnUnit } from '../../simulation/spawn.ts';
 import { restoreSquadrons, snapshotSquadrons } from '../../simulation/squadron.ts';
 import { state } from '../../state.ts';
+import { copyTeamCounts, copyTeamTuple } from '../../team.ts';
 import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../../types.ts';
-import { copyTeamCounts, copyTeamTuple, NO_UNIT } from '../../types.ts';
+import { NO_UNIT } from '../../types.ts';
 import { DEFAULT_UNIT_TYPE, unitType } from '../../unit-type-accessors.ts';
 import { demoByFlag, demoDefault, demoRng } from '../codex-demos.ts';
 import { clearKillFeed } from '../kill-feed/KillFeed.tsx';

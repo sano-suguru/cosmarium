@@ -11,7 +11,8 @@ import {
   WORLD_SIZE,
 } from '../constants.ts';
 import { resetInterp, setInterpAlpha } from '../interpolation.ts';
-import { particle, projectile, setParticleCount, setProjectileCount, unit } from '../pools.ts';
+import { setParticleCount, setProjectileCount } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
 import { CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE } from '../unit-type-accessors.ts';
 
 const mockWriteSlots = vi.fn();

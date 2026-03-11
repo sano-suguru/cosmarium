@@ -11,9 +11,11 @@ import {
   SH_CIRCLE,
   SIM_DT,
 } from '../constants.ts';
-import { decMotherships, decUnits, incMotherships, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { decMotherships, decUnits, incMotherships, poolCounts } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
 import { rng, state } from '../state.ts';
-import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAMS } from '../types.ts';
+import { TEAM0, TEAM1, TEAM2, TEAM3, TEAMS } from '../team.ts';
+import { NO_UNIT } from '../types.ts';
 import {
   BASTION_TYPE,
   BOMBER_TYPE,
@@ -28,7 +30,9 @@ import {
   BASTION_SELF_ABSORB_RATIO,
   ORPHAN_TETHER_PROJECTILE_MULT,
 } from './combat-beam-defense.ts';
-import { addBeam, onKillUnit, spawnParticle, spawnProjectile } from './spawn.ts';
+import { spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
+import { onKillUnit } from './spawn-hooks.ts';
 import { REFLECT_FIELD_GRANT_INTERVAL, SHIELD_LINGER, TETHER_BEAM_LIFE } from './update-fields.ts';
 
 vi.mock('./spatial-hash.ts', async (importOriginal) => {

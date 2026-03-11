@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MeleeResult } from '../../melee-tracker.ts';
-import type { Team } from '../../types.ts';
+import type { Team } from '../../team.ts';
 import { buildElimMap, buildMeleeRanking, compareMeleeTeams, computeMaxKills } from './melee-ranking.ts';
 
 function makeStats(kills: number, survivors: number, initialUnits = 10) {

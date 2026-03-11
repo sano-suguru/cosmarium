@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import type { Team } from '../types.ts';
-import { MAX_TEAMS, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
+import type { Team } from '../team.ts';
+import { MAX_TEAMS, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../team.ts';
 import {
   accumulateUnit,
   beginTeamCenterUpdate,

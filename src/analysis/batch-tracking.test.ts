@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { asType, kill, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { emitDamage, emitSupport } from '../simulation/hooks.ts';
 import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
-import type { Team } from '../types.ts';
+import type { Team } from '../team.ts';
 import {
   aggregateKillContext,
   aggregateLifespan,

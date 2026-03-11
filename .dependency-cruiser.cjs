@@ -35,6 +35,19 @@ module.exports = {
       },
     },
     {
+      name: 'no-direct-pools-init-import',
+      severity: 'error',
+      comment:
+        'pools-init.ts は生のプール配列を公開する。pools.ts, pools-query.ts, pools-particle.ts 以外からの直接 import を禁止。',
+      from: {
+        path: '^src/',
+        pathNot: '^src/pools(-query|-particle)?\\.ts$',
+      },
+      to: {
+        path: '^src/pools-init\\.ts$',
+      },
+    },
+    {
       name: 'no-client-in-worker',
       severity: 'error',
       comment: 'worker/ はクライアントコード (src/) を import してはいけない。worker はサーバーサイドのみ。',

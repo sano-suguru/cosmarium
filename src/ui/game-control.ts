@@ -5,8 +5,10 @@ import { _resetRunState, endRun, isRunActive, processRoundEnd, resetRun } from '
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
 import { initBattleProduction, initMeleeProduction, initUnits } from '../simulation/init.ts';
 import { rng, seedRng, state } from '../state.ts';
-import type { BattleResult, FleetSetup, ProductionState, TeamTuple, TimeScale } from '../types.ts';
-import { MAX_TEAMS } from '../types.ts';
+import type { TeamTuple } from '../team.ts';
+import { MAX_TEAMS } from '../team.ts';
+import type { TimeScale } from '../types.ts';
+import type { BattleResult, FleetSetup, ProductionState } from '../types-fleet.ts';
 // NOTE: codex → game-control の逆方向 import は循環依存になるため禁止
 import { toggleCodex } from './codex/codex-logic.ts';
 import { resetComposeCounts } from './fleet-compose/FleetCompose.tsx';

@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import { state } from '../state.ts';
-import type { FleetSetup, GameState, TimeScale, UnitTypeIndex } from '../types.ts';
+import type { GameState, TimeScale, UnitTypeIndex } from '../types.ts';
+import type { FleetSetup } from '../types-fleet.ts';
 import type { ResultData } from './battle-result/result-data.ts';
 
 // Signal を単一の真実の源泉にする。

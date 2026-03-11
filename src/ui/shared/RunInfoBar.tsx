@@ -1,4 +1,4 @@
-import type { RunStatus } from '../../types.ts';
+import type { RunStatus } from '../../types-fleet.ts';
 import { formatLivesText } from '../format.ts';
 
 type Props = {

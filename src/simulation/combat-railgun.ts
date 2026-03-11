@@ -1,6 +1,6 @@
 import { effectColor } from '../colors.ts';
 import { SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Color3, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
@@ -9,7 +9,8 @@ import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
-import { addBeam, spawnParticle } from './spawn.ts';
+import { spawnParticle } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 export const RAILGUN_SHAPE = 8;
 const RAILGUN_SAMPLE_STEP = 100;

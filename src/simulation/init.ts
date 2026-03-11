@@ -1,7 +1,11 @@
 import { getVariantDef } from '../mothership-variants.ts';
-import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx, setMothershipVariant, unit } from '../pools.ts';
-import type { FleetSetup, MothershipVariant, ProductionState, Team, TeamTuple, UnitTypeIndex } from '../types.ts';
-import { NO_UNIT, teamsOf } from '../types.ts';
+import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx, setMothershipVariant } from '../pools.ts';
+import { unit } from '../pools-query.ts';
+import type { Team, TeamTuple } from '../team.ts';
+import { teamsOf } from '../team.ts';
+import type { UnitTypeIndex } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
+import type { FleetSetup, MothershipVariant, ProductionState } from '../types-fleet.ts';
 import {
   AMPLIFIER_TYPE,
   ARCER_TYPE,

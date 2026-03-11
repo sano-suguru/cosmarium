@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { hotspot, resetHotspot, updateHotspot } from './hotspot.ts';
 
 const HOTSPOT_UPDATE_INTERVAL = 6;

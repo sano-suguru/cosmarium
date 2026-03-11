@@ -1,7 +1,8 @@
 import { color } from '../colors.ts';
 import { SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_HOMING, SH_TRAIL } from '../constants.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
-import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { getParticleHWM, getProjectileHWM, getUnitHWM, poolCounts } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { renderBeams } from './render-beams.ts';
 import {

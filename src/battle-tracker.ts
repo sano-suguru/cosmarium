@@ -12,7 +12,8 @@
  *   - `'battleEnding'`: 勝者検知後の余韻。勝敗判定はスキップだが advanceBattleTimer は継続
  *   - `'spectate'`/`'melee'`/`'meleeEnding'`/`'aftermath'`: advanceBattleTimer は呼ばれない
  */
-import type { BattleResult, BattleSnapshot, Team } from './types.ts';
+import type { Team } from './team.ts';
+import type { BattleResult, BattleSnapshot } from './types-fleet.ts';
 
 /** 全滅検知後の余韻（秒） */
 const BATTLE_END_DELAY = 2;

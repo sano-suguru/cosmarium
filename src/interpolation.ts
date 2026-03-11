@@ -1,4 +1,5 @@
-import { getParticleHWM, getProjectileHWM, getUnitHWM, particle, poolCounts, projectile, unit } from './pools.ts';
+import { getParticleHWM, getProjectileHWM, getUnitHWM, poolCounts } from './pools.ts';
+import { particle, projectile, unit } from './pools-query.ts';
 
 /**
  * 描画補間係数 (0–1)。Gaffer-on-Games "Fix Your Timestep!" パターンに準拠。

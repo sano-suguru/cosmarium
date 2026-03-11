@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeGameLoopState, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { SIM_DT } from '../constants.ts';
-import { getUnitHWM, unit } from '../pools.ts';
+import { getUnitHWM } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { rng, seedRng } from '../state.ts';
 import { initUnits } from './init.ts';
 import { stepOnce } from './update.ts';

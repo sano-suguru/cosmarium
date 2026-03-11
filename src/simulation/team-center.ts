@@ -1,6 +1,7 @@
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
-import type { Team } from '../types.ts';
-import { MAX_TEAMS } from '../types.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import { MAX_TEAMS } from '../team.ts';
 
 /** チームごとの重心座標。count === 0 の場合 x, y は無意味 */
 interface TeamCenter {

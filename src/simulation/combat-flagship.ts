@@ -1,10 +1,11 @@
 import { BEAM_DECAY_RATE, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS } from '../unit-type-accessors.ts';
 import { aimAt } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
-import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import { spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 const FLAGSHIP_MAIN_GUN_SPEED = 380;
 const FLAGSHIP_MAIN_SPREAD = 0.15;

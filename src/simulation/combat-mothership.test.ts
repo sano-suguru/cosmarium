@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeRng, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { MOTHERSHIP_VARIANTS } from '../mothership-variants.ts';
-import { getProjectileHWM, incMotherships, poolCounts, projectile, setMothershipVariant, unit } from '../pools.ts';
-import type { MothershipVariant } from '../types.ts';
-import { NO_UNIT, TEAM0, TEAM1 } from '../types.ts';
+import { getProjectileHWM, incMotherships, poolCounts, setMothershipVariant } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
+import { TEAM0, TEAM1 } from '../team.ts';
+import { NO_UNIT } from '../types.ts';
+import type { MothershipVariant } from '../types-fleet.ts';
 import { DRONE_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import type { CombatContext } from './combat-context.ts';
 import { mothershipCombat } from './combat-mothership.ts';

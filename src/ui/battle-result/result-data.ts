@@ -1,6 +1,5 @@
 import type { MeleeResult } from '../../melee-tracker.ts';
-import type { RoundResult, RunResult, RunStatus } from '../../types.ts';
-
+import type { RoundResult, RunResult, RunStatus } from '../../types-fleet.ts';
 export type ResultData =
   | { readonly type: 'round'; readonly roundResult: RoundResult; readonly runStatus: RunStatus }
   | { readonly type: 'run'; readonly runResult: RunResult }

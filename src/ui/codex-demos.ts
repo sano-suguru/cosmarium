@@ -1,4 +1,4 @@
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { spawnUnit } from '../simulation/spawn.ts';
 import type { DemoFlag, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';

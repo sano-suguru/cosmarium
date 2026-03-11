@@ -7,7 +7,8 @@ import { resetReflected } from './combat-reflect.ts';
 import { buildHash } from './spatial-hash.ts';
 import { spawnParticle, spawnProjectile } from './spawn.ts';
 import { stepOnce, updateBeams, updateParticles, updateTrackingBeams } from './update.ts';
-import { applyAllFields, decayAndRegen } from './update-fields.ts';
+import { applyAllFields } from './update-fields.ts';
+import { decayAndRegen } from './update-fields-regen.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
 const rng = makeRng();

@@ -1,5 +1,6 @@
-import type { Color3, Team, TeamTuple } from './types.ts';
-import { mapTeamTuple } from './types.ts';
+import type { Team, TeamTuple } from './team.ts';
+import { mapTeamTuple } from './team.ts';
+import type { Color3 } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];

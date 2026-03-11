@@ -10,9 +10,11 @@ import {
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { particleIdx, projectileIdx, unitIdx } from '../pool-index.ts';
-import { incMotherships, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { incMotherships, mothershipIdx, poolCounts } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
+import { TEAM0, TEAM1 } from '../team.ts';
 import type { UnitIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT, TEAM0, TEAM1 } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
 import {
   BOMBER_TYPE,
   CRUISER_TYPE,
@@ -23,17 +25,16 @@ import {
 } from '../unit-type-accessors.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import {
-  addBeam,
   captureKiller,
   killParticle,
   killProjectile,
   killUnit,
-  onKillUnit,
-  onSpawnUnit,
   spawnParticle,
   spawnProjectile,
   spawnUnit,
 } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
+import { onKillUnit, onSpawnUnit } from './spawn-hooks.ts';
 
 const testRng = () => 0.5;
 afterEach(() => {

@@ -1,7 +1,8 @@
 import { SH_CIRCLE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { swapRemove } from '../swap-remove.ts';
-import type { Color3, Team, UnitIndex } from '../types.ts';
+import type { Team } from '../team.ts';
+import type { Color3, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import type { ShakeFn } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
@@ -9,7 +10,8 @@ import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
-import { addBeam, spawnParticle } from './spawn.ts';
+import { spawnParticle } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 interface ChainHop {
   fromIndex: UnitIndex; // 前ホップのターゲット（ビーム起点のライブ座標に使う）

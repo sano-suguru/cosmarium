@@ -80,7 +80,7 @@
         "noExcessiveLinesPerFile": {
           "level": "error",
           "options": {
-            "maxLines": 600
+            "maxLines": 300
           }
         }
       }
@@ -91,6 +91,16 @@
       "includes": ["src/shaders/**"],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
+    },
+    {
+      "includes": ["**/*.module.css"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noExcessiveLinesPerFile": "off"
+          }
+        }
+      }
     },
     {
       "includes": ["**/*.test.ts", "src/__test__/**"],

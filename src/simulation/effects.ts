@@ -1,8 +1,9 @@
 import { effectColor, trailColor } from '../colors.ts';
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, SH_TRAIL, TAU } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { addAberration, addFlash, addFreeze } from '../screen-effects.ts';
-import type { Color3, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
+import type { Team } from '../team.ts';
+import type { Color3, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-type-accessors.ts';
 import type { ShakeFn } from './combat-context.ts';

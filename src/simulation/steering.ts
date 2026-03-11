@@ -1,5 +1,5 @@
 import { NEIGHBOR_RANGE, PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-type-accessors.ts';

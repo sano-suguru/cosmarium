@@ -7,16 +7,16 @@ import {
   SCRAMBLE_BOOST_LINGER,
 } from '../constants.ts';
 import { unitIdx } from '../pool-index.ts';
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { emitSupport } from './hooks.ts';
 import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
-import { addTrackingBeam } from './spawn.ts';
+import { addTrackingBeam } from './spawn-beams.ts';
 
 export const SHIELD_LINGER = 2;
 export const TETHER_BEAM_LIFE = 0.7;
-const HIT_FLASH_DURATION = 0.08;
 export const REFLECT_FIELD_GRANT_INTERVAL = 1;
 const REFLECT_FIELD_RADIUS = 100;
 const BASTION_SHIELD_RADIUS = 120;
@@ -37,56 +37,6 @@ const maxFieldRadius = Math.max(
 );
 if (maxFieldRadius > NEIGHBOR_RANGE) {
   throw new Error(`フィールド半径 (${maxFieldRadius}) が NEIGHBOR_RANGE (${NEIGHBOR_RANGE}) を超えています`);
-}
-
-function tickReflectorShield(u: Unit, dt: number) {
-  if (u.shieldCooldown <= 0) {
-    return;
-  }
-  u.shieldCooldown -= dt;
-  if (u.shieldCooldown <= 0) {
-    u.shieldCooldown = 0;
-    u.energy = u.maxEnergy;
-  }
-}
-
-function regenUnitEnergy(u: Unit, dt: number) {
-  if (u.maxEnergy <= 0) {
-    return;
-  }
-  const t = unitType(u.type);
-  if (t.reflects) {
-    tickReflectorShield(u, dt);
-  } else {
-    u.energy = Math.min(u.maxEnergy, u.energy + t.energyRegen * dt);
-  }
-}
-
-export function decayAndRegen(dt: number) {
-  const flashDecay = dt / HIT_FLASH_DURATION;
-  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) {
-      continue;
-    }
-    rem--;
-    if (u.hitFlash > 0) {
-      u.hitFlash = Math.max(0, u.hitFlash - flashDecay);
-    }
-    regenUnitEnergy(u, dt);
-    if (u.shieldLingerTimer > 0) {
-      u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
-    }
-    if (u.ampBoostTimer > 0) {
-      u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
-    }
-    if (u.scrambleTimer > 0) {
-      u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
-    }
-    if (u.catalystTimer > 0) {
-      u.catalystTimer = Math.max(0, u.catalystTimer - dt);
-    }
-  }
 }
 
 function refreshTetherBeam(src: UnitIndex, tgt: UnitIndex): boolean {

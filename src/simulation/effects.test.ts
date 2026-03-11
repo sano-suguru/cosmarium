@@ -3,9 +3,10 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { trailColor } from '../colors.ts';
 import { unitIdx } from '../pool-index.ts';
-import { particle, poolCounts, unit } from '../pools.ts';
+import { poolCounts } from '../pools.ts';
+import { particle, unit } from '../pools-query.ts';
 import { rng, state } from '../state.ts';
-import type { Team } from '../types.ts';
+import type { Team } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
 import {
   ARCER_TYPE,
@@ -19,7 +20,8 @@ import {
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
-import { captureKiller, onKillUnit } from './spawn.ts';
+import { captureKiller } from './spawn.ts';
+import { onKillUnit } from './spawn-hooks.ts';
 
 vi.mock('../screen-effects.ts', () => ({
   addAberration: vi.fn(),

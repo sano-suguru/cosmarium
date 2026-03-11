@@ -1,5 +1,5 @@
 import { TAU, WORLD_SIZE } from '../constants.ts';
-import type { BattleTeam, Team } from '../types.ts';
+import type { BattleTeam, Team } from '../team.ts';
 
 const BATTLE_SPAWN_X = 1200;
 const BATTLE_SPAWN_Y = 300;

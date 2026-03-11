@@ -1,6 +1,7 @@
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
-import type { FleetSetup, MothershipVariant, ProductionSlot, UnitTypeIndex } from '../types.ts';
+import type { UnitTypeIndex } from '../types.ts';
+import type { FleetSetup, MothershipVariant, ProductionSlot } from '../types-fleet.ts';
 import { DRONE_TYPE, unitTypeIndex } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 

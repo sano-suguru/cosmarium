@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { REFLECT_FIELD_MAX_HP } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { CRUISER_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE, SCORCHER_TYPE, unitType } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';

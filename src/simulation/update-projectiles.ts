@@ -1,8 +1,10 @@
 import { effectColor } from '../colors.ts';
 import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
 import { projectileIdx } from '../pool-index.ts';
-import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, Projectile, ProjectileIndex, Team, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
+import { getProjectileHWM, poolCounts } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import type { Color3, Projectile, ProjectileIndex, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';

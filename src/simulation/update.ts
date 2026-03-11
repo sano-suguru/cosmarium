@@ -8,13 +8,15 @@ import {
   getUnitHWM,
   mothershipIdx,
   mothershipVariant,
-  particle,
   poolCounts,
-  unit,
 } from '../pools.ts';
+import { particle, unit } from '../pools-query.ts';
 import { swapRemove } from '../swap-remove.ts';
-import type { Armament, BattlePhase, ProductionState, Team, TeamTuple, Unit } from '../types.ts';
-import { MAX_TEAMS, NO_UNIT, TEAM0, TEAM1, teamAt } from '../types.ts';
+import type { Team, TeamTuple } from '../team.ts';
+import { MAX_TEAMS, TEAM0, TEAM1, teamAt } from '../team.ts';
+import type { Armament, BattlePhase, Unit } from '../types.ts';
+import { NO_UNIT } from '../types.ts';
+import type { ProductionState } from '../types-fleet.ts';
 import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import { updateChains } from './chain-lightning.ts';
 import { combat, combatMothershipTick } from './combat.ts';
@@ -28,7 +30,8 @@ import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
 import { killParticle } from './spawn.ts';
 import { updateSquadronObjectives } from './squadron.ts';
 import { steerWithNeighbors } from './steering.ts';
-import { applyAllFields, decayAndRegen } from './update-fields.ts';
+import { applyAllFields } from './update-fields.ts';
+import { decayAndRegen } from './update-fields-regen.ts';
 import { updateProjectiles } from './update-projectiles.ts';
 
 /** 全チーム分の生産状態タプル */

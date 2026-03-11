@@ -1,5 +1,4 @@
-import type { BattleResult, RoundResult, RunResult, RunStatus } from './types.ts';
-
+import type { BattleResult, RoundResult, RunResult, RunStatus } from './types-fleet.ts';
 export const RUN_MAX_LIVES = 5;
 export const RUN_WIN_TARGET = 10;
 

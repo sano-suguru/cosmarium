@@ -9,7 +9,7 @@ import {
   RUN_WIN_TARGET,
   resetRun,
 } from './run.ts';
-import type { BattleResult } from './types.ts';
+import type { BattleResult } from './types-fleet.ts';
 
 function makeBattleResult(overrides: Partial<BattleResult> = {}): BattleResult {
   return {

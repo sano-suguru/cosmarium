@@ -1,29 +1,26 @@
-import { acquireBeam, acquireTrackingBeam, beams, trackingBeams } from '../beams.ts';
-import { POOL_PROJECTILES, POOL_TRACKING_BEAMS, POOL_UNITS } from '../constants.ts';
+import { POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
 import { projectileIdx, unitIdx } from '../pool-index.ts';
 import {
   advanceParticleHWM,
   advanceProjectileHWM,
   advanceUnitHWM,
-  allocParticleSlot,
   decMotherships,
   decParticles,
   decProjectiles,
   decUnits,
-  freeParticleSlot,
   incParticles,
   incProjectiles,
   incUnits,
-  particle,
-  projectile,
   teamUnitCounts,
-  unit,
 } from '../pools.ts';
-import type { ParticleIndex, ProjectileIndex, SquadronIndex, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
-import { DEFAULT_UNIT_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
-import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
+import { allocParticleSlot, freeParticleSlot } from '../pools-particle.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitTypeIndex } from '../types.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT } from '../types.ts';
+import { MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import type { KillContext } from './on-kill-effects.ts';
+import { dispatchKillEvent, dispatchSpawnEvent } from './spawn-hooks.ts';
 
 export interface Killer {
   index: UnitIndex;
@@ -44,65 +41,6 @@ export function captureKiller(i: UnitIndex): Killer | undefined {
     return undefined;
   }
   return { index: i, team: u.team, type: u.type };
-}
-
-type KillEvent = {
-  victim: UnitIndex;
-  victimTeam: Team;
-  victimType: UnitTypeIndex;
-  victimSquadronIdx: SquadronIndex;
-  /** decUnits 後の victimTeam の残存ユニット数。0 なら全滅。 */
-  victimTeamRemaining: number;
-  killContext: KillContext;
-} & (
-  | { killer: UnitIndex; killerTeam: Team; killerType: UnitTypeIndex }
-  | { killer: typeof NO_UNIT; killerTeam?: undefined; killerType?: undefined }
-);
-
-type KillUnitHook = (e: KillEvent) => void;
-const killUnitHooks: KillUnitHook[] = [];
-const permanentKillUnitHooks: KillUnitHook[] = [];
-/** hookを登録し、登録解除用のunsubscribe関数を返す。呼び出し元がライフサイクルを管理すること */
-export function onKillUnit(hook: KillUnitHook): () => void {
-  return subscribe(killUnitHooks, hook);
-}
-
-/** 永続フック登録。モジュール/アプリ初期化時に使用（unsubscribe不要、テストリセット対象外） */
-export function onKillUnitPermanent(hook: KillUnitHook): void {
-  permanentKillUnitHooks.push(hook);
-}
-
-/** テスト専用: テスト用killUnitHooksをクリア。永続フックは維持。pool-helper.tsのresetPools()から呼ばれる */
-export function _resetKillUnitHooks(): void {
-  killUnitHooks.length = 0;
-  _keDepth = 0;
-}
-
-// ─── Spawn Hook ──────────────────────────────────────────────────
-
-interface SpawnEvent {
-  unitIndex: UnitIndex;
-  team: Team;
-  type: UnitTypeIndex;
-}
-
-type SpawnUnitHook = (e: Readonly<SpawnEvent>) => void;
-const spawnUnitHooks: SpawnUnitHook[] = [];
-
-// GC回避: SpawnEvent 深度インデックスド・スタック（再入安全・Carrier等のフック内spawnUnit対応）
-const _seStack = Array.from(
-  { length: EVENT_STACK_MAX_DEPTH },
-  (): SpawnEvent => ({ unitIndex: unitIdx(0), team: TEAM0, type: DEFAULT_UNIT_TYPE }),
-);
-let _seDepth = 0;
-
-export function onSpawnUnit(hook: SpawnUnitHook): () => void {
-  return subscribe(spawnUnitHooks, hook);
-}
-
-export function _resetSpawnUnitHooks(): void {
-  spawnUnitHooks.length = 0;
-  _seDepth = 0;
 }
 
 export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number, rng: () => number): UnitIndex {
@@ -160,48 +98,12 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
       advanceUnitHWM(i);
       incUnits(team);
       const idx = unitIdx(i);
-      if (spawnUnitHooks.length > 0) {
-        const d = _seDepth++;
-        const se = stackAt(_seStack, d);
-        se.unitIndex = idx;
-        se.team = team;
-        se.type = type;
-        for (const h of spawnUnitHooks) {
-          h(se);
-        }
-        _seDepth--;
-      }
+      dispatchSpawnEvent(idx, team, type);
       return idx;
     }
   }
   return NO_UNIT;
 }
-
-// GC回避: KillEvent 深度インデックスド・スタック（再入安全・hookは参照保存しない前提）
-const _keWK = Array.from(
-  { length: EVENT_STACK_MAX_DEPTH },
-  (): KillEvent & { killerTeam: Team; killerType: UnitTypeIndex } => ({
-    victim: unitIdx(0),
-    victimTeam: TEAM0,
-    victimType: DEFAULT_UNIT_TYPE,
-    victimSquadronIdx: NO_SQUADRON,
-    victimTeamRemaining: 0,
-    killContext: 0,
-    killer: unitIdx(0),
-    killerTeam: TEAM0,
-    killerType: DEFAULT_UNIT_TYPE,
-  }),
-);
-const _keNK = Array.from({ length: EVENT_STACK_MAX_DEPTH }, (): KillEvent & { killer: typeof NO_UNIT } => ({
-  victim: unitIdx(0),
-  victimTeam: TEAM0,
-  victimType: DEFAULT_UNIT_TYPE,
-  victimSquadronIdx: NO_SQUADRON,
-  victimTeamRemaining: 0,
-  killContext: 0,
-  killer: NO_UNIT,
-}));
-let _keDepth = 0;
 
 export function killUnit(
   i: UnitIndex,
@@ -220,39 +122,7 @@ export function killUnit(
     if (u.type === MOTHERSHIP_TYPE) {
       decMotherships(u.team);
     }
-    // GC回避: 深度インデックスド・スタックから取得（再入安全）
-    const d = _keDepth++;
-    let e: KillEvent;
-    const ctx = killContext;
-    if (killer) {
-      const ke = stackAt(_keWK, d);
-      ke.victim = i;
-      ke.victimTeam = u.team;
-      ke.victimType = u.type;
-      ke.victimSquadronIdx = squadronIdx;
-      ke.victimTeamRemaining = teamUnitCounts[u.team];
-      ke.killContext = ctx;
-      ke.killer = killer.index;
-      ke.killerTeam = killer.team;
-      ke.killerType = killer.type;
-      e = ke;
-    } else {
-      const ke = stackAt(_keNK, d);
-      ke.victim = i;
-      ke.victimTeam = u.team;
-      ke.victimType = u.type;
-      ke.victimSquadronIdx = squadronIdx;
-      ke.victimTeamRemaining = teamUnitCounts[u.team];
-      ke.killContext = ctx;
-      e = ke;
-    }
-    for (const hook of killUnitHooks) {
-      hook(e);
-    }
-    for (const hook of permanentKillUnitHooks) {
-      hook(e);
-    }
-    _keDepth--;
+    dispatchKillEvent(i, u.team, u.type, squadronIdx, killContext, killer, teamUnitCounts[u.team]);
     return snap;
   }
   return undefined;
@@ -369,65 +239,4 @@ export function spawnProjectile(
     }
   }
   return NO_PROJECTILE;
-}
-
-export function addBeam(
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  r: number,
-  g: number,
-  b: number,
-  life: number,
-  width: number,
-  tapered = false,
-  stepDiv = 1,
-  lightning = false,
-) {
-  const bm = acquireBeam();
-  bm.x1 = x1;
-  bm.y1 = y1;
-  bm.x2 = x2;
-  bm.y2 = y2;
-  bm.r = r;
-  bm.g = g;
-  bm.b = b;
-  bm.life = life;
-  bm.maxLife = life;
-  bm.width = width;
-  bm.tapered = tapered;
-  bm.stepDiv = stepDiv;
-  bm.lightning = lightning;
-  beams.push(bm);
-}
-
-export function addTrackingBeam(
-  srcUnit: UnitIndex,
-  tgtUnit: UnitIndex,
-  r: number,
-  g: number,
-  b: number,
-  life: number,
-  width: number,
-) {
-  if (trackingBeams.length >= POOL_TRACKING_BEAMS) {
-    return;
-  }
-  const src = unit(srcUnit);
-  const tgt = unit(tgtUnit);
-  const tb = acquireTrackingBeam();
-  tb.srcUnit = srcUnit;
-  tb.tgtUnit = tgtUnit;
-  tb.x1 = src.x;
-  tb.y1 = src.y;
-  tb.x2 = tgt.x;
-  tb.y2 = tgt.y;
-  tb.r = r;
-  tb.g = g;
-  tb.b = b;
-  tb.life = life;
-  tb.maxLife = life;
-  tb.width = width;
-  trackingBeams.push(tb);
 }

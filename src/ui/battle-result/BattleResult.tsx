@@ -1,7 +1,8 @@
 import type { JSX } from 'preact';
 import { TEAM_UI_HEX_COLORS } from '../../colors.ts';
 import type { MeleeResult, TeamStats } from '../../melee-tracker.ts';
-import type { RoundResult, RunResult, RunStatus, Team } from '../../types.ts';
+import type { Team } from '../../team.ts';
+import type { RoundResult, RunResult, RunStatus } from '../../types-fleet.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import styles from './BattleResult.module.css';

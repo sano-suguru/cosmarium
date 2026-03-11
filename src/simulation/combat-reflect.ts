@@ -1,11 +1,14 @@
 import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
-import { getProjectileHWM, poolCounts, projectile, unit } from '../pools.ts';
-import type { Color3, ReflectableProjectile, Team, UnitIndex, UnitTypeIndex } from '../types.ts';
+import { getProjectileHWM, poolCounts } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import type { Color3, ReflectableProjectile, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt } from './combat-aim.ts';
 import { consumeReflectorShieldHp } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
-import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import { spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 const REFLECTOR_WEAK_SHOT_SPEED = 400;
 const REFLECT_RADIUS_MULT = 3;

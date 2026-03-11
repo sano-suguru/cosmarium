@@ -1,5 +1,6 @@
-import { unit } from '../pools.ts';
-import type { Team, UnitIndex } from '../types.ts';
+import { unit } from '../pools-query.ts';
+import type { Team } from '../team.ts';
+import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import type { DamageKind } from './hooks.ts';

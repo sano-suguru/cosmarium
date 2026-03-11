@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
-import { poolCounts, unit } from '../pools.ts';
+import { poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { FIGHTER_TYPE, SNIPER_TYPE } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';

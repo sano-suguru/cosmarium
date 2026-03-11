@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { poolCounts, projectile, unit } from '../pools.ts';
+import { poolCounts } from '../pools.ts';
+import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { combat } from './combat.ts';
 import { aimAt } from './combat-aim.ts';

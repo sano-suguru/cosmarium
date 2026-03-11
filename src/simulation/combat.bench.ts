@@ -1,7 +1,7 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
 import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { unitTypeIndex } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
 import { buildHash } from './spatial-hash.ts';

@@ -4,8 +4,9 @@
 
 import { onDamageUnit, onSupportEffect } from '../simulation/hooks.ts';
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
-import { onKillUnit, onSpawnUnit } from '../simulation/spawn.ts';
-import { MAX_TEAMS, NO_UNIT } from '../types.ts';
+import { onKillUnit, onSpawnUnit } from '../simulation/spawn-hooks.ts';
+import { MAX_TEAMS } from '../team.ts';
+import { NO_UNIT } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import type {
   DamageTracker,

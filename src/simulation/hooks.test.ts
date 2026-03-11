@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType } from '../__test__/pool-helper.ts';
-import type { Team } from '../types.ts';
+import type { Team } from '../team.ts';
 import type { DamageKind } from './hooks.ts';
 import {
   _resetDamageHooks,

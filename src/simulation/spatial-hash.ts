@@ -1,7 +1,8 @@
 import { unitIdx } from '../pool-index.ts';
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
+import { MAX_TEAMS } from '../team.ts';
 import type { UnitIndex } from '../types.ts';
-import { MAX_TEAMS } from '../types.ts';
 import { accumulateUnit, beginTeamCenterUpdate, endTeamCenterUpdate } from './team-center.ts';
 
 const CELL_SIZE = 100;

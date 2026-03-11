@@ -1,5 +1,5 @@
 import { BEAM_DECAY_RATE, SH_CIRCLE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { applyBeamDefenses } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
@@ -7,7 +7,8 @@ import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
-import { addBeam, spawnParticle } from './spawn.ts';
+import { spawnParticle } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 export function focusBeam(ctx: CombatContext) {
   const { u, ui, c, t, dt, vd } = ctx;

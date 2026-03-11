@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { REF_FPS, WORLD_SIZE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { rng, seedRng } from '../state.ts';
 import type { UnitType, UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';

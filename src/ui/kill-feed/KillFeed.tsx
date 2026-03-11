@@ -2,7 +2,8 @@ import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
 import { useEffect } from 'preact/hooks';
 import { color, color3ToRgb } from '../../colors.ts';
-import type { Team, UnitTypeIndex } from '../../types.ts';
+import type { Team } from '../../team.ts';
+import type { UnitTypeIndex } from '../../types.ts';
 import { unitType } from '../../unit-type-accessors.ts';
 import styles from './KillFeed.module.css';
 

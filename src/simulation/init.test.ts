@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { getUnitHWM, mothershipIdx, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { getUnitHWM, mothershipIdx, poolCounts } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
-import type { FleetSetup, MothershipVariant } from '../types.ts';
-import { NO_UNIT, TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../types.ts';
+import { TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../team.ts';
+import { NO_UNIT } from '../types.ts';
+import type { FleetSetup, MothershipVariant } from '../types-fleet.ts';
 import { unitTypeIndex } from '../unit-type-accessors.ts';
 
 vi.mock('../input/camera.ts', () => ({

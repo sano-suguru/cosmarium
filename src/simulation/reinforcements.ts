@@ -1,5 +1,6 @@
 import { incMotherships, mothershipIdx, teamUnitCounts } from '../pools.ts';
-import type { BattleTeam, UnitTypeIndex } from '../types.ts';
+import type { BattleTeam } from '../team.ts';
+import type { UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import {
   AMPLIFIER_TYPE,

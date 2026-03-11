@@ -1,4 +1,5 @@
-import type { ProductionSlot, UnitTypeIndex } from './types.ts';
+import type { UnitTypeIndex } from './types.ts';
+import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
 
 /** 母艦あたりの生産スロット数 */

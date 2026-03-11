@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { asType, kill, resetPools, spawnAt } from '../__test__/pool-helper.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
 
 afterEach(() => {

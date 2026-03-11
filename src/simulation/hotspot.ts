@@ -1,6 +1,7 @@
-import { getUnitHWM, poolCounts, unit } from '../pools.ts';
-import type { TeamCounts } from '../types.ts';
-import { TEAMS } from '../types.ts';
+import { getUnitHWM, poolCounts } from '../pools.ts';
+import { unit } from '../pools-query.ts';
+import type { TeamCounts } from '../team.ts';
+import { TEAMS } from '../team.ts';
 
 const HOTSPOT_CELL_SIZE = 400;
 const HOTSPOT_UPDATE_INTERVAL = 6;

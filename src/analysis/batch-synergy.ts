@@ -2,7 +2,7 @@
  * バッチ対戦システム — 艦隊プレゼンス・シナジー分析
  */
 
-import type { FleetComposition } from '../types.ts';
+import type { FleetComposition } from '../types-fleet.ts';
 import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import type { SynergyPair, TrialResult } from './batch-types.ts';
 import { typeName } from './batch-types.ts';

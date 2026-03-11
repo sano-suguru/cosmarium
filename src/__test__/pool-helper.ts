@@ -9,16 +9,13 @@ import {
   getParticleHWM,
   getProjectileHWM,
   getUnitHWM,
-  particle,
-  projectile,
   resetHWM,
   resetPoolCounts,
   setParticleCount,
   setProjectileCount,
   setUnitCount,
-  squadron,
-  unit,
 } from '../pools.ts';
+import { particle, projectile, squadron, unit } from '../pools-query.ts';
 import { resetChains } from '../simulation/chain-lightning.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
@@ -26,11 +23,13 @@ import type { KillContext } from '../simulation/on-kill-effects.ts';
 import { KILL_CONTEXT } from '../simulation/on-kill-effects.ts';
 import { emptyProductions } from '../simulation/production.ts';
 import type { Killer } from '../simulation/spawn.ts';
-import { _resetKillUnitHooks, _resetSpawnUnitHooks, killUnit, spawnUnit } from '../simulation/spawn.ts';
+import { killUnit, spawnUnit } from '../simulation/spawn.ts';
+import { _resetKillUnitHooks, _resetSpawnUnitHooks } from '../simulation/spawn-hooks.ts';
 import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
-import type { Team, UnitIndex, UnitTypeIndex } from '../types.ts';
+import type { Team } from '../team.ts';
+import type { UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
 import { _resetGameControl } from '../ui/game-control.ts';

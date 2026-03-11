@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asType } from '../__test__/pool-helper.ts';
-import type { FleetComposition } from '../types.ts';
-import type { BattleStateSnapshot } from './entropy.ts';
+import type { FleetComposition } from '../types-fleet.ts';
 import {
-  battleComplexity,
   fleetCostEntropy,
   fleetDiversity,
   lzComplexity,
@@ -14,6 +12,8 @@ import {
   shannonEntropy,
   spatialEntropy,
 } from './entropy.ts';
+import type { BattleStateSnapshot } from './entropy-battle.ts';
+import { battleComplexity } from './entropy-battle.ts';
 
 // ─── Shannon Entropy ───────────────────────────────────────────────
 

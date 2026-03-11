@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { SQUADRONS_PER_TEAM } from '../constants.ts';
 import { squadronIdx } from '../pool-index.ts';
-import { getUnitHWM, squadron, unit } from '../pools.ts';
+import { getUnitHWM } from '../pools.ts';
+import { squadron, unit } from '../pools-query.ts';
+import { TEAM0 } from '../team.ts';
 import type { SquadronIndex } from '../types.ts';
-import { NO_SQUADRON, NO_UNIT, TEAM0 } from '../types.ts';
+import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { DRONE_TYPE, FLAGSHIP_TYPE } from '../unit-type-accessors.ts';
 import { buildHash } from './spatial-hash.ts';
 import {

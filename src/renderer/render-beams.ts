@@ -1,7 +1,7 @@
 import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { SH_BEAM, SH_LIGHTNING, WORLD_SIZE } from '../constants.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Beam } from '../types.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { isSegmentVisible, writeInstance } from './render-write.ts';

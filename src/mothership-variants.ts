@@ -1,5 +1,6 @@
-import type { Armament, MothershipVariant, MothershipVariantOrNone } from './types.ts';
-import { NO_VARIANT } from './types.ts';
+import type { Armament } from './types.ts';
+import type { MothershipVariant, MothershipVariantOrNone } from './types-fleet.ts';
+import { NO_VARIANT } from './types-fleet.ts';
 
 interface MothershipVariantDefBase {
   readonly id: MothershipVariantOrNone;

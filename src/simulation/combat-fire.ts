@@ -1,5 +1,5 @@
 import { SH_CIRCLE } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt, swarmDmgMul } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { squadron, unit } from '../pools.ts';
-import { NO_UNIT, TEAM0 } from '../types.ts';
+import { squadron, unit } from '../pools-query.ts';
+import { TEAM0 } from '../team.ts';
+import { NO_UNIT } from '../types.ts';
 import { assignToSquadron, getSquadronTetherTarget } from './squadron.ts';
 
 afterEach(() => {

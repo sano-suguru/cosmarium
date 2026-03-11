@@ -51,12 +51,20 @@ bun run check                    # Runs all checks: typecheck + biome + knip + c
 src/
 ├── main.ts               # Entry point + main game loop
 ├── types.ts              # All TypeScript type definitions (CORE FILE)
+├── team.ts               # Team types & utilities (TeamTuple, teamAt, etc.)
+├── types-fleet.ts        # Fleet/production types (FleetSetup, ProductionState, etc.)
 ├── constants.ts          # Pool limits, WORLD_SIZE, shader constants
 ├── state.ts              # Mutable game state object (CORE FILE)
-├── pools.ts              # Object pools: units, particles, projectiles + poolCounts
+├── pools.ts              # Object pools: poolCounts, HWM, state persistence
+├── pools-init.ts         # Pool array initialization
+├── pools-particle.ts     # Particle free stack (alloc/free)
+├── pools-query.ts        # Pool accessors: unit(), particle(), projectile(), squadron()
 ├── beams.ts              # beam/trackingBeam dynamic arrays
 ├── colors.ts             # Team colors, trail color tables
-├── unit-types.ts         # 19 unit type definitions with properties
+├── unit-types.ts         # 19 unit type definitions (combines unit-defs-a/b)
+├── unit-defs-attack.ts    # Unit definitions: attack role (Drone, Fighter, Bomber, Cruiser, Flagship, Sniper, Lancer, Launcher, Scorcher, Arcer)
+├── unit-defs-support.ts   # Unit definitions: support role (Healer, Reflector, Bastion, Amplifier, Catalyst)
+├── unit-defs-special.ts   # Unit definitions: special role (Carrier, Teleporter, Disruptor, Scrambler, Mothership)
 ├── fleet-cost.ts         # SORTED_TYPE_INDICES, cost helpers
 ├── battle-tracker.ts     # Battle mode elapsed/win/result aggregation
 ├── melee-tracker.ts      # Melee mode (N-team) elapsed/win/result aggregation
@@ -95,7 +103,7 @@ frame() → dt clamp(0.05) → camera update + decay
 - **GameLoopState** (`simulation/update.ts`): Holds `battlePhase: BattlePhase` and `activeTeamCount`. Passed into `stepOnce()` each frame; not in `state.ts`.
 - **BattlePhase**: `'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath'`. Controls which trackers and reinforce logic run.
 - **poolCounts**: Readonly export. Update ONLY via spawn/kill functions (`killUnit`, `killParticle`, `killProjectile`). Direct mutation causes type errors.
-- **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` via pools.ts. Centralizes `noUncheckedIndexedAccess` undefined checks.
+- **Pool accessors**: `unit(i)`/`particle(i)`/`projectile(i)` via pools-query.ts. Centralizes `noUncheckedIndexedAccess` undefined checks.
 - **spawn/kill**: Unit/Projectile scan from pool start for first dead slot. Particle uses LIFO free stack (Uint16Array) for fast allocation. All kill functions have double-kill guard.
 - **Adding new object types**: Add pool array + counter to `pools.ts`, add limit constant to `constants.ts`.
 - **rng()**: Seeded PRNG (mulberry32) in state.ts closure. `seedRng(seed)` for testing. Simulation receives as argument (dependency rule). Camera shake uses `Math.random()` (not seeded).
@@ -150,7 +158,7 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 - **noForEach**: Use `for...of` loops instead
 - **noBarrelFile**: No index.ts barrel exports
 - **noExcessiveCognitiveComplexity**: Max complexity 15
-- **noExcessiveLinesPerFile**: Max 600 lines (test files exempt)
+- **noExcessiveLinesPerFile**: Max 300 lines (test files, CSS Modules exempt)
 - `src/shaders/**` excluded from lint/format (GLSL)
 
 ### Import Rules

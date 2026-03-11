@@ -1,6 +1,6 @@
 import { effectColor } from '../colors.ts';
 import { SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING } from '../constants.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
@@ -9,7 +9,8 @@ import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { knockback } from './spatial-hash.ts';
-import { addBeam, spawnParticle } from './spawn.ts';
+import { spawnParticle } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 export const REFLECT_BEAM_DAMAGE_MULT = 0.5;
 export const BASTION_ABSORB_RATIO = 0.4;

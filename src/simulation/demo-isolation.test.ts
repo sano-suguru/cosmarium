@@ -3,13 +3,15 @@ import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { unitIdx } from '../pool-index.ts';
-import { clearAllPools, particle, poolCounts, projectile, unit } from '../pools.ts';
+import { clearAllPools, poolCounts } from '../pools.ts';
+import { particle, projectile, unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { restorePools, snapshotPools } from '../ui/codex/codex-logic.ts';
 import { chainLightning, resetChains, snapshotChains, updateChains } from './chain-lightning.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
-import { addBeam, spawnParticle, spawnProjectile } from './spawn.ts';
+import { spawnParticle, spawnProjectile } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
 
 afterEach(() => {
   resetPools();

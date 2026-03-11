@@ -1,6 +1,6 @@
 import { BEAM_DECAY_RATE, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { unitIdx } from '../pool-index.ts';
-import { unit } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Color3, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { applyBeamDefenses } from './combat-beam-defense.ts';
@@ -9,7 +9,9 @@ import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
 import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
-import { addBeam, onKillUnitPermanent, spawnParticle } from './spawn.ts';
+import { spawnParticle } from './spawn.ts';
+import { addBeam } from './spawn-beams.ts';
+import { onKillUnitPermanent } from './spawn-hooks.ts';
 
 export const SWEEP_DURATION = 0.8;
 const HALF_ARC = (30 * Math.PI) / 180;
