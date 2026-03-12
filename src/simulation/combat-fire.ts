@@ -178,6 +178,43 @@ function fireCarpetBomb(ctx: CombatContext, ang: number, d: number, sp: number) 
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
 }
 
+/** 射撃モードに応じた弾速を返す。carpet/aoe は共に低速域弾（AOE_PROJ_SPEED） */
+function getProjectileSpeed(t: CombatContext['t']): number {
+  if (t.carpet) {
+    return AOE_PROJ_SPEED;
+  }
+  if (t.homing) {
+    return HOMING_SPEED;
+  }
+  if (t.aoe) {
+    return AOE_PROJ_SPEED;
+  }
+  return 480 + t.damage * 12;
+}
+
+function fireByMode(ctx: CombatContext, ang: number, dist: number, sp: number): void {
+  const { u, t } = ctx;
+  if (t.carpet) {
+    fireCarpetBomb(ctx, ang, dist, sp);
+    return;
+  }
+  if (t.homing) {
+    fireHomingBurst(ctx, ang, dist, sp);
+    return;
+  }
+  if (t.shots > 1) {
+    fireBurst(ctx, ang, dist, sp);
+    return;
+  }
+  if (t.aoe) {
+    fireAoe(ctx, ang, dist, sp);
+    return;
+  }
+  const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
+  fireShot(ctx, ang, dist, sp, dmgMul);
+  u.cooldown = t.fireRate;
+}
+
 /** 射撃モード分岐 + 弾速決定 + 偏差射撃。COMBAT_FLAG_PRIORITY の末尾と一致させること */
 function dispatchFire(ctx: CombatContext, o: CombatContext['u']) {
   const { u, t } = ctx;
@@ -187,38 +224,11 @@ function dispatchFire(ctx: CombatContext, o: CombatContext['u']) {
     fireRailgun(ctx, directAng);
     return;
   }
-  let sp: number;
-  if (t.carpet) {
-    sp = AOE_PROJ_SPEED;
-  } else if (t.homing) {
-    sp = HOMING_SPEED;
-  } else if (t.aoe) {
-    sp = AOE_PROJ_SPEED;
-  } else {
-    sp = 480 + t.damage * 12;
-  }
+  const sp = getProjectileSpeed(t);
   const ampAcc = u.ampBoostTimer > 0 ? AMP_ACCURACY_MULT : 1;
   const scrAcc = u.scrambleTimer > 0 ? SCRAMBLE_ACCURACY_MULT : 1;
   const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, sp, Math.min(1, t.leadAccuracy * ampAcc * scrAcc));
-  if (t.carpet) {
-    fireCarpetBomb(ctx, aim.ang, aim.dist, sp);
-    return;
-  }
-  if (t.homing) {
-    fireHomingBurst(ctx, aim.ang, aim.dist, sp);
-    return;
-  }
-  if (t.shots > 1) {
-    fireBurst(ctx, aim.ang, aim.dist, sp);
-    return;
-  }
-  if (t.aoe) {
-    fireAoe(ctx, aim.ang, aim.dist, sp);
-  } else {
-    const dmgMul = t.swarm ? swarmDmgMul(u) : 1;
-    fireShot(ctx, aim.ang, aim.dist, sp, dmgMul);
-    u.cooldown = t.fireRate;
-  }
+  fireByMode(ctx, aim.ang, aim.dist, sp);
 }
 
 export function fireNormal(ctx: CombatContext) {

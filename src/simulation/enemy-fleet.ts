@@ -1,5 +1,6 @@
 import { SORTED_TYPE_INDICES } from '../fleet-cost.ts';
 import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
+import { swapRemove } from '../swap-remove.ts';
 import type { UnitTypeIndex } from '../types.ts';
 import type { FleetSetup, MothershipVariant, ProductionSlot } from '../types-fleet.ts';
 import { DRONE_TYPE, unitTypeIndex } from '../unit-type-accessors.ts';
@@ -94,8 +95,8 @@ function weightedPick(candidates: readonly { weight: number }[], rng: () => numb
   return Math.max(0, candidates.length - 1);
 }
 
-/** 重み付き非復元抽出で SLOT_COUNT タイプを選択し ProductionSlot 配列を返す */
-function pickSlots(arch: Archetype, rng: () => number): readonly (ProductionSlot | null)[] {
+/** SORTED_TYPE_INDICES から weight > 0 の候補を収集 */
+function collectCandidates(arch: Archetype): { idx: UnitTypeIndex; weight: number }[] {
   const candidates: { idx: UnitTypeIndex; weight: number }[] = [];
   for (const idx of SORTED_TYPE_INDICES) {
     const wt = arch.weights[idx] ?? 0;
@@ -103,6 +104,12 @@ function pickSlots(arch: Archetype, rng: () => number): readonly (ProductionSlot
       candidates.push({ idx, weight: wt });
     }
   }
+  return candidates;
+}
+
+/** 重み付き非復元抽出で SLOT_COUNT タイプを選択し ProductionSlot 配列を返す */
+function pickSlots(arch: Archetype, rng: () => number): readonly (ProductionSlot | null)[] {
+  const candidates = collectCandidates(arch);
 
   const slots: (ProductionSlot | null)[] = [];
   for (let s = 0; s < SLOT_COUNT; s++) {
@@ -118,12 +125,7 @@ function pickSlots(arch: Archetype, rng: () => number): readonly (ProductionSlot
     }
     const clusterSize = TYPES[entry.idx]?.clusterSize ?? 1;
     slots.push(createProductionSlot(entry.idx, clusterSize));
-    // 非復元: swap-and-pop で O(1) 除去（順序不要）
-    const last = candidates[candidates.length - 1];
-    if (last !== undefined) {
-      candidates[picked] = last;
-    }
-    candidates.pop();
+    swapRemove(candidates, picked);
   }
 
   // 全 null フォールバック: 最低1つの non-null スロットを保証

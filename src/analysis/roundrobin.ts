@@ -174,20 +174,28 @@ function computeRankings(matchups: readonly MatchupResult[]): RoundRobinRanking[
   return rankings;
 }
 
-/** 全ユニットタイプの総当たり対戦を実行し、勝率ランキングと相性データを返す */
-export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
+/** コスト上限内で構築可能な全ユニットタイプの艦隊マップを生成 */
+function buildFleetMap(costCap: number): Map<UnitTypeIndex, FleetEntry[]> {
   const fleetMap = new Map<UnitTypeIndex, FleetEntry[]>();
   for (const t of SORTED_TYPE_INDICES) {
-    const fleet = buildMonoFleet(t, config.costCap);
+    const fleet = buildMonoFleet(t, costCap);
     if (fleet) {
       fleetMap.set(t, fleet);
     }
   }
-  const validTypes = [...fleetMap.keys()];
+  return fleetMap;
+}
+
+/** 全ペアの対戦を実行し結果リストを返す */
+function runAllMatchups(
+  validTypes: readonly UnitTypeIndex[],
+  fleetMap: Map<UnitTypeIndex, FleetEntry[]>,
+  config: RoundRobinConfig,
+): MatchupResult[] {
+  const log = config.logger ?? console.error;
   const totalMatchups = (validTypes.length * (validTypes.length - 1)) / 2;
   const matchups: MatchupResult[] = [];
   let matchIndex = 0;
-  const log = config.logger ?? console.error;
 
   for (let i = 0; i < validTypes.length; i++) {
     for (let j = i + 1; j < validTypes.length; j++) {
@@ -209,6 +217,14 @@ export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
       );
     }
   }
+  return matchups;
+}
+
+/** 全ユニットタイプの総当たり対戦を実行し、勝率ランキングと相性データを返す */
+export function runRoundRobin(config: RoundRobinConfig): RoundRobinSummary {
+  const fleetMap = buildFleetMap(config.costCap);
+  const validTypes = [...fleetMap.keys()];
+  const matchups = runAllMatchups(validTypes, fleetMap, config);
 
   return {
     costCap: config.costCap,

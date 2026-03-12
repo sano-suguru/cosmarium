@@ -45,6 +45,12 @@ function computeKD(kills: number, deaths: number): number {
   return kills > 0 ? Number.POSITIVE_INFINITY : 0;
 }
 
+function accumulateMatrixRow(target: Int32Array, source: Int32Array, size: number): void {
+  for (let v = 0; v < size; v++) {
+    target[v] = (target[v] ?? 0) + (source[v] ?? 0);
+  }
+}
+
 function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
   const size = TYPES.length;
   const data: Int32Array[] = [];
@@ -55,11 +61,8 @@ function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
     for (let k = 0; k < size; k++) {
       const row = trial.killMatrix.data[k];
       const agg = data[k];
-      if (!row || !agg) {
-        continue;
-      }
-      for (let v = 0; v < size; v++) {
-        agg[v] = (agg[v] ?? 0) + (row[v] ?? 0);
+      if (row && agg) {
+        accumulateMatrixRow(agg, row, size);
       }
     }
   }

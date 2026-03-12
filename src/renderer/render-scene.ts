@@ -3,6 +3,7 @@ import { SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_HOMING, SH_TRAIL } from '.
 import { lerpX, lerpY } from '../interpolation.ts';
 import { getParticleHWM, getProjectileHWM, getUnitHWM, poolCounts } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
+import type { Color3 } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { renderBeams } from './render-beams.ts';
 import {
@@ -35,6 +36,21 @@ const EXPLOSION_RING_INITIAL_SCALE = 2.2;
 /** 爆発リングの寿命減衰係数 */
 const EXPLOSION_RING_DECAY = 1.7;
 
+let _cr = 0;
+let _cg = 0;
+let _cb = 0;
+function computeUnitColor(c: Color3, vet: number, hpRatio: number, stun: number, hitFlash: number, now: number) {
+  const flash = hpRatio < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
+  const sf = stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
+  const vetTint = vet * VET_TINT_FACTOR;
+  const r0 = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
+  const g0 = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;
+  const b0 = (c[2] + (0.3 - c[2]) * vetTint) * flash * sf;
+  _cr = r0 + (1 - r0) * hitFlash;
+  _cg = g0 + (1 - g0) * hitFlash;
+  _cb = b0 + (1 - b0) * hitFlash;
+}
+
 function renderUnits(now: number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
@@ -60,22 +76,11 @@ function renderUnits(now: number) {
     if (!isCircleVisible(rx, ry, unitR)) {
       continue;
     }
-    const hr = u.hp / u.maxHp;
-    const flash = hr < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
-    const sf = u.stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
-
     renderOverlays(rx, ry, u, ut, now, rs);
     renderStunStars(rx, ry, u, ut, now, rs);
     renderVetSwarmOverlays(rx, ry, u, ut, c, now, rs);
-    const vetTint = u.vet * VET_TINT_FACTOR; // max 0.3 (vet ≤ 2), clamp不要
-    const vr0 = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
-    const vg0 = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;
-    const vb0 = (c[2] + (0.3 - c[2]) * vetTint) * flash * sf;
-    const hf = u.hitFlash;
-    const vr = vr0 + (1 - vr0) * hf;
-    const vg = vg0 + (1 - vg0) * hf;
-    const vb = vb0 + (1 - vb0) * hf;
-    writeInstance(rx, ry, ut.size * rs, vr, vg, vb, 0.9, u.angle, ut.shape);
+    computeUnitColor(c, u.vet, u.hp / u.maxHp, u.stun, u.hitFlash, now);
+    writeInstance(rx, ry, ut.size * rs, _cr, _cg, _cb, 0.9, u.angle, ut.shape);
     renderHpBar(rx, ry, u, ut, rs);
   }
 }

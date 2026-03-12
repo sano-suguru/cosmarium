@@ -73,6 +73,32 @@ function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: nu
   }
 }
 
+/** 主砲発射時の反動排気VFX */
+function flagshipRecoilExhaust(ctx: CombatContext) {
+  const { u, c, t } = ctx;
+  const backX = -Math.cos(u.angle);
+  const backY = -Math.sin(u.angle);
+  for (const sign of [-1, 1] as const) {
+    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
+      const [ex, eyy] = flagshipWorld(u, -t.size * 1.05, sign * ey * t.size);
+      for (let j = 0; j < 2; j++) {
+        spawnParticle(
+          ex,
+          eyy,
+          backX * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
+          backY * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
+          0.06 + ctx.rng() * 0.04,
+          2 + ctx.rng() * 2,
+          c[0] * 0.6 + 0.4,
+          c[1] * 0.6 + 0.4,
+          c[2] * 0.6 + 0.4,
+          SH_CIRCLE,
+        );
+      }
+    }
+  }
+}
+
 function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
   const { u, c, t, vd } = ctx;
   const sp = FLAGSHIP_MAIN_GUN_SPEED;
@@ -120,27 +146,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
     addBeam(mx, my, mx + dx * 100, my + dy * 100, 0.95, 0.95, 1.0, 0.04, 5.5, true, 4, true);
   }
 
-  const backX = -Math.cos(u.angle);
-  const backY = -Math.sin(u.angle);
-  for (const sign of [-1, 1] as const) {
-    for (const ey of FLAGSHIP_ENGINE_OFFSETS) {
-      const [ex, eyy] = flagshipWorld(u, -t.size * 1.05, sign * ey * t.size);
-      for (let j = 0; j < 2; j++) {
-        spawnParticle(
-          ex,
-          eyy,
-          backX * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
-          backY * (120 + ctx.rng() * 80) + (ctx.rng() - 0.5) * 40,
-          0.06 + ctx.rng() * 0.04,
-          2 + ctx.rng() * 2,
-          c[0] * 0.6 + 0.4,
-          c[1] * 0.6 + 0.4,
-          c[2] * 0.6 + 0.4,
-          SH_CIRCLE,
-        );
-      }
-    }
-  }
+  flagshipRecoilExhaust(ctx);
 
   spawnParticle(u.x, u.y, 0, 0, 0.1, t.size * 0.8, 1, 1, 1, SH_EXPLOSION_RING);
   for (const sign of [-1, 1] as const) {
@@ -203,6 +209,21 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
   ctx.shake(4, u.x, u.y);
 }
 
+/** チャージ進行 → 満充電で主砲発射（BROADSIDE_IDLE フェーズ） */
+function chargeAndFireMain(ctx: CombatContext): void {
+  const { u, dt } = ctx;
+  u.beamOn = Math.min(u.beamOn + dt / FLAGSHIP_CHARGE_TIME, 1);
+  flagshipChargeVfx(ctx, u.beamOn);
+  flagshipPreviewBeam(ctx, u.sweepBaseAngle, u.beamOn);
+
+  if (u.beamOn >= 1) {
+    flagshipFireMain(ctx, u.sweepBaseAngle);
+    u.broadsidePhase = BROADSIDE_AWAITING_SALVO;
+    u.beamOn = 1;
+    u.cooldown = FLAGSHIP_BROADSIDE_DELAY;
+  }
+}
+
 /**
  * State machine reusing existing Unit fields:
  *   beamOn: charge progress (0=idle, 0→1=charging, 1=charged)
@@ -245,17 +266,7 @@ export function flagshipBarrage(ctx: CombatContext) {
   }
 
   if (u.broadsidePhase === BROADSIDE_IDLE) {
-    u.beamOn = Math.min(u.beamOn + dt / FLAGSHIP_CHARGE_TIME, 1);
-    flagshipChargeVfx(ctx, u.beamOn);
-    flagshipPreviewBeam(ctx, u.sweepBaseAngle, u.beamOn);
-
-    if (u.beamOn >= 1) {
-      flagshipFireMain(ctx, u.sweepBaseAngle);
-      u.broadsidePhase = BROADSIDE_AWAITING_SALVO;
-      u.beamOn = 1;
-      u.cooldown = FLAGSHIP_BROADSIDE_DELAY;
-      return;
-    }
+    chargeAndFireMain(ctx);
     return;
   }
 

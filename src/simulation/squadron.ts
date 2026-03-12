@@ -129,6 +129,32 @@ export function onUnitKilled(squadronIdx: SquadronIndex, victimIdx: UnitIndex, u
   }
 }
 
+const _origin = { x: 0, y: 0 };
+
+/** リーダーの位置またはチーム重心を返す。どちらも取得できなければ null */
+function getObjectiveOrigin(s: Squadron): typeof _origin | null {
+  const leader = s.leader !== NO_UNIT ? unit(s.leader) : null;
+  if (leader?.alive) {
+    _origin.x = leader.x;
+    _origin.y = leader.y;
+    return _origin;
+  }
+  const tc = teamCenterOf(s.team);
+  if (!tc) {
+    return null;
+  }
+  _origin.x = tc.x;
+  _origin.y = tc.y;
+  return _origin;
+}
+
+/** 敵チーム重心に scatter を加えた新目標を設定する */
+function setScatteredObjective(s: Squadron, cx: number, cy: number, rng: () => number): void {
+  s.objectiveX = cx + (rng() - 0.5) * SQUADRON_OBJECTIVE_SCATTER;
+  s.objectiveY = cy + (rng() - 0.5) * SQUADRON_OBJECTIVE_SCATTER;
+  s.objectiveTimer = SQUADRON_OBJECTIVE_MIN + rng() * (SQUADRON_OBJECTIVE_MAX - SQUADRON_OBJECTIVE_MIN);
+}
+
 /** 全分隊の目標タイマーを更新し、期限切れなら新目標を設定する */
 export function updateSquadronObjectives(dt: number, rng: () => number): void {
   for (let si = 0; si < POOL_SQUADRONS; si++) {
@@ -142,28 +168,15 @@ export function updateSquadronObjectives(dt: number, rng: () => number): void {
       continue;
     }
 
-    // リーダーの位置から最寄り敵チーム重心を取得。リーダー不在時は自チーム重心を基点にする
-    const leader = s.leader !== NO_UNIT ? unit(s.leader) : null;
-    let lx: number;
-    let ly: number;
-    if (leader?.alive) {
-      lx = leader.x;
-      ly = leader.y;
-    } else {
-      const tc = teamCenterOf(s.team);
-      if (!tc) {
-        continue;
-      }
-      lx = tc.x;
-      ly = tc.y;
+    const origin = getObjectiveOrigin(s);
+    if (!origin) {
+      continue;
     }
-    const centroid = nearestEnemyCenter(s.team, lx, ly);
+    const centroid = nearestEnemyCenter(s.team, origin.x, origin.y);
     if (!centroid) {
       continue;
     }
-    s.objectiveX = centroid.x + (rng() - 0.5) * SQUADRON_OBJECTIVE_SCATTER;
-    s.objectiveY = centroid.y + (rng() - 0.5) * SQUADRON_OBJECTIVE_SCATTER;
-    s.objectiveTimer = SQUADRON_OBJECTIVE_MIN + rng() * (SQUADRON_OBJECTIVE_MAX - SQUADRON_OBJECTIVE_MIN);
+    setScatteredObjective(s, centroid.x, centroid.y, rng);
   }
 }
 

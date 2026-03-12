@@ -2,7 +2,7 @@ import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { SH_BEAM, SH_LIGHTNING, WORLD_SIZE } from '../constants.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
 import { unit } from '../pools-query.ts';
-import type { Beam } from '../types.ts';
+import type { Beam, TrackingBeam } from '../types.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { isSegmentVisible, writeInstance } from './render-write.ts';
 import { renderSquadronTethers } from './squadron-tether.ts';
@@ -84,10 +84,32 @@ function renderLightningBeam(bm: Beam, now: number, al: number, dx: number, dy: 
   }
 }
 
+function renderTrackingBeamSegments(x1: number, y1: number, x2: number, y2: number, tb: TrackingBeam, now: number) {
+  const dx = x2 - x1,
+    dy = y2 - y1;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  const steps = beamSegmentCount(d);
+  const ang = Math.atan2(dy, dx);
+  const al = tb.life / tb.maxLife;
+  for (let j = 0; j <= steps; j++) {
+    const t = j / steps;
+    const fl = beamFlicker(j, now);
+    writeBeam(
+      x1 + dx * t,
+      y1 + dy * t,
+      tb.width * beamWidthScale(j, now),
+      tb.r * al * fl,
+      tb.g * al * fl,
+      tb.b * al * fl,
+      al * BEAM_ALPHA,
+      ang,
+    );
+  }
+}
+
 function renderTrackingBeams(now: number) {
   for (let i = 0; i < trackingBeams.length; i++) {
     const tb = getTrackingBeam(i);
-    const al = tb.life / tb.maxLife;
     const src = unit(tb.srcUnit);
     const tgt = unit(tb.tgtUnit);
     const x1 = src.alive ? lerpX(src) : tb.x1;
@@ -97,25 +119,26 @@ function renderTrackingBeams(now: number) {
     if (!isSegmentVisible(x1, y1, x2, y2, tb.width * BEAM_MAX_WIDTH_SCALE)) {
       continue;
     }
-    const dx = x2 - x1,
-      dy = y2 - y1;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    const steps = beamSegmentCount(d);
-    const ang = Math.atan2(dy, dx);
-    for (let j = 0; j <= steps; j++) {
-      const t = j / steps;
-      const fl = beamFlicker(j, now);
-      writeBeam(
-        x1 + dx * t,
-        y1 + dy * t,
-        tb.width * beamWidthScale(j, now),
-        tb.r * al * fl,
-        tb.g * al * fl,
-        tb.b * al * fl,
-        al * BEAM_ALPHA,
-        ang,
-      );
-    }
+    renderTrackingBeamSegments(x1, y1, x2, y2, tb, now);
+  }
+}
+
+function renderNormalBeamSegments(bm: Beam, now: number, al: number, dx: number, dy: number, d: number, ang: number) {
+  const steps = beamSegmentCount(d, bm.stepDiv);
+  for (let j = 0; j <= steps; j++) {
+    const t = j / steps;
+    const fl = beamFlicker(j, now);
+    const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
+    writeBeam(
+      bm.x1 + dx * t,
+      bm.y1 + dy * t,
+      bm.width * beamWidthScale(j, now) * tipScale,
+      bm.r * al * fl,
+      bm.g * al * fl,
+      bm.b * al * fl,
+      al * BEAM_ALPHA,
+      ang,
+    );
   }
 }
 
@@ -130,26 +153,11 @@ export function renderBeams(now: number) {
     const dx = bm.x2 - bm.x1,
       dy = bm.y2 - bm.y1;
     const d = Math.sqrt(dx * dx + dy * dy);
-    const steps = beamSegmentCount(d, bm.stepDiv);
     const ang = Math.atan2(dy, dx);
     if (bm.lightning) {
       renderLightningBeam(bm, now, al, dx, dy, d, ang);
     } else {
-      for (let j = 0; j <= steps; j++) {
-        const t = j / steps;
-        const fl = beamFlicker(j, now);
-        const tipScale = bm.tapered ? computeTaperScale(steps - j) : 1;
-        writeBeam(
-          bm.x1 + dx * t,
-          bm.y1 + dy * t,
-          bm.width * beamWidthScale(j, now) * tipScale,
-          bm.r * al * fl,
-          bm.g * al * fl,
-          bm.b * al * fl,
-          al * BEAM_ALPHA,
-          ang,
-        );
-      }
+      renderNormalBeamSegments(bm, now, al, dx, dy, d, ang);
     }
   }
   renderTrackingBeams(now);

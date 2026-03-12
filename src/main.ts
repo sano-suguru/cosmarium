@@ -35,7 +35,7 @@ import { onUnitKilled } from './simulation/squadron.ts';
 import type { GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import type { TeamTuple } from './team.ts';
+import type { Team, TeamTuple } from './team.ts';
 import { copyTeamCounts, TEAM0, TEAM1 } from './team.ts';
 import type { BattlePhase } from './types.ts';
 import type { BattleResult, ProductionState } from './types-fleet.ts';
@@ -167,6 +167,19 @@ const gameLoopState: GameLoopState = {
   productions: emptyProductions(),
 };
 
+function handleWinnerDetected(w: Team | 'draw') {
+  if (gameLoopState.battlePhase === 'melee') {
+    onMeleeEnd(w);
+    gameLoopState.battlePhase = 'meleeEnding';
+    return;
+  }
+  if (w === 'draw') {
+    throw new Error('Unexpected draw in non-melee mode');
+  }
+  onBattleEnd(w, { survivors: teamUnitCounts[TEAM0], enemyKills: getPlayerEnemyKills() });
+  gameLoopState.battlePhase = 'battleEnding';
+}
+
 function updatePlay(dt: number, t: number) {
   // フリーズタイマーを実 dt で減衰（シミュレーション停止中も進行する）
   decayScreenEffects(dt);
@@ -187,16 +200,7 @@ function updatePlay(dt: number, t: number) {
     }
     const w = stepOnce(SIM_DT, rng, gameLoopState, addShake);
     if (w !== null) {
-      if (gameLoopState.battlePhase === 'melee') {
-        onMeleeEnd(w);
-        gameLoopState.battlePhase = 'meleeEnding';
-      } else {
-        if (w === 'draw') {
-          throw new Error('Unexpected draw in non-melee mode');
-        }
-        onBattleEnd(w, { survivors: teamUnitCounts[TEAM0], enemyKills: getPlayerEnemyKills() });
-        gameLoopState.battlePhase = 'battleEnding';
-      }
+      handleWinnerDetected(w);
     }
   });
   setInterpAlpha(simAccumulator / SIM_DT);

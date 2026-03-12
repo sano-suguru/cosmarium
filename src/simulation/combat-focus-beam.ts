@@ -10,8 +10,47 @@ import { knockback } from './spatial-hash.ts';
 import { spawnParticle } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
 
+/** フォーカスビームのダメージ適用 + 着弾エフェクト */
+function tryApplyBeamDamage(ctx: CombatContext, o: ReturnType<typeof unit>): boolean {
+  const { u, ui, c, t, vd } = ctx;
+  u.cooldown = t.fireRate;
+  const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui, ctx.shake);
+  if (!u.alive) {
+    return false;
+  }
+  const kind = 'beam';
+  if (dmg >= 0) {
+    o.hp -= dmg;
+    o.hitFlash = 1;
+    knockback(u.target, u.x, u.y, dmg * 5);
+    emitDamage(u.type, u.team, o.type, o.team, dmg, kind);
+  }
+  const pCount = 1 + Math.floor(u.beamOn * 2);
+  const pSize = 2 + u.beamOn * 0.5;
+  const pSpeed = 50 + u.beamOn * 25;
+  for (let i = 0; i < pCount; i++) {
+    spawnParticle(
+      o.x + (ctx.rng() - 0.5) * 8,
+      o.y + (ctx.rng() - 0.5) * 8,
+      (ctx.rng() - 0.5) * pSpeed,
+      (ctx.rng() - 0.5) * pSpeed,
+      0.08,
+      pSize,
+      c[0],
+      c[1],
+      c[2],
+      SH_CIRCLE,
+    );
+  }
+  if (o.hp <= 0) {
+    destroyUnit(u.target, ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], ctx.shake);
+    u.beamOn = 0;
+  }
+  return true;
+}
+
 export function focusBeam(ctx: CombatContext) {
-  const { u, ui, c, t, dt, vd } = ctx;
+  const { u, c, t, dt } = ctx;
   if (u.target === NO_UNIT) {
     u.beamOn = Math.max(0, u.beamOn - dt * BEAM_DECAY_RATE);
     return;
@@ -33,38 +72,8 @@ export function focusBeam(ctx: CombatContext) {
   u.beamOn = Math.min(u.beamOn + dt * 0.8, 2);
 
   if (u.cooldown <= 0) {
-    u.cooldown = t.fireRate;
-    const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui, ctx.shake);
-    if (!u.alive) {
+    if (!tryApplyBeamDamage(ctx, o)) {
       return;
-    }
-    const kind = 'beam';
-    if (dmg >= 0) {
-      o.hp -= dmg;
-      o.hitFlash = 1;
-      knockback(u.target, u.x, u.y, dmg * 5);
-      emitDamage(u.type, u.team, o.type, o.team, dmg, kind);
-    }
-    const pCount = 1 + Math.floor(u.beamOn * 2);
-    const pSize = 2 + u.beamOn * 0.5;
-    const pSpeed = 50 + u.beamOn * 25;
-    for (let i = 0; i < pCount; i++) {
-      spawnParticle(
-        o.x + (ctx.rng() - 0.5) * 8,
-        o.y + (ctx.rng() - 0.5) * 8,
-        (ctx.rng() - 0.5) * pSpeed,
-        (ctx.rng() - 0.5) * pSpeed,
-        0.08,
-        pSize,
-        c[0],
-        c[1],
-        c[2],
-        SH_CIRCLE,
-      );
-    }
-    if (o.hp <= 0) {
-      destroyUnit(u.target, ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[kind], ctx.shake);
-      u.beamOn = 0;
     }
   }
 

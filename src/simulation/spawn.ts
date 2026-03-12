@@ -188,6 +188,14 @@ interface ProjectileOpts {
   readonly sourceUnit?: UnitIndex;
 }
 
+function resolveSourceType(sourceUnit: UnitIndex): UnitTypeIndex {
+  if (sourceUnit === NO_UNIT) {
+    return NO_SOURCE_TYPE;
+  }
+  const src = unit(sourceUnit);
+  return src.alive ? src.type : NO_SOURCE_TYPE;
+}
+
 export function spawnProjectile(
   x: number,
   y: number,
@@ -219,20 +227,12 @@ export function spawnProjectile(
       p.r = r;
       p.g = g;
       p.b = b;
-      const homing = opts?.homing ?? false;
-      const aoe = opts?.aoe ?? 0;
-      const target = opts?.target ?? NO_UNIT;
+      p.homing = opts?.homing ?? false;
+      p.aoe = opts?.aoe ?? 0;
+      p.target = opts?.target ?? NO_UNIT;
       const sourceUnit = opts?.sourceUnit ?? NO_UNIT;
-      p.homing = homing;
-      p.aoe = aoe;
-      p.target = target;
       p.sourceUnit = sourceUnit;
-      if (sourceUnit !== NO_UNIT) {
-        const src = unit(sourceUnit);
-        p.sourceType = src.alive ? src.type : NO_SOURCE_TYPE;
-      } else {
-        p.sourceType = NO_SOURCE_TYPE;
-      }
+      p.sourceType = resolveSourceType(sourceUnit);
       advanceProjectileHWM(i);
       incProjectiles();
       return projectileIdx(i);

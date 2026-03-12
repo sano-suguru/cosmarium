@@ -1,5 +1,6 @@
+import { normalizeAngleDelta } from '../angle.ts';
 import { effectColor } from '../colors.ts';
-import { PI, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING, TAU } from '../constants.ts';
+import { REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
 import { projectileIdx } from '../pool-index.ts';
 import { getProjectileHWM, poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
@@ -26,13 +27,7 @@ function steerHomingProjectile(p: Projectile, dt: number) {
   if (tg.alive) {
     let ca = Math.atan2(p.vy, p.vx);
     const da = Math.atan2(tg.y - p.y, tg.x - p.x);
-    let diff = da - ca;
-    if (diff > PI) {
-      diff -= TAU;
-    }
-    if (diff < -PI) {
-      diff += TAU;
-    }
+    const diff = normalizeAngleDelta(da, ca);
     ca += diff * 4 * dt;
     const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     p.vx = Math.cos(ca) * sp;
@@ -52,32 +47,26 @@ function emitProjectileDamage(
   }
 }
 
-function detonateAoe(p: Projectile, rng: () => number, shake: ShakeFn, skipUnit?: UnitIndex) {
-  const nn = getNeighbors(p.x, p.y, p.aoe);
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j),
-      o = unit(oi);
-    if (!o.alive || o.team === p.team) {
-      continue;
-    }
-    if (skipUnit !== undefined && oi === skipUnit) {
-      continue;
-    }
-    const ddx = o.x - p.x,
-      ddy = o.y - p.y;
-    if (ddx * ddx + ddy * ddy < p.aoe * p.aoe) {
-      const dd = Math.sqrt(ddx * ddx + ddy * ddy);
-      const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
-      o.hp -= aoeDmg;
-      o.hitFlash = 1;
-      const aoeKind = 'aoe';
-      emitProjectileDamage(p, o.type, o.team, aoeDmg, aoeKind);
-      knockback(oi, p.x, p.y, 220);
-      if (o.hp <= 0) {
-        destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind], shake);
-      }
-    }
+function applyAoeDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () => number, shake: ShakeFn): void {
+  const ddx = o.x - p.x;
+  const ddy = o.y - p.y;
+  const distSq = ddx * ddx + ddy * ddy;
+  if (distSq >= p.aoe * p.aoe) {
+    return;
   }
+  const dd = Math.sqrt(distSq);
+  const aoeDmg = p.damage * (1 - dd / (p.aoe * 1.2));
+  o.hp -= aoeDmg;
+  o.hitFlash = 1;
+  const aoeKind = 'aoe';
+  emitProjectileDamage(p, o.type, o.team, aoeDmg, aoeKind);
+  knockback(oi, p.x, p.y, 220);
+  if (o.hp <= 0) {
+    destroyUnit(oi, p.sourceUnit, rng, DAMAGE_KIND_TO_KILL_CONTEXT[aoeKind], shake);
+  }
+}
+
+function spawnAoeParticles(p: Projectile, rng: () => number): void {
   for (let j = 0; j < 16; j++) {
     const a = rng() * 6.283;
     spawnParticle(
@@ -95,6 +84,22 @@ function detonateAoe(p: Projectile, rng: () => number, shake: ShakeFn, skipUnit?
   }
   spawnParticle(p.x, p.y, 0, 0, 0.4, p.aoe * 0.9, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
   spawnParticle(p.x, p.y, 0, 0, 0.45, p.aoe * 0.9 * 1.3, p.r, p.g * 0.7 + 0.3, p.b * 0.2, SH_EXPLOSION_RING);
+}
+
+function detonateAoe(p: Projectile, rng: () => number, shake: ShakeFn, skipUnit?: UnitIndex) {
+  const nn = getNeighbors(p.x, p.y, p.aoe);
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j),
+      o = unit(oi);
+    if (!o.alive || o.team === p.team) {
+      continue;
+    }
+    if (skipUnit !== undefined && oi === skipUnit) {
+      continue;
+    }
+    applyAoeDamage(p, oi, o, rng, shake);
+  }
+  spawnAoeParticles(p, rng);
   shake(3, p.x, p.y);
 }
 

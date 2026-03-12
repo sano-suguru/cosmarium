@@ -79,6 +79,32 @@ export function initCamera() {
     { passive: false },
   );
 
+  function handleSinglePointerDown(e: PointerEvent): void {
+    setAutoFollow(false);
+    dragging = true;
+    dragStart = { x: e.clientX, y: e.clientY };
+    cameraStart = { x: cam.targetX, y: cam.targetY };
+    canvas.setPointerCapture(e.pointerId);
+  }
+
+  function handlePinchStart(p0: { x: number; y: number }, p1: { x: number; y: number }): void {
+    pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+    pinchStartZoom = cam.targetZ;
+    pinchStartCamX = cam.targetX;
+    pinchStartCamY = cam.targetY;
+    pinchStartCenterX = (p0.x + p1.x) / 2;
+    pinchStartCenterY = (p0.y + p1.y) / 2;
+  }
+
+  function beginPinch(): void {
+    const iter = activePointers.values();
+    const p0 = iter.next().value;
+    const p1 = iter.next().value;
+    if (p0 && p1) {
+      handlePinchStart(p0, p1);
+    }
+  }
+
   canvas.addEventListener('pointerdown', (e) => {
     if (state.codexOpen) {
       return;
@@ -89,26 +115,11 @@ export function initCamera() {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 1 && e.button === 0) {
-      setAutoFollow(false);
-      dragging = true;
-      dragStart = { x: e.clientX, y: e.clientY };
-      cameraStart = { x: cam.targetX, y: cam.targetY };
-      canvas.setPointerCapture(e.pointerId);
+      handleSinglePointerDown(e);
     } else if (activePointers.size === 2) {
       dragging = false;
       setAutoFollow(false);
-      const pts = [...activePointers.values()];
-      const p0 = pts[0];
-      const p1 = pts[1];
-      if (!p0 || !p1) {
-        return;
-      }
-      pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-      pinchStartZoom = cam.targetZ;
-      pinchStartCamX = cam.targetX;
-      pinchStartCamY = cam.targetY;
-      pinchStartCenterX = (p0.x + p1.x) / 2;
-      pinchStartCenterY = (p0.y + p1.y) / 2;
+      beginPinch();
     }
   });
 

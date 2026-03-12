@@ -14,7 +14,7 @@ import { particle, unit } from '../pools-query.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { MAX_TEAMS, TEAM0, TEAM1, teamAt } from '../team.ts';
-import type { Armament, BattlePhase, Unit } from '../types.ts';
+import type { Armament, BattlePhase, Unit, UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import type { ProductionState } from '../types-fleet.ts';
 import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
@@ -138,8 +138,8 @@ function processTrailAndBoost(u: Unit, dt: number, rng: () => number, wasNotBoos
 const _variantAttackCdMul: TeamTuple<number> = [1, 1, 1, 1, 1];
 const _variantArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
 
-function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
-  // 全スロットをニュートラル値にリセット（高インデックスに前フレームの stale 値が残るのを防止）
+/** 全チームのバリアント攻撃クールダウン倍率・武装をプリコンピュート */
+function initializeVariantStats(activeTeamCount: number) {
   for (let t = 0; t < MAX_TEAMS; t++) {
     _variantAttackCdMul[t] = 1;
     _variantArmament[t] = null;
@@ -150,6 +150,19 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
     _variantAttackCdMul[team] = vDef.attackCdMul;
     _variantArmament[team] = vDef.armament;
   }
+}
+
+/** 母艦 or 通常ユニットの戦闘処理を振り分け */
+function updateUnitCombat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, shake: ShakeFn) {
+  if (u.type === MOTHERSHIP_TYPE) {
+    combatMothershipTick(u, ui, dt, rng, _variantAttackCdMul[u.team], _variantArmament[u.team], shake);
+  } else {
+    combat(u, ui, dt, rng, _variantAttackCdMul[u.team], shake);
+  }
+}
+
+function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
+  initializeVariantStats(activeTeamCount);
 
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
@@ -165,11 +178,7 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
 
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;
-    if (u.type === MOTHERSHIP_TYPE) {
-      combatMothershipTick(u, ui, dt, rng, _variantAttackCdMul[u.team], _variantArmament[u.team], shake);
-    } else {
-      combat(u, ui, dt, rng, _variantAttackCdMul[u.team], shake);
-    }
+    updateUnitCombat(u, ui, dt, rng, shake);
     if (u.alive && u.hp < prevHp) {
       u.hitFlash = 1;
     }

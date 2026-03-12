@@ -5,6 +5,10 @@ import { unitType } from '../unit-type-accessors.ts';
 
 const HIT_FLASH_DURATION = 0.08;
 
+function decayTimer(value: number, delta: number): number {
+  return value > 0 ? Math.max(0, value - delta) : value;
+}
+
 function tickReflectorShield(u: Unit, dt: number) {
   if (u.shieldCooldown <= 0) {
     return;
@@ -36,21 +40,11 @@ export function decayAndRegen(dt: number) {
       continue;
     }
     rem--;
-    if (u.hitFlash > 0) {
-      u.hitFlash = Math.max(0, u.hitFlash - flashDecay);
-    }
+    u.hitFlash = decayTimer(u.hitFlash, flashDecay);
     regenUnitEnergy(u, dt);
-    if (u.shieldLingerTimer > 0) {
-      u.shieldLingerTimer = Math.max(0, u.shieldLingerTimer - dt);
-    }
-    if (u.ampBoostTimer > 0) {
-      u.ampBoostTimer = Math.max(0, u.ampBoostTimer - dt);
-    }
-    if (u.scrambleTimer > 0) {
-      u.scrambleTimer = Math.max(0, u.scrambleTimer - dt);
-    }
-    if (u.catalystTimer > 0) {
-      u.catalystTimer = Math.max(0, u.catalystTimer - dt);
-    }
+    u.shieldLingerTimer = decayTimer(u.shieldLingerTimer, dt);
+    u.ampBoostTimer = decayTimer(u.ampBoostTimer, dt);
+    u.scrambleTimer = decayTimer(u.scrambleTimer, dt);
+    u.catalystTimer = decayTimer(u.catalystTimer, dt);
   }
 }

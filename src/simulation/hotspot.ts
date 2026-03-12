@@ -64,22 +64,26 @@ function buildCellMap(): Map<number, HotspotCell> {
   return _cells;
 }
 
+function secondMax(teams: TeamCounts): number {
+  let max1 = 0;
+  let max2 = 0;
+  for (const c of teams) {
+    if (c >= max1) {
+      max2 = max1;
+      max1 = c;
+    } else if (c > max2) {
+      max2 = c;
+    }
+  }
+  return max2;
+}
+
 function pickBestCell(cells: Map<number, HotspotCell>): { key: number; cell: HotspotCell } | null {
   let bestKey: number | null = null;
   let bestCell: HotspotCell | null = null;
   let bestScore = 0;
   for (const [key, cell] of cells) {
-    let max1 = 0;
-    let max2 = 0;
-    for (const c of cell.teams) {
-      if (c >= max1) {
-        max2 = max1;
-        max1 = c;
-      } else if (c > max2) {
-        max2 = c;
-      }
-    }
-    const score = max2 * cell.count;
+    const score = secondMax(cell.teams) * cell.count;
     if (score > bestScore) {
       bestScore = score;
       bestKey = key;

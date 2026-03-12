@@ -1,10 +1,12 @@
-import { BEAM_DECAY_RATE, REF_FPS, SH_CIRCLE, SH_EXPLOSION_RING } from '../constants.ts';
+import { normalizeAngleDelta } from '../angle.ts';
+import { BEAM_DECAY_RATE, SH_CIRCLE } from '../constants.ts';
 import { unitIdx } from '../pool-index.ts';
 import { unit } from '../pools-query.ts';
-import type { Color3, UnitIndex } from '../types.ts';
+import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { applyBeamDefenses } from './combat-beam-defense.ts';
 import type { CombatContext } from './combat-context.ts';
+import { sweepAfterimage, sweepGlowRing, sweepPathParticles, sweepTipSpark } from './combat-sweep-effects.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
@@ -80,8 +82,27 @@ function applySweepHit(ctx: CombatContext, ni: UnitIndex, n: CombatContext['u'],
 }
 
 function readSweepSnapshot(i: number): UnitIndex {
-  // _sweepSnapshotCount でループ範囲制限済み。?? 0 は noUncheckedIndexedAccess 型対策
   return unitIdx(_sweepSnapshot[i] ?? 0);
+}
+
+const _sweepDelta = { dx: 0, dy: 0 };
+
+function sweepCandidateDelta(
+  n: CombatContext['u'],
+  team: number,
+  ux: number,
+  uy: number,
+  rangeSq: number,
+): typeof _sweepDelta | null {
+  if (!n.alive || n.team === team) {
+    return null;
+  }
+  _sweepDelta.dx = n.x - ux;
+  _sweepDelta.dy = n.y - uy;
+  if (_sweepDelta.dx * _sweepDelta.dx + _sweepDelta.dy * _sweepDelta.dy >= rangeSq) {
+    return null;
+  }
+  return _sweepDelta;
 }
 
 function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: number) {
@@ -90,36 +111,20 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   const TOL = 0.05;
   _sweepSnapshotCount = snapshotNeighbors(u.x, u.y, t.range);
 
-  const normalize = (a: number): number => {
-    let r = a - base;
-    while (r > Math.PI) {
-      r -= Math.PI * 2;
-    }
-    while (r < -Math.PI) {
-      r += Math.PI * 2;
-    }
-    return r;
-  };
-
-  const relPrev = normalize(prevAngle);
-  const relCurr = normalize(currAngle);
+  const relPrev = normalizeAngleDelta(prevAngle, base);
+  const relCurr = normalizeAngleDelta(currAngle, base);
   const lo = Math.min(relPrev, relCurr) - TOL;
   const hi = Math.max(relPrev, relCurr) + TOL;
+  const rangeSq = t.range * t.range;
 
   for (let i = 0; i < _sweepSnapshotCount; i++) {
     const ni = readSweepSnapshot(i);
     const n = unit(ni);
-    if (!n.alive || n.team === u.team) {
+    const delta = sweepCandidateDelta(n, u.team, u.x, u.y, rangeSq);
+    if (!delta) {
       continue;
     }
-    const ndx = n.x - u.x,
-      ndy = n.y - u.y;
-    const nd = Math.sqrt(ndx * ndx + ndy * ndy);
-    if (nd >= t.range) {
-      continue;
-    }
-    const nAngle = Math.atan2(ndy, ndx);
-    const relEnemy = normalize(nAngle);
+    const relEnemy = normalizeAngleDelta(Math.atan2(delta.dy, delta.dx), base);
     if (relEnemy < lo || relEnemy > hi) {
       continue;
     }
@@ -135,94 +140,6 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
       return;
     }
     applySweepHit(ctx, ni, n, dmg);
-  }
-}
-
-function sweepAfterimage(
-  u: CombatContext['u'],
-  ox: number,
-  oy: number,
-  easeAt: (p: number) => number,
-  c: Color3,
-  range: number,
-) {
-  const trails: [number, number, number, number][] = [
-    [0.08, 0.35, 4, 0.1],
-    [0.18, 0.15, 2.5, 0.12],
-  ];
-  for (const [phaseOffset, colorMul, width, opacity] of trails) {
-    if (u.sweepPhase > phaseOffset) {
-      const angle = u.sweepBaseAngle + easeAt(u.sweepPhase - phaseOffset);
-      addBeam(
-        ox,
-        oy,
-        u.x + Math.cos(angle) * range,
-        u.y + Math.sin(angle) * range,
-        c[0] * colorMul,
-        c[1] * colorMul,
-        c[2] * colorMul,
-        opacity,
-        width,
-        false,
-        2,
-      );
-    }
-  }
-}
-
-function sweepTipSpark(ctx: CombatContext, x: number, y: number, c: Color3, dt: number) {
-  if (ctx.rng() < 1 - 0.45 ** (dt * REF_FPS)) {
-    const a = ctx.rng() * Math.PI * 2;
-    const s = 40 + ctx.rng() * 100;
-    spawnParticle(
-      x,
-      y,
-      Math.cos(a) * s,
-      Math.sin(a) * s,
-      0.12 + ctx.rng() * 0.1,
-      3 + ctx.rng() * 2,
-      c[0],
-      c[1],
-      c[2],
-      SH_CIRCLE,
-    );
-  }
-}
-
-function sweepPathParticles(
-  ctx: CombatContext,
-  ox: number,
-  oy: number,
-  endX: number,
-  endY: number,
-  beamAngle: number,
-  c: Color3,
-  dt: number,
-) {
-  if (ctx.rng() < 1 - 0.7 ** (dt * REF_FPS)) {
-    const along = 0.3 + ctx.rng() * 0.6;
-    const px = ox + (endX - ox) * along;
-    const py = oy + (endY - oy) * along;
-    const drift = (ctx.rng() - 0.5) * 30;
-    const perp = beamAngle + Math.PI * 0.5;
-    spawnParticle(
-      px + Math.cos(perp) * drift,
-      py + Math.sin(perp) * drift,
-      (ctx.rng() - 0.5) * 20,
-      (ctx.rng() - 0.5) * 20,
-      0.06 + ctx.rng() * 0.04,
-      1.5 + ctx.rng() * 1.5,
-      c[0],
-      c[1],
-      c[2],
-      SH_CIRCLE,
-    );
-  }
-}
-
-function sweepGlowRing(ctx: CombatContext, x: number, y: number, c: Color3, dt: number) {
-  if (ctx.rng() < 1 - 0.75 ** (dt * REF_FPS)) {
-    spawnParticle(x, y, 0, 0, 0.1, 12 + ctx.rng() * 6, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }
 
@@ -283,10 +200,10 @@ export function sweepBeam(ctx: CombatContext) {
   const oy = u.y + Math.sin(u.angle) * t.size * 0.5;
   addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);
 
-  sweepAfterimage(u, ox, oy, easeAt, c, t.range);
-  sweepTipSpark(ctx, beamEndX, beamEndY, c, dt);
-  sweepPathParticles(ctx, ox, oy, beamEndX, beamEndY, currAngle, c, dt);
-  sweepGlowRing(ctx, beamEndX, beamEndY, c, dt);
+  sweepAfterimage(ctx, ox, oy, easeAt);
+  sweepTipSpark(ctx, beamEndX, beamEndY);
+  sweepPathParticles(ctx, ox, oy, beamEndX, beamEndY, currAngle);
+  sweepGlowRing(ctx, beamEndX, beamEndY);
 
   sweepThroughDamage(ctx, prevAngle, currAngle);
 

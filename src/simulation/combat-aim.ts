@@ -1,3 +1,4 @@
+import { normalizeAngleDelta } from '../angle.ts';
 import { unit } from '../pools-query.ts';
 import type { Unit } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -75,13 +76,7 @@ export function aimAt(
   const leadDist = Math.sqrt(px * px + py * py);
 
   // ±π境界を超えると逆方向に回るため最短弧で補間
-  let angleDiff = leadAng - directAng;
-  if (angleDiff > Math.PI) {
-    angleDiff -= Math.PI * 2;
-  }
-  if (angleDiff < -Math.PI) {
-    angleDiff += Math.PI * 2;
-  }
+  const angleDiff = normalizeAngleDelta(leadAng, directAng);
 
   _aim.ang = directAng + angleDiff * accuracy;
   _aim.dist = directDist + (leadDist - directDist) * accuracy;

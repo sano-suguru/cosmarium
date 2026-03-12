@@ -38,7 +38,15 @@ function _pushRayHit(count: number, oi: UnitIndex, dist: number): void {
   }
 }
 
-function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: number, teamFilter: number): RayHit[] {
+/** レイ沿いの空間ハッシュから敵ユニット候補を収集 */
+function scanRayNeighbors(
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  range: number,
+  teamFilter: number,
+): ReadonlySet<UnitIndex> {
   const steps = Math.ceil(range / RAILGUN_SAMPLE_STEP);
   _rayHitSeen.clear();
   for (let s = 0; s <= steps; s++) {
@@ -52,8 +60,20 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
       }
     }
   }
+  return _rayHitSeen;
+}
+
+/** 候補ユニットをレイとの距離でフィルタし、ヒット判定 */
+function filterRayHits(
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  range: number,
+  candidates: ReadonlySet<UnitIndex>,
+): number {
   let count = 0;
-  for (const oi of _rayHitSeen) {
+  for (const oi of candidates) {
     const o = unit(oi);
     const tox = o.x - ox;
     const toy = o.y - oy;
@@ -68,6 +88,12 @@ function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: n
       count++;
     }
   }
+  return count;
+}
+
+function collectRayHits(ox: number, oy: number, dx: number, dy: number, range: number, teamFilter: number): RayHit[] {
+  const candidates = scanRayNeighbors(ox, oy, dx, dy, range, teamFilter);
+  const count = filterRayHits(ox, oy, dx, dy, range, candidates);
   _rayHits.length = count;
   _rayHits.sort(_rayHitCmp);
   return _rayHits;

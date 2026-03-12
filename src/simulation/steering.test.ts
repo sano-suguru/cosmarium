@@ -17,17 +17,15 @@ import {
   unitType,
 } from '../unit-type-accessors.ts';
 import { buildHash } from './spatial-hash.ts';
+import { BOUNDARY_MARGIN, STUN_DRAG_BASE, steer } from './steering.ts';
 import {
-  BOUNDARY_MARGIN,
   CATALYST_BOOST_CD_MULT,
   CATALYST_BOOST_DUR_MULT,
   CATALYST_BOOST_MULT,
   CATALYST_BOOST_RANGE_MULT,
   CATALYST_SPEED_MULT,
   CATALYST_TURN_MULT,
-  STUN_DRAG_BASE,
-  steer,
-} from './steering.ts';
+} from './steering-boost.ts';
 import { accumulateUnit, beginTeamCenterUpdate, endTeamCenterUpdate } from './team-center.ts';
 
 afterEach(() => {

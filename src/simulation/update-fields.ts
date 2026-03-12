@@ -65,6 +65,49 @@ function bubbleInsert(oiArr: Int32Array, distArr: Float64Array, start: number, o
   distArr[p] = d;
 }
 
+interface NeighborSearch {
+  readonly radiusSq: number;
+  readonly maxCount: number;
+  readonly excludeAmplifiers: boolean;
+  readonly oi: Int32Array;
+  readonly dist: Float64Array;
+}
+
+function isSearchCandidate(o: Unit, oi: number, ownerIdx: number, team: number, s: NeighborSearch): boolean {
+  if (!o.alive || oi === ownerIdx || o.team !== team) {
+    return false;
+  }
+  if (s.excludeAmplifiers && unitType(o.type).amplifies) {
+    return false;
+  }
+  return true;
+}
+
+function findClosestNeighbors(u: Unit, i: number, nn: number, s: NeighborSearch): number {
+  let count = 0;
+  const team = u.team;
+  for (let j = 0; j < nn; j++) {
+    const oi = getNeighborAt(j);
+    const o = unit(oi);
+    if (!isSearchCandidate(o, oi, i, team, s)) {
+      continue;
+    }
+    const dx = o.x - u.x,
+      dy = o.y - u.y;
+    const d = dx * dx + dy * dy;
+    if (d > s.radiusSq) {
+      continue;
+    }
+    if (count < s.maxCount) {
+      bubbleInsert(s.oi, s.dist, count, oi, d);
+      count++;
+    } else if (d < (s.dist[count - 1] ?? 0)) {
+      bubbleInsert(s.oi, s.dist, count - 1, oi, d);
+    }
+  }
+  return count;
+}
+
 const _ampOi = new Int32Array(AMP_MAX_TETHERS);
 const _ampDist = new Float64Array(AMP_MAX_TETHERS);
 
@@ -73,6 +116,22 @@ const BASTION_SHIELD_RADIUS_SQ = BASTION_SHIELD_RADIUS * BASTION_SHIELD_RADIUS;
 const AMP_RADIUS_SQ = AMP_RADIUS * AMP_RADIUS;
 const SCRAMBLE_RADIUS_SQ = SCRAMBLE_RADIUS * SCRAMBLE_RADIUS;
 const CATALYST_RADIUS_SQ = CATALYST_RADIUS * CATALYST_RADIUS;
+
+const tetherSearch: NeighborSearch = {
+  radiusSq: BASTION_SHIELD_RADIUS_SQ,
+  maxCount: BASTION_MAX_TETHERS,
+  excludeAmplifiers: false,
+  oi: _tetherOi,
+  dist: _tetherDist,
+};
+
+const ampSearch: NeighborSearch = {
+  radiusSq: AMP_RADIUS_SQ,
+  maxCount: AMP_MAX_TETHERS,
+  excludeAmplifiers: true,
+  oi: _ampOi,
+  dist: _ampDist,
+};
 
 function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
   if (u.maxEnergy <= 0) {
@@ -105,26 +164,7 @@ function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
 }
 
 function tetherNearbyAllies(u: Unit, i: number, nn: number) {
-  let count = 0;
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
-    const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) {
-      continue;
-    }
-    const dx = o.x - u.x,
-      dy = o.y - u.y;
-    const d = dx * dx + dy * dy;
-    if (d > BASTION_SHIELD_RADIUS_SQ) {
-      continue;
-    }
-    if (count < BASTION_MAX_TETHERS) {
-      bubbleInsert(_tetherOi, _tetherDist, count, oi, d);
-      count++;
-    } else if (d < (_tetherDist[count - 1] ?? 0)) {
-      bubbleInsert(_tetherOi, _tetherDist, count - 1, oi, d);
-    }
-  }
+  const count = findClosestNeighbors(u, i, nn, tetherSearch);
   const ui = unitIdx(i);
   for (let j = 0; j < count; j++) {
     const oi = unitIdx(_tetherOi[j] ?? 0);
@@ -138,30 +178,7 @@ function tetherNearbyAllies(u: Unit, i: number, nn: number) {
 }
 
 function collectAmpCandidates(u: Unit, i: number, nn: number): number {
-  let count = 0;
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
-    const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i) {
-      continue;
-    }
-    if (unitType(o.type).amplifies) {
-      continue;
-    }
-    const dx = o.x - u.x,
-      dy = o.y - u.y;
-    const d = dx * dx + dy * dy;
-    if (d > AMP_RADIUS_SQ) {
-      continue;
-    }
-    if (count < AMP_MAX_TETHERS) {
-      bubbleInsert(_ampOi, _ampDist, count, oi, d);
-      count++;
-    } else if (d < (_ampDist[count - 1] ?? 0)) {
-      bubbleInsert(_ampOi, _ampDist, count - 1, oi, d);
-    }
-  }
-  return count;
+  return findClosestNeighbors(u, i, nn, ampSearch);
 }
 
 function amplifyNearbyAllies(u: Unit, i: number, nn: number) {

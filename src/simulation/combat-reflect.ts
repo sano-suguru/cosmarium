@@ -85,20 +85,36 @@ export function reflectProjectile(
   spawnParticle(p.x, p.y, 0, 0, 0.12, 10, 1, 1, 1, SH_EXPLOSION_RING);
 }
 
+/** 反射対象のプロジェクタイルか判定（同チーム・反射済み・範囲外を除外） */
+function isReflectCandidate(
+  p: ReturnType<typeof projectile>,
+  pIdx: number,
+  ux: number,
+  uy: number,
+  reflectRSq: number,
+  team: Team,
+): boolean {
+  if (reflectedThisFrame.has(pIdx)) {
+    return false;
+  }
+  if (p.team === team) {
+    return false;
+  }
+  const dx = p.x - ux;
+  const dy = p.y - uy;
+  return dx * dx + dy * dy < reflectRSq;
+}
+
 function reflectNearbyProjectiles(ctx: CombatContext, u: CombatContext['u'], reflectR: number, team: Team, c: Color3) {
   const cooldown = ctx.t.shieldCooldown;
+  const reflectRSq = reflectR * reflectR;
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const p = projectile(i);
     if (!p.alive) {
       continue;
     }
     rem--;
-    if (reflectedThisFrame.has(i) || p.team === team) {
-      continue;
-    }
-    const dx = p.x - u.x;
-    const dy = p.y - u.y;
-    if (dx * dx + dy * dy >= reflectR * reflectR) {
+    if (!isReflectCandidate(p, i, u.x, u.y, reflectRSq, team)) {
       continue;
     }
     if (u.energy <= 0 || u.shieldCooldown > 0) {
@@ -113,40 +129,47 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: CombatContext['u'], ref
   }
 }
 
-export function reflectProjectiles(ctx: CombatContext) {
+/** Reflector の弱射撃（プロジェクタイル反射不能時のサブ攻撃） */
+function fireWeakShot(ctx: CombatContext): void {
   const { u, c, t, vd } = ctx;
+  const o = unit(u.target);
+  if (!o.alive) {
+    u.target = NO_UNIT;
+    return;
+  }
+  const dx = o.x - u.x,
+    dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d >= t.range) {
+    return;
+  }
+  u.cooldown = t.fireRate;
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, REFLECTOR_WEAK_SHOT_SPEED, t.leadAccuracy);
+  spawnProjectile(
+    u.x,
+    u.y,
+    Math.cos(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+    Math.sin(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
+    aim.dist / REFLECTOR_WEAK_SHOT_SPEED + 0.1,
+    t.damage * vd,
+    u.team,
+    1.5,
+    c[0],
+    c[1],
+    c[2],
+    { sourceUnit: ctx.ui },
+  );
+}
+
+export function reflectProjectiles(ctx: CombatContext) {
+  const { u, c, t } = ctx;
   const fireRange = t.range;
   const reflectR = t.size * REFLECT_RADIUS_MULT;
   if (u.shieldCooldown <= 0 && u.energy > 0) {
     reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);
   }
   if (u.cooldown <= 0 && u.target !== NO_UNIT) {
-    const o = unit(u.target);
-    if (!o.alive) {
-      u.target = NO_UNIT;
-    } else {
-      const dx = o.x - u.x,
-        dy = o.y - u.y;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < fireRange) {
-        u.cooldown = t.fireRate;
-        const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, REFLECTOR_WEAK_SHOT_SPEED, t.leadAccuracy);
-        spawnProjectile(
-          u.x,
-          u.y,
-          Math.cos(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
-          Math.sin(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
-          aim.dist / REFLECTOR_WEAK_SHOT_SPEED + 0.1,
-          t.damage * vd,
-          u.team,
-          1.5,
-          c[0],
-          c[1],
-          c[2],
-          { sourceUnit: ctx.ui },
-        );
-      }
-    }
+    fireWeakShot(ctx);
   }
   if (ctx.rng() < 1 - 0.9 ** (ctx.dt * REF_FPS)) {
     spawnParticle(

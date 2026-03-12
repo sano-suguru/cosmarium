@@ -1,4 +1,5 @@
-import { NEIGHBOR_RANGE, PI, REF_FPS, TAU, WORLD_SIZE } from '../constants.ts';
+import { normalizeAngleDelta } from '../angle.ts';
+import { NEIGHBOR_RANGE, REF_FPS, WORLD_SIZE } from '../constants.ts';
 import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -7,6 +8,7 @@ import type { SteerForce } from './boids.ts';
 import { computeBoidsAndFindLocal, computeBoidsForce } from './boids.ts';
 import { getNeighbors } from './spatial-hash.ts';
 import { computeSquadronCohesion, computeSquadronLeaderObjective, computeSquadronLeashFactor } from './squadron.ts';
+import { CATALYST_SPEED_MULT, CATALYST_TURN_MULT, tickBoost, tickBoostDuringStun } from './steering-boost.ts';
 import {
   computeAllyCentroidFollow,
   computeEngagementForce,
@@ -26,18 +28,12 @@ const _resolveResult: { target: UnitIndex; fx: number; fy: number } = { target: 
 const _squadronCohesionOut: SteerForce = { x: 0, y: 0 };
 const _squadronObjOut: SteerForce = { x: 0, y: 0 };
 
-// 再利用ブースト速度バッファ — tickBoost が上書きして返却する
-const _boostVel = { vx: 0, vy: 0 };
+const _boundaryForce: SteerForce = { x: 0, y: 0 };
 
 const GLOBAL_TARGET_PROB = 0.012;
 
 const VET_SPEED_BONUS = 0.12;
-export const CATALYST_SPEED_MULT = 1.25;
-export const CATALYST_TURN_MULT = 1.3;
-export const CATALYST_BOOST_MULT = 1.3;
-export const CATALYST_BOOST_DUR_MULT = 1.3;
-export const CATALYST_BOOST_CD_MULT = 0.75;
-export const CATALYST_BOOST_RANGE_MULT = 1.3;
+
 export const STUN_DRAG_BASE = 0.93;
 const KB_DRAG_BASE = 0.88;
 const KB_EPSILON = 0.01;
@@ -56,51 +52,6 @@ function isSupportType(t: UnitType): boolean {
   return t.supportFollow > 0;
 }
 
-function tickBoost(
-  u: Unit,
-  boost: NonNullable<UnitType['boost']>,
-  tgt: number,
-  spd: number,
-  dt: number,
-  catalyzed: boolean,
-): typeof _boostVel | null {
-  const mult = catalyzed ? boost.multiplier * CATALYST_BOOST_MULT : boost.multiplier;
-  const dur = catalyzed ? boost.duration * CATALYST_BOOST_DUR_MULT : boost.duration;
-  const cd = catalyzed ? boost.cooldown * CATALYST_BOOST_CD_MULT : boost.cooldown;
-  const range = catalyzed ? boost.triggerRange * CATALYST_BOOST_RANGE_MULT : boost.triggerRange;
-
-  if (u.boostTimer > 0) {
-    u.boostTimer -= dt;
-    if (u.boostTimer <= 0) {
-      u.boostTimer = 0;
-      u.boostCooldown = cd;
-    } else {
-      const bv = spd * mult;
-      _boostVel.vx = Math.cos(u.angle) * bv;
-      _boostVel.vy = Math.sin(u.angle) * bv;
-      return _boostVel;
-    }
-  } else if (u.boostCooldown > 0) {
-    u.boostCooldown = Math.max(0, u.boostCooldown - dt);
-  }
-
-  if (u.boostTimer <= 0 && u.boostCooldown <= 0 && tgt !== NO_UNIT) {
-    const o = unit(tgt);
-    const dx = o.x - u.x;
-    const dy = o.y - u.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d <= range) {
-      u.boostTimer = dur;
-      const bv = spd * mult;
-      const nd = d || 1;
-      _boostVel.vx = (dx / nd) * bv;
-      _boostVel.vy = (dy / nd) * bv;
-      return _boostVel;
-    }
-  }
-  return null;
-}
-
 function applyKnockbackDrag(u: Unit, dt: number) {
   const kbDrag = KB_DRAG_BASE ** (dt * REF_FPS);
   u.kbVx *= kbDrag;
@@ -110,23 +61,6 @@ function applyKnockbackDrag(u: Unit, dt: number) {
   }
   if (Math.abs(u.kbVy) < KB_EPSILON) {
     u.kbVy = 0;
-  }
-}
-
-function tickBoostDuringStun(u: Unit, dt: number) {
-  if (u.boostTimer <= 0 && u.boostCooldown <= 0) {
-    return;
-  }
-  const bt = unitType(u.type).boost;
-  if (!bt) {
-    return;
-  }
-  if (u.boostTimer > 0) {
-    u.boostTimer = 0;
-    u.boostCooldown = bt.cooldown;
-  }
-  if (u.boostCooldown > 0) {
-    u.boostCooldown = Math.max(0, u.boostCooldown - dt);
   }
 }
 
@@ -192,6 +126,27 @@ function resolveTarget(
   return _resolveResult;
 }
 
+function computeBoundaryForce(x: number, y: number): SteerForce {
+  const m = WORLD_SIZE * BOUNDARY_MARGIN;
+  let bx = 0;
+  let by = 0;
+  if (x < -m) {
+    bx += BOUNDARY_FORCE;
+  }
+  if (x > m) {
+    bx -= BOUNDARY_FORCE;
+  }
+  if (y < -m) {
+    by += BOUNDARY_FORCE;
+  }
+  if (y > m) {
+    by -= BOUNDARY_FORCE;
+  }
+  _boundaryForce.x = bx;
+  _boundaryForce.y = by;
+  return _boundaryForce;
+}
+
 export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
   const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
   steerWithNeighbors(u, ui, nn, dt, rng);
@@ -246,28 +201,11 @@ export function steerWithNeighbors(u: Unit, ui: UnitIndex, nn: number, dt: numbe
   fx += _squadronObjOut.x;
   fy += _squadronObjOut.y;
 
-  const m = WORLD_SIZE * BOUNDARY_MARGIN;
-  if (u.x < -m) {
-    fx += BOUNDARY_FORCE;
-  }
-  if (u.x > m) {
-    fx -= BOUNDARY_FORCE;
-  }
-  if (u.y < -m) {
-    fy += BOUNDARY_FORCE;
-  }
-  if (u.y > m) {
-    fy -= BOUNDARY_FORCE;
-  }
+  const boundary = computeBoundaryForce(u.x, u.y);
+  fx += boundary.x;
+  fy += boundary.y;
 
-  const da = Math.atan2(fy, fx);
-  let ad = da - u.angle;
-  if (ad > PI) {
-    ad -= TAU;
-  }
-  if (ad < -PI) {
-    ad += TAU;
-  }
+  const ad = normalizeAngleDelta(Math.atan2(fy, fx), u.angle);
   const catTurn = u.catalystTimer > 0 ? CATALYST_TURN_MULT : 1;
   u.angle += ad * t.turnRate * catTurn * dt;
 

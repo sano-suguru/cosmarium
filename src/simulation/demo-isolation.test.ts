@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, countAlive, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams, trackingBeams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { unitIdx } from '../pool-index.ts';
@@ -195,29 +195,9 @@ describe('clearAllPools', () => {
     expect(trackingBeams).toHaveLength(0);
 
     // 全スロットがdead
-    let aliveUnits = 0;
-    for (let i = 0; i < POOL_UNITS; i++) {
-      if (unit(i).alive) {
-        aliveUnits++;
-      }
-    }
-    expect(aliveUnits).toBe(0);
-
-    let aliveParticles = 0;
-    for (let i = 0; i < POOL_PARTICLES; i++) {
-      if (particle(i).alive) {
-        aliveParticles++;
-      }
-    }
-    expect(aliveParticles).toBe(0);
-
-    let aliveProjectiles = 0;
-    for (let i = 0; i < POOL_PROJECTILES; i++) {
-      if (projectile(i).alive) {
-        aliveProjectiles++;
-      }
-    }
-    expect(aliveProjectiles).toBe(0);
+    expect(countAlive(POOL_UNITS, unit)).toBe(0);
+    expect(countAlive(POOL_PARTICLES, particle)).toBe(0);
+    expect(countAlive(POOL_PROJECTILES, projectile)).toBe(0);
   });
 });
 

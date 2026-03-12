@@ -251,6 +251,17 @@ export function spawnAt(team: Team, type: UnitTypeIndex, x: number, y: number): 
   return spawnUnit(team, type, x, y, () => 0);
 }
 
+/** テスト用：プール内の生存オブジェクト数をカウントする */
+export function countAlive(size: number, get: (i: number) => { alive: boolean }): number {
+  let count = 0;
+  for (let i = 0; i < size; i++) {
+    if (get(i).alive) {
+      count++;
+    }
+  }
+  return count;
+}
+
 /** テスト用 killUnit ラッパー。大半のテストでは killContext を気にしないためデフォルトを提供 */
 export function kill(i: UnitIndex, killer?: Killer, killContext: KillContext = KILL_CONTEXT.ProjectileDirect) {
   return killUnit(i, killer, killContext);
