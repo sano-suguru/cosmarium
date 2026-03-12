@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":automergePatch"],
+  "extends": ["config:recommended", "schedule:weekends", ":automergePatch"],
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
