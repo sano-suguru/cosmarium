@@ -109,7 +109,7 @@ export function getNeighbors(x: number, y: number, r: number): NeighborSlice {
       n = collectCellNeighbors(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663), n);
     }
   }
-  (_slice as { count: number }).count = n;
+  _slice.count = n;
   return _slice;
 }
 

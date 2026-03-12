@@ -35,7 +35,7 @@ interface KilledUnitSnapshot {
   readonly type: UnitTypeIndex;
 }
 
-export interface KilledParticleSnapshot {
+interface KilledParticleSnapshot {
   readonly x: number;
   readonly y: number;
   readonly vx: number;
@@ -46,7 +46,7 @@ export interface KilledParticleSnapshot {
   readonly b: number;
 }
 
-export interface KilledProjectileSnapshot {
+interface KilledProjectileSnapshot {
   readonly x: number;
   readonly y: number;
   readonly vx: number;
@@ -57,6 +57,19 @@ export interface KilledProjectileSnapshot {
   readonly sourceUnit: UnitIndex;
   readonly sourceType: UnitTypeIndex;
 }
+
+const _particleSnap = { x: 0, y: 0, vx: 0, vy: 0, size: 0, r: 0, g: 0, b: 0 } satisfies KilledParticleSnapshot;
+const _projectileSnap = {
+  x: 0,
+  y: 0,
+  vx: 0,
+  vy: 0,
+  team: 0 as Team,
+  damage: 0,
+  aoe: 0,
+  sourceUnit: 0 as UnitIndex,
+  sourceType: 0 as UnitTypeIndex,
+} satisfies KilledProjectileSnapshot;
 
 export function captureKiller(i: UnitIndex): Killer | undefined {
   const u = unit(i);
@@ -154,20 +167,18 @@ export function killUnit(
 export function killParticle(i: ParticleIndex): KilledParticleSnapshot | undefined {
   const p = particle(i);
   if (p.alive) {
-    const snap: KilledParticleSnapshot = {
-      x: p.x,
-      y: p.y,
-      vx: p.vx,
-      vy: p.vy,
-      size: p.size,
-      r: p.r,
-      g: p.g,
-      b: p.b,
-    };
+    _particleSnap.x = p.x;
+    _particleSnap.y = p.y;
+    _particleSnap.vx = p.vx;
+    _particleSnap.vy = p.vy;
+    _particleSnap.size = p.size;
+    _particleSnap.r = p.r;
+    _particleSnap.g = p.g;
+    _particleSnap.b = p.b;
     p.alive = false;
     decParticles();
     freeParticleSlot(i);
-    return snap;
+    return _particleSnap;
   }
   return undefined;
 }
@@ -175,20 +186,18 @@ export function killParticle(i: ParticleIndex): KilledParticleSnapshot | undefin
 export function killProjectile(i: ProjectileIndex): KilledProjectileSnapshot | undefined {
   const p = projectile(i);
   if (p.alive) {
-    const snap: KilledProjectileSnapshot = {
-      x: p.x,
-      y: p.y,
-      vx: p.vx,
-      vy: p.vy,
-      team: p.team,
-      damage: p.damage,
-      aoe: p.aoe,
-      sourceUnit: p.sourceUnit,
-      sourceType: p.sourceType,
-    };
+    _projectileSnap.x = p.x;
+    _projectileSnap.y = p.y;
+    _projectileSnap.vx = p.vx;
+    _projectileSnap.vy = p.vy;
+    _projectileSnap.team = p.team;
+    _projectileSnap.damage = p.damage;
+    _projectileSnap.aoe = p.aoe;
+    _projectileSnap.sourceUnit = p.sourceUnit;
+    _projectileSnap.sourceType = p.sourceType;
     p.alive = false;
     decProjectiles();
-    return snap;
+    return _projectileSnap;
   }
   return undefined;
 }
