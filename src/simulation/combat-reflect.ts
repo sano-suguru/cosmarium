@@ -123,9 +123,6 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: CombatContext['u'], ref
     consumeReflectorShieldHp(u, p.damage, cooldown);
     reflectProjectile(ctx.rng, u.x, u.y, p, { team, color: c, reflectorType: u.type, reflectorIndex: ctx.ui });
     reflectedThisFrame.add(i);
-    if (u.energy <= 0) {
-      break;
-    }
   }
 }
 

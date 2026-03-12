@@ -123,28 +123,24 @@ export function reinforce(dt: number, rng: () => number, rs: ReinforcementState)
   reinforceWaves(rng);
 }
 
-function reinforceWaves(rng: () => number) {
-  const lim = REINFORCE_UNIT_CAP;
-  const bonusThreshold = 1 / RUBBER_BAND_RATIO;
-  // ループ前にスナップショット — team0のスポーンがteam1の比率計算に影響しないようにする
-  const snapped = [teamUnitCounts[0], teamUnitCounts[1]] as const;
-  for (const team of [0, 1] as const) {
-    const myCnt = snapped[team];
-    if (myCnt >= lim) {
-      continue;
-    }
-
-    const enemyCnt = snapped[team === 0 ? 1 : 0];
-    const ratio = enemyCnt > 0 ? myCnt / enemyCnt : 1.0;
-
-    if (ratio >= RUBBER_BAND_RATIO) {
-      continue;
-    }
-
-    spawnWave(team, snapped[team], rng);
-
-    if (ratio <= bonusThreshold) {
-      spawnWave(team, snapped[team], rng);
-    }
+function reinforceTeam(team: BattleTeam, myCnt: number, enemyCnt: number, rng: () => number): void {
+  if (myCnt >= REINFORCE_UNIT_CAP) {
+    return;
   }
+  const ratio = enemyCnt > 0 ? myCnt / enemyCnt : 1.0;
+  if (ratio >= RUBBER_BAND_RATIO) {
+    return;
+  }
+  spawnWave(team, myCnt, rng);
+  if (ratio <= 1 / RUBBER_BAND_RATIO) {
+    spawnWave(team, myCnt, rng);
+  }
+}
+
+function reinforceWaves(rng: () => number) {
+  // ループ前にスナップショット — team0のスポーンがteam1の比率計算に影響しないようにする
+  const cnt0 = teamUnitCounts[0];
+  const cnt1 = teamUnitCounts[1];
+  reinforceTeam(0, cnt0, cnt1, rng);
+  reinforceTeam(1, cnt1, cnt0, rng);
 }

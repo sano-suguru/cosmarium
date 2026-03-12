@@ -157,7 +157,7 @@ Rendering → `src/renderer/AGENTS.md`, Simulation → `src/simulation/AGENTS.md
 - **noConsole**: Only `console.error`/`console.warn` allowed (test files exempt)
 - **noForEach**: Use `for...of` loops instead
 - **noBarrelFile**: No index.ts barrel exports
-- **noExcessiveCognitiveComplexity**: Max complexity 15
+- **noExcessiveCognitiveComplexity**: Max complexity 10
 - **noExcessiveLinesPerFile**: Max 300 lines (test files, CSS Modules exempt)
 - `src/shaders/**` excluded from lint/format (GLSL)
 

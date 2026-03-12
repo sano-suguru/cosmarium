@@ -278,12 +278,16 @@ describe('REINFORCEMENT_TABLE — overlap snapshot', () => {
     return [...new Set(pairs)].sort();
   }
 
+  function hasPairOverlap(active: boolean[][], i: number, j: number): boolean {
+    return hasOverlap(active[i] ?? [], active[j] ?? []);
+  }
+
   /** active 配列からペアを収集 */
   function collectPairs(active: boolean[][]): string[] {
     const pairs: string[] = [];
     for (let i = 0; i < active.length; i++) {
       for (let j = i + 1; j < active.length; j++) {
-        if (hasOverlap(active[i] ?? [], active[j] ?? [])) {
+        if (hasPairOverlap(active, i, j)) {
           const sorted = [entryName(i), entryName(j)].sort();
           pairs.push(`${sorted[0]} × ${sorted[1]}`);
         }

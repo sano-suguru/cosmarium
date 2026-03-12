@@ -123,6 +123,27 @@ export function initCamera() {
     }
   });
 
+  function handlePinchMove(): void {
+    const pts = [...activePointers.values()];
+    const p0 = pts[0];
+    const p1 = pts[1];
+    if (!p0 || !p1) {
+      return;
+    }
+    const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+    const nz = Math.max(0.05, Math.min(8, pinchStartZoom * (dist / pinchStartDist)));
+    applyZoom(
+      pinchStartCenterX,
+      pinchStartCenterY,
+      pinchStartZoom,
+      nz,
+      pinchStartCamX,
+      pinchStartCamY,
+      (p0.x + p1.x) / 2,
+      (p0.y + p1.y) / 2,
+    );
+  }
+
   canvas.addEventListener('pointermove', (e) => {
     if (!activePointers.has(e.pointerId)) {
       return;
@@ -130,24 +151,7 @@ export function initCamera() {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 2 && pinchStartDist > 0) {
-      const pts = [...activePointers.values()];
-      const p0 = pts[0];
-      const p1 = pts[1];
-      if (!p0 || !p1) {
-        return;
-      }
-      const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-      const nz = Math.max(0.05, Math.min(8, pinchStartZoom * (dist / pinchStartDist)));
-      applyZoom(
-        pinchStartCenterX,
-        pinchStartCenterY,
-        pinchStartZoom,
-        nz,
-        pinchStartCamX,
-        pinchStartCamY,
-        (p0.x + p1.x) / 2,
-        (p0.y + p1.y) / 2,
-      );
+      handlePinchMove();
     } else if (dragging) {
       const dpr = viewport.dpr;
       cam.targetX = cameraStart.x - ((e.clientX - dragStart.x) * dpr) / cam.targetZ;

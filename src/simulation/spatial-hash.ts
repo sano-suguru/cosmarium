@@ -23,7 +23,7 @@ export function getNeighborAt(i: number): UnitIndex {
 const _pooled: UnitIndex[][] = [];
 const _used: UnitIndex[][] = [];
 
-export function buildHash(activeTeamCount: number = MAX_TEAMS) {
+function resetHash() {
   for (let i = 0; i < _used.length; i++) {
     const arr = _used[i];
     if (arr === undefined) {
@@ -34,6 +34,21 @@ export function buildHash(activeTeamCount: number = MAX_TEAMS) {
   }
   _used.length = 0;
   hashMap.clear();
+}
+
+function getOrCreateBucket(k: number): UnitIndex[] {
+  let a = hashMap.get(k);
+  if (!a) {
+    const pooled = _pooled.pop();
+    a = pooled !== undefined ? pooled : [];
+    hashMap.set(k, a);
+    _used.push(a);
+  }
+  return a;
+}
+
+export function buildHash(activeTeamCount: number = MAX_TEAMS) {
+  resetHash();
   beginTeamCenterUpdate();
   const hwm = getUnitHWM();
   for (let i = 0, rem = poolCounts.units; i < hwm && rem > 0; i++) {
@@ -43,14 +58,7 @@ export function buildHash(activeTeamCount: number = MAX_TEAMS) {
     }
     rem--;
     const k = (((u.x / CELL_SIZE) | 0) * 73856093) ^ (((u.y / CELL_SIZE) | 0) * 19349663);
-    let a = hashMap.get(k);
-    if (!a) {
-      const pooled = _pooled.pop();
-      a = pooled !== undefined ? pooled : [];
-      hashMap.set(k, a);
-      _used.push(a);
-    }
-    a.push(unitIdx(i));
+    getOrCreateBucket(k).push(unitIdx(i));
     accumulateUnit(u.team, u.x, u.y);
   }
   endTeamCenterUpdate(activeTeamCount);

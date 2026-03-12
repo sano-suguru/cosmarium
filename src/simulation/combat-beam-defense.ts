@@ -143,6 +143,30 @@ export function absorbByBastionShield(u: Unit, dmg: number): number {
   return dmg - absorbed;
 }
 
+function absorbViaTether(
+  n: Unit,
+  src: Unit,
+  dmg: number,
+  killerIndex: UnitIndex,
+  rng: () => number,
+  shake: ShakeFn,
+): number {
+  const bastionDmg = dmg * BASTION_ABSORB_RATIO;
+  src.hp -= bastionDmg;
+  src.hitFlash = 1;
+  tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
+  const tetherKind = 'tether';
+  if (killerIndex !== NO_UNIT) {
+    const killer = unit(killerIndex);
+    emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, tetherKind);
+  }
+  if (src.hp <= 0) {
+    destroyUnit(n.shieldSourceUnit, killerIndex, rng, DAMAGE_KIND_TO_KILL_CONTEXT[tetherKind], shake);
+    n.shieldSourceUnit = NO_UNIT;
+  }
+  return dmg * (1 - BASTION_ABSORB_RATIO);
+}
+
 /**
  * テザー吸収: shieldLingerTimer 中の Bastion が肩代わりするダメージ計算。
  * 吸収FXは内部で直接発火。Bastion 死亡時は killUnit + explosion 実行。
@@ -159,20 +183,7 @@ export function applyTetherAbsorb(
   if (n.shieldLingerTimer > 0 && n.shieldSourceUnit !== NO_UNIT) {
     const src = unit(n.shieldSourceUnit);
     if (src.alive && unitType(src.type).shields) {
-      const bastionDmg = dmg * BASTION_ABSORB_RATIO;
-      src.hp -= bastionDmg;
-      src.hitFlash = 1;
-      tetherAbsorbFx(n.x, n.y, src.x, src.y, rng);
-      const tetherKind = 'tether';
-      if (killerIndex !== NO_UNIT) {
-        const killer = unit(killerIndex);
-        emitDamage(killer.type, killer.team, src.type, src.team, bastionDmg, tetherKind);
-      }
-      if (src.hp <= 0) {
-        destroyUnit(n.shieldSourceUnit, killerIndex, rng, DAMAGE_KIND_TO_KILL_CONTEXT[tetherKind], shake);
-        n.shieldSourceUnit = NO_UNIT;
-      }
-      return dmg * (1 - BASTION_ABSORB_RATIO);
+      return absorbViaTether(n, src, dmg, killerIndex, rng, shake);
     }
     n.shieldSourceUnit = NO_UNIT;
     return dmg * orphanMult;

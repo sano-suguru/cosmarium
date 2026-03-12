@@ -50,8 +50,39 @@ function blinkDepart(ctx: CombatContext) {
   u.blinkPhase = 1;
 }
 
-function blinkArrive(ctx: CombatContext) {
+function fireBlinkShots(ctx: CombatContext) {
   const { u, c, t, vd } = ctx;
+  if (u.target === NO_UNIT) {
+    return;
+  }
+  const o = unit(u.target);
+  if (!o.alive) {
+    return;
+  }
+  const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, BLINK_SHOT_SPEED, BLINK_ACCURACY);
+  for (let i = 0; i < BLINK_SHOTS; i++) {
+    const spread = (ctx.rng() - 0.5) * BLINK_SHOT_SPREAD * 2;
+    const shotAng = aim.ang + spread;
+    spawnProjectile(
+      u.x,
+      u.y,
+      Math.cos(shotAng) * BLINK_SHOT_SPEED,
+      Math.sin(shotAng) * BLINK_SHOT_SPEED,
+      aim.dist / BLINK_SHOT_SPEED + 0.1,
+      t.damage * vd,
+      u.team,
+      2,
+      c[0],
+      c[1],
+      c[2],
+      { sourceUnit: ctx.ui },
+    );
+  }
+  u.angle = aim.ang;
+}
+
+function blinkArrive(ctx: CombatContext) {
+  const { u, c } = ctx;
 
   u.blinkPhase = 0;
 
@@ -76,31 +107,7 @@ function blinkArrive(ctx: CombatContext) {
     o.stun = Math.max(o.stun, BLINK_IMPACT_STUN);
   }
 
-  if (u.target !== NO_UNIT) {
-    const o = unit(u.target);
-    if (o.alive) {
-      const aim = aimAt(u.x, u.y, o.x, o.y, o.vx, o.vy, BLINK_SHOT_SPEED, BLINK_ACCURACY);
-      for (let i = 0; i < BLINK_SHOTS; i++) {
-        const spread = (ctx.rng() - 0.5) * BLINK_SHOT_SPREAD * 2;
-        const shotAng = aim.ang + spread;
-        spawnProjectile(
-          u.x,
-          u.y,
-          Math.cos(shotAng) * BLINK_SHOT_SPEED,
-          Math.sin(shotAng) * BLINK_SHOT_SPEED,
-          aim.dist / BLINK_SHOT_SPEED + 0.1,
-          t.damage * vd,
-          u.team,
-          2,
-          c[0],
-          c[1],
-          c[2],
-          { sourceUnit: ctx.ui },
-        );
-      }
-      u.angle = aim.ang;
-    }
-  }
+  fireBlinkShots(ctx);
 
   u.blinkCount--;
   u.teleportTimer = u.blinkCount > 0 ? BLINK_GAP : BLINK_CD_MIN + ctx.rng() * BLINK_CD_RNG;

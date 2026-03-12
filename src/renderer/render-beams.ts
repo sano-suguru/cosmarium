@@ -2,7 +2,7 @@ import { beams, getBeam, getTrackingBeam, trackingBeams } from '../beams.ts';
 import { SH_BEAM, SH_LIGHTNING, WORLD_SIZE } from '../constants.ts';
 import { lerpX, lerpY } from '../interpolation.ts';
 import { unit } from '../pools-query.ts';
-import type { Beam, TrackingBeam } from '../types.ts';
+import type { Beam, TrackingBeam, Unit } from '../types.ts';
 import { BEAM_ALPHA, BEAM_MAX_WIDTH_SCALE, beamFlicker, beamSegmentCount, beamWidthScale } from './beam-segment.ts';
 import { isSegmentVisible, writeInstance } from './render-write.ts';
 import { renderSquadronTethers } from './squadron-tether.ts';
@@ -107,15 +107,27 @@ function renderTrackingBeamSegments(x1: number, y1: number, x2: number, y2: numb
   }
 }
 
+let _bx = 0;
+let _by = 0;
+function resolveEndpoint(u: Unit, fbX: number, fbY: number): void {
+  if (u.alive) {
+    _bx = lerpX(u);
+    _by = lerpY(u);
+  } else {
+    _bx = fbX;
+    _by = fbY;
+  }
+}
+
 function renderTrackingBeams(now: number) {
   for (let i = 0; i < trackingBeams.length; i++) {
     const tb = getTrackingBeam(i);
-    const src = unit(tb.srcUnit);
-    const tgt = unit(tb.tgtUnit);
-    const x1 = src.alive ? lerpX(src) : tb.x1;
-    const y1 = src.alive ? lerpY(src) : tb.y1;
-    const x2 = tgt.alive ? lerpX(tgt) : tb.x2;
-    const y2 = tgt.alive ? lerpY(tgt) : tb.y2;
+    resolveEndpoint(unit(tb.srcUnit), tb.x1, tb.y1);
+    const x1 = _bx,
+      y1 = _by;
+    resolveEndpoint(unit(tb.tgtUnit), tb.x2, tb.y2);
+    const x2 = _bx,
+      y2 = _by;
     if (!isSegmentVisible(x1, y1, x2, y2, tb.width * BEAM_MAX_WIDTH_SCALE)) {
       continue;
     }

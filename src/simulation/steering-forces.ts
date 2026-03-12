@@ -26,41 +26,34 @@ const MASS_TIEBREAK_FACTOR = 0.01;
 const RETREAT_SPEED_SCALE = 2.5;
 export const SUPPORT_FOLLOW_WEIGHT = 0.15;
 
-export function computeEngagementForce(
-  u: Unit,
-  tgt: UnitIndex,
-  t: UnitType,
-  dt: number,
-  rng: () => number,
-): SteerForce {
-  if (tgt !== NO_UNIT) {
-    const o = unit(tgt);
-    const dx = o.x - u.x,
-      dy = o.y - u.y;
-    const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    if (t.rams) {
-      _engageForce.x = (dx / d) * t.speed * 3;
-      _engageForce.y = (dy / d) * t.speed * 3;
-      return _engageForce;
-    }
-    const engageMax = t.engageMax;
-    const engageMin = t.engageMin;
-    if (d > engageMax) {
-      _engageForce.x = (dx / d) * t.speed * 2;
-      _engageForce.y = (dy / d) * t.speed * 2;
-      return _engageForce;
-    }
-    if (d < engageMin) {
-      const urgency = 1 - d / engageMin;
-      const mult = 1 + urgency;
-      _engageForce.x = -(dx / d) * t.speed * mult;
-      _engageForce.y = -(dy / d) * t.speed * mult;
-      return _engageForce;
-    }
-    _engageForce.x = (-dy / d) * t.speed * 0.8;
-    _engageForce.y = (dx / d) * t.speed * 0.8;
+function engageTarget(u: Unit, tgt: UnitIndex, t: UnitType): SteerForce {
+  const o = unit(tgt);
+  const dx = o.x - u.x,
+    dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy) || 1;
+  if (t.rams) {
+    _engageForce.x = (dx / d) * t.speed * 3;
+    _engageForce.y = (dy / d) * t.speed * 3;
     return _engageForce;
   }
+  if (d > t.engageMax) {
+    _engageForce.x = (dx / d) * t.speed * 2;
+    _engageForce.y = (dy / d) * t.speed * 2;
+    return _engageForce;
+  }
+  if (d < t.engageMin) {
+    const urgency = 1 - d / t.engageMin;
+    const mult = 1 + urgency;
+    _engageForce.x = -(dx / d) * t.speed * mult;
+    _engageForce.y = -(dy / d) * t.speed * mult;
+    return _engageForce;
+  }
+  _engageForce.x = (-dy / d) * t.speed * 0.8;
+  _engageForce.y = (dx / d) * t.speed * 0.8;
+  return _engageForce;
+}
+
+function wanderForce(u: Unit, t: UnitType, dt: number, rng: () => number): SteerForce {
   u.wanderAngle += (rng() - 0.5) * 2 * dt;
   const ec = nearestEnemyCenter(u.team, u.x, u.y);
   if (ec) {
@@ -85,6 +78,19 @@ export function computeEngagementForce(
   _engageForce.x = Math.cos(u.wanderAngle) * t.speed * WANDER_ONLY_SCALE;
   _engageForce.y = Math.sin(u.wanderAngle) * t.speed * WANDER_ONLY_SCALE;
   return _engageForce;
+}
+
+export function computeEngagementForce(
+  u: Unit,
+  tgt: UnitIndex,
+  t: UnitType,
+  dt: number,
+  rng: () => number,
+): SteerForce {
+  if (tgt !== NO_UNIT) {
+    return engageTarget(u, tgt, t);
+  }
+  return wanderForce(u, t, dt, rng);
 }
 
 export function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number): SteerForce {

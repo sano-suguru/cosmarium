@@ -1,4 +1,4 @@
-import { signal } from '@preact/signals';
+import { type Signal, signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { TEAM_HEX_COLORS } from '../../colors.ts';
 import { getVariantDef } from '../../mothership-variants.ts';
@@ -15,6 +15,12 @@ import { TYPES } from '../../unit-types.ts';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import { timeScale$ } from '../signals.ts';
 import styles from './Hud.module.css';
+
+function setIfChanged<T>(s: Signal<T>, v: T): void {
+  if (s.peek() !== v) {
+    s.value = v;
+  }
+}
 
 const hudCountA$ = signal(0);
 const hudCountB$ = signal(0);
@@ -191,35 +197,26 @@ function updateMeleeTeamCounts() {
   }
 }
 
+function updateBattleTeamCounts() {
+  setIfChanged(hudCountA$, teamUnitCounts[0]);
+  setIfChanged(hudCountB$, teamUnitCounts[1]);
+}
+
 export function updateHUD(displayFps: number, battlePhase: BattlePhase) {
-  if (hudBattlePhase$.peek() !== battlePhase) {
-    hudBattlePhase$.value = battlePhase;
-  }
+  setIfChanged(hudBattlePhase$, battlePhase);
 
   if (battlePhase === 'melee' || battlePhase === 'meleeEnding') {
     updateMeleeTeamCounts();
   } else {
-    const a = teamUnitCounts[0];
-    const b = teamUnitCounts[1];
-    if (hudCountA$.peek() !== a) {
-      hudCountA$.value = a;
-    }
-    if (hudCountB$.peek() !== b) {
-      hudCountB$.value = b;
-    }
+    updateBattleTeamCounts();
   }
 
   if (battlePhase !== 'aftermath') {
     updateMhpBars();
   }
 
-  const p = poolCounts.particles + poolCounts.projectiles;
-  if (hudParticles$.peek() !== p) {
-    hudParticles$.value = p;
-  }
-  if (hudFps$.peek() !== displayFps) {
-    hudFps$.value = displayFps;
-  }
+  setIfChanged(hudParticles$, poolCounts.particles + poolCounts.projectiles);
+  setIfChanged(hudFps$, displayFps);
 }
 function MhpBar({ bar }: { bar: MhpBarData }) {
   return (

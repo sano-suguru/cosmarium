@@ -177,63 +177,78 @@ function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => numb
   return false;
 }
 
+function homingTrail(p: Projectile, dt: number, rng: () => number) {
+  const prob = 1 - 0.35 ** (dt * REF_FPS);
+  if (rng() < prob) {
+    spawnParticle(p.x, p.y, (rng() - 0.5) * 12, (rng() - 0.5) * 12, 0.3, 3.0, 0.5, 0.5, 0.5, SH_CIRCLE);
+  }
+  if (rng() < prob) {
+    const angle = Math.atan2(p.vy, p.vx);
+    const spiralAngle = angle + p.life * TRAIL_SPIRAL_SPEED;
+    let vx = (rng() - 0.5) * 8;
+    let vy = (rng() - 0.5) * 8;
+    vx += Math.cos(spiralAngle) * SPIRAL_OFFSET_SPEED;
+    vy += Math.sin(spiralAngle) * SPIRAL_OFFSET_SPEED;
+    spawnParticle(
+      p.x,
+      p.y,
+      vx,
+      vy,
+      0.15,
+      p.size * 1.2,
+      Math.min(1, p.r * 1.4),
+      Math.min(1, p.g * 1.4),
+      Math.min(1, p.b * 1.4),
+      SH_CIRCLE,
+    );
+  }
+}
+
+function normalTrail(p: Projectile, rng: () => number) {
+  if (p.size >= HEAVY_PROJECTILE_SIZE) {
+    for (let t = 0; t < 2; t++) {
+      spawnParticle(
+        p.x,
+        p.y,
+        (rng() - 0.5) * 10,
+        (rng() - 0.5) * 10,
+        0.12,
+        2.5,
+        p.r * 0.9,
+        p.g * 0.9,
+        p.b * 0.9,
+        SH_CIRCLE,
+      );
+    }
+  } else {
+    spawnParticle(
+      p.x,
+      p.y,
+      (rng() - 0.5) * 10,
+      (rng() - 0.5) * 10,
+      0.08,
+      1.5,
+      p.r * 0.8,
+      p.g * 0.8,
+      p.b * 0.8,
+      SH_CIRCLE,
+    );
+  }
+}
+
 function projectileTrail(p: Projectile, dt: number, rng: () => number) {
   if (p.homing) {
-    const prob = 1 - 0.35 ** (dt * REF_FPS);
-    if (rng() < prob) {
-      spawnParticle(p.x, p.y, (rng() - 0.5) * 12, (rng() - 0.5) * 12, 0.3, 3.0, 0.5, 0.5, 0.5, SH_CIRCLE);
-    }
-    if (rng() < prob) {
-      const angle = Math.atan2(p.vy, p.vx);
-      const spiralAngle = angle + p.life * TRAIL_SPIRAL_SPEED;
-      let vx = (rng() - 0.5) * 8;
-      let vy = (rng() - 0.5) * 8;
-      vx += Math.cos(spiralAngle) * SPIRAL_OFFSET_SPEED;
-      vy += Math.sin(spiralAngle) * SPIRAL_OFFSET_SPEED;
-      spawnParticle(
-        p.x,
-        p.y,
-        vx,
-        vy,
-        0.15,
-        p.size * 1.2,
-        Math.min(1, p.r * 1.4),
-        Math.min(1, p.g * 1.4),
-        Math.min(1, p.b * 1.4),
-        SH_CIRCLE,
-      );
-    }
+    homingTrail(p, dt, rng);
   } else if (rng() < 1 - 0.65 ** (dt * REF_FPS)) {
-    if (p.size >= HEAVY_PROJECTILE_SIZE) {
-      for (let t = 0; t < 2; t++) {
-        spawnParticle(
-          p.x,
-          p.y,
-          (rng() - 0.5) * 10,
-          (rng() - 0.5) * 10,
-          0.12,
-          2.5,
-          p.r * 0.9,
-          p.g * 0.9,
-          p.b * 0.9,
-          SH_CIRCLE,
-        );
-      }
-    } else {
-      spawnParticle(
-        p.x,
-        p.y,
-        (rng() - 0.5) * 10,
-        (rng() - 0.5) * 10,
-        0.08,
-        1.5,
-        p.r * 0.8,
-        p.g * 0.8,
-        p.b * 0.8,
-        SH_CIRCLE,
-      );
-    }
+    normalTrail(p, rng);
   }
+}
+
+function handleExpiredProjectile(p: Projectile, pi: ProjectileIndex, rng: () => number, shake: ShakeFn) {
+  if (p.aoe > 0) {
+    detonateAoe(p, rng, shake);
+  }
+  killProjectile(pi);
 }
 
 export function updateProjectiles(dt: number, rng: () => number, shake: ShakeFn) {
@@ -255,10 +270,7 @@ export function updateProjectiles(dt: number, rng: () => number, shake: ShakeFn)
     projectileTrail(p, dt, rng);
 
     if (p.life <= 0) {
-      if (p.aoe > 0) {
-        detonateAoe(p, rng, shake);
-      }
-      killProjectile(pi);
+      handleExpiredProjectile(p, pi, rng, shake);
       continue;
     }
 

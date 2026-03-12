@@ -133,6 +133,18 @@ export function launchDrones(ctx: CombatContext) {
   }
 }
 
+function applyEmpDamage(ctx: CombatContext, oi: UnitIndex, oo: Unit) {
+  const { u, t } = ctx;
+  const empKind = 'emp';
+  oo.stun = 1.5;
+  oo.hp -= t.damage;
+  oo.hitFlash = 1;
+  emitDamage(u.type, u.team, oo.type, oo.team, t.damage, empKind);
+  if (oo.hp <= 0) {
+    destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[empKind], ctx.shake);
+  }
+}
+
 export function dischargeEmp(ctx: CombatContext) {
   const { u, t } = ctx;
   const d = tgtDistOrClear(u);
@@ -140,6 +152,7 @@ export function dischargeEmp(ctx: CombatContext) {
     return;
   }
   u.abilityCooldown = t.fireRate;
+  const rangeSq = t.range * t.range;
   const nn = getNeighbors(u.x, u.y, t.range);
   for (let i = 0; i < nn; i++) {
     const oi = getNeighborAt(i),
@@ -147,16 +160,10 @@ export function dischargeEmp(ctx: CombatContext) {
     if (!oo.alive || oo.team === u.team) {
       continue;
     }
-    if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) < t.range * t.range) {
-      const empKind = 'emp';
-      oo.stun = 1.5;
-      oo.hp -= t.damage;
-      oo.hitFlash = 1;
-      emitDamage(u.type, u.team, oo.type, oo.team, t.damage, empKind);
-      if (oo.hp <= 0) {
-        destroyUnit(oi, ctx.ui, ctx.rng, DAMAGE_KIND_TO_KILL_CONTEXT[empKind], ctx.shake);
-      }
+    if ((oo.x - u.x) * (oo.x - u.x) + (oo.y - u.y) * (oo.y - u.y) >= rangeSq) {
+      continue;
     }
+    applyEmpDamage(ctx, oi, oo);
   }
   for (let i = 0; i < 20; i++) {
     const a = (i / 20) * 6.283,

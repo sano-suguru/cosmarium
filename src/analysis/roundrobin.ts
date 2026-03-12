@@ -186,6 +186,27 @@ function buildFleetMap(costCap: number): Map<UnitTypeIndex, FleetEntry[]> {
   return fleetMap;
 }
 
+function tryMatchup(
+  validTypes: readonly UnitTypeIndex[],
+  i: number,
+  j: number,
+  fleetMap: Map<UnitTypeIndex, FleetEntry[]>,
+  config: RoundRobinConfig,
+  matchIndex: number,
+): MatchupResult | undefined {
+  const typeA = validTypes[i];
+  const typeB = validTypes[j];
+  if (typeA === undefined || typeB === undefined) {
+    return undefined;
+  }
+  const fleetA = fleetMap.get(typeA);
+  const fleetB = fleetMap.get(typeB);
+  if (!fleetA || !fleetB) {
+    return undefined;
+  }
+  return runMatchup(typeA, typeB, fleetA, fleetB, config, matchIndex);
+}
+
 /** 全ペアの対戦を実行し結果リストを返す */
 function runAllMatchups(
   validTypes: readonly UnitTypeIndex[],
@@ -199,17 +220,10 @@ function runAllMatchups(
 
   for (let i = 0; i < validTypes.length; i++) {
     for (let j = i + 1; j < validTypes.length; j++) {
-      const typeA = validTypes[i];
-      const typeB = validTypes[j];
-      if (typeA === undefined || typeB === undefined) {
+      const result = tryMatchup(validTypes, i, j, fleetMap, config, matchIndex);
+      if (!result) {
         continue;
       }
-      const fleetA = fleetMap.get(typeA);
-      const fleetB = fleetMap.get(typeB);
-      if (!fleetA || !fleetB) {
-        continue;
-      }
-      const result = runMatchup(typeA, typeB, fleetA, fleetB, config, matchIndex);
       matchIndex++;
       matchups.push(result);
       log(

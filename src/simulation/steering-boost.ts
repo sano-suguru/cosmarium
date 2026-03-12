@@ -43,6 +43,30 @@ function tryTriggerBoost(
   return _boostVel;
 }
 
+interface BoostParams {
+  mult: number;
+  dur: number;
+  cd: number;
+  range: number;
+}
+
+const _boostParams: BoostParams = { mult: 0, dur: 0, cd: 0, range: 0 };
+
+function resolveBoostParams(boost: NonNullable<UnitType['boost']>, catalyzed: boolean): BoostParams {
+  if (catalyzed) {
+    _boostParams.mult = boost.multiplier * CATALYST_BOOST_MULT;
+    _boostParams.dur = boost.duration * CATALYST_BOOST_DUR_MULT;
+    _boostParams.cd = boost.cooldown * CATALYST_BOOST_CD_MULT;
+    _boostParams.range = boost.triggerRange * CATALYST_BOOST_RANGE_MULT;
+  } else {
+    _boostParams.mult = boost.multiplier;
+    _boostParams.dur = boost.duration;
+    _boostParams.cd = boost.cooldown;
+    _boostParams.range = boost.triggerRange;
+  }
+  return _boostParams;
+}
+
 export function tickBoost(
   u: Unit,
   boost: NonNullable<UnitType['boost']>,
@@ -51,10 +75,7 @@ export function tickBoost(
   dt: number,
   catalyzed: boolean,
 ): BoostVelocity | null {
-  const mult = catalyzed ? boost.multiplier * CATALYST_BOOST_MULT : boost.multiplier;
-  const dur = catalyzed ? boost.duration * CATALYST_BOOST_DUR_MULT : boost.duration;
-  const cd = catalyzed ? boost.cooldown * CATALYST_BOOST_CD_MULT : boost.cooldown;
-  const range = catalyzed ? boost.triggerRange * CATALYST_BOOST_RANGE_MULT : boost.triggerRange;
+  const { mult, dur, cd, range } = resolveBoostParams(boost, catalyzed);
 
   if (u.boostTimer > 0) {
     u.boostTimer -= dt;

@@ -143,6 +143,37 @@ function renderBuffOverlays(rx: number, ry: number, u: Unit, ut: UnitType, now: 
   }
 }
 
+function renderReflectField(rx: number, ry: number, u: Unit, ut: UnitType, now: number, rs: number) {
+  if (u.shieldCooldown > 0) {
+    const blink = Math.sin(now * 8) * 0.5 + 0.5;
+    writeInstance(
+      rx,
+      ry,
+      ut.size * REFLECT_FIELD_FACTOR * rs,
+      1.0,
+      0.2,
+      0.2,
+      0.1 + blink * 0.15,
+      (now * 1.2) % TAU,
+      SH_REFLECT_FIELD,
+    );
+  } else if (u.energy > 0) {
+    const energyRatio = u.energy / u.maxEnergy;
+    const baseAlpha = energyRatio * 0.2;
+    writeInstance(
+      rx,
+      ry,
+      ut.size * REFLECT_FIELD_FACTOR * rs,
+      0.7,
+      0.5,
+      1.0,
+      baseAlpha,
+      (now * 1.2) % TAU,
+      SH_REFLECT_FIELD,
+    );
+  }
+}
+
 export function renderOverlays(rx: number, ry: number, u: Unit, ut: UnitType, now: number, rs: number) {
   if (ut.shields && u.maxEnergy > 0 && u.energy > 0) {
     const alpha = 0.15 + (u.energy / u.maxEnergy) * 0.25;
@@ -167,34 +198,7 @@ export function renderOverlays(rx: number, ry: number, u: Unit, ut: UnitType, no
     );
   }
   if (ut.reflects && u.maxEnergy > 0) {
-    if (u.shieldCooldown > 0) {
-      const blink = Math.sin(now * 8) * 0.5 + 0.5;
-      writeInstance(
-        rx,
-        ry,
-        ut.size * REFLECT_FIELD_FACTOR * rs,
-        1.0,
-        0.2,
-        0.2,
-        0.1 + blink * 0.15,
-        (now * 1.2) % TAU,
-        SH_REFLECT_FIELD,
-      );
-    } else if (u.energy > 0) {
-      const energyRatio = u.energy / u.maxEnergy;
-      const baseAlpha = energyRatio * 0.2;
-      writeInstance(
-        rx,
-        ry,
-        ut.size * REFLECT_FIELD_FACTOR * rs,
-        0.7,
-        0.5,
-        1.0,
-        baseAlpha,
-        (now * 1.2) % TAU,
-        SH_REFLECT_FIELD,
-      );
-    }
+    renderReflectField(rx, ry, u, ut, now, rs);
   }
   renderBuffOverlays(rx, ry, u, ut, now, rs);
 }

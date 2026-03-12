@@ -1,6 +1,11 @@
 import type { EliminationEvent, MeleeResult } from '../../melee-tracker.ts';
 import type { Team } from '../../team.ts';
 import { teamAt } from '../../team.ts';
+
+function elimTime(team: Team, elimMap: Map<number, number>): number {
+  return elimMap.get(team) ?? 0;
+}
+
 export function compareMeleeTeams(a: Team, b: Team, result: MeleeResult, elimMap: Map<number, number>): number {
   const sa = result.teamStats[a];
   const sb = result.teamStats[b];
@@ -13,7 +18,7 @@ export function compareMeleeTeams(a: Team, b: Team, result: MeleeResult, elimMap
     return aAlive ? -1 : 1;
   }
   if (!aAlive) {
-    const diff = (elimMap.get(b) ?? 0) - (elimMap.get(a) ?? 0);
+    const diff = elimTime(b, elimMap) - elimTime(a, elimMap);
     if (diff !== 0) {
       return diff;
     }

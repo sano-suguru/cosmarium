@@ -27,33 +27,25 @@ export function lerpY(e: { prevY: number; y: number }): number {
   return e.prevY + (e.y - e.prevY) * interpAlpha;
 }
 
+function savePoolPrev(
+  count: number,
+  hwm: number,
+  get: (i: number) => { alive: boolean; x: number; y: number; prevX: number; prevY: number },
+): void {
+  for (let i = 0, rem = count; i < hwm && rem > 0; i++) {
+    const item = get(i);
+    if (!item.alive) {
+      continue;
+    }
+    rem--;
+    item.prevX = item.x;
+    item.prevY = item.y;
+  }
+}
+
 /** シミュレーションステップ直前に全生存エンティティの現在位置を prevX/prevY に保存する */
 export function savePrevPositions(): void {
-  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) {
-      continue;
-    }
-    rem--;
-    u.prevX = u.x;
-    u.prevY = u.y;
-  }
-  for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
-    const p = projectile(i);
-    if (!p.alive) {
-      continue;
-    }
-    rem--;
-    p.prevX = p.x;
-    p.prevY = p.y;
-  }
-  for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
-    const p = particle(i);
-    if (!p.alive) {
-      continue;
-    }
-    rem--;
-    p.prevX = p.x;
-    p.prevY = p.y;
-  }
+  savePoolPrev(poolCounts.units, getUnitHWM(), (i) => unit(i));
+  savePoolPrev(poolCounts.projectiles, getProjectileHWM(), (i) => projectile(i));
+  savePoolPrev(poolCounts.particles, getParticleHWM(), (i) => particle(i));
 }

@@ -72,6 +72,27 @@ function fleetToSetup(fleet: FleetComposition, variant: MothershipVariant = 0): 
   return { variant, slots };
 }
 
+function createProductions(
+  mode: 'battle' | 'melee',
+  rng: () => number,
+  setups: FleetSetup[],
+  activeTeams: number,
+): TeamTuple<ProductionState> {
+  if (mode !== 'battle') {
+    return initMeleeProduction(rng, setups, activeTeams);
+  }
+  const s0 = setups[0];
+  const s1 = setups[1];
+  if (!s0 || !s1) {
+    throw new Error('Battle mode requires exactly 2 fleet setups');
+  }
+  const battleProds = initBattleProduction(rng, s0, s1);
+  const base = emptyProductions();
+  base[0] = battleProds[0];
+  base[1] = battleProds[1];
+  return base;
+}
+
 function setupFleets(
   config: BatchConfig,
   rng: () => number,
@@ -103,21 +124,7 @@ function setupFleets(
     fleetDiversities.push(fleetDiversity(comp));
   }
 
-  let productions: TeamTuple<ProductionState>;
-  if (config.mode === 'battle') {
-    const s0 = setups[0];
-    const s1 = setups[1];
-    if (!s0 || !s1) {
-      throw new Error('Battle mode requires exactly 2 fleet setups');
-    }
-    const battleProds = initBattleProduction(rng, s0, s1);
-    const base = emptyProductions();
-    base[0] = battleProds[0];
-    base[1] = battleProds[1];
-    productions = base;
-  } else {
-    productions = initMeleeProduction(rng, setups, activeTeams);
-  }
+  const productions = createProductions(config.mode, rng, setups, activeTeams);
 
   return { fleetDiversities, fleetCompositions, setups, activeTeams, productions };
 }

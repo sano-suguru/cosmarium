@@ -128,6 +128,17 @@ export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex,
   applyKnockbackToNeighbors(x, y, size);
 }
 
+function resolveKiller(killer: UnitIndex | Killer): Killer | undefined {
+  if (typeof killer === 'number') {
+    if (killer === NO_UNIT) {
+      return undefined;
+    }
+    const ku = unit(killer);
+    return ku.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
+  }
+  return killer.index === NO_UNIT ? undefined : killer;
+}
+
 export function destroyUnit(
   i: UnitIndex,
   killer: UnitIndex | Killer,
@@ -135,17 +146,7 @@ export function destroyUnit(
   killContext: KillContext,
   shake: ShakeFn,
 ): void {
-  let resolved: Killer | undefined;
-  if (typeof killer === 'number') {
-    if (killer === NO_UNIT) {
-      resolved = undefined;
-    } else {
-      const ku = unit(killer);
-      resolved = ku.alive ? { index: killer, team: ku.team, type: ku.type } : undefined;
-    }
-  } else {
-    resolved = killer.index === NO_UNIT ? undefined : killer;
-  }
+  const resolved = resolveKiller(killer);
   const snap = killUnit(i, resolved, killContext);
   if (snap) {
     explosion(snap.x, snap.y, snap.team, snap.type, rng, shake);

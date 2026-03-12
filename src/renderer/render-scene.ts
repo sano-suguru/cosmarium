@@ -3,7 +3,7 @@ import { SH_CIRCLE, SH_DIAMOND, SH_EXPLOSION_RING, SH_HOMING, SH_TRAIL } from '.
 import { lerpX, lerpY } from '../interpolation.ts';
 import { getParticleHWM, getProjectileHWM, getUnitHWM, poolCounts } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
-import type { Color3 } from '../types.ts';
+import type { Color3, Unit, UnitType } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { renderBeams } from './render-beams.ts';
 import {
@@ -51,6 +51,20 @@ function computeUnitColor(c: Color3, vet: number, hpRatio: number, stun: number,
   _cb = b0 + (1 - b0) * hitFlash;
 }
 
+/** 可視判定 + ユニット描画パイプライン（オーバーレイ・スタン・ベテラン・本体・HPバー） */
+function renderUnitIfVisible(rx: number, ry: number, u: Unit, ut: UnitType, c: Color3, rs: number, now: number) {
+  const unitR = Math.max(SCRAMBLE_OVERLAY_MIN, ut.size * OVERLAY_FACTOR * rs) + UNIT_EXTRA_MARGIN;
+  if (!isCircleVisible(rx, ry, unitR)) {
+    return;
+  }
+  renderOverlays(rx, ry, u, ut, now, rs);
+  renderStunStars(rx, ry, u, ut, now, rs);
+  renderVetSwarmOverlays(rx, ry, u, ut, c, now, rs);
+  computeUnitColor(c, u.vet, u.hp / u.maxHp, u.stun, u.hitFlash, now);
+  writeInstance(rx, ry, ut.size * rs, _cr, _cg, _cb, 0.9, u.angle, ut.shape);
+  renderHpBar(rx, ry, u, ut, rs);
+}
+
 function renderUnits(now: number) {
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
@@ -72,16 +86,7 @@ function renderUnits(now: number) {
       renderCatalystGhosts(rx, ry, u, ut, c, rs);
     }
 
-    const unitR = Math.max(SCRAMBLE_OVERLAY_MIN, ut.size * OVERLAY_FACTOR * rs) + UNIT_EXTRA_MARGIN;
-    if (!isCircleVisible(rx, ry, unitR)) {
-      continue;
-    }
-    renderOverlays(rx, ry, u, ut, now, rs);
-    renderStunStars(rx, ry, u, ut, now, rs);
-    renderVetSwarmOverlays(rx, ry, u, ut, c, now, rs);
-    computeUnitColor(c, u.vet, u.hp / u.maxHp, u.stun, u.hitFlash, now);
-    writeInstance(rx, ry, ut.size * rs, _cr, _cg, _cb, 0.9, u.angle, ut.shape);
-    renderHpBar(rx, ry, u, ut, rs);
+    renderUnitIfVisible(rx, ry, u, ut, c, rs, now);
   }
 }
 
@@ -113,6 +118,16 @@ function renderParticles() {
  * SH_CIRCLE/SH_DIAMOND/SH_HOMING はすべてクワッド正規化距離 √2 でほぼゼロ alpha
  * (smoothstep(1.0,0.6,d)=0, exp(-d*2)*0.4≈0.024) のため、追加マージン不要。
  */
+function projectileShape(homing: boolean, aoe: number): number {
+  if (homing) {
+    return SH_HOMING;
+  }
+  if (aoe > 0) {
+    return SH_CIRCLE;
+  }
+  return SH_DIAMOND;
+}
+
 function renderProjectiles() {
   for (let i = 0, rem = poolCounts.projectiles; i < getProjectileHWM() && rem > 0; i++) {
     const pr = projectile(i);
@@ -125,16 +140,8 @@ function renderProjectiles() {
     if (!isCircleVisible(prx, pry, pr.size)) {
       continue;
     }
-    let shape: number;
-    const size = pr.size;
-    if (pr.homing) {
-      shape = SH_HOMING;
-    } else if (pr.aoe > 0) {
-      shape = SH_CIRCLE;
-    } else {
-      shape = SH_DIAMOND;
-    }
-    writeInstance(prx, pry, size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
+    const shape = projectileShape(pr.homing, pr.aoe);
+    writeInstance(prx, pry, pr.size, pr.r, pr.g, pr.b, 1, Math.atan2(pr.vy, pr.vx), shape);
   }
 }
 

@@ -131,6 +131,15 @@ describe('run', () => {
     });
 
     it('runResult includes all round results', () => {
+      function drainLives(): ReturnType<typeof processRoundEnd> {
+        processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
+        processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
+        for (let i = 0; i < RUN_MAX_LIVES - 2; i++) {
+          processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
+        }
+        return processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
+      }
+
       resetRun();
       // Win enough to clear
       for (let i = 0; i < RUN_WIN_TARGET; i++) {
@@ -139,22 +148,11 @@ describe('run', () => {
       // Last call returned runComplete — let's test from scratch with known final
       _resetRunState();
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
-      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
-      // Lose remaining lives to trigger runComplete
-      for (let i = 0; i < RUN_MAX_LIVES - 1; i++) {
-        processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
-      }
+      drainLives();
       // The last processRoundEnd returned runComplete — need to capture it
       _resetRunState();
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
-      let lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
-      for (let i = 0; i < RUN_MAX_LIVES - 2; i++) {
-        lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
-      }
-      // Final defeat
-      lastOutcome = processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
+      const lastOutcome = drainLives();
       expect(lastOutcome.type).toBe('runComplete');
       if (lastOutcome.type === 'runComplete') {
         expect(lastOutcome.runResult.rounds).toBe(RUN_MAX_LIVES + 1);

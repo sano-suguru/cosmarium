@@ -56,6 +56,27 @@ function spawnCluster(
   return true;
 }
 
+let _slotTimer = 0;
+let _slotProdTime = 0;
+
+function isSlotReady(ps: ProductionState, i: number, prodTimes: Float64Array): ProductionSlot | null {
+  const slot = ps.slots[i];
+  if (!slot) {
+    return null;
+  }
+  const timer = ps.timers[i];
+  if (timer === undefined) {
+    return null;
+  }
+  const productionTime = prodTimes[i] as number;
+  if (timer < productionTime) {
+    return null;
+  }
+  _slotTimer = timer;
+  _slotProdTime = productionTime;
+  return slot;
+}
+
 /** 1パス: 全スロットを走査し、ready なスロットから最大1クラスターずつスポーン。消費した容量を返す */
 function roundRobinPass(
   ps: ProductionState,
@@ -72,20 +93,12 @@ function roundRobinPass(
     if (capacity - spent <= 0 || teamUnitCounts[team] >= unitCap) {
       break;
     }
-    const slot = ps.slots[i];
+    const slot = isSlotReady(ps, i, prodTimes);
     if (!slot) {
       continue;
     }
-    const timer = ps.timers[i];
-    if (timer === undefined) {
-      continue;
-    }
-    const productionTime = prodTimes[i] as number;
-    if (timer < productionTime) {
-      continue;
-    }
     if (spawnCluster(team, slot, rng, unitCap, cx, cy)) {
-      ps.timers[i] = timer - productionTime;
+      ps.timers[i] = _slotTimer - _slotProdTime;
       spent++;
     }
   }
@@ -112,6 +125,24 @@ function roundRobinSpawn(
   }
 }
 
+function precomputeProdTimes(ps: ProductionState, variantMul: number): Float64Array {
+  const prodTimes = new Float64Array(SLOT_COUNT);
+  for (let i = 0; i < ps.slots.length; i++) {
+    const slot = ps.slots[i];
+    prodTimes[i] = slot ? getProductionTime(slot.type, variantMul) : 0;
+  }
+  return prodTimes;
+}
+
+function updateTimers(ps: ProductionState, dt: number, prodTimes: Float64Array): void {
+  for (let i = 0; i < ps.slots.length; i++) {
+    const slot = ps.slots[i];
+    if (slot) {
+      ps.timers[i] = Math.min((ps.timers[i] ?? 0) + dt, prodTimes[i] as number);
+    }
+  }
+}
+
 export function tickProduction(dt: number, team: Team, rng: () => number, ps: ProductionState, unitCap: number): void {
   const mIdx = mothershipIdx[team];
   if (mIdx === NO_UNIT) {
@@ -134,20 +165,8 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
     throw new RangeError(`tickProduction: slots.length (${ps.slots.length}) exceeds SLOT_COUNT (${SLOT_COUNT})`);
   }
 
-  // プリコンピュート: スロットごとの生産時間をローカルキャッシュ
-  const prodTimes = new Float64Array(SLOT_COUNT);
-  for (let i = 0; i < ps.slots.length; i++) {
-    const slot = ps.slots[i];
-    prodTimes[i] = slot ? getProductionTime(slot.type, variantMul) : 0;
-  }
-
-  // Phase 1 — タイマー更新 + クランプ
-  for (let i = 0; i < ps.slots.length; i++) {
-    const slot = ps.slots[i];
-    if (slot) {
-      ps.timers[i] = Math.min((ps.timers[i] ?? 0) + dt, prodTimes[i] as number);
-    }
-  }
+  const prodTimes = precomputeProdTimes(ps, variantMul);
+  updateTimers(ps, dt, prodTimes);
 
   // Phase 2 — ラウンドロビンスポーン
   if (teamUnitCounts[team] < unitCap) {

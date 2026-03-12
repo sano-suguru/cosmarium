@@ -171,6 +171,22 @@ function setupCodexDemo(typeIdx: UnitTypeIndex) {
   updateDemoCamera(bounds);
 }
 
+function maxUnitDist(cx: number, cy: number): number {
+  let maxDist = 0;
+  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
+    const u = unit(i);
+    if (!u.alive) {
+      continue;
+    }
+    rem--;
+    const dist = Math.hypot(u.x - cx, u.y - cy);
+    if (dist > maxDist) {
+      maxDist = dist;
+    }
+  }
+  return maxDist;
+}
+
 export function computeDemoBounds(): { cx: number; cy: number; radius: number } {
   let count = 0;
   let sx = 0;
@@ -193,28 +209,11 @@ export function computeDemoBounds(): { cx: number; cy: number; radius: number } 
 
   const cx = sx / count;
   const cy = sy / count;
-
-  let maxDist = 0;
-  for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
-    const u = unit(i);
-    if (!u.alive) {
-      continue;
-    }
-    rem--;
-    const dx = u.x - cx;
-    const dy = u.y - cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist > maxDist) {
-      maxDist = dist;
-    }
-  }
-
-  const radius = Math.max(80, maxDist + 50);
+  const radius = Math.max(80, maxUnitDist(cx, cy) + 50);
   return { cx, cy, radius };
 }
 
-export function updateCodexDemo(dt: number) {
-  codexDemoTimer += dt;
+function checkDemoRespawn(): void {
   if (codexDemoTimer > 3) {
     codexDemoTimer = 0;
     const ec = countDemoEnemies();
@@ -222,6 +221,11 @@ export function updateCodexDemo(dt: number) {
       setupCodexDemo(state.codexSelected);
     }
   }
+}
+
+export function updateCodexDemo(dt: number) {
+  codexDemoTimer += dt;
+  checkDemoRespawn();
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {

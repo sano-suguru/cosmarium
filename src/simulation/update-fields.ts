@@ -133,6 +133,10 @@ const ampSearch: NeighborSearch = {
   dist: _ampDist,
 };
 
+function isReflectFieldCandidate(o: Unit, oi: number, team: number, selfIdx: number): boolean {
+  return o.alive && o.team === team && oi !== selfIdx && !unitType(o.type).reflects;
+}
+
 function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
   if (u.maxEnergy <= 0) {
     return;
@@ -145,7 +149,7 @@ function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
   for (let j = 0; j < nn; j++) {
     const oi = getNeighborAt(j);
     const o = unit(oi);
-    if (!o.alive || o.team !== u.team || oi === i || unitType(o.type).reflects) {
+    if (!isReflectFieldCandidate(o, oi, u.team, i)) {
       continue;
     }
     const dx = o.x - u.x,

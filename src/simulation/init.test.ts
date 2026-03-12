@@ -137,20 +137,24 @@ describe('母艦自動配備', () => {
   });
 
   it('MELEE (initMeleeProduction) で各チームに母艦がスポーンされる', () => {
+    function countMothershipsByTeam(team: number): number {
+      let count = 0;
+      for (let i = 0; i < getUnitHWM(); i++) {
+        const u = unit(i);
+        if (u.alive && u.team === team && u.type === MOTHERSHIP) {
+          count++;
+        }
+      }
+      return count;
+    }
+
     initMeleeProduction(rng, [setup(0), setup(1), setup(2)], 3);
     for (const t of [TEAM0, TEAM1, TEAM2]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);
     }
     // Mothership タイプのユニットがチームごとに1体
     for (let t = 0; t < 3; t++) {
-      let mothershipCount = 0;
-      for (let i = 0; i < getUnitHWM(); i++) {
-        const u = unit(i);
-        if (u.alive && u.team === t && u.type === MOTHERSHIP) {
-          mothershipCount++;
-        }
-      }
-      expect(mothershipCount).toBe(1);
+      expect(countMothershipsByTeam(t)).toBe(1);
     }
   });
 });

@@ -105,8 +105,41 @@ function sweepCandidateDelta(
   return _sweepDelta;
 }
 
+/** sweep対象1体を処理。攻撃者死亡で true を返す */
+function processSweepTarget(
+  ctx: CombatContext,
+  ni: UnitIndex,
+  lo: number,
+  hi: number,
+  base: number,
+  rangeSq: number,
+): boolean {
+  const n = unit(ni);
+  const delta = sweepCandidateDelta(n, ctx.u.team, ctx.u.x, ctx.u.y, rangeSq);
+  if (!delta) {
+    return false;
+  }
+  const relEnemy = normalizeAngleDelta(Math.atan2(delta.dy, delta.dx), base);
+  if (relEnemy < lo || relEnemy > hi) {
+    return false;
+  }
+  if (sweepHitMap.get(ctx.ui)?.has(ni)) {
+    return false;
+  }
+  sweepHitMap.get(ctx.ui)?.add(ni);
+  const dmg = applyBeamDefenses(n, ni, ctx.t.damage * ctx.vd, ctx.rng, ctx.ui, ctx.shake);
+  if (dmg < 0) {
+    return false;
+  }
+  if (!ctx.u.alive) {
+    return true;
+  }
+  applySweepHit(ctx, ni, n, dmg);
+  return false;
+}
+
 function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: number) {
-  const { u, t, vd } = ctx;
+  const { u, t } = ctx;
   const base = u.sweepBaseAngle;
   const TOL = 0.05;
   _sweepSnapshotCount = snapshotNeighbors(u.x, u.y, t.range);
@@ -118,28 +151,9 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   const rangeSq = t.range * t.range;
 
   for (let i = 0; i < _sweepSnapshotCount; i++) {
-    const ni = readSweepSnapshot(i);
-    const n = unit(ni);
-    const delta = sweepCandidateDelta(n, u.team, u.x, u.y, rangeSq);
-    if (!delta) {
-      continue;
-    }
-    const relEnemy = normalizeAngleDelta(Math.atan2(delta.dy, delta.dx), base);
-    if (relEnemy < lo || relEnemy > hi) {
-      continue;
-    }
-    if (sweepHitMap.get(ctx.ui)?.has(ni)) {
-      continue;
-    }
-    sweepHitMap.get(ctx.ui)?.add(ni);
-    const dmg = applyBeamDefenses(n, ni, t.damage * vd, ctx.rng, ctx.ui, ctx.shake);
-    if (dmg < 0) {
-      continue;
-    }
-    if (!u.alive) {
+    if (processSweepTarget(ctx, readSweepSnapshot(i), lo, hi, base, rangeSq)) {
       return;
     }
-    applySweepHit(ctx, ni, n, dmg);
   }
 }
 
