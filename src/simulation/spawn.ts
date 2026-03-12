@@ -35,6 +35,29 @@ interface KilledUnitSnapshot {
   readonly type: UnitTypeIndex;
 }
 
+export interface KilledParticleSnapshot {
+  readonly x: number;
+  readonly y: number;
+  readonly vx: number;
+  readonly vy: number;
+  readonly size: number;
+  readonly r: number;
+  readonly g: number;
+  readonly b: number;
+}
+
+export interface KilledProjectileSnapshot {
+  readonly x: number;
+  readonly y: number;
+  readonly vx: number;
+  readonly vy: number;
+  readonly team: Team;
+  readonly damage: number;
+  readonly aoe: number;
+  readonly sourceUnit: UnitIndex;
+  readonly sourceType: UnitTypeIndex;
+}
+
 export function captureKiller(i: UnitIndex): Killer | undefined {
   const u = unit(i);
   if (!u.alive) {
@@ -128,21 +151,46 @@ export function killUnit(
   return undefined;
 }
 
-export function killParticle(i: ParticleIndex) {
+export function killParticle(i: ParticleIndex): KilledParticleSnapshot | undefined {
   const p = particle(i);
   if (p.alive) {
+    const snap: KilledParticleSnapshot = {
+      x: p.x,
+      y: p.y,
+      vx: p.vx,
+      vy: p.vy,
+      size: p.size,
+      r: p.r,
+      g: p.g,
+      b: p.b,
+    };
     p.alive = false;
     decParticles();
     freeParticleSlot(i);
+    return snap;
   }
+  return undefined;
 }
 
-export function killProjectile(i: ProjectileIndex) {
+export function killProjectile(i: ProjectileIndex): KilledProjectileSnapshot | undefined {
   const p = projectile(i);
   if (p.alive) {
+    const snap: KilledProjectileSnapshot = {
+      x: p.x,
+      y: p.y,
+      vx: p.vx,
+      vy: p.vy,
+      team: p.team,
+      damage: p.damage,
+      aoe: p.aoe,
+      sourceUnit: p.sourceUnit,
+      sourceType: p.sourceType,
+    };
     p.alive = false;
     decProjectiles();
+    return snap;
   }
+  return undefined;
 }
 
 export function spawnParticle(

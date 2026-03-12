@@ -4,7 +4,7 @@ import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import type { SteerForce } from './boids.ts';
-import { getNeighborAt } from './spatial-hash.ts';
+import type { NeighborSlice } from './spatial-hash.ts';
 
 const WANDER_WEIGHT = 0.25;
 const WANDER_ONLY_SCALE = 0.5;
@@ -93,7 +93,7 @@ export function computeEngagementForce(
   return wanderForce(u, t, dt, rng);
 }
 
-export function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: number): SteerForce {
+export function computeRetreatForce(u: Unit, nb: NeighborSlice, t: UnitType, hpRatio: number): SteerForce {
   if (t.retreatHpRatio === undefined || hpRatio >= t.retreatHpRatio) {
     _retreatForce.x = 0;
     _retreatForce.y = 0;
@@ -102,8 +102,8 @@ export function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: n
   const urgency = 1 - hpRatio / t.retreatHpRatio;
   let rx = 0,
     ry = 0;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (o.team === u.team || !o.alive) {
       continue;
@@ -131,12 +131,12 @@ export function computeRetreatForce(u: Unit, nn: number, t: UnitType, hpRatio: n
   return _retreatForce;
 }
 
-export function computeHealerFollow(u: Unit, nn: number, t: UnitType): SteerForce {
+export function computeHealerFollow(u: Unit, nb: NeighborSlice, t: UnitType): SteerForce {
   // bs = -1: score は常に正なので最初の候補が必ず選ばれる
   let bs = -1,
     bi: UnitIndex = NO_UNIT;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (o.team !== u.team || !o.alive || o === u) {
       continue;
@@ -163,12 +163,12 @@ export function computeHealerFollow(u: Unit, nn: number, t: UnitType): SteerForc
 }
 
 /** 近隣味方の重心に向かう力を返す（Amplifier/Catalyst 用） */
-export function computeAllyCentroidFollow(u: Unit, nn: number, t: UnitType): SteerForce {
+export function computeAllyCentroidFollow(u: Unit, nb: NeighborSlice, t: UnitType): SteerForce {
   let cx = 0,
     cy = 0,
     count = 0;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (o.team !== u.team || !o.alive || o === u) {
       continue;

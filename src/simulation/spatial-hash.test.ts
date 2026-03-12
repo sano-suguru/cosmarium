@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { asType, kill, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools-query.ts';
-import { buildHash, getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { buildHash, getNeighbors, knockback } from './spatial-hash.ts';
 
 afterEach(() => {
   resetPools();
@@ -10,25 +10,25 @@ afterEach(() => {
 describe('buildHash + getNeighbors', () => {
   it('空プールで近傍ゼロ', () => {
     buildHash();
-    const n = getNeighbors(0, 0, 200);
-    expect(n).toBe(0);
+    const nb = getNeighbors(0, 0, 200);
+    expect(nb.count).toBe(0);
   });
 
   it('1体のユニットを検出する', () => {
     spawnAt(0, asType(1), 50, 50);
     buildHash();
-    const n = getNeighbors(50, 50, 200);
-    expect(n).toBe(1);
-    expect(getNeighborAt(0)).toBe(0);
+    const nb = getNeighbors(50, 50, 200);
+    expect(nb.count).toBe(1);
+    expect(nb.at(0)).toBe(0);
   });
 
   it('同セル内の複数ユニットを検出する', () => {
     spawnAt(0, asType(1), 10, 10);
     spawnAt(1, asType(1), 20, 20);
     buildHash();
-    const n = getNeighbors(15, 15, 200);
-    expect(n).toBe(2);
-    const found = [getNeighborAt(0), getNeighborAt(1)].sort();
+    const nb = getNeighbors(15, 15, 200);
+    expect(nb.count).toBe(2);
+    const found = [nb.at(0), nb.at(1)].sort();
     expect(found).toEqual([0, 1]);
   });
 
@@ -37,39 +37,41 @@ describe('buildHash + getNeighbors', () => {
     const i1 = spawnAt(1, asType(1), 60, 60);
     kill(i1);
     buildHash();
-    const n = getNeighbors(55, 55, 200);
-    expect(n).toBe(1);
-    expect(getNeighborAt(0)).toBe(0);
+    const nb = getNeighbors(55, 55, 200);
+    expect(nb.count).toBe(1);
+    expect(nb.at(0)).toBe(0);
   });
 
   it('範囲外のユニットは検出されない', () => {
     spawnAt(0, asType(1), 0, 0);
     spawnAt(1, asType(1), 3000, 3000);
     buildHash();
-    const n = getNeighbors(0, 0, 100);
-    expect(n).toBe(1);
-    expect(getNeighborAt(0)).toBe(0);
+    const nb = getNeighbors(0, 0, 100);
+    expect(nb.count).toBe(1);
+    expect(nb.at(0)).toBe(0);
   });
 
   it('移動後に再構築で新位置を反映', () => {
     const idx = spawnAt(0, asType(1), 50, 50);
     buildHash();
-    let n = getNeighbors(50, 50, 100);
-    expect(n).toBe(1);
+    let nb = getNeighbors(50, 50, 100);
+    expect(nb.count).toBe(1);
 
     unit(idx).x = 2000;
     unit(idx).y = 2000;
     buildHash();
-    n = getNeighbors(50, 50, 100);
-    expect(n).toBe(0);
-    n = getNeighbors(2000, 2000, 100);
-    expect(n).toBe(1);
+    nb = getNeighbors(50, 50, 100);
+    expect(nb.count).toBe(0);
+    nb = getNeighbors(2000, 2000, 100);
+    expect(nb.count).toBe(1);
   });
 });
 
-describe('getNeighborAt — エラーパス', () => {
+describe('NeighborSlice.at — エラーパス', () => {
   it('範囲外インデックスでRangeError', () => {
-    expect(() => getNeighborAt(999999)).toThrow(RangeError);
+    buildHash();
+    const nb = getNeighbors(0, 0, 200);
+    expect(() => nb.at(999999)).toThrow(RangeError);
   });
 });
 

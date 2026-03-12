@@ -278,6 +278,19 @@ describe('killParticle', () => {
     killParticle(particleIdx(0));
     expect(poolCounts.particles).toBe(0);
   });
+
+  it('alive パーティクルの KilledParticleSnapshot を返す', () => {
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
+    const snap = killParticle(particleIdx(0));
+    expect(snap).toEqual({ x: 10, y: 20, vx: 1, vy: -1, size: 3, r: 1, g: 0.5, b: 0 });
+  });
+
+  it('dead パーティクルに対して undefined を返す', () => {
+    spawnParticle(10, 20, 1, -1, 0.5, 3, 1, 0.5, 0, SH_CIRCLE);
+    killParticle(particleIdx(0));
+    const snap = killParticle(particleIdx(0));
+    expect(snap).toBeUndefined();
+  });
 });
 
 describe('killProjectile', () => {
@@ -294,6 +307,25 @@ describe('killProjectile', () => {
     killProjectile(projectileIdx(0));
     killProjectile(projectileIdx(0));
     expect(poolCounts.projectiles).toBe(0);
+  });
+
+  it('alive プロジェクタイルの KilledProjectileSnapshot を返す', () => {
+    spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
+    const snap = killProjectile(projectileIdx(0));
+    expect(snap).toBeDefined();
+    expect(snap?.x).toBe(100);
+    expect(snap?.y).toBe(200);
+    expect(snap?.vx).toBe(5);
+    expect(snap?.vy).toBe(-3);
+    expect(snap?.damage).toBe(10);
+    expect(snap?.aoe).toBe(0);
+  });
+
+  it('dead プロジェクタイルに対して undefined を返す', () => {
+    spawnProjectile(100, 200, 5, -3, 1.0, 10, 0, 4, 1, 0.5, 0);
+    killProjectile(projectileIdx(0));
+    const snap = killProjectile(projectileIdx(0));
+    expect(snap).toBeUndefined();
   });
 });
 

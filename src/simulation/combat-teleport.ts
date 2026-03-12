@@ -3,7 +3,7 @@ import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt } from './combat-aim.ts';
 import type { CombatContext } from './combat-context.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import { spawnParticle, spawnProjectile } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
 
@@ -96,9 +96,9 @@ function blinkArrive(ctx: CombatContext) {
 
   ctx.shake(1.2, u.x, u.y);
 
-  const nn = getNeighbors(u.x, u.y, BLINK_IMPACT_RADIUS);
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i);
+  const nb = getNeighbors(u.x, u.y, BLINK_IMPACT_RADIUS);
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i);
     const o = unit(oi);
     if (!o.alive || o.team === u.team) {
       continue;

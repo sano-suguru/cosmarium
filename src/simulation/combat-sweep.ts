@@ -10,7 +10,7 @@ import { sweepAfterimage, sweepGlowRing, sweepPathParticles, sweepTipSpark } fro
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
+import { getNeighbors, knockback, NEIGHBOR_BUFFER_SIZE } from './spatial-hash.ts';
 import { spawnParticle } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
 import { onKillUnitPermanent } from './spawn-hooks.ts';
@@ -39,11 +39,11 @@ const _sweepSnapshot = new Int32Array(NEIGHBOR_BUFFER_SIZE);
 let _sweepSnapshotCount = 0;
 
 function snapshotNeighbors(x: number, y: number, r: number): number {
-  const nn = getNeighbors(x, y, r);
-  for (let k = 0; k < nn; k++) {
-    _sweepSnapshot[k] = getNeighborAt(k);
+  const nb = getNeighbors(x, y, r);
+  for (let k = 0; k < nb.count; k++) {
+    _sweepSnapshot[k] = nb.at(k);
   }
-  return nn;
+  return nb.count;
 }
 
 export function _resetSweepHits() {

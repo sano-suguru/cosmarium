@@ -11,14 +11,27 @@ export const NEIGHBOR_BUFFER_SIZE = 800;
 const hashMap = new Map<number, UnitIndex[]>();
 const neighborBuffer: UnitIndex[] = new Array(NEIGHBOR_BUFFER_SIZE);
 
-/** Hot-path accessor — bounds guaranteed by caller's count loop */
-export function getNeighborAt(i: number): UnitIndex {
-  const v = neighborBuffer[i];
-  if (v === undefined) {
-    throw new RangeError(`Invalid neighbor index: ${i}`);
-  }
-  return v;
+/**
+ * 近傍検索結果。count と at() でバッファにアクセスする。
+ * シングルトン — 次の getNeighbors 呼び出しで内容が上書きされるため即座に消費すること。
+ */
+export interface NeighborSlice {
+  /** 検出されたユニット数 */
+  readonly count: number;
+  /** i 番目の近傍ユニットインデックスを取得 (0 <= i < count) */
+  at(i: number): UnitIndex;
 }
+
+const _slice = {
+  count: 0,
+  at(i: number): UnitIndex {
+    const v = neighborBuffer[i];
+    if (v === undefined) {
+      throw new RangeError(`Invalid neighbor index: ${i}`);
+    }
+    return v;
+  },
+} satisfies NeighborSlice;
 
 const _pooled: UnitIndex[][] = [];
 const _used: UnitIndex[][] = [];
@@ -83,11 +96,10 @@ function collectCellNeighbors(key: number, count: number): number {
 }
 
 /**
- * 共有 neighborBuffer に近傍ユニットを収集し、件数を返す。
- * バッファは次の getNeighbors 呼び出しで上書きされるため、返り値は即座に消費すること。
- * getNeighborAt(j) で j < 返り値 の範囲でアクセス可能。
+ * 共有 neighborBuffer に近傍ユニットを収集し、NeighborSlice を返す。
+ * 返却されるスライスはシングルトンで、次の呼び出しで上書きされるため即座に消費すること。
  */
-export function getNeighbors(x: number, y: number, r: number): number {
+export function getNeighbors(x: number, y: number, r: number): NeighborSlice {
   let n = 0;
   const cr = Math.ceil(r / CELL_SIZE);
   const cx = (x / CELL_SIZE) | 0,
@@ -97,7 +109,8 @@ export function getNeighbors(x: number, y: number, r: number): number {
       n = collectCellNeighbors(((cx + dx) * 73856093) ^ ((cy + dy) * 19349663), n);
     }
   }
-  return n;
+  (_slice as { count: number }).count = n;
+  return _slice;
 }
 
 export function knockback(ti: UnitIndex, fx: number, fy: number, force: number) {

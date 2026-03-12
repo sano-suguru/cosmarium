@@ -9,7 +9,7 @@ import { FLAGSHIP_ENGINE_OFFSETS, unitType } from '../unit-type-accessors.ts';
 import type { ShakeFn } from './combat-context.ts';
 import type { KillContext } from './on-kill-effects.ts';
 import { applyOnKillEffects } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { killUnit, spawnParticle } from './spawn.ts';
 
@@ -55,9 +55,10 @@ function spawnExplosionFlash(x: number, y: number, size: number, cost: number, r
 }
 
 function applyKnockbackToNeighbors(x: number, y: number, size: number) {
-  const nn = getNeighbors(x, y, size * 8);
-  for (let i = 0; i < nn; i++) {
-    const o = unit(getNeighborAt(i));
+  const nb = getNeighbors(x, y, size * 8);
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i);
+    const o = unit(oi);
     if (!o.alive) {
       continue;
     }
@@ -65,7 +66,7 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
       ddy = o.y - y;
     const dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
     if (dd < size * 8) {
-      knockback(getNeighborAt(i), x, y, (size * 50) / (dd * 0.1 + 1));
+      knockback(oi, x, y, (size * 50) / (dd * 0.1 + 1));
     }
   }
 }

@@ -8,7 +8,7 @@ import type { ShakeFn } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
 import { spawnParticle } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
@@ -131,11 +131,11 @@ function fireChainHop(hop: ChainHop, sourceKiller: Killer, rng: () => number, sh
 }
 
 function findNearestEnemy(cx: number, cy: number, team: Team, hit: Set<UnitIndex>): UnitIndex {
-  const nn = getNeighbors(cx, cy, CHAIN_SEARCH_RANGE);
+  const nb = getNeighbors(cx, cy, CHAIN_SEARCH_RANGE);
   let bd = CHAIN_SEARCH_RANGE,
     bi: UnitIndex = NO_UNIT;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (!o.alive || o.team === team || hit.has(oi)) {
       continue;

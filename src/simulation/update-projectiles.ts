@@ -14,7 +14,7 @@ import { reflectProjectile } from './combat-reflect.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import { killProjectile, spawnParticle } from './spawn.ts';
 
 const TRAIL_SPIRAL_SPEED = 8;
@@ -87,9 +87,9 @@ function spawnAoeParticles(p: Projectile, rng: () => number): void {
 }
 
 function detonateAoe(p: Projectile, rng: () => number, shake: ShakeFn, skipUnit?: UnitIndex) {
-  const nn = getNeighbors(p.x, p.y, p.aoe);
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j),
+  const nb = getNeighbors(p.x, p.y, p.aoe);
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j),
       o = unit(oi);
     if (!o.alive || o.team === p.team) {
       continue;
@@ -156,9 +156,9 @@ function applyProjectileDamage(p: Projectile, oi: UnitIndex, o: Unit, rng: () =>
 }
 
 function detectProjectileHit(p: Projectile, pi: ProjectileIndex, rng: () => number, shake: ShakeFn): boolean {
-  const nn = getNeighbors(p.x, p.y, 30);
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j),
+  const nb = getNeighbors(p.x, p.y, 30);
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j),
       o = unit(oi);
     if (!o.alive || o.team === p.team) {
       continue;

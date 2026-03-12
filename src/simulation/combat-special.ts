@@ -8,7 +8,7 @@ import type { CombatContext } from './combat-context.ts';
 import { destroyMutualKill, destroyUnit } from './effects.ts';
 import { emitDamage, emitSupport } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import { captureKiller, spawnParticle, spawnUnit } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
 
@@ -66,9 +66,9 @@ function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitT
 
 export function ramTarget(ctx: CombatContext) {
   const { u, t } = ctx;
-  const nn = getNeighbors(u.x, u.y, t.size * 2);
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  const nb = getNeighbors(u.x, u.y, t.size * 2);
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (!o.alive || o.team === u.team) {
       continue;
@@ -89,9 +89,9 @@ export function ramTarget(ctx: CombatContext) {
 export function healAllies(ctx: CombatContext) {
   const { u, ui } = ctx;
   u.abilityCooldown = HEALER_COOLDOWN;
-  const nn = getNeighbors(u.x, u.y, 160);
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  const nb = getNeighbors(u.x, u.y, 160);
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === ui) {
       continue;
@@ -153,9 +153,9 @@ export function dischargeEmp(ctx: CombatContext) {
   }
   u.abilityCooldown = t.fireRate;
   const rangeSq = t.range * t.range;
-  const nn = getNeighbors(u.x, u.y, t.range);
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  const nb = getNeighbors(u.x, u.y, t.range);
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       oo = unit(oi);
     if (!oo.alive || oo.team === u.team) {
       continue;

@@ -2,7 +2,7 @@ import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
-import { getNeighborAt } from './spatial-hash.ts';
+import type { NeighborSlice } from './spatial-hash.ts';
 import { targetScore } from './target-search.ts';
 
 export interface SteerForce {
@@ -72,7 +72,7 @@ function finalizeBoids(u: Unit) {
   _boidsForce.y = fy;
 }
 
-export function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce {
+export function computeBoidsForce(u: Unit, nb: NeighborSlice, t: UnitType): SteerForce {
   _boids.sx = 0;
   _boids.sy = 0;
   _boids.ax = 0;
@@ -83,8 +83,8 @@ export function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce 
   _boids.cc = 0;
 
   const sd = t.size * 6;
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (!o.alive || o === u) {
       continue;
@@ -99,7 +99,7 @@ export function computeBoidsForce(u: Unit, nn: number, t: UnitType): SteerForce 
 /** boids 計算と最近接敵探索を1パスで行う。boids 力とターゲットの UnitIndex を返す */
 export function computeBoidsAndFindLocal(
   u: Unit,
-  nn: number,
+  nb: NeighborSlice,
   t: UnitType,
   range: number,
   massWeight: number,
@@ -118,8 +118,8 @@ export function computeBoidsAndFindLocal(
   let bs = limit * limit;
   let bi: UnitIndex = NO_UNIT;
 
-  for (let i = 0; i < nn; i++) {
-    const oi = getNeighborAt(i),
+  for (let i = 0; i < nb.count; i++) {
+    const oi = nb.at(i),
       o = unit(oi);
     if (!o.alive || o === u) {
       continue;

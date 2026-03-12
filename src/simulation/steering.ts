@@ -6,6 +6,7 @@ import { NO_UNIT } from '../types.ts';
 import { invSqrtMass, unitType } from '../unit-type-accessors.ts';
 import type { SteerForce } from './boids.ts';
 import { computeBoidsAndFindLocal, computeBoidsForce } from './boids.ts';
+import type { NeighborSlice } from './spatial-hash.ts';
 import { getNeighbors } from './spatial-hash.ts';
 import { computeSquadronCohesion, computeSquadronLeaderObjective, computeSquadronLeashFactor } from './squadron.ts';
 import { CATALYST_SPEED_MULT, CATALYST_TURN_MULT, tickBoost, tickBoostDuringStun } from './steering-boost.ts';
@@ -97,7 +98,7 @@ function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
 /** boids 計算 + ターゲット解決を一括で行う。boids 力とターゲットを返す */
 function resolveTarget(
   u: Unit,
-  nn: number,
+  nb: NeighborSlice,
   t: UnitType,
   range: number,
   massWeight: number,
@@ -105,13 +106,13 @@ function resolveTarget(
   rng: () => number,
 ): ResolveResult {
   if (u.target !== NO_UNIT && unit(u.target).alive) {
-    const boids = computeBoidsForce(u, nn, t);
+    const boids = computeBoidsForce(u, nb, t);
     _resolveResult.target = u.target;
     _resolveResult.fx = boids.x;
     _resolveResult.fy = boids.y;
     return _resolveResult;
   }
-  const local = computeBoidsAndFindLocal(u, nn, t, range, massWeight);
+  const local = computeBoidsAndFindLocal(u, nb, t, range, massWeight);
   _resolveResult.fx = local.fx;
   _resolveResult.fy = local.fy;
   if (local.target !== NO_UNIT) {
@@ -148,11 +149,11 @@ function computeBoundaryForce(x: number, y: number): SteerForce {
 }
 
 export function steer(u: Unit, ui: UnitIndex, dt: number, rng: () => number) {
-  const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
-  steerWithNeighbors(u, ui, nn, dt, rng);
+  const nb = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+  steerWithNeighbors(u, ui, nb, dt, rng);
 }
 
-export function steerWithNeighbors(u: Unit, ui: UnitIndex, nn: number, dt: number, rng: () => number) {
+export function steerWithNeighbors(u: Unit, ui: UnitIndex, nb: NeighborSlice, dt: number, rng: () => number) {
   if (u.blinkPhase === 1) {
     applyKnockbackDrag(u, dt);
     return;
@@ -165,7 +166,7 @@ export function steerWithNeighbors(u: Unit, ui: UnitIndex, nn: number, dt: numbe
   const range = computeEffectiveRange(u, t.range);
   const massWeight = t.massWeight;
 
-  const res = resolveTarget(u, nn, t, range, massWeight, dt, rng);
+  const res = resolveTarget(u, nb, t, range, massWeight, dt, rng);
   u.target = res.target;
 
   let fx = res.fx,
@@ -182,12 +183,12 @@ export function steerWithNeighbors(u: Unit, ui: UnitIndex, nn: number, dt: numbe
   fx += engage.x * engageAtten;
   fy += engage.y * engageAtten;
 
-  const retreat = computeRetreatForce(u, nn, t, hpRatio);
+  const retreat = computeRetreatForce(u, nb, t, hpRatio);
   fx += retreat.x;
   fy += retreat.y;
 
   if (isSupportType(t)) {
-    const follow = t.heals ? computeHealerFollow(u, nn, t) : computeAllyCentroidFollow(u, nn, t);
+    const follow = t.heals ? computeHealerFollow(u, nb, t) : computeAllyCentroidFollow(u, nb, t);
     const followWeight = SUPPORT_FOLLOW_WEIGHT * t.supportFollow;
     fx += follow.x * followWeight;
     fy += follow.y * followWeight;

@@ -26,7 +26,8 @@ import { boostBurst, boostTrail, flagshipTrail, trail } from './effects.ts';
 import { computeProductionCap, tickProduction } from './production.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
-import { buildHash, getNeighborAt, getNeighbors } from './spatial-hash.ts';
+import type { NeighborSlice } from './spatial-hash.ts';
+import { buildHash, getNeighbors } from './spatial-hash.ts';
 import { killParticle } from './spawn.ts';
 import { updateSquadronObjectives } from './squadron.ts';
 import { steerWithNeighbors } from './steering.ts';
@@ -96,10 +97,10 @@ export function updateTrackingBeams(dt: number) {
   }
 }
 
-function countSwarmFromNeighbors(u: Unit, nn: number): number {
+function countSwarmFromNeighbors(u: Unit, nb: NeighborSlice): number {
   let allies = 0;
-  for (let j = 0; j < nn; j++) {
-    const o = unit(getNeighborAt(j));
+  for (let j = 0; j < nb.count; j++) {
+    const o = unit(nb.at(j));
     if (o === u || !o.alive || o.team !== u.team || o.type !== u.type) {
       continue;
     }
@@ -172,9 +173,9 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
     rem--;
 
     const ui = unitIdx(i);
-    const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
-    u.swarmN = unitType(u.type).swarm ? countSwarmFromNeighbors(u, nn) : 0;
-    steerWithNeighbors(u, ui, nn, dt, rng);
+    const nb = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+    u.swarmN = unitType(u.type).swarm ? countSwarmFromNeighbors(u, nb) : 0;
+    steerWithNeighbors(u, ui, nb, dt, rng);
 
     const prevHp = u.hp;
     const wasNotBoosting = u.boostTimer <= 0;

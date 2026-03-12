@@ -8,7 +8,7 @@ import type { CombatContext } from './combat-context.ts';
 import { destroyUnit } from './effects.ts';
 import { emitDamage } from './hooks.ts';
 import { DAMAGE_KIND_TO_KILL_CONTEXT } from './on-kill-effects.ts';
-import { getNeighborAt, getNeighbors, knockback } from './spatial-hash.ts';
+import { getNeighbors, knockback } from './spatial-hash.ts';
 import { spawnParticle } from './spawn.ts';
 import { addBeam } from './spawn-beams.ts';
 
@@ -51,9 +51,9 @@ function scanRayNeighbors(
   _rayHitSeen.clear();
   for (let s = 0; s <= steps; s++) {
     const d = Math.min(s * RAILGUN_SAMPLE_STEP, range);
-    const nn = getNeighbors(ox + dx * d, oy + dy * d, RAILGUN_SAMPLE_STEP);
-    for (let j = 0; j < nn; j++) {
-      const oi = getNeighborAt(j);
+    const nb = getNeighbors(ox + dx * d, oy + dy * d, RAILGUN_SAMPLE_STEP);
+    for (let j = 0; j < nb.count; j++) {
+      const oi = nb.at(j);
       const o = unit(oi);
       if (o.alive && o.team !== teamFilter) {
         _rayHitSeen.add(oi);

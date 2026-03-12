@@ -12,7 +12,8 @@ import { unit } from '../pools-query.ts';
 import type { Unit, UnitIndex } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { emitSupport } from './hooks.ts';
-import { getNeighborAt, getNeighbors } from './spatial-hash.ts';
+import type { NeighborSlice } from './spatial-hash.ts';
+import { getNeighbors } from './spatial-hash.ts';
 import { addTrackingBeam } from './spawn-beams.ts';
 
 export const SHIELD_LINGER = 2;
@@ -83,11 +84,11 @@ function isSearchCandidate(o: Unit, oi: number, ownerIdx: number, team: number, 
   return true;
 }
 
-function findClosestNeighbors(u: Unit, i: number, nn: number, s: NeighborSearch): number {
+function findClosestNeighbors(u: Unit, i: number, nb: NeighborSlice, s: NeighborSearch): number {
   let count = 0;
   const team = u.team;
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j);
     const o = unit(oi);
     if (!isSearchCandidate(o, oi, i, team, s)) {
       continue;
@@ -137,7 +138,7 @@ function isReflectFieldCandidate(o: Unit, oi: number, team: number, selfIdx: num
   return o.alive && o.team === team && oi !== selfIdx && !unitType(o.type).reflects;
 }
 
-function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
+function applyReflectorAllyField(u: Unit, i: number, nb: NeighborSlice, dt: number) {
   if (u.maxEnergy <= 0) {
     return;
   }
@@ -146,8 +147,8 @@ function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
     return;
   }
   let granted = false;
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j);
     const o = unit(oi);
     if (!isReflectFieldCandidate(o, oi, u.team, i)) {
       continue;
@@ -167,8 +168,8 @@ function applyReflectorAllyField(u: Unit, i: number, nn: number, dt: number) {
   }
 }
 
-function tetherNearbyAllies(u: Unit, i: number, nn: number) {
-  const count = findClosestNeighbors(u, i, nn, tetherSearch);
+function tetherNearbyAllies(u: Unit, i: number, nb: NeighborSlice) {
+  const count = findClosestNeighbors(u, i, nb, tetherSearch);
   const ui = unitIdx(i);
   for (let j = 0; j < count; j++) {
     const oi = unitIdx(_tetherOi[j] ?? 0);
@@ -181,12 +182,12 @@ function tetherNearbyAllies(u: Unit, i: number, nn: number) {
   }
 }
 
-function collectAmpCandidates(u: Unit, i: number, nn: number): number {
-  return findClosestNeighbors(u, i, nn, ampSearch);
+function collectAmpCandidates(u: Unit, i: number, nb: NeighborSlice): number {
+  return findClosestNeighbors(u, i, nb, ampSearch);
 }
 
-function amplifyNearbyAllies(u: Unit, i: number, nn: number) {
-  const count = collectAmpCandidates(u, i, nn);
+function amplifyNearbyAllies(u: Unit, i: number, nb: NeighborSlice) {
+  const count = collectAmpCandidates(u, i, nb);
   const ui = unitIdx(i);
   for (let j = 0; j < count; j++) {
     const oi = unitIdx(_ampOi[j] ?? 0);
@@ -199,9 +200,9 @@ function amplifyNearbyAllies(u: Unit, i: number, nn: number) {
   }
 }
 
-function scrambleNearbyEnemies(u: Unit, i: number, nn: number) {
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
+function scrambleNearbyEnemies(u: Unit, i: number, nb: NeighborSlice) {
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j);
     const o = unit(oi);
     if (!o.alive || o.team === u.team || oi === i) {
       continue;
@@ -219,9 +220,9 @@ function scrambleNearbyEnemies(u: Unit, i: number, nn: number) {
   }
 }
 
-function catalyzeNearbyAllies(u: Unit, i: number, nn: number) {
-  for (let j = 0; j < nn; j++) {
-    const oi = getNeighborAt(j);
+function catalyzeNearbyAllies(u: Unit, i: number, nb: NeighborSlice) {
+  for (let j = 0; j < nb.count; j++) {
+    const oi = nb.at(j);
     const o = unit(oi);
     if (!o.alive || o.team !== u.team || oi === i) {
       continue;
@@ -239,22 +240,22 @@ function catalyzeNearbyAllies(u: Unit, i: number, nn: number) {
   }
 }
 
-function applyUnitFields(u: Unit, i: number, nn: number, dt: number) {
+function applyUnitFields(u: Unit, i: number, nb: NeighborSlice, dt: number) {
   const t = unitType(u.type);
   if (t.reflects) {
-    applyReflectorAllyField(u, i, nn, dt);
+    applyReflectorAllyField(u, i, nb, dt);
   }
   if (t.shields) {
-    tetherNearbyAllies(u, i, nn);
+    tetherNearbyAllies(u, i, nb);
   }
   if (t.amplifies) {
-    amplifyNearbyAllies(u, i, nn);
+    amplifyNearbyAllies(u, i, nb);
   }
   if (t.scrambles) {
-    scrambleNearbyEnemies(u, i, nn);
+    scrambleNearbyEnemies(u, i, nb);
   }
   if (t.catalyzes) {
-    catalyzeNearbyAllies(u, i, nn);
+    catalyzeNearbyAllies(u, i, nb);
   }
 }
 
@@ -268,8 +269,8 @@ export function applyAllFields(dt: number) {
     rem--;
     const t = unitType(u.type);
     if (t.reflects || t.shields || t.amplifies || t.scrambles || t.catalyzes) {
-      const nn = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
-      applyUnitFields(u, i, nn, dt);
+      const nb = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+      applyUnitFields(u, i, nb, dt);
     }
   }
 }
