@@ -58,6 +58,14 @@ module.exports = {
         path: '^src/',
       },
     },
+    {
+      name: 'no-codex-to-game-control',
+      severity: 'error',
+      comment:
+        'codex-logic.ts → game-control.ts は循環依存になるため禁止。game-control → codex-logic の一方向のみ許可。',
+      from: { path: '^src/ui/codex/' },
+      to: { path: '^src/ui/game-control\\.ts$' },
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },

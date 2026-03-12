@@ -22,7 +22,6 @@ import {
   setOnMeleeFinalize,
 } from './melee-tracker.ts';
 import { getUnitHWM, teamUnitCounts } from './pools.ts';
-import { createFBOs } from './renderer/fbo.ts';
 import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
@@ -67,10 +66,7 @@ const AFTERMATH_SPEED = 0.2;
 
 initRenderer();
 
-addEventListener('resize', () => {
-  resize();
-  createFBOs();
-});
+addEventListener('resize', resize);
 
 mountApp();
 initKeyboardControls();

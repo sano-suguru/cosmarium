@@ -38,12 +38,9 @@
 ## Critical Gotchas
 
 - blendモード: シーン=`SRC_ALPHA, ONE`(加算)、ミニマップ=`SRC_ALPHA, ONE_MINUS_SRC_ALPHA`(通常)。混同注意
-- `attribDivisor(loc, 1)`必須。忘れると全instanceが同値に
 - `instanceData`は`subarray(0, ic*9)`で必要分のみ転送。全体送信しない
-- minimap描画後はscissor/viewport/blendをリストア必須
 - instance layout: 9 slots/stride=36bytes。slot 8(shape ID)はint(`vertexAttribIPointer`)。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
-- `resize()`後に`createFBOs()`を再呼出し必須（FBOサイズはviewportに依存）
 - シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可
 
 ## 初期化順序（main.tsから）
-`initWebGL()` → `initShaders()` → `createFBOs()` → `initBuffers()` — 順序変更不可
+`initWebGL()` → `initShaders()` → `setOnResized(createFBOs)` → `createFBOs()` → `initBuffers()` — 順序変更不可。`resize()` は `onResized` コールバック経由で `createFBOs()` を自動呼び出し

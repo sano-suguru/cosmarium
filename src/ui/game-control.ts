@@ -9,7 +9,7 @@ import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale } from '../types.ts';
 import type { BattleResult, FleetSetup, ProductionState } from '../types-fleet.ts';
-// NOTE: codex → game-control の逆方向 import は循環依存になるため禁止
+// dependency-cruiser: no-codex-to-game-control で強制済み
 import { toggleCodex } from './codex/codex-logic.ts';
 import { resetComposeCounts } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';

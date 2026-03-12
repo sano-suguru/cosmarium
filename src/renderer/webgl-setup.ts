@@ -1,6 +1,17 @@
+import { devError } from '../ui/dev-overlay/DevOverlay.tsx';
+
 export let canvas: HTMLCanvasElement;
 export let gl: WebGL2RenderingContext;
 export const viewport = { W: 0, H: 0, dpr: 1 };
+
+let onResized: (() => void) | null = null;
+
+export function setOnResized(cb: () => void) {
+  if (import.meta.env.DEV && onResized) {
+    devError('setOnResized: already set');
+  }
+  onResized = cb;
+}
 
 export function initWebGL() {
   const c = document.querySelector<HTMLCanvasElement>('#c');
@@ -36,4 +47,5 @@ export function resize() {
   viewport.W = canvas.width = (innerWidth * dpr) | 0;
   viewport.H = canvas.height = (innerHeight * dpr) | 0;
   gl.viewport(0, 0, viewport.W, viewport.H);
+  onResized?.();
 }
