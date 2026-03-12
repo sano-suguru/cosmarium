@@ -241,26 +241,11 @@ Maintain passing `bun run typecheck` at each unit. Don't change multiple modules
 
 ## Critical Gotchas
 
-### 要注意事項
-
 | Issue | Details |
 |-------|---------|
 | `NeighborSlice` ライフサイクル | `getNeighbors()` が返す `NeighborSlice` はシングルトン。次の `getNeighbors()` 呼び出しで上書きされるため即座に消費すること。`nb.count` と `nb.at(i)` でアクセス。`buildHash()` 後のみ有効。複数回の `getNeighbors` を跨ぐ場合はスナップショット（`combat-sweep.ts` 参照）。 |
 | `codexOpen` impact | Affects 4 layers: skip non-demo unit steer/combat, lock camera, disable input, skip HUD. See main loop. |
 | GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
-
-### 型システムで保護済み（参考情報）
-
-以下の項目は TypeScript の型システムにより構造的に防止されている。
-
-| Issue | 保護メカニズム |
-|-------|---------------|
-| Pool mutation | `poolCounts: Readonly<{...}>` で直接代入はコンパイルエラー。`killUnit()`/`killParticle()`/`killProjectile()` のみ使用。 |
-| Kill スナップショット | `killUnit()`/`killParticle()`/`killProjectile()` すべてがスナップショットを返す（`KilledUnitSnapshot`/`KilledParticleSnapshot`/`KilledProjectileSnapshot \| undefined`）。kill 後にデータを安全に参照可能。`destroyUnit()` は unit kill + explosion のコンボ。 |
-| Team helper | `Team = 0 \| 1 \| 2 \| 3 \| 4` リテラル型。`1 - team` は `number` を返し `Team` に代入不可（コンパイルエラー）。敵判定は `o.team !== u.team` を使用。 |
-| Branded indices | `UnitIndex = number & { __brand }` 等のブランド型。ループでは `unitIdx(i)` / `particleIdx(i)` / `projectileIdx(i)` ヘルパーを使用。 |
-| Codex snapshot | `snapshotPools()`/`restorePools()` の shallow copy（`{ ...u }`）は安全。Unit/Particle/Projectile/Beam/TrackingBeam の全フィールドがプリミティブ型のため shallow copy = deep copy。 |
-| Input events | Pointer Events unified (mouse/touch). canvas/minimap have `touch-action: none`. Pinch zoom tracks 2 fingers via `activePointers` Map. |
 
 Simulation-specific gotchas (`destroyUnit()` preference, `beams` swap-and-pop etc.) → see `src/simulation/AGENTS.md`. Shader-specific (GLSL runtime compilation, `vite-plugin-glsl` `#include` expansion etc.) → see `src/shaders/AGENTS.md`.
 
