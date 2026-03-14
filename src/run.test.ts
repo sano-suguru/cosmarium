@@ -36,6 +36,7 @@ describe('run', () => {
     expect(info?.lives).toBe(RUN_MAX_LIVES);
     expect(info?.wins).toBe(0);
     expect(info?.winTarget).toBe(RUN_WIN_TARGET);
+    expect(info?.roundType).toBe('battle');
   });
 
   it('getRunInfo returns null when run is inactive', () => {
@@ -53,13 +54,16 @@ describe('run', () => {
   });
 
   describe('processRoundEnd', () => {
-    it('returns roundComplete on victory', () => {
+    it('returns roundComplete on victory with next-round status', () => {
       resetRun();
       const outcome = processRoundEnd(makeBattleResult({ victory: true }));
       expect(outcome.type).toBe('roundComplete');
       if (outcome.type === 'roundComplete') {
         expect(outcome.roundResult.round).toBe(1);
+        expect(outcome.roundResult.roundType).toBe('battle');
         expect(outcome.roundResult.victory).toBe(true);
+        expect(outcome.status.round).toBe(2);
+        expect(outcome.status.roundType).toBe('battle');
         expect(outcome.status.wins).toBe(1);
         expect(outcome.status.lives).toBe(RUN_MAX_LIVES);
       }
@@ -127,6 +131,25 @@ describe('run', () => {
       const r2 = processRoundEnd(makeBattleResult());
       if (r2.type === 'roundComplete') {
         expect(r2.roundResult.round).toBe(2);
+      }
+    });
+
+    it('status.roundType reflects ffa for round 5', () => {
+      resetRun();
+      // Complete rounds 1-3
+      for (let i = 0; i < 3; i++) {
+        const mid = processRoundEnd(makeBattleResult({ victory: true }));
+        if (mid.type === 'roundComplete') {
+          expect(mid.roundResult.roundType).toBe('battle');
+        }
+      }
+      // Complete round 4 — status points to round 5 (ffa)
+      const r4 = processRoundEnd(makeBattleResult({ victory: true }));
+      if (r4.type === 'roundComplete') {
+        expect(r4.roundResult.round).toBe(4);
+        expect(r4.roundResult.roundType).toBe('battle');
+        expect(r4.status.round).toBe(5);
+        expect(r4.status.roundType).toBe('ffa');
       }
     });
 

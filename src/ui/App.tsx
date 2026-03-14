@@ -9,9 +9,9 @@ import { FleetCompose } from './fleet-compose/FleetCompose.tsx';
 import {
   advanceRound,
   goToMenu,
+  launchRound,
   onCodexToggle,
   setSpd,
-  startBattle,
   startMelee,
   startNewRun,
   startSpectate,
@@ -42,7 +42,7 @@ function App() {
         <Menu onStart={startNewRun} onSpectate={startSpectate} onMelee={startMelee} onCodex={onCodexToggle} />
       )}
       {composeVisible$.value && !codexOpen$.value && (
-        <FleetCompose onLaunch={startBattle} onBack={goToMenu} onCodexToggle={onCodexToggle} />
+        <FleetCompose onLaunch={launchRound} onBack={goToMenu} onCodexToggle={onCodexToggle} />
       )}
       {resultData && !codexOpen$.value && (
         <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />

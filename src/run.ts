@@ -1,3 +1,4 @@
+import { scheduleRound } from './round-schedule.ts';
 import type { BattleResult, RoundResult, RunResult, RunStatus } from './types-fleet.ts';
 export const RUN_MAX_LIVES = 5;
 export const RUN_WIN_TARGET = 10;
@@ -50,11 +51,18 @@ export function getRunInfo(): RunStatus | null {
   if (!run.active) {
     return null;
   }
-  return { round: run.round, lives: run.lives, wins: run.wins, winTarget: RUN_WIN_TARGET };
+  return {
+    round: run.round,
+    lives: run.lives,
+    wins: run.wins,
+    winTarget: RUN_WIN_TARGET,
+    roundType: scheduleRound(run.round).roundType,
+  };
 }
 
 function recordRoundResult(battleResult: BattleResult): RoundResult {
-  const roundResult: RoundResult = { ...battleResult, round: run.round };
+  const roundType = scheduleRound(run.round).roundType;
+  const roundResult: RoundResult = { ...battleResult, round: run.round, roundType };
 
   run.roundResults.push(roundResult);
   run.totalKills += battleResult.enemyKills;
@@ -65,7 +73,6 @@ function recordRoundResult(battleResult: BattleResult): RoundResult {
     run.lives -= 1;
   }
 
-  run.round += 1;
   return roundResult;
 }
 
@@ -91,6 +98,7 @@ function buildRunResult(): RunResult {
 /** ラウンド結果を処理し、ラン継続/終了を判定して返す */
 export function processRoundEnd(battleResult: BattleResult): RoundOutcome {
   const roundResult = recordRoundResult(battleResult);
+  run.round += 1;
 
   if (isRunOver() || isRunCleared()) {
     const runResult = buildRunResult();
@@ -99,10 +107,11 @@ export function processRoundEnd(battleResult: BattleResult): RoundOutcome {
   }
 
   const status: RunStatus = {
-    round: roundResult.round,
+    round: run.round,
     lives: run.lives,
     wins: run.wins,
     winTarget: RUN_WIN_TARGET,
+    roundType: scheduleRound(run.round).roundType,
   };
   return { type: 'roundComplete', roundResult, status };
 }

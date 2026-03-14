@@ -12,8 +12,16 @@ export type BattleResult = {
   readonly enemyKills: number;
 };
 
+export type RoundType = 'battle' | 'ffa';
+
+export type RoundScheduleEntry = {
+  readonly roundType: RoundType;
+  readonly preview: boolean;
+};
+
 export type RoundResult = BattleResult & {
   readonly round: number;
+  readonly roundType: RoundType;
 };
 
 export type RunStatus = {
@@ -21,6 +29,7 @@ export type RunStatus = {
   readonly lives: number;
   readonly wins: number;
   readonly winTarget: number;
+  readonly roundType: RoundType;
 };
 
 export type RunResult = {
@@ -49,6 +58,8 @@ export interface FleetSetup {
   readonly variant: MothershipVariant;
   readonly slots: readonly (ProductionSlot | null)[];
 }
+
+export const EMPTY_FLEET_SETUP: FleetSetup = { variant: 0, slots: [] };
 
 /** チーム1つ分の生産キュー状態。slots（不変）と timers（可変）の並行配列 */
 export interface ProductionState {

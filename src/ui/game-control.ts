@@ -1,6 +1,7 @@
 import { batch } from '@preact/signals';
 import { cam, setAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
+import { scheduleRound } from '../round-schedule.ts';
 import { _resetRunState, endRun, getRunInfo, isRunActive, processRoundEnd, resetRun } from '../run.ts';
 import {
   buildFleetFromShop,
@@ -18,8 +19,15 @@ import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale } from '../types.ts';
-import type { BattleResult, FleetSetup, MothershipVariant, ProductionState } from '../types-fleet.ts';
+import {
+  type BattleResult,
+  EMPTY_FLEET_SETUP,
+  type FleetSetup,
+  type MothershipVariant,
+  type ProductionState,
+} from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
+import { FFA_TEAM_COUNT, generateFfaEnemySetups, meleeResultToBattleResult } from './ffa-round.ts';
 import { resetVariant } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
 import {
@@ -33,10 +41,9 @@ import {
   shopSlots$,
 } from './signals.ts';
 
-const DEFAULT_ENEMY_SETUP: FleetSetup = { variant: 0, slots: [] };
-
-let currentEnemySetup: FleetSetup = DEFAULT_ENEMY_SETUP;
+let currentEnemySetup: FleetSetup = EMPTY_FLEET_SETUP;
 let currentEnemyArchName = '';
+let currentFfaEnemySetups: FleetSetup[] = [];
 
 let seedCounter = 0;
 function uniqueSeed(): number {
@@ -130,16 +137,19 @@ export function startSpectate() {
   onSpectateStart();
 }
 
-export function startBattle(variant: MothershipVariant) {
-  const setup = buildFleetFromShop(variant);
+function enterPlayFromCompose() {
   state.gameState = 'play';
   resetCam();
   composeVisible$.value = false;
   resultData$.value = null;
   showPlayUI();
   seedRng(uniqueSeed());
-  const productions = initBattleProduction(rng, setup, currentEnemySetup);
-  onBattleStart(productions);
+}
+
+function startBattle(variant: MothershipVariant) {
+  const setup = buildFleetFromShop(variant);
+  enterPlayFromCompose();
+  onBattleStart(initBattleProduction(rng, setup, currentEnemySetup));
 }
 
 export function startMelee() {
@@ -149,8 +159,25 @@ export function startMelee() {
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1));
   const setups = Array.from({ length: numTeams }, () => generateEnemySetup(rng, 1).setup);
-  const productions = initMeleeProduction(rng, setups, numTeams);
-  onMeleeStart(numTeams, productions);
+  onMeleeStart(numTeams, initMeleeProduction(rng, setups, numTeams));
+}
+
+function startFfa(variant: MothershipVariant) {
+  const playerSetup = buildFleetFromShop(variant);
+  enterPlayFromCompose();
+  onMeleeStart(FFA_TEAM_COUNT, initMeleeProduction(rng, [playerSetup, ...currentFfaEnemySetups], FFA_TEAM_COUNT));
+}
+
+export function launchRound(variant: MothershipVariant) {
+  const info = getRunInfo();
+  if (!info) {
+    throw new Error('launchRound called without active run');
+  }
+  if (info.roundType === 'ffa') {
+    startFfa(variant);
+  } else {
+    startBattle(variant);
+  }
 }
 
 export function goToResult(result: BattleResult) {
@@ -166,6 +193,10 @@ export function goToResult(result: BattleResult) {
 }
 
 export function goToMeleeResult(result: MeleeResult) {
+  if (isRunActive()) {
+    goToResult(meleeResultToBattleResult(result));
+    return;
+  }
   state.gameState = 'result';
   hidePlayUI();
   resultData$.value = { type: 'melee', meleeResult: result };
@@ -193,14 +224,23 @@ function generateEnemy(round: number) {
   currentEnemyArchName = archetypeName;
 }
 
+function prepareRoundEnemy(round: number) {
+  if (scheduleRound(round).roundType === 'ffa') {
+    currentFfaEnemySetups = generateFfaEnemySetups(rng, round);
+    currentEnemySetup = EMPTY_FLEET_SETUP;
+    currentEnemyArchName = 'FFA 4勢力';
+  } else {
+    currentFfaEnemySetups = [];
+    generateEnemy(round);
+  }
+}
+
 export function startNewRun() {
   resetRun();
   initShop();
   seedRng(uniqueSeed());
-  const info = getRunInfo();
-  const round = info?.round ?? 1;
-  initShopRound(createRng(uniqueSeed()), round);
-  generateEnemy(round);
+  initShopRound(createRng(uniqueSeed()), 1);
+  prepareRoundEnemy(1);
   goToCompose(false);
 }
 
@@ -209,16 +249,19 @@ export function advanceRound() {
     return;
   }
   const info = getRunInfo();
-  const round = info?.round ?? 1;
-  initShopRound(createRng(uniqueSeed()), round);
-  generateEnemy(round);
+  if (!info) {
+    throw new Error('advanceRound called without active run');
+  }
+  initShopRound(createRng(uniqueSeed()), info.round);
+  prepareRoundEnemy(info.round);
   goToCompose(true);
 }
 
 export function _resetGameControl() {
   seedCounter = 0;
-  currentEnemySetup = DEFAULT_ENEMY_SETUP;
+  currentEnemySetup = EMPTY_FLEET_SETUP;
   currentEnemyArchName = '';
+  currentFfaEnemySetups = [];
   onBattleStart = throwBattleStart;
   onSpectateStart = () => undefined;
   onMeleeStart = () => {

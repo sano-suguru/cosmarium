@@ -27,14 +27,16 @@ export function _resetFleetCompose() {
 function EnemyFleetHeader() {
   const setup = composeEnemySetup$.value;
   const archName = composeEnemyArchName$.value;
+  const runInfo = getRunInfo();
+  const isFfa = runInfo?.roundType === 'ffa';
 
-  const variantDef = setup ? MOTHERSHIP_VARIANTS[setup.variant] : null;
+  const variantDef = !isFfa && setup ? MOTHERSHIP_VARIANTS[setup.variant] : null;
   const slotCount = setup?.slots.filter((s) => s !== null).length ?? 0;
 
   return (
     <div class={styles.header}>
       <h2 class={styles.headerTitle}>
-        <ShieldAlert size={16} /> ENEMY FLEET
+        <ShieldAlert size={16} /> {isFfa ? 'SPECIAL ROUND' : 'ENEMY FLEET'}
       </h2>
       <div class={styles.enemyList}>
         <div class={styles.enemyArch}>
@@ -119,7 +121,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
             disabled={!hasSlotFilled}
             onClick={handleLaunch}
           >
-            <Swords size={14} /> LAUNCH BATTLE
+            <Swords size={14} /> {runInfo?.roundType === 'ffa' ? 'LAUNCH FFA' : 'LAUNCH BATTLE'}
           </button>
         </div>
       </div>
