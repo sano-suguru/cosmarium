@@ -8,6 +8,11 @@
             "type": "command",
             "command": "bash .claude/hooks/check-comments.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bunx biome check --no-errors-on-unmatched --write \"$CLAUDE_FILE_PATH\"",
+            "timeout": 15
           }
         ]
       }

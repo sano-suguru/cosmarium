@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import type { ShopItem, ShopSlot } from '../shop-tiers.ts';
 import { state } from '../state.ts';
 import type { GameState, TimeScale, UnitTypeIndex } from '../types.ts';
 import type { FleetSetup } from '../types-fleet.ts';
@@ -19,6 +20,11 @@ export const composeEnemyArchName$ = signal('');
 
 export const playUiVisible$ = signal(false);
 export const autoFollowActive$ = signal(false);
+
+// ── ショップ状態 ──
+export const shopCredits$ = signal(0);
+export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
+export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);
 
 /** timeScale$ は state.timeScale の signal ミラー。Object.defineProperty で自動同期。 */
 export const timeScale$ = signal<TimeScale>(state.timeScale);

@@ -66,6 +66,14 @@ module.exports = {
       from: { path: '^src/ui/codex/' },
       to: { path: '^src/ui/game-control\\.ts$' },
     },
+    {
+      name: 'no-shop-state-in-simulation',
+      severity: 'error',
+      comment:
+        'simulation/ は shop.ts（ステートフル）を import してはいけない。純粋定義は shop-tiers.ts を使用すること。',
+      from: { path: '^src/simulation/' },
+      to: { path: '^src/shop\\.ts$' },
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },

@@ -66,6 +66,11 @@
   gap: 4px;
   white-space: nowrap;
 }
+.enemyIntel {
+  font-size: 11px;
+  color: #688;
+  letter-spacing: 1px;
+}
 
 /* === VARIANT SELECTOR === */
 .variantSection {
@@ -129,120 +134,6 @@
   color: #0aa;
 }
 
-.body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.productionHeader {
-  display: flex;
-  justify-content: space-between;
-  font-family: "Orbitron", sans-serif;
-  font-size: 12px;
-  color: #0ff;
-  letter-spacing: 2px;
-  padding: 8px 4px;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
-}
-
-/* === SLOT GRID === */
-.slotGrid {
-  display: grid;
-  grid-template-columns: repeat(var(--slot-count, 5), 1fr);
-  gap: 10px;
-  padding: 8px 0;
-}
-
-.slotCard {
-  background: rgba(0, 20, 40, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: center;
-  font-family: "Share Tech Mono", monospace;
-  min-height: 120px;
-}
-.slotFilled {
-  border-color: rgba(0, 255, 255, 0.3);
-  background: rgba(0, 30, 50, 0.7);
-}
-.slotLabel {
-  font-family: "Orbitron", sans-serif;
-  font-size: 10px;
-  color: #666;
-  letter-spacing: 2px;
-}
-.slotInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-}
-.slotName {
-  font-size: 13px;
-  color: #cdf;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.slotStats {
-  font-size: 11px;
-  color: #0f8;
-  text-shadow: 0 0 4px rgba(0, 255, 128, 0.3);
-}
-.slotDuplicate {
-  font-size: 9px;
-  color: #ff0;
-  letter-spacing: 1px;
-  opacity: 0.8;
-}
-.slotEmpty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #444;
-}
-.slotSelect {
-  background: rgba(0, 10, 20, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.15);
-  color: #0ff;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 11px;
-  padding: 6px 4px;
-  border-radius: 3px;
-  cursor: pointer;
-  width: 100%;
-}
-.slotSelect:focus {
-  border-color: #0ff;
-  outline: none;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-.dotTeam0 {
-  background: #0ff;
-  box-shadow: 0 0 4px #0ff;
-}
-.dotTeam1 {
-  background: #f0f;
-  box-shadow: 0 0 4px #f0f;
-}
-
 .actions {
   display: flex;
   justify-content: center;
@@ -302,16 +193,18 @@
 @media (pointer: coarse), (max-width: 768px) {
   .compose {
     padding: 16px 12px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
   }
-  .slotGrid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  .actions {
+    flex-direction: column;
+    gap: 8px;
   }
-  .slotCard {
-    padding: 10px 8px;
-  }
-  .slotSelect {
-    min-height: 44px;
-    font-size: 12px;
+  .actions button {
+    width: 100%;
+    min-height: 48px;
   }
   .codexBtn {
     padding: 10px 16px;
@@ -319,5 +212,27 @@
     min-height: 44px;
     top: calc(12px + env(safe-area-inset-top, 0px));
     right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+
+  /* landscape: 縦スペース確保 */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .compose {
+      gap: 8px;
+      padding-top: calc(8px + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+    .header {
+      display: none;
+    }
+    .variantDesc {
+      display: none;
+    }
+    .actions {
+      flex-direction: row;
+    }
+    .actions button {
+      width: auto;
+      flex: 1;
+    }
   }
 }

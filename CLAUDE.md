@@ -94,6 +94,13 @@ Affects 4 layers when toggled: simulation (skip steer/combat for non-demo units,
 
 Phase transitions: `main.ts` callbacks → `battle-tracker`/`melee-tracker` → `'aftermath'` → `GameState = 'result'`
 
+## Code Review Rules
+
+- **構造的修正のみ** — コメント追加だけの修正は禁止。すべての指摘は根本原因に対する構造的な変更で解決する
+- **fail-fast 原則** — 不変条件違反は必ず `throw`。`console.warn` への緩和は禁止
+- **ファイル行数制限** — 通常ファイル 300 行、型定義ファイル 600 行。超過時はコメント/空白削除ではなくモジュール分割で対応
+- **変更後は必ず検証** — コード変更後は `bun run check` を実行し、全チェックを通す
+
 ## Key Rules (details in `.claude/rules/`)
 
 - **レイヤー分離** — シミュレーション/レンダリング層はクラスなし・手続き的・依存ゼロを維持。UI 層は Preact + CSS Modules

@@ -117,7 +117,7 @@ function setupFleets(
 
   for (let t = 0; t < activeTeams; t++) {
     const cliFleet = config.fleets?.[t];
-    const setup = cliFleet ? fleetToSetup(cliFleet) : generateEnemySetup(rng).setup;
+    const setup = cliFleet ? fleetToSetup(cliFleet) : generateEnemySetup(rng, 1).setup;
     setups.push(setup);
     const comp = slotsToComposition(setup.slots);
     fleetCompositions.push(comp);

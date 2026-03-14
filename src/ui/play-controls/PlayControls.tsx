@@ -1,3 +1,4 @@
+import { BookOpen, Crosshair } from 'lucide-preact';
 import { SPEEDS } from '../../constants.ts';
 import type { TimeScale } from '../../types.ts';
 import { autoFollowActive$, timeScale$ } from '../signals.ts';
@@ -18,14 +19,14 @@ export function PlayControls({ onCodexToggle, onAutoFollowToggle, onSpeedChange 
   return (
     <>
       <button type="button" class={styles.codexBtn} onClick={onCodexToggle}>
-        TAB: CODEX
+        <BookOpen size={12} /> TAB: CODEX
       </button>
       <button
         type="button"
         class={`${styles.autoFollowBtn} ${followActive ? styles.autoFollowBtnActive : ''}`}
         onClick={onAutoFollowToggle}
       >
-        ⊕ FOLLOW
+        <Crosshair size={12} /> FOLLOW
       </button>
       <div class={styles.controls}>
         <span class={styles.controlsDesktop}>

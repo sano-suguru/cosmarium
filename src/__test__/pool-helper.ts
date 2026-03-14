@@ -16,6 +16,7 @@ import {
   setUnitCount,
 } from '../pools.ts';
 import { particle, projectile, squadron, unit } from '../pools-query.ts';
+import { _resetShopListeners } from '../shop.ts';
 import { resetChains } from '../simulation/chain-lightning.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
@@ -33,6 +34,7 @@ import type { UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
 import { _resetGameControl } from '../ui/game-control.ts';
+import { _resetKeyboardControls } from '../ui/keyboard-controls.ts';
 import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
 
 export function resetPools() {
@@ -141,6 +143,8 @@ export function resetPools() {
   _resetMeleeTracker();
   _resetFleetCompose();
   _resetGameControl();
+  _resetKeyboardControls();
+  _resetShopListeners();
   resetTeamCenters();
 }
 
@@ -228,15 +232,15 @@ export function makeGameLoopState(
   };
 }
 
-/** ベンチ用の軽量 LCG-PRNG。reset() でシードを初期化可能 */
-export function makeRng() {
-  let s = 12345;
+/** ベンチ/テスト用の軽量 LCG-PRNG。reset() でシードを初期化可能 */
+export function makeRng(seed = 12345) {
+  let s = seed;
   const fn = () => {
     s = (s * 1103515245 + 12345) & 0x7fffffff;
     return s / 0x7fffffff;
   };
   fn.reset = () => {
-    s = 12345;
+    s = seed;
   };
   return fn;
 }

@@ -262,7 +262,7 @@ describe('runBatch', () => {
     let summary: BatchSummary;
 
     beforeAll(() => {
-      summary = runBatch(makeTestConfig());
+      summary = runBatch(makeTestConfig({ maxSteps: 900 }));
     });
 
     it('ユニットタイプ別戦績が集計される', () => {

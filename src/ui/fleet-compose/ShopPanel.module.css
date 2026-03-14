@@ -1,0 +1,161 @@
+/* === SHOP SECTION === */
+.shopSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shopHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  color: #0ff;
+  letter-spacing: 2px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+}
+.rerollBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  color: #0ff;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.rerollBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.1);
+  border-color: #0ff;
+}
+.rerollBtn:disabled {
+  color: #444;
+  border-color: rgba(255, 255, 255, 0.08);
+  cursor: default;
+}
+.shopGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.shopCard {
+  position: relative;
+  background: rgba(0, 20, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: "Share Tech Mono", monospace;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.shopCard:hover:not(.shopCardDisabled):not(.shopCardEmpty) {
+  border-color: rgba(0, 255, 255, 0.4);
+}
+.shopCardDisabled {
+  opacity: 0.5;
+}
+.shopCardEmpty {
+  opacity: 0.3;
+  justify-content: center;
+  min-height: 100px;
+}
+.shopEmpty {
+  font-size: 11px;
+  color: #444;
+  letter-spacing: 2px;
+}
+.lockBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 2px;
+  transition: color 0.15s;
+}
+.lockBtn:hover {
+  color: #ff0;
+}
+.shopName {
+  font-size: 12px;
+  color: #cdf;
+  letter-spacing: 1px;
+}
+.shopRole {
+  font-size: 9px;
+  color: #688;
+  letter-spacing: 1px;
+}
+.shopCluster {
+  font-size: 11px;
+  color: #0f8;
+}
+.shopPrice {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #0ff;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+}
+.buyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 1px solid rgba(0, 255, 128, 0.3);
+  color: #0f8;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.buyBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 128, 0.1);
+  border-color: #0f8;
+}
+.buyBtn:disabled {
+  color: #444;
+  border-color: rgba(255, 255, 255, 0.08);
+  cursor: default;
+}
+
+/* モバイル */
+@media (pointer: coarse), (max-width: 768px) {
+  .shopGrid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  .shopHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .buyBtn {
+    min-height: 44px;
+    font-size: 11px;
+  }
+  .lockBtn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rerollBtn {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+}

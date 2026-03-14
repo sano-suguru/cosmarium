@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@preact/signals": "^2.8.2",
+    "lucide-preact": "^0.577.0",
     "preact": "^10.28.4"
   }
 }

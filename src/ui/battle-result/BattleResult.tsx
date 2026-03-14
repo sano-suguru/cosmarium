@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight, CircleX, Trophy } from 'lucide-preact';
 import type { JSX } from 'preact';
 import { TEAM_UI_HEX_COLORS } from '../../colors.ts';
 import type { MeleeResult, TeamStats } from '../../melee-tracker.ts';
@@ -25,11 +26,11 @@ export function BattleResult({ data, onMenu, onNextRound }: BattleResultProps) {
         {data.type === 'melee' && <MeleeResultView meleeResult={data.meleeResult} />}
         <div class={styles.actions}>
           <button type="button" class={`${btnStyles.btn} ${styles.actionBtn}`} onClick={onMenu}>
-            MENU
+            <ArrowLeft size={14} /> MENU
           </button>
           {data.type === 'round' && (
             <button type="button" class={`${btnStyles.btn} ${styles.actionBtn}`} onClick={onNextRound}>
-              NEXT ROUND
+              NEXT ROUND <ArrowRight size={14} />
             </button>
           )}
         </div>
@@ -68,7 +69,9 @@ function VictoryTitle({
   readonly loseText: string;
 }) {
   return (
-    <div class={`${styles.title} ${victory ? styles.victory : styles.defeat}`}>{victory ? winText : loseText}</div>
+    <div class={`${styles.title} ${victory ? styles.victory : styles.defeat}`}>
+      {victory ? <Trophy size={20} /> : <CircleX size={20} />} {victory ? winText : loseText}
+    </div>
   );
 }
 

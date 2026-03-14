@@ -1,5 +1,5 @@
+import { Hash, Trophy, Zap } from 'lucide-preact';
 import type { RunStatus } from '../../types-fleet.ts';
-import { formatLivesText } from '../format.ts';
 
 type Props = {
   readonly info: RunStatus;
@@ -10,9 +10,16 @@ type Props = {
 export function RunInfoBar({ info, class: className, livesClass }: Props) {
   return (
     <div class={className}>
-      {`ROUND ${info.round} \u00a0 `}
-      <span class={livesClass}>{formatLivesText(info.lives)}</span>
-      {` \u00a0 ${info.wins}/${info.winTarget} WINS`}
+      <Hash size={12} />
+      {` ROUND ${info.round} \u00a0 `}
+      <span class={livesClass}>
+        {Array.from({ length: info.lives }, (_, i) => (
+          <Zap key={i} size={12} />
+        ))}
+      </span>
+      {' \u00a0 '}
+      <Trophy size={12} />
+      {` ${info.wins}/${info.winTarget} WINS`}
     </div>
   );
 }

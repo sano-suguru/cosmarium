@@ -9,7 +9,6 @@ import { FleetCompose } from './fleet-compose/FleetCompose.tsx';
 import {
   advanceRound,
   goToMenu,
-  handleAutoFollowToggle,
   onCodexToggle,
   setSpd,
   startBattle,
@@ -18,6 +17,7 @@ import {
   startSpectate,
 } from './game-control.ts';
 import { Hud } from './hud/Hud.tsx';
+import { handleAutoFollowToggle } from './keyboard-controls.ts';
 import { KillFeed } from './kill-feed/KillFeed.tsx';
 import { Menu } from './menu/Menu.tsx';
 import { PlayControls } from './play-controls/PlayControls.tsx';

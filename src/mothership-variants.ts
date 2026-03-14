@@ -23,7 +23,7 @@ interface MothershipVariantDef extends MothershipVariantDefBase {
 
 const HIVE: MothershipVariantDef = {
   id: 0,
-  name: 'ハイブ',
+  name: 'Hive',
   description: '生産速度が30%向上する',
   productionRateMul: 0.7,
   attackCdMul: 1.0,
@@ -33,7 +33,7 @@ const HIVE: MothershipVariantDef = {
 
 const DREADNOUGHT: MothershipVariantDef = {
   id: 1,
-  name: 'ドレッドノート',
+  name: 'Dreadnought',
   description: '重装甲＋遠距離主砲を搭載',
   productionRateMul: 1.3,
   attackCdMul: 1.0,
@@ -43,7 +43,7 @@ const DREADNOUGHT: MothershipVariantDef = {
 
 const REACTOR: MothershipVariantDef = {
   id: 2,
-  name: 'リアクター',
+  name: 'Reactor',
   description: '味方全体の攻撃速度が25%向上',
   productionRateMul: 1.0,
   attackCdMul: 1.25,

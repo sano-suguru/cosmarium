@@ -44,7 +44,7 @@ import { demoRng } from './ui/codex-demos.ts';
 import {
   goToMeleeResult,
   goToResult,
-  initKeyboardControls,
+  initGameControl,
   setOnBattleStart,
   setOnMeleeStart,
   setOnSpectateStart,
@@ -58,6 +58,7 @@ import {
   updateHudRoundInfo,
   updateProductionHud,
 } from './ui/hud/Hud.tsx';
+import { initKeyboardControls } from './ui/keyboard-controls.ts';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
 
 const BASE_SPEED = 0.55;
@@ -69,6 +70,7 @@ initRenderer();
 addEventListener('resize', resize);
 
 mountApp();
+initGameControl();
 initKeyboardControls();
 initCamera();
 initMinimap();

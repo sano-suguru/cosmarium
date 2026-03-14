@@ -1,25 +1,36 @@
-import { SPEEDS } from '../constants.ts';
-import { cam, onAutoFollowChange, setAutoFollow, toggleAutoFollow } from '../input/camera.ts';
+import { batch } from '@preact/signals';
+import { cam, setAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
-import { _resetRunState, endRun, isRunActive, processRoundEnd, resetRun } from '../run.ts';
+import { _resetRunState, endRun, getRunInfo, isRunActive, processRoundEnd, resetRun } from '../run.ts';
+import {
+  buildFleetFromShop,
+  getShopCredits,
+  getShopOfferings,
+  getShopSlots,
+  initShop,
+  initShopRound,
+  onShopChange,
+  rerollOfferings,
+} from '../shop.ts';
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
 import { initBattleProduction, initMeleeProduction, initUnits } from '../simulation/init.ts';
-import { rng, seedRng, state } from '../state.ts';
+import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale } from '../types.ts';
-import type { BattleResult, FleetSetup, ProductionState } from '../types-fleet.ts';
-// dependency-cruiser: no-codex-to-game-control で強制済み
+import type { BattleResult, FleetSetup, MothershipVariant, ProductionState } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
-import { resetComposeCounts } from './fleet-compose/FleetCompose.tsx';
+import { resetVariant } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
 import {
-  autoFollowActive$,
   composeEnemyArchName$,
   composeEnemySetup$,
   composeVisible$,
   playUiVisible$,
   resultData$,
+  shopCredits$,
+  shopOfferings$,
+  shopSlots$,
 } from './signals.ts';
 
 const DEFAULT_ENEMY_SETUP: FleetSetup = { variant: 0, slots: [] };
@@ -28,16 +39,9 @@ let currentEnemySetup: FleetSetup = DEFAULT_ENEMY_SETUP;
 let currentEnemyArchName = '';
 
 let seedCounter = 0;
-/**
- * mulberry32 用の一意シードを生成する。
- * `>>> 0` は 64bit float の Date.now() を無符号32ビットに正規化する
- * （mulberry32 は内部で `seed | 0` により32bit整数として処理するため）。
- * seedCounter で ms 精度の衝突を防止。
- */
 function uniqueSeed(): number {
   return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
 }
-
 type BattleStartCb = (productions: [ProductionState, ProductionState]) => void;
 type SpectateStartCb = () => void;
 type MeleeStartCb = (numTeams: number, productions: TeamTuple<ProductionState>) => void;
@@ -51,38 +55,67 @@ let onMeleeStart: MeleeStartCb = () => undefined;
 export function setOnBattleStart(cb: BattleStartCb) {
   onBattleStart = cb;
 }
-
 export function setOnSpectateStart(cb: SpectateStartCb) {
   onSpectateStart = cb;
 }
-
 export function setOnMeleeStart(cb: MeleeStartCb) {
   onMeleeStart = cb;
+}
+function syncShopSignals(): void {
+  batch(() => {
+    shopCredits$.value = getShopCredits();
+    shopOfferings$.value = getShopOfferings();
+    shopSlots$.value = getShopSlots();
+  });
+}
+
+let unsubShop: (() => void) | null = null;
+
+export function initGameControl(): void {
+  unsubShop?.();
+  unsubShop = onShopChange(syncShopSignals);
+}
+
+function currentRound(): number {
+  const info = getRunInfo();
+  if (!info) {
+    throw new Error('currentRound: run is not active');
+  }
+  return info.round;
+}
+
+/** ショップリロール。内部 RNG を使用。 */
+export function shopReroll(): boolean {
+  return rerollOfferings(currentRound());
+}
+
+/** 現ラウンドのショップ購入をリセット（スロット全クリア + クレジット・offerings 再生成）。敵艦隊は維持。 */
+export function resetCurrentRoundShop(): void {
+  initShop();
+  initShopRound(createRng(uniqueSeed()), currentRound());
 }
 
 function showPlayUI() {
   playUiVisible$.value = true;
 }
-
 function hidePlayUI() {
   playUiVisible$.value = false;
 }
-
 function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
 }
 
-function goToCompose(preserveFleet: boolean) {
+function goToCompose(preserveState: boolean) {
   if (state.codexOpen) {
     toggleCodex();
   }
   state.gameState = 'compose';
   hidePlayUI();
   resultData$.value = null;
-  if (!preserveFleet) {
-    resetComposeCounts();
+  if (!preserveState) {
+    resetVariant();
   }
   composeEnemySetup$.value = currentEnemySetup;
   composeEnemyArchName$.value = currentEnemyArchName;
@@ -97,14 +130,14 @@ export function startSpectate() {
   onSpectateStart();
 }
 
-export function startBattle(setup: FleetSetup) {
+export function startBattle(variant: MothershipVariant) {
+  const setup = buildFleetFromShop(variant);
   state.gameState = 'play';
   resetCam();
   composeVisible$.value = false;
   resultData$.value = null;
   showPlayUI();
   seedRng(uniqueSeed());
-  // 両チームとも母艦のみスポーン — ユニットはタイマー駆動で生産
   const productions = initBattleProduction(rng, setup, currentEnemySetup);
   onBattleStart(productions);
 }
@@ -115,7 +148,7 @@ export function startMelee() {
   showPlayUI();
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1));
-  const setups = Array.from({ length: numTeams }, () => generateEnemySetup(rng).setup);
+  const setups = Array.from({ length: numTeams }, () => generateEnemySetup(rng, 1).setup);
   const productions = initMeleeProduction(rng, setups, numTeams);
   onMeleeStart(numTeams, productions);
 }
@@ -145,23 +178,29 @@ export function goToMenu() {
   if (isRunActive()) {
     endRun();
   }
+  initShop();
   updateHudRoundInfo();
   state.gameState = 'menu';
   hidePlayUI();
   composeVisible$.value = false;
   resultData$.value = null;
-  resetComposeCounts();
+  resetVariant();
 }
 
-function generateEnemy() {
-  const { setup, archetypeName } = generateEnemySetup(rng);
+function generateEnemy(round: number) {
+  const { setup, archetypeName } = generateEnemySetup(rng, round);
   currentEnemySetup = setup;
   currentEnemyArchName = archetypeName;
 }
 
 export function startNewRun() {
   resetRun();
-  generateEnemy();
+  initShop();
+  seedRng(uniqueSeed());
+  const info = getRunInfo();
+  const round = info?.round ?? 1;
+  initShopRound(createRng(uniqueSeed()), round);
+  generateEnemy(round);
   goToCompose(false);
 }
 
@@ -169,11 +208,13 @@ export function advanceRound() {
   if (!isRunActive()) {
     return;
   }
-  generateEnemy();
+  const info = getRunInfo();
+  const round = info?.round ?? 1;
+  initShopRound(createRng(uniqueSeed()), round);
+  generateEnemy(round);
   goToCompose(true);
 }
 
-/** テスト専用: モジュールレベル変数をリセット */
 export function _resetGameControl() {
   seedCounter = 0;
   currentEnemySetup = DEFAULT_ENEMY_SETUP;
@@ -183,9 +224,12 @@ export function _resetGameControl() {
   onMeleeStart = () => {
     throw new Error('setOnMeleeStart() must be called before melee launch');
   };
+  unsubShop?.();
+  unsubShop = null;
   state.gameState = 'menu';
   state.codexOpen = false;
   _resetRunState();
+  initShop();
 }
 
 export function onCodexToggle() {
@@ -206,82 +250,4 @@ export function onCodexToggle() {
 
 export function setSpd(v: TimeScale) {
   state.timeScale = v;
-}
-
-export function handleAutoFollowToggle() {
-  if (state.gameState === 'play' && !state.codexOpen) {
-    toggleAutoFollow();
-  }
-}
-
-function onResultKeydown(e: KeyboardEvent) {
-  if (e.code === 'Escape') {
-    e.preventDefault();
-    if (state.codexOpen) {
-      onCodexToggle();
-    } else {
-      goToMenu();
-    }
-  } else if (e.code === 'Tab') {
-    e.preventDefault();
-    onCodexToggle();
-  }
-}
-
-function unreachable(idx: number): never {
-  throw new RangeError(`Invalid speed index: ${idx}`);
-}
-
-function stepSpd(dir: number) {
-  const i = SPEEDS.indexOf(state.timeScale);
-  const def = SPEEDS.indexOf(1);
-  if (i < 0) {
-    setSpd(SPEEDS[def] ?? unreachable(def));
-  } else if (dir < 0) {
-    if (i > 0) {
-      setSpd(SPEEDS[i - 1] ?? unreachable(i - 1));
-    }
-  } else if (i < SPEEDS.length - 1) {
-    setSpd(SPEEDS[i + 1] ?? unreachable(i + 1));
-  }
-}
-
-function onPlayKeydown(e: KeyboardEvent) {
-  if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
-    stepSpd(-1);
-    e.preventDefault();
-  } else if (e.code === 'Equal' || e.code === 'NumpadAdd') {
-    stepSpd(1);
-    e.preventDefault();
-  } else if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') {
-    const idx = Number(e.code.slice(-1)) - 1;
-    setSpd(SPEEDS[idx] ?? unreachable(idx));
-    e.preventDefault();
-  } else if (e.code === 'KeyF') {
-    if (!state.codexOpen) {
-      toggleAutoFollow();
-      e.preventDefault();
-    }
-  }
-}
-
-export function initKeyboardControls() {
-  addEventListener('keydown', (e: KeyboardEvent) => {
-    if (
-      (e.code === 'Tab' || e.code === 'Escape') &&
-      (state.gameState === 'play' || state.gameState === 'menu' || state.gameState === 'compose')
-    ) {
-      e.preventDefault();
-      onCodexToggle();
-    } else if (state.gameState === 'result') {
-      onResultKeydown(e);
-    }
-    if (state.gameState === 'play') {
-      onPlayKeydown(e);
-    }
-  });
-
-  onAutoFollowChange((on) => {
-    autoFollowActive$.value = on;
-  });
 }
