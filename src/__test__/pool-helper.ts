@@ -229,6 +229,8 @@ export function makeGameLoopState(
     activeTeamCount: 2,
     updateCodexDemo,
     productions: emptyProductions(),
+    bonusData: null,
+    phaseElapsed: 0,
   };
 }
 

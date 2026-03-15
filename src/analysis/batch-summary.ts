@@ -3,7 +3,7 @@
  */
 
 import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
-import { TYPES } from '../unit-types.ts';
+import { TYPES, UNIT_TYPE_COUNT } from '../unit-types.ts';
 import { aggregatePresenceWins, computeSynergyPairs, isBattleWithWinner } from './batch-synergy.ts';
 import { aggregateKillContext, aggregateLifespan } from './batch-tracking.ts';
 import type {
@@ -52,7 +52,7 @@ function accumulateMatrixRow(target: Int32Array, source: Int32Array, size: numbe
 }
 
 function aggregateKillMatrix(trials: readonly TrialResult[]): KillMatrix {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   const data: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
     data.push(new Int32Array(size));
@@ -79,7 +79,7 @@ function accumulateTypedArray(map: Map<number, number>, arr: Float64Array) {
 }
 
 function accumulateSupportScore(map: Map<number, number>, sup: SupportTracker) {
-  for (let i = 0; i < TYPES.length; i++) {
+  for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
     const total =
       (sup.ampApplications[i] ?? 0) + (sup.scrambleApplications[i] ?? 0) + (sup.catalystApplications[i] ?? 0);
     if (total > 0) {

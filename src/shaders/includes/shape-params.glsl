@@ -9,8 +9,8 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   0.025, 0.060, 0.008, 0.008, 0.040,
   // [15:Bastion] [16:Amplifier] [17:Scrambler] [18:Catalyst] [19:Mothership]
   0.015, 0.028, 0.030, 0.038, 0.022,
-  // [20-31: reserved] 新ユニット追加時: パディング先頭を置き換え、要素数を1つ減らす
-  0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020,
+  // [20:Asteroid] [21:Asteroid Core] [22-31: reserved]
+  0.022, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020,
   // [32:Circle] [33:Diamond] [34:Homing] [35:Beam] [36:Lightning]
   0.020, 0.020, 0.020, 0.020, 0.020,
   // [37:ExplosionRing] [38:DiamondRing] [39:OctShield] [40:ReflectField] [41:Bar]
@@ -27,8 +27,7 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.55, 0.70, 0.35, 0.18, 0.75,
   // [15:Bastion] [16:Amplifier] [17:Scrambler] [18:Catalyst] [19:Mothership]
   0.25, 0.45, 0.48, 0.62, 0.42,
-  // [20-31: reserved] 新ユニット追加時: パディング先頭を置き換え、要素数を1つ減らす
-  0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38,
+  0.45, 0.42, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38, 0.38,
   // [32:Circle] [33:Diamond] [34:Homing] [35:Beam] [36:Lightning]
   0.38, 0.38, 0.38, 0.38, 0.38,
   // [37:ExplosionRing] [38:DiamondRing] [39:OctShield] [40:ReflectField] [41:Bar]
@@ -45,8 +44,7 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   0.50, 0.25, 0.70, 0.70, 0.35,
   // [15:Bastion] [16:Amplifier] [17:Scrambler] [18:Catalyst] [19:Mothership]
   0.22, 0.38, 0.38, 0.60, 0.28,
-  // [20-31: reserved] 新ユニット追加時: パディング先頭を置き換え、要素数を1つ減らす
-  0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48,
+  0.30, 0.28, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48,
   // [32:Circle] [33:Diamond] [34:Homing] [35:Beam] [36:Lightning]
   0.48, 0.48, 0.48, 0.48, 0.48,
   // [37:ExplosionRing] [38:DiamondRing] [39:OctShield] [40:ReflectField] [41:Bar]
@@ -63,8 +61,7 @@ const float FWIDTH_MULT[NUM_SHAPES]=float[NUM_SHAPES](
   1.4, 2.5, 0.9, 2.8, 0.9,
   // [15:Bastion] [16:Amplifier] [17:Scrambler] [18:Catalyst] [19:Mothership]
   0.85, 1.3, 1.5, 2.0, 1.0,
-  // [20-31: reserved] 新ユニット追加時: パディング先頭を置き換え、要素数を1つ減らす
-  1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5,
+  1.1, 1.1, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5,
   // [32:Circle] [33:Diamond] [34:Homing] [35:Beam] [36:Lightning]
   1.5, 1.5, 1.5, 1.5, 1.5,
   // [37:ExplosionRing] [38:DiamondRing] [39:OctShield] [40:ReflectField] [41:Bar]
@@ -81,8 +78,7 @@ const float SOFT_LIMIT[NUM_SHAPES]=float[NUM_SHAPES](
   1.1, 1.2, 1.2, 1.2, 1.2,
   // [15:Bastion] [16:Amplifier] [17:Scrambler] [18:Catalyst] [19:Mothership]
   1.2, 1.2, 1.2, 1.2, 1.2,
-  // [20-31: reserved] 新ユニット追加時: パディング先頭を置き換え、要素数を1つ減らす
-  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+  1.2, 1.2, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
   // [32:Circle] [33:Diamond] [34:Homing] [35:Beam] [36:Lightning]
   1.0, 1.0, 1.0, 1.0, 1.0,
   // [37:ExplosionRing] [38:DiamondRing] [39:OctShield] [40:ReflectField] [41:Bar]

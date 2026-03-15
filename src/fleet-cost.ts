@@ -5,7 +5,7 @@ import { TYPES } from './unit-types.ts';
 /** 購入可能なユニットタイプか（cost > 0 かつ clusterSize > 0） */
 export function isPurchasable(typeIdx: UnitTypeIndex): boolean {
   const t = TYPES[typeIdx];
-  return t !== undefined && t.cost > 0 && t.clusterSize > 0;
+  return t !== undefined && t.cost > 0 && t.clusterSize > 0 && t.role !== 'environment';
 }
 
 /** コスト昇順 → 同コストはTYPES配列順でソート。購入不可タイプは除外 */

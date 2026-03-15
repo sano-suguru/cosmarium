@@ -48,6 +48,8 @@ export const AMPLIFIER_TYPE = T('Amplifier');
 export const SCRAMBLER_TYPE = T('Scrambler');
 export const CATALYST_TYPE = T('Catalyst');
 export const MOTHERSHIP_TYPE = T('Mothership');
+export const ASTEROID_TYPE = T('Asteroid');
+export const ASTEROID_LARGE_TYPE = T('Asteroid Core');
 export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
 export const TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex);
 export function unitTypeName(idx: UnitTypeIndex): string {
@@ -67,4 +69,9 @@ export function unitTypeIdx(i: number): UnitTypeIndex {
   return i as UnitTypeIndex;
 }
 export const FLAGSHIP_ENGINE_OFFSETS = [0.18, 0.38] as const;
-export const ROLE_LABELS: Record<UnitRole, string> = { attack: '攻撃', support: '支援', special: '特殊' };
+export const ROLE_LABELS: Record<UnitRole, string> = {
+  attack: '攻撃',
+  support: '支援',
+  special: '特殊',
+  environment: '環境',
+};

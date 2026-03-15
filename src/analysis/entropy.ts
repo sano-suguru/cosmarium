@@ -1,6 +1,6 @@
 import type { FleetComposition } from '../types-fleet.ts';
 import { unitTypeCost } from '../unit-type-accessors.ts';
-import { TYPES } from '../unit-types.ts';
+import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 
 // ─── Shannon Entropy ───────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ export function normalizedEntropy(counts: readonly number[]): number {
  * - 1 に近い → ユニット型が均等に分散（混成型）
  */
 export function fleetDiversity(fleet: FleetComposition): number {
-  const counts: number[] = new Array(TYPES.length).fill(0);
+  const counts: number[] = new Array(UNIT_TYPE_COUNT).fill(0);
   for (const entry of fleet) {
     const idx = entry.type;
     const prev = counts[idx];
@@ -74,7 +74,7 @@ export function fleetDiversity(fleet: FleetComposition): number {
  * コストの高いユニットを少数含む場合と安いユニットを大量に含む場合の違いを反映。
  */
 export function fleetCostEntropy(fleet: FleetComposition): number {
-  const costDist: number[] = new Array(TYPES.length).fill(0);
+  const costDist: number[] = new Array(UNIT_TYPE_COUNT).fill(0);
   for (const entry of fleet) {
     const idx = entry.type;
     const cost = unitTypeCost(idx);

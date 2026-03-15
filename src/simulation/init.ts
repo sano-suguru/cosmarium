@@ -9,6 +9,8 @@ import type { FleetSetup, MothershipVariant, ProductionState } from '../types-fl
 import {
   AMPLIFIER_TYPE,
   ARCER_TYPE,
+  ASTEROID_LARGE_TYPE,
+  ASTEROID_TYPE,
   BASTION_TYPE,
   BOMBER_TYPE,
   CARRIER_TYPE,
@@ -27,6 +29,7 @@ import {
   SCRAMBLER_TYPE,
   SNIPER_TYPE,
   TELEPORTER_TYPE,
+  unitType,
 } from '../unit-type-accessors.ts';
 import { resetChains } from './chain-lightning.ts';
 import { emptyProductions, initProductionState } from './production.ts';
@@ -131,4 +134,47 @@ export function initMeleeProduction(
     }
   }
   return productions;
+}
+
+/** 小アステロイド配置数 */
+const BONUS_SMALL_COUNT = 25;
+/** 大アステロイドコア配置数 */
+const BONUS_LARGE_COUNT = 4;
+/** アステロイド散布半径（battleOrigin 基準） */
+const BONUS_SPREAD = 1600;
+/** 大アステロイドの散布倍率（中央に寄せる） */
+const BONUS_LARGE_SPREAD_MUL = 0.6;
+
+interface BonusFieldInfo {
+  readonly totalHp: number;
+  readonly playerProduction: ProductionState;
+}
+
+/**
+ * ボーナスラウンドのフィールドを初期化する。
+ * プレイヤー母艦 + アステロイド配置（敵母艦なし）。
+ */
+export function initBonusField(rng: () => number, playerSetup: FleetSetup): BonusFieldInfo {
+  resetField();
+
+  // プレイヤー母艦（team 0）
+  const [cx0, cy0] = battleOrigin(0);
+  spawnMothership(0, cx0, cy0, rng, playerSetup.variant);
+
+  // アステロイド配置（team 1 = プレイヤーの攻撃対象）
+  const [cx1, cy1] = battleOrigin(1);
+  const asteroidHp = unitType(ASTEROID_TYPE).hp;
+  const largeHp = unitType(ASTEROID_LARGE_TYPE).hp;
+  const largeSpread = BONUS_SPREAD * BONUS_LARGE_SPREAD_MUL;
+
+  for (let i = 0; i < BONUS_SMALL_COUNT; i++) {
+    spawnUnit(1, ASTEROID_TYPE, cx1 + (rng() - 0.5) * BONUS_SPREAD, cy1 + (rng() - 0.5) * BONUS_SPREAD, rng);
+  }
+  for (let i = 0; i < BONUS_LARGE_COUNT; i++) {
+    spawnUnit(1, ASTEROID_LARGE_TYPE, cx1 + (rng() - 0.5) * largeSpread, cy1 + (rng() - 0.5) * largeSpread, rng);
+  }
+
+  const totalHp = BONUS_SMALL_COUNT * asteroidHp + BONUS_LARGE_COUNT * largeHp;
+  const playerProduction = initProductionState(playerSetup.slots);
+  return { totalHp, playerProduction };
 }

@@ -82,6 +82,24 @@ function RoundResultView({
   readonly roundResult: RoundResult;
   readonly runStatus: RunStatus;
 }) {
+  if (roundResult.roundType === 'bonus') {
+    return (
+      <>
+        <RunInfoBar info={runStatus} class={styles.roundInfo} livesClass={styles.lives} />
+        <div class={`${styles.title} ${styles.victory}`}>
+          <Trophy size={20} /> BONUS COMPLETE
+        </div>
+        <StatRows
+          lines={[
+            ['採掘時間:', formatTime(roundResult.elapsed)],
+            ['撃破率:', `${roundResult.bonusPct}%`],
+            ['獲得クレジット:', `+${roundResult.bonusCredits}`],
+          ]}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <RunInfoBar info={runStatus} class={styles.roundInfo} livesClass={styles.lives} />

@@ -43,6 +43,22 @@ function countHighCostSlots(slots: readonly (ProductionSlot | null)[]): number {
   return count;
 }
 
+describe('generateFixedNpc (via generateEnemySetup round 1-2)', () => {
+  it('round=1 → 偵察隊（Drone のみ）', () => {
+    const { setup, archetypeName } = generateEnemySetup(rng, 1);
+    expect(archetypeName).toBe('偵察隊');
+    const filled = filledSlots(setup.slots);
+    expect(filled.length).toBe(1);
+  });
+
+  it('round=2 → 前衛部隊（Drone + Fighter）', () => {
+    const { setup, archetypeName } = generateEnemySetup(rng, 2);
+    expect(archetypeName).toBe('前衛部隊');
+    const filled = filledSlots(setup.slots);
+    expect(filled.length).toBe(2);
+  });
+});
+
 describe('generateEnemySetup', () => {
   it('スロット数が SLOT_COUNT と一致する', () => {
     const { setup } = generateEnemySetup(rng, 1);

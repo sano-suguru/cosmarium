@@ -77,7 +77,7 @@ function drainCredits(): void {
       continue;
     }
     // 購入不可ならリロール
-    if (!rerollOfferings(1)) {
+    if (!rerollOfferings()) {
       break; // リロールも不可 → 終了
     }
   }
@@ -166,7 +166,7 @@ describe('purchaseItem', () => {
     // クレジット0のまま offerings を再生成して購入を試みる
     _setShopCredits(0);
     _setShopRng(makeRng(999));
-    rerollOfferings(1); // クレジット0なので失敗するはず
+    rerollOfferings(); // クレジット0なので失敗するはず
     expect(purchaseItem(0)).toBe(false);
   });
 
@@ -251,7 +251,7 @@ describe('rerollOfferings', () => {
     const creditsBefore = getShopCredits();
 
     _setShopRng(makeRng(99));
-    const result = rerollOfferings(1);
+    const result = rerollOfferings();
     expect(result).toBe(true);
     expect(getShopCredits()).toBe(creditsBefore - REROLL_COST);
     const after = getShopOfferings().map((o) => o?.type);
@@ -264,7 +264,7 @@ describe('rerollOfferings', () => {
     initShopRound(rng, 1);
     drainCredits();
     expect(getShopCredits()).toBe(0);
-    expect(rerollOfferings(1)).toBe(false);
+    expect(rerollOfferings()).toBe(false);
   });
 
   it('locked アイテムはリロールで保持', () => {
@@ -280,7 +280,7 @@ describe('rerollOfferings', () => {
     expect(getShopOfferings()[0]?.locked).toBe(true);
 
     _setShopRng(makeRng(99));
-    rerollOfferings(1);
+    rerollOfferings();
     expect(getShopOfferings()[0]?.type).toBe(item.type);
     expect(getShopOfferings()[0]?.locked).toBe(true);
   });

@@ -7,7 +7,7 @@ import { KILL_CONTEXT_COUNT } from '../simulation/on-kill-effects.ts';
 import { onKillUnit, onSpawnUnit } from '../simulation/spawn-hooks.ts';
 import { MAX_TEAMS } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
-import { TYPES } from '../unit-types.ts';
+import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import type {
   DamageTracker,
   KillContextTracker,
@@ -33,7 +33,7 @@ function accum(arr: Int32Array | Float64Array, idx: number, delta: number): void
 // ─── Tracking Hooks ──────────────────────────────────────────────
 
 export function createKillTracker(): KillTracker {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   const killMatrix: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
     killMatrix.push(new Int32Array(size));
@@ -61,7 +61,7 @@ export function installKillHook(tracker: KillTracker): () => void {
 }
 
 export function createDamageTracker(): DamageTracker {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   return {
     dealtByType: new Float64Array(size),
     receivedByType: new Float64Array(size),
@@ -77,7 +77,7 @@ export function installDamageHook(tracker: DamageTracker): () => void {
 }
 
 export function createSupportTracker(): SupportTracker {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   return {
     healingByType: new Float64Array(size),
     ampApplications: new Float64Array(size),
@@ -128,7 +128,7 @@ export function installKillSequenceHook(tracker: KillSequenceTracker): () => voi
 }
 
 export function createLifespanTracker(): LifespanTracker {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   return {
     totalLifespan: new Float64Array(size),
     spawnTimes: new Map(),
@@ -137,7 +137,7 @@ export function createLifespanTracker(): LifespanTracker {
 
 /** 全 spawn をタイプ別にカウントするフック。Carrier 等による戦闘中 spawn も含む */
 function installSpawnCountHook(): { spawnedByType: Int32Array; unsubscribe: () => void } {
-  const spawnedByType = new Int32Array(TYPES.length);
+  const spawnedByType = new Int32Array(UNIT_TYPE_COUNT);
   const unsubscribe = onSpawnUnit((e) => {
     accum(spawnedByType, e.type, 1);
   });
@@ -160,7 +160,7 @@ export function installLifespanKillHook(tracker: LifespanTracker, getTime: () =>
 }
 
 export function createKillContextTracker(): KillContextTracker {
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   const contextCounts: Int32Array[] = [];
   for (let i = 0; i < size; i++) {
     contextCounts.push(new Int32Array(KILL_CONTEXT_COUNT));
@@ -256,7 +256,7 @@ export function collectUnitStats(
   tracker: KillTracker,
 ): UnitTypeStats[] {
   const unitStats: UnitTypeStats[] = [];
-  for (let i = 0; i < TYPES.length; i++) {
+  for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
     const spawned = at(spawnedByType, i);
     const kills = at(tracker.killsByType, i);
     const deaths = at(tracker.deathsByType, i);

@@ -2,9 +2,9 @@ import { signal } from '@preact/signals';
 import { ArrowLeft, BookOpen, RotateCcw, ShieldAlert, Swords } from 'lucide-preact';
 import { MOTHERSHIP_VARIANTS } from '../../mothership-variants.ts';
 import { getRunInfo } from '../../run.ts';
-import { purchaseItem, sellSlot, toggleLock } from '../../shop.ts';
-import type { MothershipVariant } from '../../types-fleet.ts';
-import { resetCurrentRoundShop, shopReroll } from '../game-control.ts';
+import { purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
+import type { MothershipVariant, RoundType } from '../../types-fleet.ts';
+import { resetCurrentRoundShop } from '../game-control.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import { composeEnemyArchName$, composeEnemySetup$, shopSlots$ } from '../signals.ts';
@@ -12,6 +12,16 @@ import { CreditBar } from './CreditBar.tsx';
 import styles from './FleetCompose.module.css';
 import { ShopPanel } from './ShopPanel.tsx';
 import { SlotPanel } from './SlotPanel.tsx';
+
+function launchLabel(rt: RoundType | undefined): string {
+  if (rt === 'ffa') {
+    return 'LAUNCH FFA';
+  }
+  if (rt === 'bonus') {
+    return 'LAUNCH BONUS';
+  }
+  return 'LAUNCH BATTLE';
+}
 
 const variant$ = signal<MothershipVariant>(0);
 
@@ -29,14 +39,22 @@ function EnemyFleetHeader() {
   const archName = composeEnemyArchName$.value;
   const runInfo = getRunInfo();
   const isFfa = runInfo?.roundType === 'ffa';
+  const isBonus = runInfo?.roundType === 'bonus';
 
-  const variantDef = !isFfa && setup ? MOTHERSHIP_VARIANTS[setup.variant] : null;
+  const variantDef = !isFfa && !isBonus && setup ? MOTHERSHIP_VARIANTS[setup.variant] : null;
   const slotCount = setup?.slots.filter((s) => s !== null).length ?? 0;
+
+  let headerLabel = 'ENEMY FLEET';
+  if (isFfa) {
+    headerLabel = 'SPECIAL ROUND';
+  } else if (isBonus) {
+    headerLabel = 'BONUS ROUND';
+  }
 
   return (
     <div class={styles.header}>
       <h2 class={styles.headerTitle}>
-        <ShieldAlert size={16} /> {isFfa ? 'SPECIAL ROUND' : 'ENEMY FLEET'}
+        <ShieldAlert size={16} /> {headerLabel}
       </h2>
       <div class={styles.enemyList}>
         <div class={styles.enemyArch}>
@@ -99,7 +117,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         <CreditBar />
         <EnemyFleetHeader />
         <VariantSelector />
-        <ShopPanel onBuy={purchaseItem} onToggleLock={toggleLock} onReroll={shopReroll} />
+        <ShopPanel onBuy={purchaseItem} onToggleLock={toggleLock} onReroll={rerollOfferings} />
         <SlotPanel variant={variant$.value} onSell={sellSlot} />
         <div class={styles.actions}>
           <button type="button" class={btnStyles.btn} onClick={onBack}>
@@ -121,7 +139,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
             disabled={!hasSlotFilled}
             onClick={handleLaunch}
           >
-            <Swords size={14} /> {runInfo?.roundType === 'ffa' ? 'LAUNCH FFA' : 'LAUNCH BATTLE'}
+            <Swords size={14} /> {launchLabel(runInfo?.roundType)}
           </button>
         </div>
       </div>

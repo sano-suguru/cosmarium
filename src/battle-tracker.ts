@@ -18,7 +18,8 @@ import type { BattleResult, BattleSnapshot } from './types-fleet.ts';
 /** 全滅検知後の余韻（秒） */
 const BATTLE_END_DELAY = 2;
 
-type FinalizeCb = (result: BattleResult) => void;
+export type BattleSourcePhase = 'battle' | 'bonus';
+type FinalizeCb = (result: BattleResult, sourcePhase: BattleSourcePhase) => void;
 const throwUnset: FinalizeCb = () => {
   throw new Error('setOnFinalize() must be called before battle can end');
 };
@@ -28,20 +29,25 @@ export function setOnFinalize(cb: FinalizeCb) {
   onFinalize = cb;
 }
 
+type PendingFinalization = {
+  readonly winner: Team;
+  readonly sourcePhase: BattleSourcePhase;
+  readonly survivors: number;
+  readonly enemyKills: number;
+};
+
 let battleElapsed = 0;
 let playerEnemyKills = 0;
 let battleEndTimer = -1;
-let battleWinner: Team | null = null;
-let snapshotSurvivors = 0;
-let snapshotEnemyKills = 0;
+let pending: PendingFinalization | null = null;
+let currentSourcePhase: BattleSourcePhase = 'battle';
 
-export function resetBattleTracking() {
+export function resetBattleTracking(sourcePhase: BattleSourcePhase = 'battle') {
   battleElapsed = 0;
   playerEnemyKills = 0;
   battleEndTimer = -1;
-  battleWinner = null;
-  snapshotSurvivors = 0;
-  snapshotEnemyKills = 0;
+  pending = null;
+  currentSourcePhase = sourcePhase;
 }
 
 /** テスト専用: 全モジュール変数をリセット（onFinalize 含む） */
@@ -52,12 +58,15 @@ export function _resetBattleTracker() {
 
 export function onBattleEnd(winner: Team, snapshot: BattleSnapshot) {
   // drainAccumulator 内で複数 stepOnce が勝者を返しうるが、最初の1回のみ処理
-  if (battleWinner !== null) {
+  if (pending !== null) {
     return;
   }
-  battleWinner = winner;
-  snapshotSurvivors = snapshot.survivors;
-  snapshotEnemyKills = snapshot.enemyKills;
+  pending = {
+    winner,
+    sourcePhase: currentSourcePhase,
+    survivors: snapshot.survivors,
+    enemyKills: snapshot.enemyKills,
+  };
   battleEndTimer = BATTLE_END_DELAY;
 }
 
@@ -66,17 +75,18 @@ export function getPlayerEnemyKills(): number {
 }
 
 function finalizeBattle() {
-  if (battleWinner === null) {
+  if (pending === null) {
     return;
   }
-  const victory = battleWinner === 0;
+  const p = pending;
+  pending = null;
   const result: BattleResult = {
-    victory,
+    victory: p.winner === 0,
     elapsed: battleElapsed,
-    playerSurvivors: snapshotSurvivors,
-    enemyKills: snapshotEnemyKills,
+    playerSurvivors: p.survivors,
+    enemyKills: p.enemyKills,
   };
-  onFinalize(result);
+  onFinalize(result, p.sourcePhase);
 }
 
 export function addEnemyKill() {

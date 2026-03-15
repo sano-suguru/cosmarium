@@ -263,7 +263,10 @@ export type GameState = 'menu' | 'compose' | 'play' | 'result';
 
 export type TimeScale = 1 | 2 | 4;
 
-export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'battleEnding' | 'meleeEnding' | 'aftermath';
+export type BattlePhase = 'spectate' | 'battle' | 'melee' | 'bonus' | 'battleEnding' | 'meleeEnding' | 'aftermath';
+
+/** battle / bonus の両フェーズが battle-tracker の経過時間・生産を共有するか判定 */
+export const isBattleLikePhase = (bp: BattlePhase): bp is 'battle' | 'bonus' => bp === 'battle' || bp === 'bonus';
 
 /** プールインデックスの branded type（型レベルで異なるプール間のインデックス混用を防止） */
 export type UnitIndex = number & { readonly __brand: 'UnitIndex' };
@@ -280,4 +283,4 @@ export const NO_SQUADRON = -1 as SquadronIndex;
 export const NO_SOURCE_TYPE = -1 as UnitTypeIndex;
 
 /** ユニットタイプのロール分類 */
-export type UnitRole = 'attack' | 'support' | 'special';
+export type UnitRole = 'attack' | 'support' | 'special' | 'environment';

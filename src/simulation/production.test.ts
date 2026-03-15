@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fillUnitPool, makeRng, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
+import { VARIANT_HIVE, VARIANT_REACTOR } from '../mothership-variants.ts';
 import {
   countAliveMotherships,
   decMotherships,
@@ -13,7 +14,7 @@ import { unit } from '../pools-query.ts';
 import { MAX_CLUSTERS_PER_TICK } from '../production-config.ts';
 import type { Team } from '../team.ts';
 import { TEAM0 } from '../team.ts';
-import type { MothershipVariant, ProductionSlot } from '../types-fleet.ts';
+import type { ProductionSlot } from '../types-fleet.ts';
 import { DRONE_TYPE, FIGHTER_TYPE, MOTHERSHIP_TYPE } from '../unit-type-accessors.ts';
 import { computeProductionCap, initProductionState, tickProduction } from './production.ts';
 import { spawnUnit } from './spawn.ts';
@@ -48,7 +49,7 @@ describe('production', () => {
 
   it('tickProduction は独立タイマーで各スロットを並行処理する', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 0 as MothershipVariant); // Hive: productionRateMul=0.7
+    setMothershipVariant(TEAM0, VARIANT_HIVE);
     const slots: (ProductionSlot | null)[] = [
       { type: DRONE_TYPE, count: 3 }, // Drone cost=1, productionTime=1*0.7=0.7s
       { type: FIGHTER_TYPE, count: 2 }, // Fighter cost=3, productionTime=3*0.7=2.1s
@@ -71,7 +72,7 @@ describe('production', () => {
 
   it('母艦が撃破されると全スロット生産停止', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 0 as MothershipVariant);
+    setMothershipVariant(TEAM0, VARIANT_HIVE);
     const slots: (ProductionSlot | null)[] = [
       { type: DRONE_TYPE, count: 1 },
       { type: FIGHTER_TYPE, count: 1 },
@@ -89,7 +90,7 @@ describe('production', () => {
 
   it('MAX_CLUSTERS_PER_TICK でスポーン回数がキャップされる', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant); // Reactor: productionRateMul=1.0
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     // 5スロット × count=1 で予算キャップを検証
     // 全スロット ready でも MAX_CLUSTERS_PER_TICK=5 にキャップされる
     const slots: (ProductionSlot | null)[] = [
@@ -110,7 +111,7 @@ describe('production', () => {
 
   it('computeProductionCap 到達でスポーン停止', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant); // Reactor: productionRateMul=1.0
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
     const ps = initProductionState(slots);
 
@@ -128,7 +129,7 @@ describe('production', () => {
 
   it('computeProductionCap 未到達では通常生産', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant);
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
     const ps = initProductionState(slots);
 
@@ -140,7 +141,7 @@ describe('production', () => {
 
   it('タイマーキャップ: 大量 dt でもタイマーが1周期以内にクランプされる', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant); // Reactor: productionRateMul=1.0
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [
       { type: FIGHTER_TYPE, count: 1 }, // cost=3, productionTime=3.0s
     ];
@@ -162,7 +163,7 @@ describe('production', () => {
 
   it('複数スロットの公平性: ラウンドロビンで後方スロットも公平にスポーン', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant); // Reactor: productionRateMul=1.0
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     // 3スロットとも Drone(cost=1, productionTime=1.0s)
     const slots: (ProductionSlot | null)[] = [
       { type: DRONE_TYPE, count: 1 },
@@ -185,7 +186,7 @@ describe('production', () => {
 
   it('グローバルプール満杯でタイマーが凍結される', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant);
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
     const ps = initProductionState(slots);
     fillUnitPool();
@@ -195,7 +196,7 @@ describe('production', () => {
 
   it('null スロットはスキップされ有効スロットのみ処理', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant);
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [
       { type: DRONE_TYPE, count: 1 },
       null,
@@ -210,7 +211,7 @@ describe('production', () => {
 
   it('スロット count > 残りキャパで部分スポーンしない（アトミック性）', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant);
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 3 }];
     const ps = initProductionState(slots);
     // CAP - 2 まで埋める（残り2。count=3 はスポーン不可）
@@ -224,7 +225,7 @@ describe('production', () => {
 
   it('継続生産: タイマーは余剰を持ち越す', () => {
     setupMothership(rng);
-    setMothershipVariant(TEAM0, 2 as MothershipVariant); // Reactor: productionRateMul=1.0
+    setMothershipVariant(TEAM0, VARIANT_REACTOR);
     const slots: (ProductionSlot | null)[] = [
       { type: DRONE_TYPE, count: 2 }, // cost=1, productionTime=1.0s
     ];
@@ -266,7 +267,7 @@ describe('computeProductionCap', () => {
     for (let t = 0; t < 3; t++) {
       const idx = spawnUnit(t as Team, MOTHERSHIP_TYPE, t * 100, 0, rng2);
       incMotherships(t as Team, idx);
-      setMothershipVariant(t as Team, 0 as MothershipVariant);
+      setMothershipVariant(t as Team, VARIANT_HIVE);
     }
     // 3チーム全生存 → キャップ = POOL_UNITS / 3
     expect(countAliveMotherships(3)).toBe(3);

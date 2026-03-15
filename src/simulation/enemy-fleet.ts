@@ -1,9 +1,10 @@
+import { VARIANT_HIVE } from '../mothership-variants.ts';
 import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
 import type { ShopSlot, WeightedCandidate } from '../shop-tiers.ts';
 import { buildWeightedCandidates, ROUND_CREDITS, shopPrice, slotsToProduction } from '../shop-tiers.ts';
 import type { UnitRole, UnitTypeIndex } from '../types.ts';
 import type { FleetSetup, MothershipVariant } from '../types-fleet.ts';
-import { BASTION_TYPE, DRONE_TYPE, REFLECTOR_TYPE } from '../unit-type-accessors.ts';
+import { BASTION_TYPE, DRONE_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { weightedPick } from '../weighted-pick.ts';
 
@@ -135,13 +136,13 @@ function variantWeights(profile: FleetProfile): [number, number, number] {
     return [1, 1, 1];
   }
   if (roles.attack / total >= 0.5 || (allLow && roles.attack / total >= 0.3)) {
-    return [3, 1, 1]; // Hive
+    return [3, 1, 1];
   }
   if (roles.support / total >= 0.4 && hasHigh) {
-    return [1, 3, 1]; // Dreadnought
+    return [1, 3, 1];
   }
   if (roles.special / total >= 0.4) {
-    return [1, 1, 3]; // Reactor
+    return [1, 1, 3];
   }
   return [1, 1, 1];
 }
@@ -169,7 +170,7 @@ type FleetProfile = {
 };
 
 function profileFleet(slots: readonly (ShopSlot | null)[]): FleetProfile {
-  const roles: RoleCounts = { attack: 0, support: 0, special: 0 };
+  const roles: RoleCounts = { attack: 0, support: 0, special: 0, environment: 0 };
   let total = 0;
   let hasHigh = false;
   let allLow = true;
@@ -226,6 +227,28 @@ function deriveArchetypeFromProfile(profile: FleetProfile): string {
  * battle 用 — ショップ制約準拠の敵艦隊生成（プロシージャルBot）。
  * プレイヤーと同じクレジット予算・ティア出現率・マージ制約に従う。
  */
+function generateFixedNpc(round: number): {
+  readonly setup: FleetSetup;
+  readonly archetypeName: string;
+} {
+  const variant = VARIANT_HIVE;
+  const slots: (ReturnType<typeof createProductionSlot> | null)[] = Array.from<null, null>(
+    { length: SLOT_COUNT },
+    () => null,
+  );
+
+  if (round === 1) {
+    slots[0] = createProductionSlot(DRONE_TYPE, 3);
+    return { setup: { variant, slots }, archetypeName: '偵察隊' };
+  }
+  if (round === 2) {
+    slots[0] = createProductionSlot(DRONE_TYPE, 3);
+    slots[1] = createProductionSlot(FIGHTER_TYPE, 2);
+    return { setup: { variant, slots }, archetypeName: '前衛部隊' };
+  }
+  throw new Error(`generateFixedNpc: unexpected round ${round}`);
+}
+
 export function generateEnemySetup(
   rng: () => number,
   round: number,
@@ -233,6 +256,11 @@ export function generateEnemySetup(
   readonly setup: FleetSetup;
   readonly archetypeName: string;
 } {
+  // Phase 1a: 序盤固定NPC（ラウンド1-2）
+  if (round <= 2) {
+    return generateFixedNpc(round);
+  }
+
   const botSlots = botFillSlots(rng, round);
   const profile = profileFleet(botSlots);
   const variant = pickVariantFromProfile(rng, profile);

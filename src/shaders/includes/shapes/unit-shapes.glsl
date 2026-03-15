@@ -1050,3 +1050,44 @@
     float shimmer=exp(-abs(dBody)*8.0)*0.08*(0.5+0.5*sin(t*2.0+p.x*6.0));
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.20+reactor*0.50+eng*0.55+shimmer;
     a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:20 Asteroid] ————————————————————————————
+  else if(sh==20){ vec2 p=vU*0.58; float t=vA+uTime;
+    // Irregular rocky asteroid — circle + noise deformation
+    float r=length(p);
+    float ang=atan(p.y,p.x);
+    // Noise deformation for irregular silhouette
+    float noise=0.08*sin(ang*3.0+1.2)+0.06*sin(ang*5.0-0.8)+0.04*sin(ang*7.0+2.5);
+    float dRock=r-(0.55+noise);
+    // Crater indentations
+    float c1=length(p-vec2(0.15,0.2))-0.12;
+    float c2=length(p-vec2(-0.2,-0.1))-0.10;
+    float c3=length(p-vec2(0.05,-0.25))-0.08;
+    dRock=max(dRock,-0.02+min(min(c1,c2),c3)*0.3);
+    float aa, hf, rim; shapeAA(dRock, sh, aa, hf, rim);
+    // Subtle surface detail
+    float detail=0.15*sin(ang*11.0+t*0.3)*exp(-r*2.0);
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+detail*0.3;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:21 AsteroidCore] ————————————————————————————
+  else if(sh==21){ vec2 p=vU*0.55; float t=vA+uTime;
+    // Larger rock with inner glow
+    float r=length(p);
+    float ang=atan(p.y,p.x);
+    float noise=0.10*sin(ang*3.0+0.7)+0.07*sin(ang*5.0-1.3)+0.05*sin(ang*7.0+1.8)+0.03*sin(ang*11.0);
+    float dRock=r-(0.58+noise);
+    // Larger craters
+    float c1=length(p-vec2(0.20,0.22))-0.14;
+    float c2=length(p-vec2(-0.25,-0.15))-0.12;
+    float c3=length(p-vec2(0.08,-0.30))-0.10;
+    float c4=length(p-vec2(-0.10,0.30))-0.09;
+    dRock=max(dRock,-0.02+min(min(c1,c2),min(c3,c4))*0.25);
+    float aa, hf, rim; shapeAA(dRock, sh, aa, hf, rim);
+    // Inner core glow — pulsing energy
+    float coreGlow=exp(-r*4.0)*(0.6+0.4*sin(t*2.5));
+    // Surface cracks revealing inner light
+    float crack1=abs(sin(ang*4.0+p.x*3.0))*exp(-r*1.5);
+    float crackGlow=smoothstep(0.7,1.0,crack1)*exp(-max(dRock,0.0)*15.0)*0.4;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+coreGlow*0.7+crackGlow;
+    a=shapeSoftClamp(a, sh); }

@@ -1,7 +1,6 @@
 import { batch } from '@preact/signals';
 import { cam, setAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
-import { scheduleRound } from '../round-schedule.ts';
 import { _resetRunState, endRun, getRunInfo, isRunActive, processRoundEnd, resetRun } from '../run.ts';
 import {
   buildFleetFromShop,
@@ -11,25 +10,25 @@ import {
   initShop,
   initShopRound,
   onShopChange,
-  rerollOfferings,
 } from '../shop.ts';
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
-import { initBattleProduction, initMeleeProduction, initUnits } from '../simulation/init.ts';
+import { initBattleProduction, initBonusField, initMeleeProduction, initUnits } from '../simulation/init.ts';
 import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale } from '../types.ts';
 import {
-  type BattleResult,
   EMPTY_FLEET_SETUP,
   type FleetSetup,
   type MothershipVariant,
   type ProductionState,
+  type RoundEndInput,
 } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
-import { FFA_TEAM_COUNT, generateFfaEnemySetups, meleeResultToBattleResult } from './ffa-round.ts';
+import { meleeResultToBattleResult } from './ffa-round.ts';
 import { resetVariant } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
+import { prepareRoundEnemy } from './round-enemy.ts';
 import {
   composeEnemyArchName$,
   composeEnemySetup$,
@@ -44,30 +43,32 @@ import {
 let currentEnemySetup: FleetSetup = EMPTY_FLEET_SETUP;
 let currentEnemyArchName = '';
 let currentFfaEnemySetups: FleetSetup[] = [];
+let currentFfaTeamCount = 0;
 
 let seedCounter = 0;
-function uniqueSeed(): number {
-  return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
-}
-type BattleStartCb = (productions: [ProductionState, ProductionState]) => void;
-type SpectateStartCb = () => void;
-type MeleeStartCb = (numTeams: number, productions: TeamTuple<ProductionState>) => void;
-const throwBattleStart: BattleStartCb = () => {
-  throw new Error('setOnBattleStart() must be called before battle launch');
+type GameCallbacks = {
+  battle: (productions: [ProductionState, ProductionState]) => void;
+  spectate: () => void;
+  melee: (numTeams: number, productions: TeamTuple<ProductionState>) => void;
+  bonus: (production: ProductionState, bonusInfo: { totalHp: number }) => void;
 };
-let onBattleStart: BattleStartCb = throwBattleStart;
-let onSpectateStart: SpectateStartCb = () => undefined;
-let onMeleeStart: MeleeStartCb = () => undefined;
 
-export function setOnBattleStart(cb: BattleStartCb) {
-  onBattleStart = cb;
+function throwNotReady(): never {
+  throw new Error('setCallbacks() must be called before launch');
 }
-export function setOnSpectateStart(cb: SpectateStartCb) {
-  onSpectateStart = cb;
+
+let onBattleStart: GameCallbacks['battle'] = throwNotReady;
+let onSpectateStart: GameCallbacks['spectate'] = throwNotReady;
+let onMeleeStart: GameCallbacks['melee'] = throwNotReady;
+let onBonusStart: GameCallbacks['bonus'] = throwNotReady;
+
+export function setCallbacks(cbs: GameCallbacks) {
+  onBattleStart = cbs.battle;
+  onSpectateStart = cbs.spectate;
+  onMeleeStart = cbs.melee;
+  onBonusStart = cbs.bonus;
 }
-export function setOnMeleeStart(cb: MeleeStartCb) {
-  onMeleeStart = cb;
-}
+
 function syncShopSignals(): void {
   batch(() => {
     shopCredits$.value = getShopCredits();
@@ -75,51 +76,33 @@ function syncShopSignals(): void {
     shopSlots$.value = getShopSlots();
   });
 }
-
 let unsubShop: (() => void) | null = null;
-
 export function initGameControl(): void {
   unsubShop?.();
   unsubShop = onShopChange(syncShopSignals);
 }
-
-function currentRound(): number {
+function uniqueSeed(): number {
+  return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
+}
+export function resetCurrentRoundShop(): void {
   const info = getRunInfo();
   if (!info) {
-    throw new Error('currentRound: run is not active');
+    throw new Error('resetCurrentRoundShop: run is not active');
   }
-  return info.round;
-}
-
-/** ショップリロール。内部 RNG を使用。 */
-export function shopReroll(): boolean {
-  return rerollOfferings(currentRound());
-}
-
-/** 現ラウンドのショップ購入をリセット（スロット全クリア + クレジット・offerings 再生成）。敵艦隊は維持。 */
-export function resetCurrentRoundShop(): void {
   initShop();
-  initShopRound(createRng(uniqueSeed()), currentRound());
-}
-
-function showPlayUI() {
-  playUiVisible$.value = true;
-}
-function hidePlayUI() {
-  playUiVisible$.value = false;
+  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits);
 }
 function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
 }
-
 function goToCompose(preserveState: boolean) {
   if (state.codexOpen) {
     toggleCodex();
   }
   state.gameState = 'compose';
-  hidePlayUI();
+  playUiVisible$.value = false;
   resultData$.value = null;
   if (!preserveState) {
     resetVariant();
@@ -132,7 +115,7 @@ function goToCompose(preserveState: boolean) {
 export function startSpectate() {
   state.gameState = 'play';
   resetCam();
-  showPlayUI();
+  playUiVisible$.value = true;
   initUnits(rng);
   onSpectateStart();
 }
@@ -142,10 +125,9 @@ function enterPlayFromCompose() {
   resetCam();
   composeVisible$.value = false;
   resultData$.value = null;
-  showPlayUI();
+  playUiVisible$.value = true;
   seedRng(uniqueSeed());
 }
-
 function startBattle(variant: MothershipVariant) {
   const setup = buildFleetFromShop(variant);
   enterPlayFromCompose();
@@ -155,7 +137,7 @@ function startBattle(variant: MothershipVariant) {
 export function startMelee() {
   state.gameState = 'play';
   resetCam();
-  showPlayUI();
+  playUiVisible$.value = true;
   seedRng(uniqueSeed());
   const numTeams = 2 + Math.floor(rng() * (MAX_TEAMS - 1));
   const setups = Array.from({ length: numTeams }, () => generateEnemySetup(rng, 1).setup);
@@ -165,7 +147,17 @@ export function startMelee() {
 function startFfa(variant: MothershipVariant) {
   const playerSetup = buildFleetFromShop(variant);
   enterPlayFromCompose();
-  onMeleeStart(FFA_TEAM_COUNT, initMeleeProduction(rng, [playerSetup, ...currentFfaEnemySetups], FFA_TEAM_COUNT));
+  onMeleeStart(
+    currentFfaTeamCount,
+    initMeleeProduction(rng, [playerSetup, ...currentFfaEnemySetups], currentFfaTeamCount),
+  );
+}
+
+function startBonus(variant: MothershipVariant) {
+  const setup = buildFleetFromShop(variant);
+  enterPlayFromCompose();
+  const bonusInfo = initBonusField(rng, setup);
+  onBonusStart(bonusInfo.playerProduction, { totalHp: bonusInfo.totalHp });
 }
 
 export function launchRound(variant: MothershipVariant) {
@@ -175,15 +167,17 @@ export function launchRound(variant: MothershipVariant) {
   }
   if (info.roundType === 'ffa') {
     startFfa(variant);
+  } else if (info.roundType === 'bonus') {
+    startBonus(variant);
   } else {
     startBattle(variant);
   }
 }
 
-export function goToResult(result: BattleResult) {
-  const outcome = processRoundEnd(result);
+export function goToResult(input: RoundEndInput) {
+  const outcome = processRoundEnd(input);
   state.gameState = 'result';
-  hidePlayUI();
+  playUiVisible$.value = false;
 
   if (outcome.type === 'runComplete') {
     resultData$.value = { type: 'run', runResult: outcome.runResult };
@@ -194,11 +188,11 @@ export function goToResult(result: BattleResult) {
 
 export function goToMeleeResult(result: MeleeResult) {
   if (isRunActive()) {
-    goToResult(meleeResultToBattleResult(result));
+    goToResult({ roundType: 'ffa', battleResult: meleeResultToBattleResult(result) });
     return;
   }
   state.gameState = 'result';
-  hidePlayUI();
+  playUiVisible$.value = false;
   resultData$.value = { type: 'melee', meleeResult: result };
 }
 
@@ -212,26 +206,28 @@ export function goToMenu() {
   initShop();
   updateHudRoundInfo();
   state.gameState = 'menu';
-  hidePlayUI();
+  playUiVisible$.value = false;
   composeVisible$.value = false;
   resultData$.value = null;
   resetVariant();
 }
 
-function generateEnemy(round: number) {
-  const { setup, archetypeName } = generateEnemySetup(rng, round);
-  currentEnemySetup = setup;
-  currentEnemyArchName = archetypeName;
-}
-
-function prepareRoundEnemy(round: number) {
-  if (scheduleRound(round).roundType === 'ffa') {
-    currentFfaEnemySetups = generateFfaEnemySetups(rng, round);
-    currentEnemySetup = EMPTY_FLEET_SETUP;
-    currentEnemyArchName = 'FFA 4勢力';
-  } else {
-    currentFfaEnemySetups = [];
-    generateEnemy(round);
+function applyRoundEnemy(round: number) {
+  const s = prepareRoundEnemy(round, rng);
+  currentEnemyArchName = s.archName;
+  currentEnemySetup = EMPTY_FLEET_SETUP;
+  currentFfaEnemySetups = [];
+  currentFfaTeamCount = 0;
+  switch (s.roundType) {
+    case 'battle':
+      currentEnemySetup = s.enemySetup;
+      break;
+    case 'ffa':
+      currentFfaEnemySetups = s.setups;
+      currentFfaTeamCount = s.teamCount;
+      break;
+    case 'bonus':
+      break;
   }
 }
 
@@ -240,7 +236,7 @@ export function startNewRun() {
   initShop();
   seedRng(uniqueSeed());
   initShopRound(createRng(uniqueSeed()), 1);
-  prepareRoundEnemy(1);
+  applyRoundEnemy(1);
   goToCompose(false);
 }
 
@@ -252,8 +248,8 @@ export function advanceRound() {
   if (!info) {
     throw new Error('advanceRound called without active run');
   }
-  initShopRound(createRng(uniqueSeed()), info.round);
-  prepareRoundEnemy(info.round);
+  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits);
+  applyRoundEnemy(info.round);
   goToCompose(true);
 }
 
@@ -262,11 +258,11 @@ export function _resetGameControl() {
   currentEnemySetup = EMPTY_FLEET_SETUP;
   currentEnemyArchName = '';
   currentFfaEnemySetups = [];
-  onBattleStart = throwBattleStart;
-  onSpectateStart = () => undefined;
-  onMeleeStart = () => {
-    throw new Error('setOnMeleeStart() must be called before melee launch');
-  };
+  currentFfaTeamCount = 0;
+  onBattleStart = throwNotReady;
+  onSpectateStart = throwNotReady;
+  onMeleeStart = throwNotReady;
+  onBonusStart = throwNotReady;
   unsubShop?.();
   unsubShop = null;
   state.gameState = 'menu';

@@ -18,7 +18,7 @@ export function computeProductionCap(activeTeamCount: number): number {
 const CLUSTER_SPREAD_BASE = 60;
 const CLUSTER_SPREAD_PER_COUNT = 8;
 
-function emptyProduction(): ProductionState {
+export function emptyProduction(): ProductionState {
   return { slots: [], timers: [] };
 }
 

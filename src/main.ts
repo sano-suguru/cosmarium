@@ -6,27 +6,20 @@ import {
   advanceBattleEndTimer,
   getPlayerEnemyKills,
   onBattleEnd,
-  resetBattleTracking,
-  setOnFinalize,
 } from './battle-tracker.ts';
+import { recordBonusKill } from './bonus-round.ts';
 import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
 import { addShake, cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
-import type { MeleeResult } from './melee-tracker.ts';
-import {
-  advanceMeleeElapsed,
-  advanceMeleeEndTimer,
-  onMeleeEnd,
-  resetMeleeTracking,
-  setOnMeleeFinalize,
-} from './melee-tracker.ts';
+import { advanceMeleeElapsed, advanceMeleeEndTimer, onMeleeEnd } from './melee-tracker.ts';
+import { installPhaseCallbacks } from './phase-callbacks.ts';
 import { getUnitHWM, teamUnitCounts } from './pools.ts';
 import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
 import { resize } from './renderer/webgl-setup.ts';
-import { decayScreenEffects, resetScreenEffects, screenEffects } from './screen-effects.ts';
+import { decayScreenEffects, screenEffects } from './screen-effects.ts';
 import { hotspot, updateHotspot } from './simulation/hotspot.ts';
 import { emptyProductions } from './simulation/production.ts';
 import { onKillUnitPermanent } from './simulation/spawn-hooks.ts';
@@ -34,30 +27,15 @@ import { onUnitKilled } from './simulation/squadron.ts';
 import type { GameLoopState } from './simulation/update.ts';
 import { stepOnce } from './simulation/update.ts';
 import { rng, state } from './state.ts';
-import type { Team, TeamTuple } from './team.ts';
-import { copyTeamCounts, TEAM0, TEAM1 } from './team.ts';
+import type { Team } from './team.ts';
+import { TEAM0, TEAM1 } from './team.ts';
 import type { BattlePhase } from './types.ts';
-import type { BattleResult, ProductionState } from './types-fleet.ts';
+import { isBattleLikePhase } from './types.ts';
 import { mountApp } from './ui/App.tsx';
 import { syncDemoCamera, updateCodexDemo } from './ui/codex/codex-logic.ts';
 import { demoRng } from './ui/codex-demos.ts';
-import {
-  goToMeleeResult,
-  goToResult,
-  initGameControl,
-  setOnBattleStart,
-  setOnMeleeStart,
-  setOnSpectateStart,
-} from './ui/game-control.ts';
-import {
-  hideMothershipHpBar,
-  setupMeleeHUD,
-  showMothershipHpBar,
-  teardownMeleeHUD,
-  updateHUD,
-  updateHudRoundInfo,
-  updateProductionHud,
-} from './ui/hud/Hud.tsx';
+import { initGameControl } from './ui/game-control.ts';
+import { updateHUD, updateProductionHud } from './ui/hud/Hud.tsx';
 import { initKeyboardControls } from './ui/keyboard-controls.ts';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
 
@@ -75,63 +53,19 @@ initKeyboardControls();
 initCamera();
 initMinimap();
 
-function handleBattleFinalized(result: BattleResult) {
-  gameLoopState.battlePhase = 'aftermath';
-  hideMothershipHpBar();
-  goToResult(result);
-}
-
-function handleMeleeFinalized(result: MeleeResult) {
-  gameLoopState.battlePhase = 'aftermath';
-  hideMothershipHpBar();
-  teardownMeleeHUD();
-  goToMeleeResult(result);
-}
-
-function handleBattleStart(productions: [ProductionState, ProductionState]) {
-  resetBattleTracking();
-  resetScreenEffects();
-  gameLoopState.productions[TEAM0] = productions[0];
-  gameLoopState.productions[TEAM1] = productions[1];
-  gameLoopState.battlePhase = 'battle';
-  gameLoopState.activeTeamCount = 2;
-  showMothershipHpBar(2);
-  updateHudRoundInfo();
-}
-
-function handleSpectateStart() {
-  resetScreenEffects();
-  gameLoopState.productions = emptyProductions();
-  gameLoopState.battlePhase = 'spectate';
-  gameLoopState.activeTeamCount = 2;
-  showMothershipHpBar(2);
-}
-
-function handleMeleeStart(numTeams: number, productions: TeamTuple<ProductionState>) {
-  resetMeleeTracking(numTeams, copyTeamCounts(teamUnitCounts));
-  resetScreenEffects();
-  gameLoopState.productions = productions;
-  gameLoopState.battlePhase = 'melee';
-  gameLoopState.activeTeamCount = numTeams;
-  setupMeleeHUD(numTeams);
-  showMothershipHpBar(numTeams);
-}
-
-setOnFinalize(handleBattleFinalized);
-setOnMeleeFinalize(handleMeleeFinalized);
-setOnBattleStart(handleBattleStart);
-setOnSpectateStart(handleSpectateStart);
-setOnMeleeStart(handleMeleeStart);
-
 onKillUnitPermanent((e) => {
   if (state.codexOpen || state.gameState !== 'play') {
     return;
   }
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
-  // 敵チーム(1)の撃破をカウント（BATTLE モードのみ）
-  if (e.victimTeam === TEAM1 && gameLoopState.battlePhase === 'battle') {
-    addEnemyKill();
+  if (e.victimTeam === TEAM1) {
+    if (gameLoopState.battlePhase === 'battle') {
+      addEnemyKill();
+    } else if (gameLoopState.battlePhase === 'bonus' && gameLoopState.bonusData) {
+      recordBonusKill(gameLoopState.bonusData, e.victimType);
+      addEnemyKill();
+    }
   }
   onUnitKilled(e.victimSquadronIdx, e.victim, getUnitHWM());
 });
@@ -163,13 +97,21 @@ const gameLoopState: GameLoopState = {
   activeTeamCount: 2,
   updateCodexDemo,
   productions: emptyProductions(),
+  bonusData: null,
+  phaseElapsed: 0,
 };
 
+installPhaseCallbacks(gameLoopState);
+
 function handleWinnerDetected(w: Team | 'draw') {
-  if (gameLoopState.battlePhase === 'melee') {
+  const bp = gameLoopState.battlePhase;
+  if (bp === 'melee') {
     onMeleeEnd(w);
     gameLoopState.battlePhase = 'meleeEnding';
     return;
+  }
+  if (!isBattleLikePhase(bp)) {
+    throw new Error(`handleWinnerDetected called in unexpected phase: ${bp}`);
   }
   if (w === 'draw') {
     throw new Error('Unexpected draw in non-melee mode');
@@ -179,19 +121,13 @@ function handleWinnerDetected(w: Team | 'draw') {
 }
 
 function updatePlay(dt: number, t: number) {
-  // フリーズタイマーを実 dt で減衰（シミュレーション停止中も進行する）
   decayScreenEffects(dt);
-
-  // フリーズは accumulator のみに作用: シミュレーション時間を蓄積しない。
-  // レンダリング・カメラ補間・エフェクト減衰（decayScreenEffects）は通常 dt で継続。
+  // フリーズ中は accumulator 更新のみ停止（レンダリング・エフェクト減衰は継続）
   const effectiveDt = screenEffects.freezeTimer > 0 ? 0 : dt;
-
-  // drainAccumulator は同期ループ: 最初の勝者検知でスナップショットを確定し、
-  // battlePhase を 'battleEnding'/'meleeEnding' に遷移。後続 substep での追加キルはスナップショットに反映しない。
-  // onBattleEnd / onMeleeEnd は二重呼び出しガード付きのため、コールバック内で直接呼んで安全。
   simAccumulator = drainAccumulator(simAccumulator + effectiveDt * state.timeScale * BASE_SPEED, () => {
     savePrevPositions();
-    if (gameLoopState.battlePhase === 'battle') {
+    gameLoopState.phaseElapsed += SIM_DT;
+    if (isBattleLikePhase(gameLoopState.battlePhase)) {
       advanceBattleElapsed(SIM_DT);
     } else if (gameLoopState.battlePhase === 'melee') {
       advanceMeleeElapsed(SIM_DT);
@@ -205,7 +141,7 @@ function updatePlay(dt: number, t: number) {
   const bp = gameLoopState.battlePhase;
   if (bp === 'meleeEnding') {
     advanceMeleeEndTimer(dt);
-  } else if (bp === 'battleEnding' || bp === 'battle') {
+  } else if (bp === 'battleEnding') {
     advanceBattleEndTimer(dt);
   }
 
@@ -213,7 +149,7 @@ function updatePlay(dt: number, t: number) {
   updateAutoFollow(hotspot());
   renderFrame(t);
   updateHUD(displayFps, bp);
-  if (bp === 'battle') {
+  if (isBattleLikePhase(bp)) {
     updateProductionHud(gameLoopState.productions[TEAM0]);
   }
   if (frameCount % 2 === 0) {
@@ -279,5 +215,4 @@ function frame(now: number) {
 
   requestAnimationFrame(frame);
 }
-
 requestAnimationFrame(frame);

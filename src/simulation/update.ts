@@ -1,4 +1,5 @@
 import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
+import { BONUS_TIME_LIMIT } from '../bonus-round.ts';
 import { NEIGHBOR_RANGE, REF_FPS } from '../constants.ts';
 import { getVariantDef } from '../mothership-variants.ts';
 import { particleIdx, unitIdx } from '../pool-index.ts';
@@ -9,14 +10,15 @@ import {
   mothershipIdx,
   mothershipVariant,
   poolCounts,
+  teamUnitCounts,
 } from '../pools.ts';
 import { particle, unit } from '../pools-query.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { MAX_TEAMS, TEAM0, TEAM1, teamAt } from '../team.ts';
-import type { Armament, BattlePhase, Unit, UnitIndex } from '../types.ts';
+import type { Armament, BattlePhase, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import type { ProductionState } from '../types-fleet.ts';
+import type { BonusPhaseData, ProductionState } from '../types-fleet.ts';
 import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
 import { updateChains } from './chain-lightning.ts';
 import { combat, combatMothershipTick } from './combat.ts';
@@ -34,6 +36,7 @@ import { steerWithNeighbors } from './steering.ts';
 import { applyAllFields } from './update-fields.ts';
 import { decayAndRegen } from './update-fields-regen.ts';
 import { updateProjectiles } from './update-projectiles.ts';
+import { checkBattleWin, checkMeleeWin } from './win-check.ts';
 
 /** 全チーム分の生産状態タプル */
 export type Productions = TeamTuple<ProductionState>;
@@ -121,11 +124,13 @@ function emitTrail(u: Unit, rng: () => number) {
   }
 }
 
-function processTrailAndBoost(u: Unit, dt: number, rng: () => number, wasNotBoosting: boolean) {
-  u.trailTimer -= dt;
-  if (u.trailTimer <= 0) {
-    u.trailTimer = 0.03 + rng() * 0.02;
-    emitTrail(u, rng);
+function processTrailAndBoost(u: Unit, ut: UnitType, dt: number, rng: () => number, wasNotBoosting: boolean) {
+  if (ut.trailInterval > 0) {
+    u.trailTimer -= dt;
+    if (u.trailTimer <= 0) {
+      u.trailTimer = 0.03 + rng() * 0.02;
+      emitTrail(u, rng);
+    }
   }
   if (u.boostTimer > 0 && u.stun <= 0) {
     boostTrail(u, dt, rng);
@@ -162,28 +167,33 @@ function updateUnitCombat(u: Unit, ui: UnitIndex, dt: number, rng: () => number,
   }
 }
 
+function processOneUnit(u: Unit, i: number, dt: number, rng: () => number, shake: ShakeFn) {
+  const ut = unitType(u.type);
+  if (ut.role === 'environment') {
+    return;
+  }
+  const ui = unitIdx(i);
+  const nb = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
+  u.swarmN = ut.swarm ? countSwarmFromNeighbors(u, nb) : 0;
+  steerWithNeighbors(u, ui, nb, dt, rng);
+  const prevHp = u.hp;
+  const wasNotBoosting = u.boostTimer <= 0;
+  updateUnitCombat(u, ui, dt, rng, shake);
+  if (u.alive && u.hp < prevHp) {
+    u.hitFlash = 1;
+  }
+  processTrailAndBoost(u, ut, dt, rng, wasNotBoosting);
+}
+
 function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
   initializeVariantStats(activeTeamCount);
-
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {
       continue;
     }
     rem--;
-
-    const ui = unitIdx(i);
-    const nb = getNeighbors(u.x, u.y, NEIGHBOR_RANGE);
-    u.swarmN = unitType(u.type).swarm ? countSwarmFromNeighbors(u, nb) : 0;
-    steerWithNeighbors(u, ui, nb, dt, rng);
-
-    const prevHp = u.hp;
-    const wasNotBoosting = u.boostTimer <= 0;
-    updateUnitCombat(u, ui, dt, rng, shake);
-    if (u.alive && u.hp < prevHp) {
-      u.hitFlash = 1;
-    }
-    processTrailAndBoost(u, dt, rng, wasNotBoosting);
+    processOneUnit(u, i, dt, rng, shake);
   }
 }
 
@@ -193,43 +203,52 @@ export interface GameLoopState extends ReinforcementState {
   activeTeamCount: number;
   updateCodexDemo: (dt: number) => void;
   productions: Productions;
+  bonusData: BonusPhaseData | null;
+  phaseElapsed: number;
 }
 
-/**
- * BATTLE 勝敗判定: 母艦撃沈で決着。先に team 0 母艦を判定するため相互撃沈は DEFEAT 扱い。
- * 残存ユニットは ending フェーズ中に演出として戦闘を継続する（一括除去しない）
- */
-function checkBattleWin(): Team | null {
-  if (mothershipIdx[0] === NO_UNIT) {
-    return TEAM1;
-  }
-  if (mothershipIdx[1] === NO_UNIT) {
-    return TEAM0;
-  }
-  return null;
-}
-
-/**
- * MELEE 勝敗判定: 母艦残存1勢力で勝利、全滅で draw、2勢力以上生存で null（継続）。
- * 残存ユニットは ending フェーズ中に演出として戦闘を継続する（一括除去しない）
- */
-function checkMeleeWin(activeTeamCount: number): Team | 'draw' | null {
-  let alive = 0;
-  let last: Team = TEAM0;
-  for (let i = 0; i < activeTeamCount; i++) {
-    const t = teamAt(i);
-    if (mothershipIdx[t] !== NO_UNIT) {
-      alive++;
-      last = t;
+function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'draw' | null {
+  switch (gs.battlePhase) {
+    case 'spectate':
+      reinforce(dt, rng, gs);
+      return null;
+    case 'battle': {
+      const cap = computeProductionCap(2);
+      tickProduction(dt, TEAM0, rng, gs.productions[0], cap);
+      tickProduction(dt, TEAM1, rng, gs.productions[1], cap);
+      return checkBattleWin();
+    }
+    case 'melee': {
+      const aliveMs = countAliveMotherships(gs.activeTeamCount);
+      const cap = computeProductionCap(Math.max(1, aliveMs));
+      for (let t = 0; t < gs.activeTeamCount; t++) {
+        const team = teamAt(t);
+        tickProduction(dt, team, rng, gs.productions[team], cap);
+      }
+      return checkMeleeWin(gs.activeTeamCount);
+    }
+    case 'bonus': {
+      const bd = gs.bonusData;
+      if (!bd) {
+        throw new Error('bonus phase without bonusData');
+      }
+      const cap = computeProductionCap(gs.activeTeamCount);
+      tickProduction(dt, TEAM0, rng, gs.productions[0], cap);
+      // ボーナスに敗北はない: 母艦撃沈・タイムアップ・全撃破いずれも TEAM0 勝利
+      if (mothershipIdx[0] === NO_UNIT || gs.phaseElapsed >= BONUS_TIME_LIMIT || teamUnitCounts[TEAM1] === 0) {
+        return TEAM0;
+      }
+      return null;
+    }
+    case 'battleEnding':
+    case 'meleeEnding':
+    case 'aftermath':
+      return null;
+    default: {
+      const _exhaustive: never = gs.battlePhase;
+      throw _exhaustive;
     }
   }
-  if (alive === 0) {
-    return 'draw';
-  }
-  if (alive === 1) {
-    return last;
-  }
-  return null;
 }
 
 export function stepOnce(
@@ -238,7 +257,6 @@ export function stepOnce(
   gameState: GameLoopState,
   shake: ShakeFn,
 ): Team | 'draw' | null {
-  const co = gameState.codexOpen;
   buildHash(gameState.activeTeamCount);
   resetReflected();
   updateSquadronObjectives(dt, rng);
@@ -253,33 +271,9 @@ export function stepOnce(
   updateChains(dt, rng, shake);
   updateTrackingBeams(dt);
 
-  if (!co) {
-    switch (gameState.battlePhase) {
-      case 'spectate':
-        reinforce(dt, rng, gameState);
-        break;
-      case 'battle': {
-        const cap = computeProductionCap(2);
-        tickProduction(dt, TEAM0, rng, gameState.productions[0], cap);
-        tickProduction(dt, TEAM1, rng, gameState.productions[1], cap);
-        return checkBattleWin();
-      }
-      case 'melee': {
-        const aliveMs = countAliveMotherships(gameState.activeTeamCount);
-        const cap = computeProductionCap(Math.max(1, aliveMs));
-        for (let t = 0; t < gameState.activeTeamCount; t++) {
-          const team = teamAt(t);
-          tickProduction(dt, team, rng, gameState.productions[team], cap);
-        }
-        return checkMeleeWin(gameState.activeTeamCount);
-      }
-      case 'battleEnding':
-      case 'meleeEnding':
-      case 'aftermath':
-        break;
-    }
-  } else {
+  if (gameState.codexOpen) {
     gameState.updateCodexDemo(dt);
+    return null;
   }
-  return null;
+  return stepPhase(dt, rng, gameState);
 }

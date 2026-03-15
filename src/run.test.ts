@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { scheduleRound } from './round-schedule.ts';
 import {
   _resetRunState,
   endRun,
@@ -9,7 +10,7 @@ import {
   RUN_WIN_TARGET,
   resetRun,
 } from './run.ts';
-import type { BattleResult } from './types-fleet.ts';
+import type { BattleResult, BonusReward, RoundEndInput } from './types-fleet.ts';
 
 function makeBattleResult(overrides: Partial<BattleResult> = {}): BattleResult {
   return {
@@ -19,6 +20,44 @@ function makeBattleResult(overrides: Partial<BattleResult> = {}): BattleResult {
     enemyKills: 5,
     ...overrides,
   };
+}
+
+const DUMMY_BONUS: BonusReward = { bonusCredits: 10, bonusPct: 50 };
+
+/** ラウンド番号から RoundEndInput を構築。ボーナスラウンドは自動判定 */
+function makeInput(round: number, overrides: Partial<BattleResult> = {}): RoundEndInput {
+  const rt = scheduleRound(round).roundType;
+  const br = makeBattleResult(overrides);
+  if (rt === 'bonus') {
+    return { roundType: 'bonus', battleResult: br, bonusReward: DUMMY_BONUS };
+  }
+  return { roundType: rt, battleResult: br };
+}
+
+/** victory を指定して現ラウンドの RoundEndInput を構築（getRunInfo から round 取得） */
+function inputForCurrent(victory: boolean, overrides: Partial<BattleResult> = {}): RoundEndInput {
+  const info = getRunInfo();
+  if (!info) {
+    throw new Error('inputForCurrent: run is not active');
+  }
+  return makeInput(info.round, { victory, ...overrides });
+}
+
+/** ランが終了するまでラウンドを進める。各ラウンドの勝敗は victory で指定 */
+function advanceUntilEnd(
+  victory: boolean,
+  overrides: Partial<BattleResult> = {},
+): Extract<ReturnType<typeof processRoundEnd>, { type: 'runComplete' }> {
+  const MAX_ITERATIONS = RUN_WIN_TARGET + RUN_MAX_LIVES + 50;
+  let outcome: ReturnType<typeof processRoundEnd>;
+  let iterations = 0;
+  do {
+    if (++iterations > MAX_ITERATIONS) {
+      throw new Error(`advanceUntilEnd: exceeded ${MAX_ITERATIONS} iterations`);
+    }
+    outcome = processRoundEnd(inputForCurrent(victory, overrides));
+  } while (outcome.type !== 'runComplete');
+  return outcome as Extract<typeof outcome, { type: 'runComplete' }>;
 }
 
 describe('run', () => {
@@ -45,7 +84,7 @@ describe('run', () => {
 
   it('endRun fully resets run state', () => {
     resetRun();
-    processRoundEnd(makeBattleResult({ victory: true }));
+    processRoundEnd(makeInput(1, { victory: true }));
     expect(isRunActive()).toBe(true);
 
     endRun();
@@ -56,12 +95,14 @@ describe('run', () => {
   describe('processRoundEnd', () => {
     it('returns roundComplete on victory with next-round status', () => {
       resetRun();
-      const outcome = processRoundEnd(makeBattleResult({ victory: true }));
+      const outcome = processRoundEnd(makeInput(1, { victory: true }));
       expect(outcome.type).toBe('roundComplete');
       if (outcome.type === 'roundComplete') {
         expect(outcome.roundResult.round).toBe(1);
         expect(outcome.roundResult.roundType).toBe('battle');
-        expect(outcome.roundResult.victory).toBe(true);
+        if (outcome.roundResult.roundType !== 'bonus') {
+          expect(outcome.roundResult.victory).toBe(true);
+        }
         expect(outcome.status.round).toBe(2);
         expect(outcome.status.roundType).toBe('battle');
         expect(outcome.status.wins).toBe(1);
@@ -72,7 +113,7 @@ describe('run', () => {
 
     it('returns roundComplete on defeat with decremented lives', () => {
       resetRun();
-      const outcome = processRoundEnd(makeBattleResult({ victory: false }));
+      const outcome = processRoundEnd(makeInput(1, { victory: false }));
       expect(outcome.type).toBe('roundComplete');
       if (outcome.type === 'roundComplete') {
         expect(outcome.status.lives).toBe(RUN_MAX_LIVES - 1);
@@ -82,53 +123,39 @@ describe('run', () => {
 
     it('returns runComplete when lives reach 0', () => {
       resetRun();
-      for (let i = 0; i < RUN_MAX_LIVES - 1; i++) {
-        const mid = processRoundEnd(makeBattleResult({ victory: false }));
-        expect(mid.type).toBe('roundComplete');
-      }
-      const final = processRoundEnd(makeBattleResult({ victory: false }));
-      expect(final.type).toBe('runComplete');
-      if (final.type === 'runComplete') {
-        expect(final.runResult.cleared).toBe(false);
-        expect(final.runResult.losses).toBe(RUN_MAX_LIVES);
-      }
+      const outcome = advanceUntilEnd(false);
+      expect(outcome.runResult.cleared).toBe(false);
+      expect(outcome.runResult.losses).toBe(RUN_MAX_LIVES);
       expect(isRunActive()).toBe(false);
     });
 
     it('returns runComplete when wins reach target', () => {
       resetRun();
-      for (let i = 0; i < RUN_WIN_TARGET - 1; i++) {
-        const mid = processRoundEnd(makeBattleResult({ victory: true }));
-        expect(mid.type).toBe('roundComplete');
-      }
-      const final = processRoundEnd(makeBattleResult({ victory: true }));
-      expect(final.type).toBe('runComplete');
-      if (final.type === 'runComplete') {
-        expect(final.runResult.cleared).toBe(true);
-        expect(final.runResult.wins).toBe(RUN_WIN_TARGET);
-      }
+      const outcome = advanceUntilEnd(true);
+      expect(outcome.runResult.cleared).toBe(true);
+      expect(outcome.runResult.wins).toBe(RUN_WIN_TARGET);
       expect(isRunActive()).toBe(false);
     });
 
     it('accumulates stats across rounds', () => {
       resetRun();
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
-      processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
-      processRoundEnd(makeBattleResult({ victory: true, enemyKills: 7 }));
+      processRoundEnd(makeInput(1, { victory: true, enemyKills: 5 }));
+      processRoundEnd(makeInput(2, { victory: false, enemyKills: 3 }));
+      processRoundEnd(makeInput(3, { victory: true, enemyKills: 7 }));
 
       const info = getRunInfo();
       expect(info?.round).toBe(4);
-      expect(info?.wins).toBe(2);
-      expect(info?.lives).toBe(RUN_MAX_LIVES - 1);
+      expect(info?.wins).toBe(1); // only R1 counts as win; R3 is bonus
+      expect(info?.lives).toBe(RUN_MAX_LIVES - 1); // only R2 loss counts
     });
 
     it('round number in roundResult reflects completed round', () => {
       resetRun();
-      const r1 = processRoundEnd(makeBattleResult());
+      const r1 = processRoundEnd(makeInput(1));
       if (r1.type === 'roundComplete') {
         expect(r1.roundResult.round).toBe(1);
       }
-      const r2 = processRoundEnd(makeBattleResult());
+      const r2 = processRoundEnd(makeInput(2));
       if (r2.type === 'roundComplete') {
         expect(r2.roundResult.round).toBe(2);
       }
@@ -136,53 +163,66 @@ describe('run', () => {
 
     it('status.roundType reflects ffa for round 5', () => {
       resetRun();
-      // Complete rounds 1-3
-      for (let i = 0; i < 3; i++) {
-        const mid = processRoundEnd(makeBattleResult({ victory: true }));
-        if (mid.type === 'roundComplete') {
-          expect(mid.roundResult.roundType).toBe('battle');
-        }
+      processRoundEnd(makeInput(1, { victory: true }));
+      processRoundEnd(makeInput(2, { victory: true }));
+      processRoundEnd(makeInput(3, { victory: true }));
+      const r4 = processRoundEnd(makeInput(4, { victory: true }));
+      expect(r4.type).toBe('roundComplete');
+      if (r4.type !== 'roundComplete') {
+        return;
       }
-      // Complete round 4 — status points to round 5 (ffa)
-      const r4 = processRoundEnd(makeBattleResult({ victory: true }));
-      if (r4.type === 'roundComplete') {
-        expect(r4.roundResult.round).toBe(4);
-        expect(r4.roundResult.roundType).toBe('battle');
-        expect(r4.status.round).toBe(5);
-        expect(r4.status.roundType).toBe('ffa');
+      expect(r4.roundResult.round).toBe(4);
+      expect(r4.roundResult.roundType).toBe('battle');
+      expect(r4.status.round).toBe(5);
+      expect(r4.status.roundType).toBe('ffa');
+    });
+
+    it('bonus round does not decrement lives on defeat', () => {
+      resetRun();
+      processRoundEnd(makeInput(1, { victory: true }));
+      processRoundEnd(makeInput(2, { victory: true }));
+      // Round 3 is bonus — defeat should not cost a life
+      const r3 = processRoundEnd(makeInput(3, { victory: false }));
+      if (r3.type === 'roundComplete') {
+        expect(r3.roundResult.roundType).toBe('bonus');
+        expect(r3.status.lives).toBe(RUN_MAX_LIVES);
+        expect(r3.status.wins).toBe(2); // only 2 wins from rounds 1-2
       }
     });
 
-    it('runResult includes all round results', () => {
-      function drainLives(): ReturnType<typeof processRoundEnd> {
-        processRoundEnd(makeBattleResult({ victory: true, enemyKills: 5 }));
-        processRoundEnd(makeBattleResult({ victory: false, enemyKills: 3 }));
-        for (let i = 0; i < RUN_MAX_LIVES - 2; i++) {
-          processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
-        }
-        return processRoundEnd(makeBattleResult({ victory: false, enemyKills: 1 }));
-      }
+    it('runResult.losses counts only combat defeats (bonus rounds excluded)', () => {
+      resetRun();
+      processRoundEnd(makeInput(1, { victory: true, enemyKills: 3 }));
+      processRoundEnd(makeInput(2, { victory: false, enemyKills: 1 }));
+      processRoundEnd(makeInput(3, { victory: false, enemyKills: 2 })); // bonus — defeat ignored
+      processRoundEnd(makeInput(4, { victory: false, enemyKills: 1 }));
 
+      const info = getRunInfo();
+      expect(info).not.toBeNull();
+      expect(info?.wins).toBe(1);
+      // lives decreased only by R2 and R4 (bonus R3 is excluded)
+      expect(info?.lives).toBe(RUN_MAX_LIVES - 2);
+      expect(info?.round).toBe(5);
+
+      // Run until end with losses to verify final runResult.losses
+      const outcome = advanceUntilEnd(false, { enemyKills: 0 });
+      // losses = RUN_MAX_LIVES - remaining lives. Bonus rounds never reduce lives.
+      expect(outcome.runResult.losses).toBe(RUN_MAX_LIVES);
+      // rounds includes all rounds (bonus included)
+      expect(outcome.runResult.roundResults.length).toBeGreaterThan(RUN_MAX_LIVES);
+      // Verify bonus rounds are in roundResults
+      const bonusResults = outcome.runResult.roundResults.filter((r) => r.roundType === 'bonus');
+      expect(bonusResults.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('runResult includes all round results', () => {
       resetRun();
-      // Win enough to clear
-      for (let i = 0; i < RUN_WIN_TARGET; i++) {
-        processRoundEnd(makeBattleResult({ victory: true, enemyKills: 2 }));
-      }
-      // Last call returned runComplete — let's test from scratch with known final
-      _resetRunState();
-      resetRun();
-      drainLives();
-      // The last processRoundEnd returned runComplete — need to capture it
-      _resetRunState();
-      resetRun();
-      const lastOutcome = drainLives();
-      expect(lastOutcome.type).toBe('runComplete');
-      if (lastOutcome.type === 'runComplete') {
-        expect(lastOutcome.runResult.rounds).toBe(RUN_MAX_LIVES + 1);
-        expect(lastOutcome.runResult.wins).toBe(1);
-        expect(lastOutcome.runResult.totalKills).toBe(5 + 3 + (RUN_MAX_LIVES - 1));
-        expect(lastOutcome.runResult.roundResults).toHaveLength(RUN_MAX_LIVES + 1);
-      }
+      processRoundEnd(makeInput(1, { victory: true, enemyKills: 5 }));
+      // Lose from R2 onward until run ends
+      const lastOutcome = advanceUntilEnd(false, { enemyKills: 1 });
+      expect(lastOutcome.runResult.cleared).toBe(false);
+      expect(lastOutcome.runResult.wins).toBe(1);
+      expect(lastOutcome.runResult.roundResults.length).toBeGreaterThanOrEqual(RUN_MAX_LIVES + 1);
     });
   });
 });

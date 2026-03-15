@@ -15,18 +15,13 @@ import { stepOnce } from '../simulation/update.ts';
 /** バッチシミュレーションではカメラシェイク不要 */
 const _noopShake = () => undefined;
 
+import { VARIANT_HIVE } from '../mothership-variants.ts';
 import { getUnitHWM, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { teamAt } from '../team.ts';
-import type {
-  FleetComposition,
-  FleetSetup,
-  MothershipVariant,
-  ProductionSlot,
-  ProductionState,
-} from '../types-fleet.ts';
-import { TYPES } from '../unit-types.ts';
+import type { FleetComposition, FleetSetup, ProductionSlot, ProductionState } from '../types-fleet.ts';
+import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import { collectUnitStats, installAllTrackers } from './batch-tracking.ts';
 import type { BatchConfig, KillTracker, TrialResult, TrialSnapshot } from './batch-types.ts';
 import { fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } from './entropy.ts';
@@ -49,6 +44,8 @@ function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): 
       reinforcementTimer = v;
     },
     productions: emptyProductions(),
+    bonusData: null,
+    phaseElapsed: 0,
   };
 }
 
@@ -58,7 +55,7 @@ function slotsToComposition(slots: readonly (ProductionSlot | null)[]): FleetCom
 }
 
 /** CLI の FleetComposition → FleetSetup 変換。count は1サイクルの生産数として転用 */
-function fleetToSetup(fleet: FleetComposition, variant: MothershipVariant = 0): FleetSetup {
+function fleetToSetup(fleet: FleetComposition, variant = VARIANT_HIVE): FleetSetup {
   if (fleet.length > SLOT_COUNT) {
     throw new RangeError(`Fleet has ${fleet.length} entries but max ${SLOT_COUNT} slots allowed`);
   }
@@ -172,7 +169,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
     spatialEntropy: s.spatial,
   }));
 
-  const size = TYPES.length;
+  const size = UNIT_TYPE_COUNT;
   return {
     trialIndex,
     seed: trialSeed,
@@ -244,7 +241,7 @@ function takeSnapshot(step: number, elapsed: number, activeTeams: number, tracke
 }
 
 function countSurvivorsByType(activeTeams: number): Int32Array {
-  const counts = new Int32Array(TYPES.length);
+  const counts = new Int32Array(UNIT_TYPE_COUNT);
   const hwm = getUnitHWM();
   for (let i = 0; i < hwm; i++) {
     const u = unit(i);

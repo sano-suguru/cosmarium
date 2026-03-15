@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { isPurchasable } from '../fleet-cost.ts';
 import { seedRng, state } from '../state.ts';
+import { TYPE_INDICES } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { runRoundRobin } from './roundrobin.ts';
 
@@ -28,7 +30,7 @@ describe('runRoundRobin', () => {
     });
 
     // cost <= 3 のユニットのみ実際に対戦可能（costCap=3 で1体以上購入できるもの）
-    const eligibleCount = TYPES.filter((t) => t.cost > 0 && t.cost <= 3).length;
+    const eligibleCount = TYPE_INDICES.filter((i) => isPurchasable(i) && (TYPES[i]?.cost ?? 0) <= 3).length;
     const expectedMatchups = (eligibleCount * (eligibleCount - 1)) / 2;
     // 対戦は両方のユニットが購入可能なペアのみ
     expect(summary.matchups.length).toBe(expectedMatchups);

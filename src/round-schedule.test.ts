@@ -3,11 +3,19 @@ import { describe, expect, it } from 'vitest';
 import { scheduleRound } from './round-schedule.ts';
 
 describe('scheduleRound', () => {
-  it('returns battle for rounds 1-4', () => {
-    for (let r = 1; r <= 4; r++) {
+  it('returns battle for rounds 1-2', () => {
+    for (let r = 1; r <= 2; r++) {
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('battle');
       expect(entry.preview).toBe(false);
+    }
+  });
+
+  it('returns bonus with preview for round 3 (5n+3 pattern)', () => {
+    for (const r of [3, 8, 13, 18]) {
+      const entry = scheduleRound(r);
+      expect(entry.roundType).toBe('bonus');
+      expect(entry.preview).toBe(true);
     }
   });
 
@@ -24,8 +32,8 @@ describe('scheduleRound', () => {
     expect(() => scheduleRound(-1)).toThrow('invalid round');
   });
 
-  it('returns battle for non-multiples of 5 after round 4', () => {
-    for (const r of [6, 7, 8, 9, 11, 12]) {
+  it('returns battle for non-special rounds after round 2', () => {
+    for (const r of [4, 6, 7, 9, 11, 12, 14]) {
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('battle');
       expect(entry.preview).toBe(false);

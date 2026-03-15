@@ -21,6 +21,9 @@ interface MothershipVariantDef extends MothershipVariantDefBase {
   readonly id: MothershipVariant;
 }
 
+export const VARIANT_HIVE: MothershipVariant = 0;
+export const VARIANT_REACTOR: MothershipVariant = 2;
+
 const HIVE: MothershipVariantDef = {
   id: 0,
   name: 'Hive',

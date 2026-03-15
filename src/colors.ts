@@ -64,6 +64,8 @@ const UNIT_MOD_MAP: Readonly<Record<string, UnitColorMod>> = {
   Scrambler: { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
   Catalyst: { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
   Mothership: { hue: -0.16, lum: 0.82, sat: 0.65, effectHue: -0.26, effectSat: 1.0 },
+  Asteroid: { hue: 0.0, lum: 0.75, sat: 0.4, effectHue: 0.0, effectSat: 0.8 },
+  'Asteroid Core': { hue: 0.02, lum: 0.7, sat: 0.5, effectHue: 0.05, effectSat: 0.9 },
 };
 
 const UNIT_MODS: readonly UnitColorMod[] = TYPES.map((t) => {

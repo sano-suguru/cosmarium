@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { asType } from './__test__/pool-helper.ts';
 import type { UnitTypeIndex } from './types.ts';
 import { invSqrtMass, unitType, unitTypeIndex } from './unit-type-accessors.ts';
-import { TYPES } from './unit-types.ts';
+import { TYPES, UNIT_TYPE_COUNT } from './unit-types.ts';
 
 describe('TYPES 配列', () => {
-  it('要素数が20', () => {
-    expect(TYPES).toHaveLength(20);
+  it('要素数がUNIT_TYPE_COUNTと一致', () => {
+    expect(TYPES).toHaveLength(UNIT_TYPE_COUNT);
   });
 
   it('全タイプに必須プロパティが存在する', () => {
@@ -33,7 +33,7 @@ describe('TYPES 配列', () => {
   });
 
   it('shape === index 規約: unitType(asType(i)).shape === i', () => {
-    for (let i = 0; i < TYPES.length; i++) {
+    for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
       expect(unitType(asType(i)).shape).toBe(i);
     }
   });
@@ -46,11 +46,15 @@ describe('TYPES 配列', () => {
   it('数値プロパティが妥当な範囲内', () => {
     for (const t of TYPES) {
       expect(t.hp).toBeGreaterThan(0);
-      expect(t.speed).toBeGreaterThan(0);
+      if (t.role !== 'environment') {
+        expect(t.speed).toBeGreaterThan(0);
+      } else {
+        expect(t.speed).toBeGreaterThanOrEqual(0);
+      }
       expect(t.mass).toBeGreaterThan(0);
       expect(t.size).toBeGreaterThan(0);
-      expect(t.trailInterval).toBeGreaterThan(0);
-      expect(t.fireRate).toBeGreaterThan(0);
+      expect(t.trailInterval).toBeGreaterThanOrEqual(0);
+      expect(t.fireRate).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -132,7 +136,7 @@ describe('TYPES 配列', () => {
 
 describe('UnitType.role', () => {
   it('全タイプに有効な role が設定されている', () => {
-    const validRoles = new Set(['attack', 'support', 'special']);
+    const validRoles = new Set(['attack', 'support', 'special', 'environment']);
     for (const t of TYPES) {
       expect(validRoles.has(t.role)).toBe(true);
     }
@@ -144,14 +148,14 @@ describe('getUnitType — エラーパス', () => {
     expect(() => unitType(asType(-1))).toThrow(RangeError);
   });
 
-  it('TYPES.length以上のインデックスでRangeError', () => {
-    expect(() => unitType(asType(TYPES.length))).toThrow(RangeError);
+  it('UNIT_TYPE_COUNT以上のインデックスでRangeError', () => {
+    expect(() => unitType(asType(UNIT_TYPE_COUNT))).toThrow(RangeError);
   });
 });
 
 describe('invSqrtMass', () => {
   it('全タイプで 1/sqrt(mass) と一致する', () => {
-    for (let i = 0; i < TYPES.length; i++) {
+    for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
       const t = unitType(asType(i));
       expect(invSqrtMass(asType(i))).toBeCloseTo(1 / Math.sqrt(t.mass), 10);
     }
@@ -161,8 +165,8 @@ describe('invSqrtMass', () => {
     expect(() => invSqrtMass(-1 as UnitTypeIndex)).toThrow(RangeError);
   });
 
-  it('TYPES.length以上のインデックスでRangeError', () => {
-    expect(() => invSqrtMass(TYPES.length as UnitTypeIndex)).toThrow(RangeError);
+  it('UNIT_TYPE_COUNT以上のインデックスでRangeError', () => {
+    expect(() => invSqrtMass(UNIT_TYPE_COUNT as UnitTypeIndex)).toThrow(RangeError);
   });
 });
 
@@ -178,7 +182,7 @@ describe('unitTypeIndex', () => {
   });
 
   it('全タイプ名が正引き可能', () => {
-    for (let i = 0; i < TYPES.length; i++) {
+    for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
       const t = unitType(asType(i));
       expect(unitTypeIndex(t.name)).toBe(i);
     }

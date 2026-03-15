@@ -49,9 +49,10 @@ export function onShopChange(cb: () => void): () => void {
   };
 }
 
-// ── ショップ RNG ────────────────────────────────────────────────
+// ── ショップ RNG + ラウンド ──────────────────────────────────────
 
 let shopRng: (() => number) | null = null;
+let shopRound = 1;
 
 // ── offerings 生成 ───────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ function generateOfferings(rng: () => number, round: number): void {
 export function initShop(): void {
   shop.credits = 0;
   shopRng = null;
+  shopRound = 1;
   for (let i = 0; i < SHOP_SIZE; i++) {
     shop.offerings[i] = null;
   }
@@ -90,9 +92,10 @@ export function initShop(): void {
   notifyChange();
 }
 
-export function initShopRound(rng: () => number, round: number): void {
-  shop.credits = ROUND_CREDITS;
+export function initShopRound(rng: () => number, round: number, bonusCredits = 0): void {
+  shop.credits = ROUND_CREDITS + bonusCredits;
   shopRng = rng;
+  shopRound = round;
   generateOfferings(rng, round);
   notifyChange();
 }
@@ -146,7 +149,7 @@ export function sellSlot(slotIdx: number): boolean {
   return true;
 }
 
-export function rerollOfferings(round: number): boolean {
+export function rerollOfferings(): boolean {
   if (!shopRng) {
     throw new Error('shopRng not initialized — call initShopRound first');
   }
@@ -154,7 +157,7 @@ export function rerollOfferings(round: number): boolean {
     return false;
   }
   shop.credits -= REROLL_COST;
-  generateOfferings(shopRng, round);
+  generateOfferings(shopRng, shopRound);
   notifyChange();
   return true;
 }
