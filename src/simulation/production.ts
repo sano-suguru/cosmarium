@@ -1,6 +1,6 @@
 import { POOL_UNITS } from '../constants.ts';
-import { getVariantDef } from '../mothership-variants.ts';
-import { mothershipIdx, mothershipVariant, poolCounts, teamUnitCounts } from '../pools.ts';
+import { getMothershipDef } from '../mothership-defs.ts';
+import { mothershipIdx, mothershipType, poolCounts, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import { getProductionTime, MAX_CLUSTERS_PER_TICK, SLOT_COUNT } from '../production-config.ts';
 import type { Team, TeamTuple } from '../team.ts';
@@ -125,11 +125,11 @@ function roundRobinSpawn(
   }
 }
 
-function precomputeProdTimes(ps: ProductionState, variantMul: number): Float64Array {
+function precomputeProdTimes(ps: ProductionState, productionMul: number): Float64Array {
   const prodTimes = new Float64Array(SLOT_COUNT);
   for (let i = 0; i < ps.slots.length; i++) {
     const slot = ps.slots[i];
-    prodTimes[i] = slot ? getProductionTime(slot.type, variantMul) : 0;
+    prodTimes[i] = slot ? getProductionTime(slot.type, productionMul) : 0;
   }
   return prodTimes;
 }
@@ -158,14 +158,14 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
     return;
   }
 
-  const variantMul = getVariantDef(mothershipVariant[team]).productionRateMul;
+  const productionMul = getMothershipDef(mothershipType[team]).productionRateMul;
 
   // スロット数がキャッシュサイズを超えていたらフェイルファスト
   if (ps.slots.length > SLOT_COUNT) {
     throw new RangeError(`tickProduction: slots.length (${ps.slots.length}) exceeds SLOT_COUNT (${SLOT_COUNT})`);
   }
 
-  const prodTimes = precomputeProdTimes(ps, variantMul);
+  const prodTimes = precomputeProdTimes(ps, productionMul);
   updateTimers(ps, dt, prodTimes);
 
   // Phase 2 — ラウンドロビンスポーン

@@ -17,8 +17,8 @@ import { allocParticleSlot, freeParticleSlot } from '../pools-particle.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import type { Team } from '../team.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitTypeIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT } from '../types.ts';
-import { MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
+import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_TYPE, NO_UNIT } from '../types.ts';
+import { isMothership, unitType } from '../unit-type-accessors.ts';
 import type { KillContext } from './on-kill-effects.ts';
 import { dispatchKillEvent, dispatchSpawnEvent } from './spawn-hooks.ts';
 
@@ -155,7 +155,7 @@ export function killUnit(
     // hook 内では teamUnitCounts・mothershipIdx ともに減算/更新済み。
     // 母艦 kill 時は mothershipIdx[victimTeam] === NO_UNIT が保証される。
     decUnits(u.team);
-    if (u.type === MOTHERSHIP_TYPE) {
+    if (isMothership(u.type)) {
       decMotherships(u.team);
     }
     dispatchKillEvent(i, u.team, u.type, squadronIdx, killContext, killer, teamUnitCounts[u.team]);
@@ -247,10 +247,10 @@ interface ProjectileOpts {
 
 function resolveSourceType(sourceUnit: UnitIndex): UnitTypeIndex {
   if (sourceUnit === NO_UNIT) {
-    return NO_SOURCE_TYPE;
+    return NO_TYPE;
   }
   const src = unit(sourceUnit);
-  return src.alive ? src.type : NO_SOURCE_TYPE;
+  return src.alive ? src.type : NO_TYPE;
 }
 
 export function spawnProjectile(

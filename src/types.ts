@@ -280,7 +280,7 @@ export const NO_UNIT = -1 as UnitIndex;
 export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
 export const NO_SQUADRON = -1 as SquadronIndex;
-export const NO_SOURCE_TYPE = -1 as UnitTypeIndex;
+export const NO_TYPE = -1 as UnitTypeIndex;
 
 /** ユニットタイプのロール分類 */
-export type UnitRole = 'attack' | 'support' | 'special' | 'environment';
+export type UnitRole = 'attack' | 'support' | 'special' | 'environment' | 'mothership';

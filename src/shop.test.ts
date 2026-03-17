@@ -19,6 +19,7 @@ import {
 } from './shop.ts';
 import type { ShopSlot } from './shop-tiers.ts';
 import { effectiveCount, REROLL_COST, ROUND_CREDITS, SHOP_SIZE, sellPrice, shopPrice } from './shop-tiers.ts';
+import { HIVE_TYPE } from './unit-type-accessors.ts';
 import { TYPES } from './unit-types.ts';
 
 function makeTestSlot(baseCount: number, mergeLevel: number): ShopSlot {
@@ -304,8 +305,8 @@ describe('buildFleetFromShop', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
     purchaseItem(0);
-    const fleet = buildFleetFromShop(0);
-    expect(fleet.variant).toBe(0);
+    const fleet = buildFleetFromShop(HIVE_TYPE);
+    expect(fleet.mothershipType).toBe(HIVE_TYPE);
     expect(fleet.slots.length).toBe(SLOT_COUNT);
     const filled = fleet.slots.filter((s) => s !== null);
     expect(filled.length).toBe(1);

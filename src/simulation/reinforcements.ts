@@ -1,4 +1,5 @@
-import { incMotherships, mothershipIdx, teamUnitCounts } from '../pools.ts';
+import { MOTHERSHIP_DEFS } from '../mothership-defs.ts';
+import { mothershipIdx, registerMothership, teamUnitCounts } from '../pools.ts';
 import type { BattleTeam } from '../team.ts';
 import type { UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
@@ -17,7 +18,6 @@ import {
   HEALER_TYPE,
   LANCER_TYPE,
   LAUNCHER_TYPE,
-  MOTHERSHIP_TYPE,
   REFLECTOR_TYPE,
   SCORCHER_TYPE,
   SCRAMBLER_TYPE,
@@ -112,10 +112,14 @@ export function reinforce(dt: number, rng: () => number, rs: ReinforcementState)
   // プール満杯時は復活できないが、spectate には勝敗判定がないため影響なし
   for (const team of [0, 1] as const) {
     if (mothershipIdx[team] === NO_UNIT) {
+      const msDef = MOTHERSHIP_DEFS[Math.floor(rng() * MOTHERSHIP_DEFS.length)];
+      if (!msDef) {
+        throw new Error('reinforce: invalid mothership def index');
+      }
       const [cx, cy] = battleOrigin(team);
-      const idx = spawnUnit(team, MOTHERSHIP_TYPE, cx, cy, rng);
+      const idx = spawnUnit(team, msDef.type, cx, cy, rng);
       if (idx !== NO_UNIT) {
-        incMotherships(team, idx);
+        registerMothership(team, idx, msDef.type);
       }
     }
   }

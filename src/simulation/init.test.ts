@@ -2,14 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resetPools, resetState, reviveParticle, reviveProjectile, reviveUnit } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
-import { VARIANT_HIVE } from '../mothership-variants.ts';
 import { getUnitHWM, mothershipIdx, poolCounts } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
 import { TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
 import type { FleetSetup } from '../types-fleet.ts';
-import { unitTypeIndex } from '../unit-type-accessors.ts';
+import { DREADNOUGHT_TYPE, HIVE_TYPE, isMothership, REACTOR_TYPE, unitType } from '../unit-type-accessors.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -19,8 +18,8 @@ vi.mock('../input/camera.ts', () => ({
 
 import { INIT_SPAWNS, initBattleProduction, initMeleeProduction, initUnits } from './init.ts';
 
-function setup(variant = VARIANT_HIVE): FleetSetup {
-  return { variant, slots: [] };
+function setup(mType = HIVE_TYPE): FleetSetup {
+  return { mothershipType: mType, slots: [] };
 }
 
 afterEach(() => {
@@ -122,15 +121,13 @@ describe('initUnits', () => {
 });
 
 describe('母艦自動配備', () => {
-  const MOTHERSHIP = unitTypeIndex('Mothership');
-
   it('SPECTATE (initUnits) でも各チームに母艦がスポーンされる', () => {
     initUnits(rng);
     expect(mothershipIdx[0]).not.toBe(NO_UNIT);
     expect(mothershipIdx[1]).not.toBe(NO_UNIT);
     let mothershipCount = 0;
     for (let i = 0; i < getUnitHWM(); i++) {
-      if (unit(i).alive && unit(i).type === MOTHERSHIP) {
+      if (unit(i).alive && isMothership(unit(i).type)) {
         mothershipCount++;
       }
     }
@@ -142,28 +139,27 @@ describe('母艦自動配備', () => {
       let count = 0;
       for (let i = 0; i < getUnitHWM(); i++) {
         const u = unit(i);
-        if (u.alive && u.team === team && u.type === MOTHERSHIP) {
+        if (u.alive && u.team === team && isMothership(u.type)) {
           count++;
         }
       }
       return count;
     }
 
-    initMeleeProduction(rng, [setup(0), setup(1), setup(2)], 3);
+    initMeleeProduction(rng, [setup(HIVE_TYPE), setup(DREADNOUGHT_TYPE), setup(REACTOR_TYPE)], 3);
     for (const t of [TEAM0, TEAM1, TEAM2]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);
     }
-    // Mothership タイプのユニットがチームごとに1体
+    // 母艦タイプのユニットがチームごとに1体
     for (let t = 0; t < 3; t++) {
       expect(countMothershipsByTeam(t)).toBe(1);
     }
   });
 });
 
-describe('initBattleProduction — HP バリアント', () => {
-  it('Dreadnought (hpMul=1.5) の母艦は maxHp === hp かつ Hive より高い', () => {
-    // Dreadnought(1) vs Hive(0)
-    initBattleProduction(rng, setup(1), setup(0));
+describe('initBattleProduction — 母艦タイプ別 HP', () => {
+  it('Dreadnought の母艦は maxHp === hp かつ Hive より高い', () => {
+    initBattleProduction(rng, setup(DREADNOUGHT_TYPE), setup(HIVE_TYPE));
     const dreadIdx = mothershipIdx[0];
     const hiveIdx = mothershipIdx[1];
     expect(dreadIdx).not.toBe(NO_UNIT);
@@ -175,14 +171,24 @@ describe('initBattleProduction — HP バリアント', () => {
     expect(dread.maxHp).toBe(dread.hp);
     expect(hive.maxHp).toBe(hive.hp);
     expect(dread.maxHp).toBeGreaterThan(hive.maxHp);
-    // hpMul=1.5 の Dreadnought は Hive(hpMul=1.0) の 1.5 倍
-    expect(dread.maxHp).toBe(Math.round(hive.maxHp * 1.5));
+  });
+
+  it('各母艦の HP が UnitType 定義と一致する', () => {
+    initBattleProduction(rng, setup(DREADNOUGHT_TYPE), setup(HIVE_TYPE));
+    expect(unit(mothershipIdx[0]).maxHp).toBe(unitType(DREADNOUGHT_TYPE).hp);
+    expect(unit(mothershipIdx[1]).maxHp).toBe(unitType(HIVE_TYPE).hp);
+  });
+
+  it('Reactor の HP が UnitType 定義と一致する', () => {
+    initBattleProduction(rng, setup(REACTOR_TYPE), setup(HIVE_TYPE));
+    expect(unit(mothershipIdx[0]).maxHp).toBe(unitType(REACTOR_TYPE).hp);
+    expect(unit(mothershipIdx[1]).maxHp).toBe(unitType(HIVE_TYPE).hp);
   });
 });
 
 describe('initMeleeProduction', () => {
   it('N勢力で母艦のみスポーンされる', () => {
-    initMeleeProduction(rng, [setup(0), setup(1), setup(2)], 3);
+    initMeleeProduction(rng, [setup(HIVE_TYPE), setup(DREADNOUGHT_TYPE), setup(REACTOR_TYPE)], 3);
     expect(poolCounts.units).toBe(3);
     for (const t of [TEAM0, TEAM1, TEAM2]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);
@@ -191,8 +197,12 @@ describe('initMeleeProduction', () => {
     expect(mothershipIdx[TEAM4]).toBe(NO_UNIT);
   });
 
-  it('バリアントが各チームに適用される', () => {
-    initMeleeProduction(rng, [setup(0), setup(1), setup(2), setup(0), setup(2)], 5);
+  it('各チームに母艦タイプが適用される', () => {
+    initMeleeProduction(
+      rng,
+      [setup(HIVE_TYPE), setup(DREADNOUGHT_TYPE), setup(REACTOR_TYPE), setup(HIVE_TYPE), setup(REACTOR_TYPE)],
+      5,
+    );
     expect(poolCounts.units).toBe(5);
     for (const t of [TEAM0, TEAM1, TEAM2, TEAM3, TEAM4]) {
       expect(mothershipIdx[t]).not.toBe(NO_UNIT);

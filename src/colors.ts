@@ -63,7 +63,9 @@ const UNIT_MOD_MAP: Readonly<Record<string, UnitColorMod>> = {
   Amplifier: { hue: -0.1, lum: 1.15, sat: 0.85, effectHue: -0.18, effectSat: 1.25 },
   Scrambler: { hue: -0.18, lum: 1.05, sat: 0.95, effectHue: -0.28, effectSat: 1.3 },
   Catalyst: { hue: 0.18, lum: 1.2, sat: 0.65, effectHue: 0.28, effectSat: 1.2 },
-  Mothership: { hue: -0.16, lum: 0.82, sat: 0.65, effectHue: -0.26, effectSat: 1.0 },
+  Hive: { hue: -0.16, lum: 0.82, sat: 0.65, effectHue: -0.26, effectSat: 1.0 },
+  Dreadnought: { hue: -0.18, lum: 0.78, sat: 0.6, effectHue: -0.28, effectSat: 0.95 },
+  Reactor: { hue: -0.14, lum: 0.85, sat: 0.7, effectHue: -0.24, effectSat: 1.05 },
   Asteroid: { hue: 0.0, lum: 0.75, sat: 0.4, effectHue: 0.0, effectSat: 0.8 },
   'Asteroid Core': { hue: 0.02, lum: 0.7, sat: 0.5, effectHue: 0.05, effectSat: 0.9 },
 };

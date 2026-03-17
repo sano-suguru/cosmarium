@@ -56,7 +56,7 @@
   justify-content: center;
   gap: 6px 14px;
 }
-.enemyVariant {
+.enemyMothership {
   color: #f88;
   font-size: 11px;
 }
@@ -72,25 +72,25 @@
   letter-spacing: 1px;
 }
 
-/* === VARIANT SELECTOR === */
-.variantSection {
+/* === MOTHERSHIP SELECTOR === */
+.mothershipSection {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.variantTitle {
+.mothershipTitle {
   font-family: "Orbitron", sans-serif;
   font-size: 12px;
   color: #0ff;
   letter-spacing: 2px;
   text-align: center;
 }
-.variantGrid {
+.mothershipGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
-.variantCard {
+.mothershipCard {
   background: rgba(0, 20, 40, 0.6);
   border: 1px solid rgba(0, 255, 255, 0.12);
   border-radius: 4px;
@@ -103,34 +103,34 @@
   font-family: "Share Tech Mono", monospace;
   color: #8ab;
 }
-.variantCard:hover {
+.mothershipCard:hover {
   background: rgba(0, 40, 60, 0.7);
   border-color: rgba(0, 255, 255, 0.3);
 }
-.variantCard:focus-visible {
+.mothershipCard:focus-visible {
   background: rgba(0, 40, 60, 0.7);
   border-color: rgba(0, 255, 255, 0.3);
   outline: 1px solid rgba(0, 255, 255, 0.4);
   outline-offset: 2px;
 }
-.variantActive {
+.mothershipActive {
   border-color: #0ff;
   background: rgba(0, 60, 80, 0.5);
   color: #0ff;
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
 }
-.variantName {
+.mothershipName {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
   margin-bottom: 4px;
 }
-.variantDesc {
+.mothershipDesc {
   font-size: 10px;
   color: #688;
   line-height: 1.4;
 }
-.variantActive .variantDesc {
+.mothershipActive .mothershipDesc {
   color: #0aa;
 }
 
@@ -224,7 +224,7 @@
     .header {
       display: none;
     }
-    .variantDesc {
+    .mothershipDesc {
       display: none;
     }
     .actions {

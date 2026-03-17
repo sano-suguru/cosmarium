@@ -1,11 +1,9 @@
-import { getVariantDef } from '../mothership-variants.ts';
-import { clearAllPools, getUnitHWM, incMotherships, mothershipIdx, setMothershipVariant } from '../pools.ts';
-import { unit } from '../pools-query.ts';
+import { clearAllPools, getUnitHWM, mothershipIdx, registerMothership } from '../pools.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { teamsOf } from '../team.ts';
 import type { UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import type { FleetSetup, MothershipVariant, ProductionState } from '../types-fleet.ts';
+import type { FleetSetup, ProductionState } from '../types-fleet.ts';
 import {
   AMPLIFIER_TYPE,
   ARCER_TYPE,
@@ -21,9 +19,9 @@ import {
   FIGHTER_TYPE,
   FLAGSHIP_TYPE,
   HEALER_TYPE,
+  HIVE_TYPE,
   LANCER_TYPE,
   LAUNCHER_TYPE,
-  MOTHERSHIP_TYPE,
   REFLECTOR_TYPE,
   SCORCHER_TYPE,
   SCRAMBLER_TYPE,
@@ -75,7 +73,7 @@ export function initUnits(rng: () => number) {
 
   for (const team of [0, 1] as const) {
     const [cx, cy] = battleOrigin(team);
-    spawnMothership(team, cx, cy, rng);
+    spawnMothership(team, cx, cy, rng, HIVE_TYPE);
     for (const { type, count, spread } of INIT_SPAWNS) {
       for (let j = 0; j < count; j++) {
         spawnUnit(team, type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
@@ -85,22 +83,15 @@ export function initUnits(rng: () => number) {
   }
 }
 
-function spawnMothership(team: Team, cx: number, cy: number, rng: () => number, variant?: MothershipVariant) {
+function spawnMothership(team: Team, cx: number, cy: number, rng: () => number, mothershipType: UnitTypeIndex) {
   if (mothershipIdx[team] !== NO_UNIT) {
     return;
   }
-  const idx = spawnUnit(team, MOTHERSHIP_TYPE, cx, cy, rng);
+  const idx = spawnUnit(team, mothershipType, cx, cy, rng);
   if (idx === NO_UNIT) {
     throw new RangeError(`Failed to spawn mothership for team ${team}: unit pool exhausted`);
   }
-  incMotherships(team, idx);
-  if (variant !== undefined) {
-    setMothershipVariant(team, variant);
-    const def = getVariantDef(variant);
-    const u = unit(idx);
-    u.maxHp = Math.round(u.maxHp * def.hpMul);
-    u.hp = u.maxHp;
-  }
+  registerMothership(team, idx, mothershipType);
 }
 
 /** 母艦のみスポーン（生産駆動バトル用） */
@@ -111,9 +102,9 @@ export function initBattleProduction(
 ): [ProductionState, ProductionState] {
   resetField();
   const [cx0, cy0] = battleOrigin(0);
-  spawnMothership(0, cx0, cy0, rng, playerSetup.variant);
+  spawnMothership(0, cx0, cy0, rng, playerSetup.mothershipType);
   const [cx1, cy1] = battleOrigin(1);
-  spawnMothership(1, cx1, cy1, rng, enemySetup.variant);
+  spawnMothership(1, cx1, cy1, rng, enemySetup.mothershipType);
   return [initProductionState(playerSetup.slots), initProductionState(enemySetup.slots)];
 }
 
@@ -129,7 +120,7 @@ export function initMeleeProduction(
     const setup = setups[team];
     if (setup) {
       const [cx, cy] = meleeOrigin(team, numTeams);
-      spawnMothership(team, cx, cy, rng, setup.variant);
+      spawnMothership(team, cx, cy, rng, setup.mothershipType);
       productions[team] = initProductionState(setup.slots);
     }
   }
@@ -159,7 +150,7 @@ export function initBonusField(rng: () => number, playerSetup: FleetSetup): Bonu
 
   // プレイヤー母艦（team 0）
   const [cx0, cy0] = battleOrigin(0);
-  spawnMothership(0, cx0, cy0, rng, playerSetup.variant);
+  spawnMothership(0, cx0, cy0, rng, playerSetup.mothershipType);
 
   // アステロイド配置（team 1 = プレイヤーの攻撃対象）
   const [cx1, cy1] = battleOrigin(1);

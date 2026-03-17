@@ -1,14 +1,14 @@
 import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
 import { BONUS_TIME_LIMIT } from '../bonus-round.ts';
 import { NEIGHBOR_RANGE, REF_FPS } from '../constants.ts';
-import { getVariantDef } from '../mothership-variants.ts';
+import { getMothershipArmament, getMothershipDef } from '../mothership-defs.ts';
 import { particleIdx, unitIdx } from '../pool-index.ts';
 import {
   countAliveMotherships,
   getParticleHWM,
   getUnitHWM,
   mothershipIdx,
-  mothershipVariant,
+  mothershipType,
   poolCounts,
   teamUnitCounts,
 } from '../pools.ts';
@@ -19,7 +19,7 @@ import { MAX_TEAMS, TEAM0, TEAM1, teamAt } from '../team.ts';
 import type { Armament, BattlePhase, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import type { BonusPhaseData, ProductionState } from '../types-fleet.ts';
-import { FLAGSHIP_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
+import { FLAGSHIP_TYPE, isMothership, unitType } from '../unit-type-accessors.ts';
 import { updateChains } from './chain-lightning.ts';
 import { combat, combatMothershipTick } from './combat.ts';
 import type { ShakeFn } from './combat-context.ts';
@@ -117,7 +117,7 @@ function countSwarmFromNeighbors(u: Unit, nb: NeighborSlice): number {
 }
 
 function emitTrail(u: Unit, rng: () => number) {
-  if (u.type === FLAGSHIP_TYPE || u.type === MOTHERSHIP_TYPE) {
+  if (u.type === FLAGSHIP_TYPE || isMothership(u.type)) {
     flagshipTrail(u, rng);
   } else {
     trail(u, rng);
@@ -140,30 +140,30 @@ function processTrailAndBoost(u: Unit, ut: UnitType, dt: number, rng: () => numb
   }
 }
 
-// チーム単位のバリアント情報プリコンピュート用 static 配列
-const _variantAttackCdMul: TeamTuple<number> = [1, 1, 1, 1, 1];
-const _variantArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
+// チーム単位の母艦情報プリコンピュート用 static 配列
+const _msAttackCdMul: TeamTuple<number> = [1, 1, 1, 1, 1];
+const _msArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
 
-/** 全チームのバリアント攻撃クールダウン倍率・武装をプリコンピュート */
-function initializeVariantStats(activeTeamCount: number) {
+/** 全チームの母艦攻撃クールダウン倍率・武装をプリコンピュート */
+function initializeMothershipStats(activeTeamCount: number) {
   for (let t = 0; t < MAX_TEAMS; t++) {
-    _variantAttackCdMul[t] = 1;
-    _variantArmament[t] = null;
+    _msAttackCdMul[t] = 1;
+    _msArmament[t] = null;
   }
   for (let t = 0; t < activeTeamCount; t++) {
     const team = teamAt(t);
-    const vDef = getVariantDef(mothershipVariant[team]);
-    _variantAttackCdMul[team] = vDef.attackCdMul;
-    _variantArmament[team] = vDef.armament;
+    const msDef = getMothershipDef(mothershipType[team]);
+    _msAttackCdMul[team] = msDef.attackCdMul;
+    _msArmament[team] = getMothershipArmament(mothershipType[team]);
   }
 }
 
 /** 母艦 or 通常ユニットの戦闘処理を振り分け */
 function updateUnitCombat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, shake: ShakeFn) {
-  if (u.type === MOTHERSHIP_TYPE) {
-    combatMothershipTick(u, ui, dt, rng, _variantAttackCdMul[u.team], _variantArmament[u.team], shake);
+  if (isMothership(u.type)) {
+    combatMothershipTick(u, ui, dt, rng, _msAttackCdMul[u.team], _msArmament[u.team], shake);
   } else {
-    combat(u, ui, dt, rng, _variantAttackCdMul[u.team], shake);
+    combat(u, ui, dt, rng, _msAttackCdMul[u.team], shake);
   }
 }
 
@@ -186,7 +186,7 @@ function processOneUnit(u: Unit, i: number, dt: number, rng: () => number, shake
 }
 
 function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
-  initializeVariantStats(activeTeamCount);
+  initializeMothershipStats(activeTeamCount);
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {

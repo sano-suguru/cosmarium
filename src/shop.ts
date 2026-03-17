@@ -9,7 +9,8 @@ import {
   sellPrice,
   slotsToProduction,
 } from './shop-tiers.ts';
-import type { FleetSetup, MothershipVariant } from './types-fleet.ts';
+import type { UnitTypeIndex } from './types.ts';
+import type { FleetSetup } from './types-fleet.ts';
 import { TYPES } from './unit-types.ts';
 import { weightedPick } from './weighted-pick.ts';
 
@@ -170,8 +171,8 @@ export function toggleLock(offeringIdx: number): void {
   }
 }
 
-export function buildFleetFromShop(variant: MothershipVariant): FleetSetup {
-  return { variant, slots: slotsToProduction(shop.slots) };
+export function buildFleetFromShop(mothershipType: UnitTypeIndex): FleetSetup {
+  return { mothershipType, slots: slotsToProduction(shop.slots) };
 }
 
 export function getShopCredits(): number {

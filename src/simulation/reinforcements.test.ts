@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { asType, fillUnitPool, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
-import { incMotherships, poolCounts, setUnitCount } from '../pools.ts';
+import { MOTHERSHIP_DEFS } from '../mothership-defs.ts';
+import { mothershipType, poolCounts, registerMothership, setUnitCount } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import { rng, state } from '../state.ts';
-import { unitTypeIndex } from '../unit-type-accessors.ts';
+import { NO_TYPE } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import {
@@ -15,17 +16,19 @@ import {
   reinforce,
 } from './reinforcements.ts';
 
-const MOTHERSHIP_T = unitTypeIndex('Mothership');
-
 function makeRS(timer = 0): ReinforcementState {
   return { reinforcementTimer: timer };
 }
 
 /** 両チームに母艦をスポーン済みの状態にする（reinforce の母艦再スポーンを抑止） */
 function spawnMotherships() {
+  const msDef = MOTHERSHIP_DEFS[0];
+  if (!msDef) {
+    throw new Error('MOTHERSHIP_DEFS is empty');
+  }
   for (const team of [0, 1] as const) {
-    const idx = spawnAt(team, MOTHERSHIP_T, team * 500, 0);
-    incMotherships(team, idx);
+    const idx = spawnAt(team, msDef.type, team * 500, 0);
+    registerMothership(team, idx, msDef.type);
   }
 }
 
@@ -120,6 +123,17 @@ describe('reinforce', () => {
     expect(team0).toBeGreaterThan(0);
     expect(team1).toBeGreaterThan(0);
     expect(team0).toBe(team1);
+  });
+
+  it('母艦復活後に mothershipType が NO_TYPE でない', () => {
+    // 母艦なし状態から reinforce を呼ぶと母艦が復活する
+    const rs = makeRS(REINFORCE_INTERVAL);
+    state.rng = () => 0.5;
+    reinforce(0.1, rng, rs);
+    // 両チームの母艦が復活し、mothershipType が設定されている
+    for (const team of [0, 1] as const) {
+      expect(mothershipType[team]).not.toBe(NO_TYPE);
+    }
   });
 });
 

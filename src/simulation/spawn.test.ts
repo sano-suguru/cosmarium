@@ -10,19 +10,12 @@ import {
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
 import { particleIdx, projectileIdx, unitIdx } from '../pool-index.ts';
-import { incMotherships, mothershipIdx, poolCounts } from '../pools.ts';
+import { mothershipIdx, poolCounts, registerMothership } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import { TEAM0, TEAM1 } from '../team.ts';
 import type { UnitIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_UNIT } from '../types.ts';
-import {
-  BOMBER_TYPE,
-  CRUISER_TYPE,
-  DRONE_TYPE,
-  FIGHTER_TYPE,
-  unitType,
-  unitTypeIndex,
-} from '../unit-type-accessors.ts';
+import { BOMBER_TYPE, CRUISER_TYPE, DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, unitType } from '../unit-type-accessors.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import {
   captureKiller,
@@ -235,27 +228,27 @@ describe('killUnit', () => {
   });
 
   it('Mothership kill で mothershipIdx が NO_UNIT になる', () => {
-    const mothershipType = unitTypeIndex('Mothership');
+    const mothershipType = HIVE_TYPE;
     const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
-    incMotherships(0, idx);
+    registerMothership(0, idx, mothershipType);
     expect(mothershipIdx[0]).toBe(idx);
     killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(mothershipIdx[0]).toBe(NO_UNIT);
   });
 
   it('通常ユニット kill で mothershipIdx が変化しない', () => {
-    const mothershipType = unitTypeIndex('Mothership');
+    const mothershipType = HIVE_TYPE;
     const msIdx = spawnUnit(0, mothershipType, 0, 0, testRng);
-    incMotherships(0, msIdx);
+    registerMothership(0, msIdx, mothershipType);
     const fighterIdx = spawnUnit(0, FIGHTER_TYPE, 100, 100, testRng);
     killUnit(fighterIdx, undefined, KILL_CONTEXT.ProjectileDirect);
     expect(mothershipIdx[0]).toBe(msIdx);
   });
 
   it('Mothership 二重 kill で decMotherships エラーにならない', () => {
-    const mothershipType = unitTypeIndex('Mothership');
+    const mothershipType = HIVE_TYPE;
     const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
-    incMotherships(0, idx);
+    registerMothership(0, idx, mothershipType);
     killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
     // 二重 kill: alive ガードにより decMotherships は呼ばれない
     expect(() => killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect)).not.toThrow();

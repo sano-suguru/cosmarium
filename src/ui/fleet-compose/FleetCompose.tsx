@@ -1,9 +1,11 @@
 import { signal } from '@preact/signals';
 import { ArrowLeft, BookOpen, RotateCcw, ShieldAlert, Swords } from 'lucide-preact';
-import { MOTHERSHIP_VARIANTS } from '../../mothership-variants.ts';
+import { getMothershipDef, MOTHERSHIP_DEFS } from '../../mothership-defs.ts';
 import { getRunInfo } from '../../run.ts';
 import { purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
-import type { MothershipVariant, RoundType } from '../../types-fleet.ts';
+import type { UnitTypeIndex } from '../../types.ts';
+import type { RoundType } from '../../types-fleet.ts';
+import { HIVE_TYPE } from '../../unit-type-accessors.ts';
 import { resetCurrentRoundShop } from '../game-control.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
@@ -23,15 +25,15 @@ function launchLabel(rt: RoundType | undefined): string {
   return 'LAUNCH BATTLE';
 }
 
-const variant$ = signal<MothershipVariant>(0);
+const mothershipType$ = signal<UnitTypeIndex>(HIVE_TYPE);
 
-export function resetVariant() {
-  variant$.value = 0;
+export function resetMothershipType() {
+  mothershipType$.value = HIVE_TYPE;
 }
 
 /** テスト専用: モジュールレベル変数をリセット */
 export function _resetFleetCompose() {
-  resetVariant();
+  resetMothershipType();
 }
 
 function EnemyFleetHeader() {
@@ -41,7 +43,7 @@ function EnemyFleetHeader() {
   const isFfa = runInfo?.roundType === 'ffa';
   const isBonus = runInfo?.roundType === 'bonus';
 
-  const variantDef = !isFfa && !isBonus && setup ? MOTHERSHIP_VARIANTS[setup.variant] : null;
+  const msDef = !isFfa && !isBonus && setup ? getMothershipDef(setup.mothershipType) : null;
   const slotCount = setup?.slots.filter((s) => s !== null).length ?? 0;
 
   let headerLabel = 'ENEMY FLEET';
@@ -59,7 +61,7 @@ function EnemyFleetHeader() {
       <div class={styles.enemyList}>
         <div class={styles.enemyArch}>
           {archName}
-          {variantDef && <span class={styles.enemyVariant}> / {variantDef.name}</span>}
+          {msDef && <span class={styles.enemyMothership}> / {msDef.name}</span>}
         </div>
         <div class={styles.enemyUnits}>
           {slotCount > 0 && <span class={styles.enemyIntel}>{slotCount} 部隊 (詳細不明)</span>}
@@ -69,24 +71,24 @@ function EnemyFleetHeader() {
   );
 }
 
-function VariantSelector() {
-  const current = variant$.value;
+function MothershipSelector() {
+  const current = mothershipType$.value;
 
   return (
-    <div class={styles.variantSection}>
-      <div class={styles.variantTitle}>MOTHERSHIP VARIANT</div>
-      <div class={styles.variantGrid}>
-        {MOTHERSHIP_VARIANTS.map((v) => (
+    <div class={styles.mothershipSection}>
+      <div class={styles.mothershipTitle}>MOTHERSHIP</div>
+      <div class={styles.mothershipGrid}>
+        {MOTHERSHIP_DEFS.map((d) => (
           <button
-            key={v.id}
+            key={d.type}
             type="button"
-            class={`${styles.variantCard} ${current === v.id ? styles.variantActive : ''}`}
+            class={`${styles.mothershipCard} ${current === d.type ? styles.mothershipActive : ''}`}
             onClick={() => {
-              variant$.value = v.id;
+              mothershipType$.value = d.type;
             }}
           >
-            <div class={styles.variantName}>{v.name}</div>
-            <div class={styles.variantDesc}>{v.description}</div>
+            <div class={styles.mothershipName}>{d.name}</div>
+            <div class={styles.mothershipDesc}>{d.description}</div>
           </button>
         ))}
       </div>
@@ -95,7 +97,7 @@ function VariantSelector() {
 }
 
 type FleetComposeProps = {
-  readonly onLaunch: (variant: MothershipVariant) => void;
+  readonly onLaunch: (mothershipType: UnitTypeIndex) => void;
   readonly onBack: () => void;
   readonly onCodexToggle: () => void;
 };
@@ -106,7 +108,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
 
   const handleLaunch = () => {
     if (hasSlotFilled) {
-      onLaunch(variant$.value);
+      onLaunch(mothershipType$.value);
     }
   };
 
@@ -116,9 +118,9 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         {runInfo && <RunInfoBar info={runInfo} class={styles.roundInfo} livesClass={styles.lives} />}
         <CreditBar />
         <EnemyFleetHeader />
-        <VariantSelector />
+        <MothershipSelector />
         <ShopPanel onBuy={purchaseItem} onToggleLock={toggleLock} onReroll={rerollOfferings} />
-        <SlotPanel variant={variant$.value} onSell={sellSlot} />
+        <SlotPanel mothershipType={mothershipType$.value} onSell={sellSlot} />
         <div class={styles.actions}>
           <button type="button" class={btnStyles.btn} onClick={onBack}>
             <ArrowLeft size={14} /> BACK
@@ -127,7 +129,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
             type="button"
             class={`${btnStyles.btn} ${styles.reset}`}
             onClick={() => {
-              resetVariant();
+              resetMothershipType();
               resetCurrentRoundShop();
             }}
           >

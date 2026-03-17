@@ -68,12 +68,6 @@ export type RunResult = {
   readonly roundResults: readonly RoundResult[];
 };
 
-export type MothershipVariant = 0 | 1 | 2;
-
-/** バリアント未選択 / 未割り当て。MothershipVariantOrNone union で型安全を確保するためブランド化不要 */
-export const NO_VARIANT = -1 as const;
-export type MothershipVariantOrNone = MothershipVariant | typeof NO_VARIANT;
-
 /** 順次生産スロット */
 export type ProductionSlot = {
   readonly type: UnitTypeIndex;
@@ -81,11 +75,9 @@ export type ProductionSlot = {
 };
 
 export interface FleetSetup {
-  readonly variant: MothershipVariant;
+  readonly mothershipType: UnitTypeIndex;
   readonly slots: readonly (ProductionSlot | null)[];
 }
-
-export const EMPTY_FLEET_SETUP: FleetSetup = { variant: 0, slots: [] };
 
 export type BonusPhaseData = {
   readonly totalHp: number;

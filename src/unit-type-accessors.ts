@@ -1,6 +1,11 @@
 import type { UnitRole, UnitType, UnitTypeIndex } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
+/** 母艦タイプ判定（Hive / Dreadnought / Reactor） */
+export function isMothership(t: UnitTypeIndex): boolean {
+  return checked(t).role === 'mothership';
+}
+
 const _invSqrtMass: number[] = TYPES.map((t) => 1 / Math.sqrt(t.mass));
 
 function checked(id: number): UnitType {
@@ -47,7 +52,9 @@ export const BASTION_TYPE = T('Bastion');
 export const AMPLIFIER_TYPE = T('Amplifier');
 export const SCRAMBLER_TYPE = T('Scrambler');
 export const CATALYST_TYPE = T('Catalyst');
-export const MOTHERSHIP_TYPE = T('Mothership');
+export const HIVE_TYPE = T('Hive');
+export const DREADNOUGHT_TYPE = T('Dreadnought');
+export const REACTOR_TYPE = T('Reactor');
 export const ASTEROID_TYPE = T('Asteroid');
 export const ASTEROID_LARGE_TYPE = T('Asteroid Core');
 export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
@@ -74,4 +81,5 @@ export const ROLE_LABELS: Record<UnitRole, string> = {
   support: '支援',
   special: '特殊',
   environment: '環境',
+  mothership: '母艦',
 };

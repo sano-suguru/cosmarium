@@ -11,7 +11,17 @@ import {
   scorcher,
   sniper,
 } from './unit-defs-attack.ts';
-import { asteroid, asteroidLarge, carrier, disruptor, mothership, scrambler, teleporter } from './unit-defs-special.ts';
+import {
+  asteroid,
+  asteroidLarge,
+  carrier,
+  disruptor,
+  dreadnought,
+  hive,
+  reactor,
+  scrambler,
+  teleporter,
+} from './unit-defs-special.ts';
 import { amplifier, bastion, catalyst, healer, reflector } from './unit-defs-support.ts';
 
 export const TYPES: UnitType[] = [
@@ -34,9 +44,11 @@ export const TYPES: UnitType[] = [
   amplifier, // 15-16
   scrambler, // 17
   catalyst, // 18
-  mothership, // 19
-  asteroid,
-  asteroidLarge,
+  hive, // 19
+  dreadnought, // 20
+  reactor, // 21
+  asteroid, // 22
+  asteroidLarge, // 23
 ];
 
 export const UNIT_TYPE_COUNT = TYPES.length;

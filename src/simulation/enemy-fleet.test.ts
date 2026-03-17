@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { MOTHERSHIP_DEFS } from '../mothership-defs.ts';
 import { filledSlots, SLOT_COUNT } from '../production-config.ts';
 import { mergeBonusCount, ROUND_CREDITS, shopPrice } from '../shop-tiers.ts';
 import { rng } from '../state.ts';
@@ -65,11 +66,11 @@ describe('generateEnemySetup', () => {
     expect(setup.slots.length).toBe(SLOT_COUNT);
   });
 
-  it('バリアントが 0 | 1 | 2 の範囲', () => {
+  it('mothershipType が有効な母艦タイプの UnitTypeIndex', () => {
+    const validTypes = new Set(MOTHERSHIP_DEFS.map((d) => d.type));
     for (let i = 0; i < 50; i++) {
       const { setup } = generateEnemySetup(rng, 1);
-      expect(setup.variant).toBeGreaterThanOrEqual(0);
-      expect(setup.variant).toBeLessThanOrEqual(2);
+      expect(validTypes.has(setup.mothershipType)).toBe(true);
     }
   });
 

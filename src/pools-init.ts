@@ -1,7 +1,7 @@
 import { POOL_PARTICLES, POOL_PROJECTILES, POOL_SQUADRONS, POOL_UNITS } from './constants.ts';
 import { TEAM0 } from './team.ts';
 import type { Particle, Projectile, Squadron, Unit } from './types.ts';
-import { NO_SOURCE_TYPE, NO_SQUADRON, NO_UNIT } from './types.ts';
+import { NO_SQUADRON, NO_TYPE, NO_UNIT } from './types.ts';
 import { DEFAULT_UNIT_TYPE } from './unit-type-accessors.ts';
 
 export const unitPool: Unit[] = [];
@@ -109,6 +109,6 @@ for (let i = 0; i < POOL_PROJECTILES; i++) {
     aoe: 0,
     target: NO_UNIT,
     sourceUnit: NO_UNIT,
-    sourceType: NO_SOURCE_TYPE,
+    sourceType: NO_TYPE,
   };
 }

@@ -5,10 +5,8 @@ import { initParticleFreeStack, rebuildParticleFreeStack } from './pools-particl
 import { particle, projectile, squadron, unit } from './pools-query.ts';
 import type { Team, TeamCounts, TeamTuple } from './team.ts';
 import { assignTeamTuple, TEAMS, teamAt } from './team.ts';
-import type { UnitIndex } from './types.ts';
-import { NO_UNIT } from './types.ts';
-import type { MothershipVariant, MothershipVariantOrNone } from './types-fleet.ts';
-import { NO_VARIANT } from './types-fleet.ts';
+import type { UnitIndex, UnitTypeIndex } from './types.ts';
+import { NO_TYPE, NO_UNIT } from './types.ts';
 
 // リセット時に使用済みスロットのみ走査するための最高インデックス追跡
 let _unitHWM = 0;
@@ -55,25 +53,25 @@ export function restoreHWM(units: number, particles: number, projectiles: number
 const _counts = { units: 0, particles: 0, projectiles: 0 };
 const _teamUnits: TeamCounts = [0, 0, 0, 0, 0];
 const _mothershipIdx: TeamTuple<UnitIndex> = [NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT];
-const _mothershipVariant: TeamTuple<MothershipVariantOrNone> = [
-  NO_VARIANT,
-  NO_VARIANT,
-  NO_VARIANT,
-  NO_VARIANT,
-  NO_VARIANT,
-];
+const _mothershipType: TeamTuple<UnitTypeIndex> = [NO_TYPE, NO_TYPE, NO_TYPE, NO_TYPE, NO_TYPE];
 
 export const poolCounts: Readonly<{ units: number; particles: number; projectiles: number }> = _counts;
 export const teamUnitCounts: Readonly<TeamCounts> = _teamUnits;
 export const mothershipIdx: Readonly<TeamTuple<UnitIndex>> = _mothershipIdx;
-export const mothershipVariant: Readonly<TeamTuple<MothershipVariantOrNone>> = _mothershipVariant;
+export const mothershipType: Readonly<TeamTuple<UnitTypeIndex>> = _mothershipType;
 
-export function setMothershipVariant(team: Team, variant: MothershipVariant) {
-  _mothershipVariant[team] = variant;
+function setMothershipType(team: Team, typeIdx: UnitTypeIndex) {
+  _mothershipType[team] = typeIdx;
+}
+
+/** 母艦のユニットインデックスとタイプを不可分に登録する。チームにつき1体まで（二重登録で RangeError） */
+export function registerMothership(team: Team, unitIndex: UnitIndex, msType: UnitTypeIndex) {
+  incMotherships(team, unitIndex);
+  setMothershipType(team, msType);
 }
 
 /** 母艦のユニットインデックスを登録する。チームにつき1体まで（二重登録で RangeError） */
-export function incMotherships(team: Team, unitIndex: UnitIndex) {
+function incMotherships(team: Team, unitIndex: UnitIndex) {
   if (unitIndex < 0 || unitIndex >= POOL_UNITS) {
     throw new RangeError(`unitIndex out of range: ${unitIndex}`);
   }
@@ -88,8 +86,8 @@ export function decMotherships(team: Team) {
     throw new RangeError(`mothershipIdx[${team}] already NO_UNIT`);
   }
   _mothershipIdx[team] = NO_UNIT;
-  // 母艦撃沈時バリアントリセット
-  _mothershipVariant[team] = NO_VARIANT;
+  // 母艦撃沈時タイプリセット
+  _mothershipType[team] = NO_TYPE;
 }
 export function incUnits(team: Team) {
   if (_counts.units >= POOL_UNITS) {
@@ -139,7 +137,7 @@ export function resetPoolCounts() {
   _teamUnits.fill(0);
   for (const t of TEAMS) {
     _mothershipIdx[t] = NO_UNIT;
-    _mothershipVariant[t] = NO_VARIANT;
+    _mothershipType[t] = NO_TYPE;
   }
   initParticleFreeStack();
 }

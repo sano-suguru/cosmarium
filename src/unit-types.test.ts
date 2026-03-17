@@ -136,7 +136,7 @@ describe('TYPES 配列', () => {
 
 describe('UnitType.role', () => {
   it('全タイプに有効な role が設定されている', () => {
-    const validRoles = new Set(['attack', 'support', 'special', 'environment']);
+    const validRoles = new Set(['attack', 'support', 'special', 'environment', 'mothership']);
     for (const t of TYPES) {
       expect(validRoles.has(t.role)).toBe(true);
     }

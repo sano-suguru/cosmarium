@@ -1,6 +1,7 @@
 import { batch } from '@preact/signals';
 import { cam, setAutoFollow } from '../input/camera.ts';
 import type { MeleeResult } from '../melee-tracker.ts';
+import { EMPTY_FLEET_SETUP } from '../mothership-defs.ts';
 import { _resetRunState, endRun, getRunInfo, isRunActive, processRoundEnd, resetRun } from '../run.ts';
 import {
   buildFleetFromShop,
@@ -16,17 +17,11 @@ import { initBattleProduction, initBonusField, initMeleeProduction, initUnits } 
 import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
-import type { TimeScale } from '../types.ts';
-import {
-  EMPTY_FLEET_SETUP,
-  type FleetSetup,
-  type MothershipVariant,
-  type ProductionState,
-  type RoundEndInput,
-} from '../types-fleet.ts';
+import type { TimeScale, UnitTypeIndex } from '../types.ts';
+import type { FleetSetup, ProductionState, RoundEndInput } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
 import { meleeResultToBattleResult } from './ffa-round.ts';
-import { resetVariant } from './fleet-compose/FleetCompose.tsx';
+import { resetMothershipType } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
 import { prepareRoundEnemy } from './round-enemy.ts';
 import {
@@ -105,7 +100,7 @@ function goToCompose(preserveState: boolean) {
   playUiVisible$.value = false;
   resultData$.value = null;
   if (!preserveState) {
-    resetVariant();
+    resetMothershipType();
   }
   composeEnemySetup$.value = currentEnemySetup;
   composeEnemyArchName$.value = currentEnemyArchName;
@@ -128,8 +123,8 @@ function enterPlayFromCompose() {
   playUiVisible$.value = true;
   seedRng(uniqueSeed());
 }
-function startBattle(variant: MothershipVariant) {
-  const setup = buildFleetFromShop(variant);
+function startBattle(mothershipType: UnitTypeIndex) {
+  const setup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
   onBattleStart(initBattleProduction(rng, setup, currentEnemySetup));
 }
@@ -144,8 +139,8 @@ export function startMelee() {
   onMeleeStart(numTeams, initMeleeProduction(rng, setups, numTeams));
 }
 
-function startFfa(variant: MothershipVariant) {
-  const playerSetup = buildFleetFromShop(variant);
+function startFfa(mothershipType: UnitTypeIndex) {
+  const playerSetup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
   onMeleeStart(
     currentFfaTeamCount,
@@ -153,24 +148,24 @@ function startFfa(variant: MothershipVariant) {
   );
 }
 
-function startBonus(variant: MothershipVariant) {
-  const setup = buildFleetFromShop(variant);
+function startBonus(mothershipType: UnitTypeIndex) {
+  const setup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
   const bonusInfo = initBonusField(rng, setup);
   onBonusStart(bonusInfo.playerProduction, { totalHp: bonusInfo.totalHp });
 }
 
-export function launchRound(variant: MothershipVariant) {
+export function launchRound(mothershipType: UnitTypeIndex) {
   const info = getRunInfo();
   if (!info) {
     throw new Error('launchRound called without active run');
   }
   if (info.roundType === 'ffa') {
-    startFfa(variant);
+    startFfa(mothershipType);
   } else if (info.roundType === 'bonus') {
-    startBonus(variant);
+    startBonus(mothershipType);
   } else {
-    startBattle(variant);
+    startBattle(mothershipType);
   }
 }
 
@@ -209,7 +204,7 @@ export function goToMenu() {
   playUiVisible$.value = false;
   composeVisible$.value = false;
   resultData$.value = null;
-  resetVariant();
+  resetMothershipType();
 }
 
 function applyRoundEnemy(round: number) {

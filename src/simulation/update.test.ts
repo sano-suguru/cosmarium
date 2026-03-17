@@ -11,7 +11,7 @@ import {
   SH_CIRCLE,
   SIM_DT,
 } from '../constants.ts';
-import { decMotherships, decUnits, incMotherships, poolCounts } from '../pools.ts';
+import { decMotherships, decUnits, poolCounts, registerMothership } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import { rng, state } from '../state.ts';
 import { TEAM0, TEAM1, TEAM2, TEAM3, TEAMS } from '../team.ts';
@@ -21,6 +21,7 @@ import {
   BOMBER_TYPE,
   DRONE_TYPE,
   FIGHTER_TYPE,
+  HIVE_TYPE,
   REFLECTOR_TYPE,
   SNIPER_TYPE,
   unitTypeIndex,
@@ -1164,8 +1165,8 @@ describe('stepOnce 勝敗判定', () => {
   it('相互母艦撃沈: team 0 母艦を先に判定するため team 1 の勝利（DEFEAT）', () => {
     const a = spawnAt(0, DRONE_TYPE, 0, 0);
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
-    incMotherships(0, a);
-    incMotherships(1, b);
+    registerMothership(0, a, DRONE_TYPE);
+    registerMothership(1, b, DRONE_TYPE);
     decMotherships(TEAM0);
     decMotherships(TEAM1);
     const result = tick(SIM_DT, rng, battleGameLoopState(), shake);
@@ -1175,7 +1176,7 @@ describe('stepOnce 勝敗判定', () => {
   it('敵母艦撃沈: team 0 の勝利（VICTORY）を返す', () => {
     const a = spawnAt(0, DRONE_TYPE, 0, 0);
     spawnAt(1, DRONE_TYPE, 100, 0);
-    incMotherships(0, a);
+    registerMothership(0, a, DRONE_TYPE);
 
     const result = tick(SIM_DT, rng, battleGameLoopState(), shake);
     expect(result).toBe(0);
@@ -1184,7 +1185,7 @@ describe('stepOnce 勝敗判定', () => {
   it('自軍母艦撃沈: team 1 の勝利（DEFEAT）を返す', () => {
     spawnAt(0, DRONE_TYPE, 0, 0);
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
-    incMotherships(1, b);
+    registerMothership(1, b, DRONE_TYPE);
 
     const result = tick(SIM_DT, rng, battleGameLoopState(), shake);
     expect(result).toBe(1);
@@ -1193,8 +1194,8 @@ describe('stepOnce 勝敗判定', () => {
   it('両チーム母艦生存時は null を返す', () => {
     const a = spawnAt(0, DRONE_TYPE, 0, 0);
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
-    incMotherships(0, a);
-    incMotherships(1, b);
+    registerMothership(0, a, DRONE_TYPE);
+    registerMothership(1, b, DRONE_TYPE);
 
     const result = tick(SIM_DT, rng, battleGameLoopState(), shake);
     expect(result).toBeNull();
@@ -1253,13 +1254,13 @@ describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
     return gs;
   }
 
-  const MOTHERSHIP_T = unitTypeIndex('Mothership');
+  const MOTHERSHIP_T = HIVE_TYPE;
 
   function spawnMeleeTeams(numTeams: number) {
     for (let t = 0; t < numTeams; t++) {
       const team = TEAMS[t] ?? TEAM0;
       const idx = spawnAt(team, MOTHERSHIP_T, t * 100, 0);
-      incMotherships(team, idx);
+      registerMothership(team, idx, MOTHERSHIP_T);
       spawnAt(team, DRONE_TYPE, t * 100, 50);
     }
   }

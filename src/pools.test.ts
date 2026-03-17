@@ -6,12 +6,12 @@ import {
   decParticles,
   decProjectiles,
   decUnits,
-  incMotherships,
   incParticles,
   incProjectiles,
   incUnits,
-  mothershipVariant,
+  mothershipType,
   poolCounts,
+  registerMothership,
   resetPoolCounts,
   setPoolCounts,
   setUnitCount,
@@ -21,8 +21,7 @@ import { particle, projectile, unit } from './pools-query.ts';
 import type { TeamCounts, TeamTuple } from './team.ts';
 import { TEAMS } from './team.ts';
 import type { UnitIndex } from './types.ts';
-import { NO_UNIT } from './types.ts';
-import { NO_VARIANT } from './types-fleet.ts';
+import { NO_TYPE, NO_UNIT } from './types.ts';
 
 /** 2チーム分のカウントから TeamCounts タプルを生成するヘルパー */
 function tc(t0: number, t1: number): TeamCounts {
@@ -132,10 +131,10 @@ describe('resetPoolCounts', () => {
     expect(poolCounts.projectiles).toBe(0);
   });
 
-  it('リセット後に全チームの mothershipVariant が NO_VARIANT', () => {
+  it('リセット後に全チームの mothershipType が NO_TYPE', () => {
     resetPoolCounts();
     for (const t of TEAMS) {
-      expect(mothershipVariant[t]).toBe(NO_VARIANT);
+      expect(mothershipType[t]).toBe(NO_TYPE);
     }
   });
 });
@@ -289,27 +288,27 @@ describe('countAliveMotherships', () => {
   it('2チーム中1体生存で1を返す', () => {
     unit(0).alive = true;
     incUnits(0);
-    incMotherships(0, unitIdx(0));
+    registerMothership(0, unitIdx(0), NO_TYPE);
     expect(countAliveMotherships(2)).toBe(1);
   });
 
   it('2チーム中2体生存で2を返す', () => {
     unit(0).alive = true;
     incUnits(0);
-    incMotherships(0, unitIdx(0));
+    registerMothership(0, unitIdx(0), NO_TYPE);
     unit(1).alive = true;
     incUnits(1);
-    incMotherships(1, unitIdx(1));
+    registerMothership(1, unitIdx(1), NO_TYPE);
     expect(countAliveMotherships(2)).toBe(2);
   });
 
   it('母艦が dead なら数えない', () => {
     unit(0).alive = true;
     incUnits(0);
-    incMotherships(0, unitIdx(0));
+    registerMothership(0, unitIdx(0), NO_TYPE);
     unit(1).alive = true;
     incUnits(1);
-    incMotherships(1, unitIdx(1));
+    registerMothership(1, unitIdx(1), NO_TYPE);
     // team 1 の母艦を撃沈
     unit(1).alive = false;
     expect(countAliveMotherships(2)).toBe(1);

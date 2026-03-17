@@ -25,8 +25,8 @@ export function createProductionSlot(type: UnitTypeIndex, count: number): Produc
  * 例: Drone(cost=1) × Hive(mul=0.7) = 0.7秒、Fighter(cost=3) × Hive = 2.1秒
  * 最小値 0.1秒でクランプし、ゼロ除算を防止。
  */
-export function getProductionTime(typeIdx: UnitTypeIndex, variantMul: number): number {
-  return Math.max(0.1, unitTypeCost(typeIdx) * variantMul);
+export function getProductionTime(typeIdx: UnitTypeIndex, productionMul: number): number {
+  return Math.max(0.1, unitTypeCost(typeIdx) * productionMul);
 }
 
 /** nullable スロット配列から有効なスロットのみを抽出する型安全ヘルパー */

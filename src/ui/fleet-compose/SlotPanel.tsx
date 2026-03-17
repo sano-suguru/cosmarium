@@ -1,9 +1,9 @@
 import { Layers, Trash2 } from 'lucide-preact';
-import { getVariantDef } from '../../mothership-variants.ts';
+import { getMothershipDef } from '../../mothership-defs.ts';
 import { getProductionTime } from '../../production-config.ts';
 import type { ShopSlot } from '../../shop-tiers.ts';
 import { effectiveCount } from '../../shop-tiers.ts';
-import type { MothershipVariant } from '../../types-fleet.ts';
+import type { UnitTypeIndex } from '../../types.ts';
 import { TYPES } from '../../unit-types.ts';
 import { shopSlots$ } from '../signals.ts';
 import styles from './SlotPanel.module.css';
@@ -11,11 +11,11 @@ import styles from './SlotPanel.module.css';
 type SlotCardProps = {
   readonly slotIndex: number;
   readonly slot: ShopSlot | null;
-  readonly variant: MothershipVariant;
+  readonly mothershipType: UnitTypeIndex;
   readonly onSell: (idx: number) => void;
 };
 
-function SlotCard({ slotIndex, slot, variant, onSell }: SlotCardProps) {
+function SlotCard({ slotIndex, slot, mothershipType, onSell }: SlotCardProps) {
   if (!slot) {
     return (
       <div class={styles.slotCard}>
@@ -30,7 +30,7 @@ function SlotCard({ slotIndex, slot, variant, onSell }: SlotCardProps) {
     return null;
   }
 
-  const variantMul = getVariantDef(variant).productionRateMul;
+  const productionMul = getMothershipDef(mothershipType).productionRateMul;
   const count = effectiveCount(slot);
 
   return (
@@ -47,7 +47,7 @@ function SlotCard({ slotIndex, slot, variant, onSell }: SlotCardProps) {
           )}
         </div>
         <div class={styles.slotStats}>
-          {count}機 / {getProductionTime(slot.type, variantMul).toFixed(1)}秒
+          {count}機 / {getProductionTime(slot.type, productionMul).toFixed(1)}秒
         </div>
       </div>
       <button type="button" class={styles.sellBtn} onClick={() => onSell(slotIndex)}>
@@ -59,11 +59,11 @@ function SlotCard({ slotIndex, slot, variant, onSell }: SlotCardProps) {
 }
 
 type SlotPanelProps = {
-  readonly variant: MothershipVariant;
+  readonly mothershipType: UnitTypeIndex;
   readonly onSell: (idx: number) => void;
 };
 
-export function SlotPanel({ variant, onSell }: SlotPanelProps) {
+export function SlotPanel({ mothershipType, onSell }: SlotPanelProps) {
   const slots = shopSlots$.value;
 
   return (
@@ -73,7 +73,7 @@ export function SlotPanel({ variant, onSell }: SlotPanelProps) {
       </div>
       <div class={styles.slotGrid} style={{ '--slot-count': String(slots.length) }}>
         {slots.map((slot, i) => (
-          <SlotCard key={i} slotIndex={i} slot={slot} variant={variant} onSell={onSell} />
+          <SlotCard key={i} slotIndex={i} slot={slot} mothershipType={mothershipType} onSell={onSell} />
         ))}
       </div>
     </div>

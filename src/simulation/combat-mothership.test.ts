@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeRng, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
-import { MOTHERSHIP_VARIANTS } from '../mothership-variants.ts';
-import { getProjectileHWM, incMotherships, poolCounts, setMothershipVariant } from '../pools.ts';
+import { getMothershipArmament } from '../mothership-defs.ts';
+import { getProjectileHWM, poolCounts, registerMothership } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
 import { TEAM0, TEAM1 } from '../team.ts';
+import type { UnitTypeIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
-import type { MothershipVariant } from '../types-fleet.ts';
-import { DRONE_TYPE, MOTHERSHIP_TYPE, unitType } from '../unit-type-accessors.ts';
+import { DREADNOUGHT_TYPE, DRONE_TYPE, HIVE_TYPE, unitType } from '../unit-type-accessors.ts';
 import type { CombatContext } from './combat-context.ts';
 import { mothershipCombat } from './combat-mothership.ts';
 
-const DREADNOUGHT_ARMAMENT = MOTHERSHIP_VARIANTS[1].armament;
+const DREADNOUGHT_ARMAMENT = getMothershipArmament(DREADNOUGHT_TYPE);
 if (!DREADNOUGHT_ARMAMENT) {
-  throw new Error('DREADNOUGHT variant must have armament');
+  throw new Error('DREADNOUGHT must have armament');
 }
 
 function makeCombatCtx(overrides: Partial<CombatContext> = {}): CombatContext {
@@ -22,7 +22,7 @@ function makeCombatCtx(overrides: Partial<CombatContext> = {}): CombatContext {
     dt: 1 / 60,
     c: [1, 1, 1],
     vd: 1,
-    t: unitType(MOTHERSHIP_TYPE),
+    t: unitType(HIVE_TYPE),
     range: 0,
     rng: makeRng(),
     shake: vi.fn(),
@@ -30,10 +30,9 @@ function makeCombatCtx(overrides: Partial<CombatContext> = {}): CombatContext {
   };
 }
 
-function setupMothership(team: typeof TEAM0 | typeof TEAM1, variant: MothershipVariant) {
-  const idx = spawnAt(team, MOTHERSHIP_TYPE, 0, 0);
-  incMotherships(team, idx);
-  setMothershipVariant(team, variant);
+function setupMothership(team: typeof TEAM0 | typeof TEAM1, mType: UnitTypeIndex) {
+  const idx = spawnAt(team, mType, 0, 0);
+  registerMothership(team, idx, mType);
   return idx;
 }
 
@@ -47,7 +46,7 @@ describe('mothershipCombat', () => {
   });
 
   it('Dreadnought で射程内ターゲットに射撃する', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;
@@ -61,7 +60,7 @@ describe('mothershipCombat', () => {
   });
 
   it('射程外ターゲットには射撃しない', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 600, 0); // range=500 を超えている
     m.target = target;
@@ -75,7 +74,7 @@ describe('mothershipCombat', () => {
   });
 
   it('dead ターゲットで u.target = NO_UNIT にリセット', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;
@@ -89,7 +88,7 @@ describe('mothershipCombat', () => {
   });
 
   it('cooldown 中は射撃しない', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;
@@ -103,7 +102,7 @@ describe('mothershipCombat', () => {
   });
 
   it('射撃後に cooldown が arm.fireRate にセットされる', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;
@@ -116,7 +115,7 @@ describe('mothershipCombat', () => {
   });
 
   it('target === NO_UNIT で射撃しない', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     m.cooldown = 0;
     // m.target = NO_UNIT (デフォルト)
@@ -126,7 +125,7 @@ describe('mothershipCombat', () => {
   });
 
   it('vd ダメージ倍率が弾の damage に反映される', () => {
-    const mIdx = setupMothership(TEAM0, 1 as MothershipVariant);
+    const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;

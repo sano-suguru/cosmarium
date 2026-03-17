@@ -1009,7 +1009,7 @@
     col=mix(col,vec3(0.3,1.0,0.5),(exhaust+exTrail)*0.30);
     a=shapeSoftClamp(a, sh);
     }
-  // [SHAPE:19 Mothership] ————————————————————————————
+  // [SHAPE:19 Hive] ————————————————————————————
   else if(sh==19){ vec2 p=vU*0.88; float t=vA+uTime;
     vec2 pm=vec2(p.x,abs(p.y));
     float dHull=sdTrapezoid(pm.yx-vec2(0.0,-0.08),0.32,0.12,0.62);
@@ -1034,7 +1034,7 @@
     float win=(1.0-smoothstep(0.32,0.48,abs(fract(wx)-0.5)+fwidth(wx)*0.8))
               *smoothstep(-0.60,0.40,p.x)*lane*hf;
     float dHangar=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.30,0.10),0.04);
-    float reactor=exp(-14.0*max(length(p-vec2(0.05,0.0))-0.14,0.0))
+    float rct=exp(-14.0*max(length(p-vec2(0.05,0.0))-0.14,0.0))
                   *(0.65+0.35*sin(t*1.8))*(1.0-smoothstep(0.0,aa,dHangar))*hf;
     float engP=0.60+0.40*sin(t*5.0+p.y*3.0);
     float eR=0.06; float eF=22.0; float pF=120.0; float pD=8.0;
@@ -1048,11 +1048,84 @@
       +exp(-pF*(pm.y-0.42)*(pm.y-0.42)));
     float eng=(engC*0.80+plm*(0.50+0.50*engP)*0.40)*smoothstep(-0.90,-0.40,p.x);
     float shimmer=exp(-abs(dBody)*8.0)*0.08*(0.5+0.5*sin(t*2.0+p.x*6.0));
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.20+reactor*0.50+eng*0.55+shimmer;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+win*0.20+rct*0.50+eng*0.55+shimmer;
     a=shapeSoftClamp(a, sh); }
 
-  // [SHAPE:20 Asteroid] ————————————————————————————
-  else if(sh==20){ vec2 p=vU*0.58; float t=vA+uTime;
+  // [SHAPE:20 Dreadnought] ————————————————————————————
+  else if(sh==20){ vec2 p=vU*0.85; float t=vA+uTime;
+    // Dreadnought: heavy armored mothership with forward cannon turret
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Main hull — broad, angular wedge
+    float dHull=sdTrapezoid(pm.yx-vec2(0.0,-0.05),0.38,0.18,0.58);
+    float dBow=sdRoundedBox(p-vec2(0.48,0.0),vec2(0.20,0.22),0.06);
+    float dStern=sdRoundedBox(p-vec2(-0.68,0.0),vec2(0.16,0.48),0.10);
+    float dBody=smin(dHull,dBow,0.06);
+    dBody=smin(dBody,dStern,0.05);
+    // Armor plates
+    float dPlate=sdRoundedBox(pm-vec2(0.0,0.30),vec2(0.40,0.06),0.03);
+    dBody=smin(dBody,dPlate,0.04);
+    // Cannon turret (forward)
+    float dTurret=sdRoundedBox(p-vec2(0.55,0.0),vec2(0.12,0.08),0.02);
+    float dBarrel=sdRoundedBox(p-vec2(0.72,0.0),vec2(0.14,0.025),0.01);
+    dBody=smin(dBody,dTurret,0.03);
+    dBody=smin(dBody,dBarrel,0.02);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Armor grooves
+    float xSeg=p.x*6.0;
+    float rib=(1.0-smoothstep(0.38,0.48,abs(fract(xSeg)-0.5)+fwidth(xSeg)*0.6))
+              *smoothstep(-0.60,-0.05,p.x)*hf*0.15;
+    // Engine glow (4 large engines)
+    float engP=0.55+0.45*sin(t*4.0+p.y*2.0);
+    float eR=0.07;
+    float e1=length(pm-vec2(-0.84,0.14))-eR;
+    float e2=length(pm-vec2(-0.84,0.32))-eR;
+    float engC=exp(-20.0*max(min(e1,e2),0.0))*engP;
+    float plm=exp(-7.0*max(-p.x-0.80,0.0))*(
+      exp(-100.0*(pm.y-0.14)*(pm.y-0.14))
+      +exp(-100.0*(pm.y-0.32)*(pm.y-0.32)));
+    float eng=(engC*0.85+plm*(0.50+0.50*engP)*0.45)*smoothstep(-0.88,-0.35,p.x);
+    // Turret glow
+    float turretGlow=exp(-length(p-vec2(0.72,0.0))*18.0)*(0.5+0.5*sin(t*3.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+rib+eng*0.55+turretGlow*0.4;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:21 Reactor] ————————————————————————————
+  else if(sh==21){ vec2 p=vU*0.90; float t=vA+uTime;
+    // Reactor: energy-focused mothership with central reactor core
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Sleek hull
+    float dHull=sdTrapezoid(pm.yx-vec2(0.0,-0.06),0.28,0.10,0.55);
+    float dBow=sdRoundedBox(p-vec2(0.46,0.0),vec2(0.14,0.22),0.08);
+    float dStern=sdRoundedBox(p-vec2(-0.65,0.0),vec2(0.12,0.36),0.06);
+    float dBody=smin(dHull,dBow,0.07);
+    dBody=smin(dBody,dStern,0.05);
+    // Energy conduits (side rails)
+    float dRail=sdRoundedBox(pm-vec2(-0.05,0.26),vec2(0.38,0.03),0.015);
+    dBody=smin(dBody,dRail,0.03);
+    // Central reactor chamber
+    float dChamber=length(p-vec2(0.05,0.0))-0.16;
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Reactor core glow (pulsing energy)
+    float coreGlow=exp(-12.0*max(dChamber,0.0))*(0.70+0.30*sin(t*2.5));
+    // Energy conduit shimmer
+    float conduit=exp(-abs(pm.y-0.26)*30.0)*smoothstep(-0.40,0.30,p.x)*hf
+                  *(0.5+0.5*sin(t*4.0+p.x*8.0));
+    // Engines (compact, efficient)
+    float engP=0.65+0.35*sin(t*6.0+p.y*4.0);
+    float e1=length(pm-vec2(-0.77,0.10))-0.05;
+    float e2=length(pm-vec2(-0.77,0.24))-0.05;
+    float engC=exp(-22.0*max(min(e1,e2),0.0))*engP;
+    float plm=exp(-8.0*max(-p.x-0.74,0.0))*(
+      exp(-130.0*(pm.y-0.10)*(pm.y-0.10))
+      +exp(-130.0*(pm.y-0.24)*(pm.y-0.24)));
+    float eng=(engC*0.75+plm*(0.50+0.50*engP)*0.35)*smoothstep(-0.82,-0.30,p.x);
+    // Body shimmer
+    float shimmer=exp(-abs(dBody)*8.0)*0.06*(0.5+0.5*sin(t*3.0+p.x*5.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+coreGlow*0.65+conduit*0.3+eng*0.50+shimmer;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:22 Asteroid] ————————————————————————————
+  else if(sh==22){ vec2 p=vU*0.58; float t=vA+uTime;
     // Irregular rocky asteroid — circle + noise deformation
     float r=length(p);
     float ang=atan(p.y,p.x);
@@ -1070,8 +1143,8 @@
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+detail*0.3;
     a=shapeSoftClamp(a, sh); }
 
-  // [SHAPE:21 AsteroidCore] ————————————————————————————
-  else if(sh==21){ vec2 p=vU*0.55; float t=vA+uTime;
+  // [SHAPE:23 AsteroidCore] ————————————————————————————
+  else if(sh==23){ vec2 p=vU*0.55; float t=vA+uTime;
     // Larger rock with inner glow
     float r=length(p);
     float ang=atan(p.y,p.x);

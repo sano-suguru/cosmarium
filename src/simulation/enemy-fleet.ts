@@ -1,10 +1,10 @@
-import { VARIANT_HIVE } from '../mothership-variants.ts';
+import { MOTHERSHIP_DEFS } from '../mothership-defs.ts';
 import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
 import type { ShopSlot, WeightedCandidate } from '../shop-tiers.ts';
 import { buildWeightedCandidates, ROUND_CREDITS, shopPrice, slotsToProduction } from '../shop-tiers.ts';
 import type { UnitRole, UnitTypeIndex } from '../types.ts';
-import type { FleetSetup, MothershipVariant } from '../types-fleet.ts';
-import { BASTION_TYPE, DRONE_TYPE, FIGHTER_TYPE, REFLECTOR_TYPE } from '../unit-type-accessors.ts';
+import type { FleetSetup } from '../types-fleet.ts';
+import { BASTION_TYPE, DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, REFLECTOR_TYPE } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { weightedPick } from '../weighted-pick.ts';
 
@@ -128,9 +128,9 @@ function botFillSlots(rng: () => number, round: number): readonly (ShopSlot | nu
   return slots;
 }
 
-// ── バリアント選択 ──────────────────────────────────────────────
+// ── 母艦タイプ選択 ─────────────────────────────────────────────
 
-function variantWeights(profile: FleetProfile): [number, number, number] {
+function mothershipWeights(profile: FleetProfile): [number, number, number] {
   const { roles, total, hasHigh, allLow } = profile;
   if (total === 0) {
     return [1, 1, 1];
@@ -147,17 +147,31 @@ function variantWeights(profile: FleetProfile): [number, number, number] {
   return [1, 1, 1];
 }
 
-function pickVariantFromProfile(rng: () => number, profile: FleetProfile): MothershipVariant {
-  const weights = variantWeights(profile);
-  const candidates = weights.map((w, i) => ({ weight: w, variant: i as MothershipVariant }));
+function pickMothershipType(rng: () => number, profile: FleetProfile): UnitTypeIndex {
+  const weights = mothershipWeights(profile);
+  if (weights.length !== MOTHERSHIP_DEFS.length) {
+    throw new Error(`mothershipWeights length (${weights.length}) !== MOTHERSHIP_DEFS (${MOTHERSHIP_DEFS.length})`);
+  }
+  const candidates = MOTHERSHIP_DEFS.map((def, i) => ({
+    weight: weights[i] ?? 1,
+    mothershipType: def.type,
+  }));
   const picked = weightedPick(candidates, rng);
   const entry = candidates[picked];
-  return entry ? entry.variant : 0;
+  if (!entry) {
+    throw new Error('pickMothershipType: weightedPick returned invalid index');
+  }
+  return entry.mothershipType;
 }
 
 // ── アーキタイプ名導出 ──────────────────────────────────────────
 
-type RoleCounts = Record<UnitRole, number>;
+type RoleCounts = { attack: number; support: number; special: number };
+type ProfiledRole = 'attack' | 'support' | 'special';
+
+function isProfiledRole(r: UnitRole): r is ProfiledRole {
+  return r === 'attack' || r === 'support' || r === 'special';
+}
 
 const DEFENSIVE_TYPES = new Set([REFLECTOR_TYPE, BASTION_TYPE]);
 
@@ -170,7 +184,7 @@ type FleetProfile = {
 };
 
 function profileFleet(slots: readonly (ShopSlot | null)[]): FleetProfile {
-  const roles: RoleCounts = { attack: 0, support: 0, special: 0, environment: 0 };
+  const roles: RoleCounts = { attack: 0, support: 0, special: 0 };
   let total = 0;
   let hasHigh = false;
   let allLow = true;
@@ -185,7 +199,9 @@ function profileFleet(slots: readonly (ShopSlot | null)[]): FleetProfile {
     if (!t) {
       continue;
     }
-    roles[t.role]++;
+    if (isProfiledRole(t.role)) {
+      roles[t.role]++;
+    }
     const price = shopPrice(s.type);
     hasHigh = hasHigh || price >= 6;
     allLow = allLow && price <= 3;
@@ -231,7 +247,7 @@ function generateFixedNpc(round: number): {
   readonly setup: FleetSetup;
   readonly archetypeName: string;
 } {
-  const variant = VARIANT_HIVE;
+  const mothershipType = HIVE_TYPE;
   const slots: (ReturnType<typeof createProductionSlot> | null)[] = Array.from<null, null>(
     { length: SLOT_COUNT },
     () => null,
@@ -239,12 +255,12 @@ function generateFixedNpc(round: number): {
 
   if (round === 1) {
     slots[0] = createProductionSlot(DRONE_TYPE, 3);
-    return { setup: { variant, slots }, archetypeName: '偵察隊' };
+    return { setup: { mothershipType, slots }, archetypeName: '偵察隊' };
   }
   if (round === 2) {
     slots[0] = createProductionSlot(DRONE_TYPE, 3);
     slots[1] = createProductionSlot(FIGHTER_TYPE, 2);
-    return { setup: { variant, slots }, archetypeName: '前衛部隊' };
+    return { setup: { mothershipType, slots }, archetypeName: '前衛部隊' };
   }
   throw new Error(`generateFixedNpc: unexpected round ${round}`);
 }
@@ -263,7 +279,7 @@ export function generateEnemySetup(
 
   const botSlots = botFillSlots(rng, round);
   const profile = profileFleet(botSlots);
-  const variant = pickVariantFromProfile(rng, profile);
+  const mothershipType = pickMothershipType(rng, profile);
 
   const productionSlots = slotsToProduction(botSlots);
 
@@ -272,5 +288,5 @@ export function generateEnemySetup(
     productionSlots[0] = createProductionSlot(DRONE_TYPE, TYPES[DRONE_TYPE]?.clusterSize ?? 1);
   }
 
-  return { setup: { variant, slots: productionSlots }, archetypeName: deriveArchetypeFromProfile(profile) };
+  return { setup: { mothershipType, slots: productionSlots }, archetypeName: deriveArchetypeFromProfile(profile) };
 }

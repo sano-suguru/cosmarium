@@ -6,7 +6,7 @@ import { getProjectileHWM, poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
 import type { Team } from '../team.ts';
 import type { Color3, Projectile, ProjectileIndex, Unit, UnitIndex, UnitTypeIndex } from '../types.ts';
-import { NO_SOURCE_TYPE, NO_UNIT } from '../types.ts';
+import { NO_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { absorbByBastionShield, applyTetherAbsorb, ORPHAN_TETHER_PROJECTILE_MULT } from './combat-beam-defense.ts';
 import type { ShakeFn } from './combat-context.ts';
@@ -42,7 +42,7 @@ function emitProjectileDamage(
   amount: number,
   kind: 'direct' | 'aoe',
 ): void {
-  if (p.sourceType !== NO_SOURCE_TYPE) {
+  if (p.sourceType !== NO_TYPE) {
     emitDamage(p.sourceType, p.team, victimType, victimTeam, amount, kind);
   }
 }

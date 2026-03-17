@@ -15,12 +15,12 @@ import { stepOnce } from '../simulation/update.ts';
 /** バッチシミュレーションではカメラシェイク不要 */
 const _noopShake = () => undefined;
 
-import { VARIANT_HIVE } from '../mothership-variants.ts';
 import { getUnitHWM, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { teamAt } from '../team.ts';
 import type { FleetComposition, FleetSetup, ProductionSlot, ProductionState } from '../types-fleet.ts';
+import { HIVE_TYPE } from '../unit-type-accessors.ts';
 import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 import { collectUnitStats, installAllTrackers } from './batch-tracking.ts';
 import type { BatchConfig, KillTracker, TrialResult, TrialSnapshot } from './batch-types.ts';
@@ -55,7 +55,7 @@ function slotsToComposition(slots: readonly (ProductionSlot | null)[]): FleetCom
 }
 
 /** CLI の FleetComposition → FleetSetup 変換。count は1サイクルの生産数として転用 */
-function fleetToSetup(fleet: FleetComposition, variant = VARIANT_HIVE): FleetSetup {
+function fleetToSetup(fleet: FleetComposition, mothershipType = HIVE_TYPE): FleetSetup {
   if (fleet.length > SLOT_COUNT) {
     throw new RangeError(`Fleet has ${fleet.length} entries but max ${SLOT_COUNT} slots allowed`);
   }
@@ -66,7 +66,7 @@ function fleetToSetup(fleet: FleetComposition, variant = VARIANT_HIVE): FleetSet
       slots[i] = createProductionSlot(entry.type, entry.count);
     }
   }
-  return { variant, slots };
+  return { mothershipType, slots };
 }
 
 function createProductions(

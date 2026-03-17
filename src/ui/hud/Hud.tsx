@@ -1,8 +1,8 @@
 import { type Signal, signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { TEAM_HEX_COLORS } from '../../colors.ts';
-import { getVariantDef } from '../../mothership-variants.ts';
-import { mothershipIdx, mothershipVariant, poolCounts, teamUnitCounts } from '../../pools.ts';
+import { getMothershipDef } from '../../mothership-defs.ts';
+import { mothershipIdx, mothershipType, poolCounts, teamUnitCounts } from '../../pools.ts';
 import { unit } from '../../pools-query.ts';
 import { getProductionTime } from '../../production-config.ts';
 import { getRunInfo } from '../../run.ts';
@@ -50,14 +50,14 @@ interface SlotHudEntry {
 const hudProductionSlots$ = signal<readonly SlotHudEntry[]>([]);
 
 /** 5%刻みに量子化して変更検出の頻度を下げる */
-function computeTimerPct(slot: ProductionSlot, timer: number, variantMul: number): number {
-  const productionTime = getProductionTime(slot.type, variantMul);
+function computeTimerPct(slot: ProductionSlot, timer: number, productionMul: number): number {
+  const productionTime = getProductionTime(slot.type, productionMul);
   const pctRaw = Math.min(timer / productionTime, 1);
   return Math.round(pctRaw * 20) / 20;
 }
 
 /** 前回の HUD エントリと比較し、変更があれば true を返す */
-function hasProductionHudChanged(prev: readonly SlotHudEntry[], ps: ProductionState, variantMul: number): boolean {
+function hasProductionHudChanged(prev: readonly SlotHudEntry[], ps: ProductionState, productionMul: number): boolean {
   let idx = 0;
   for (let i = 0; i < ps.slots.length; i++) {
     const slot = ps.slots[i];
@@ -69,7 +69,7 @@ function hasProductionHudChanged(prev: readonly SlotHudEntry[], ps: ProductionSt
     const t = TYPES[slot.type];
     if (
       !p ||
-      p.timerPct !== computeTimerPct(slot, timer, variantMul) ||
+      p.timerPct !== computeTimerPct(slot, timer, productionMul) ||
       p.slotIndex !== i ||
       p.name !== (t?.name ?? '?') ||
       p.clusterSize !== slot.count
@@ -82,7 +82,7 @@ function hasProductionHudChanged(prev: readonly SlotHudEntry[], ps: ProductionSt
 }
 
 /** HUD エントリを構築する（変更確認済みの場合のみ呼ぶこと） */
-function buildEntries(ps: ProductionState, variantMul: number): readonly SlotHudEntry[] {
+function buildEntries(ps: ProductionState, productionMul: number): readonly SlotHudEntry[] {
   const result: SlotHudEntry[] = [];
   for (let i = 0; i < ps.slots.length; i++) {
     const slot = ps.slots[i];
@@ -95,7 +95,7 @@ function buildEntries(ps: ProductionState, variantMul: number): readonly SlotHud
       slotIndex: i,
       name: t?.name ?? '?',
       clusterSize: slot.count,
-      timerPct: computeTimerPct(slot, timer, variantMul),
+      timerPct: computeTimerPct(slot, timer, productionMul),
     });
   }
   return result;
@@ -109,10 +109,10 @@ export function updateProductionHud(ps: ProductionState): void {
     }
     return;
   }
-  const variantMul = getVariantDef(mothershipVariant[TEAM0]).productionRateMul;
+  const productionMul = getMothershipDef(mothershipType[TEAM0]).productionRateMul;
   const prev = hudProductionSlots$.peek();
-  if (hasProductionHudChanged(prev, ps, variantMul)) {
-    hudProductionSlots$.value = buildEntries(ps, variantMul);
+  if (hasProductionHudChanged(prev, ps, productionMul)) {
+    hudProductionSlots$.value = buildEntries(ps, productionMul);
   }
 }
 

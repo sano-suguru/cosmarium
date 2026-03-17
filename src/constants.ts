@@ -27,8 +27,8 @@ export const REF_FPS = 60;
 /** 固定シミュレーションステップ (1/REF_FPS ≈ 0.0167秒) */
 export const SIM_DT = 1 / REF_FPS;
 
-// ユニットシェイプ = TYPES配列インデックス (0–19)
-// エフェクト = EFFECT_SHAPE_BASE (32) から連番。20–31 は将来のユニット用に予約
+// ユニットシェイプ = TYPES配列インデックス (0–23)
+// エフェクト = EFFECT_SHAPE_BASE (32) から連番。24–31 は将来のユニット用に予約
 // 予約枠により、ユニット追加時にエフェクトIDの再番号付けが不要になる
 // shape-sync.test.ts が検証。IDの再利用禁止
 export const EFFECT_SHAPE_BASE = 32;

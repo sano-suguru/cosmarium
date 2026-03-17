@@ -109,8 +109,8 @@ export const scrambler: UnitType = resolve({
   attackDesc: '電磁妨害フィールド（敵デバフ）',
 });
 
-export const mothership: UnitType = resolve({
-  name: 'Mothership',
+export const hive: UnitType = resolve({
+  name: 'Hive',
   cost: 0,
   size: 45,
   hp: 500,
@@ -125,11 +125,59 @@ export const mothership: UnitType = resolve({
   accel: 1.5,
   drag: 0.5,
   leadAccuracy: 0,
-  role: 'special',
-  clusterSize: 0, // 生産対象外
-  engageMin: 300, // 操舵用: 武装なしだが敵との距離 300-1000 を保つ回避行動に使用
+  role: 'mothership',
+  clusterSize: 0,
+  engageMin: 300,
   engageMax: 1000,
-  description: '艦隊の中核たる母艦。この艦が撃沈されると敗北となる。',
+  description: '生産速度に優れる母艦。この艦が撃沈されると敗北となる。',
+  attackDesc: 'なし',
+});
+
+export const dreadnought: UnitType = resolve({
+  name: 'Dreadnought',
+  cost: 0,
+  size: 50,
+  hp: 750,
+  speed: 30,
+  turnRate: 0.25,
+  fireRate: 3.0,
+  range: 500,
+  damage: 15,
+  shape: 20,
+  trailInterval: 1.5,
+  mass: 60,
+  accel: 1.2,
+  drag: 0.5,
+  leadAccuracy: 0,
+  role: 'mothership',
+  clusterSize: 0,
+  engageMin: 300,
+  engageMax: 1000,
+  description: '重装甲＋遠距離主砲を搭載した母艦。この艦が撃沈されると敗北となる。',
+  attackDesc: '遠距離主砲',
+});
+
+export const reactor: UnitType = resolve({
+  name: 'Reactor',
+  cost: 0,
+  size: 40,
+  hp: 350,
+  speed: 38,
+  turnRate: 0.35,
+  fireRate: NO_FIRE,
+  range: 0,
+  damage: 0,
+  shape: 21,
+  trailInterval: 1.5,
+  mass: 45,
+  accel: 1.8,
+  drag: 0.5,
+  leadAccuracy: 0,
+  role: 'mothership',
+  clusterSize: 0,
+  engageMin: 300,
+  engageMax: 1000,
+  description: '味方全体の攻撃速度を向上させる母艦。この艦が撃沈されると敗北となる。',
   attackDesc: 'なし',
 });
 
@@ -144,7 +192,7 @@ export const asteroid: UnitType = resolve({
   fireRate: NO_FIRE,
   range: 0,
   damage: 0,
-  shape: 20,
+  shape: 22,
   trailInterval: 0,
   mass: 40,
   accel: 0,
@@ -168,7 +216,7 @@ export const asteroidLarge: UnitType = resolve({
   fireRate: NO_FIRE,
   range: 0,
   damage: 0,
-  shape: 21,
+  shape: 23,
   trailInterval: 0,
   mass: 120,
   accel: 0,
