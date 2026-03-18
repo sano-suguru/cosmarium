@@ -44,7 +44,6 @@ export type Productions = TeamTuple<ProductionState>;
 const SWARM_RADIUS = 80;
 const SWARM_RADIUS_SQ = SWARM_RADIUS * SWARM_RADIUS;
 
-// static invariant: SWARM_RADIUS ≤ NEIGHBOR_RANGE（getNeighbors の範囲に収まる必要がある）
 if (SWARM_RADIUS > NEIGHBOR_RANGE) {
   throw new Error(`SWARM_RADIUS (${SWARM_RADIUS}) が NEIGHBOR_RANGE (${NEIGHBOR_RANGE}) を超えています`);
 }

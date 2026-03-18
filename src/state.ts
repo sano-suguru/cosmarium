@@ -11,11 +11,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/**
- * `gameState`, `codexOpen`, `codexSelected`, `timeScale` は
- * `ui/signals.ts` で accessor property に置換される（Object.defineProperty）。
- * 代入すると対応する signal が自動更新される。
- */
+/** @see ui/signals.ts — accessor property に動的置換される */
 type State = {
   gameState: GameState;
   codexOpen: boolean;

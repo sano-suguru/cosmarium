@@ -1,8 +1,3 @@
-// ここには「複数レイヤーから参照される定数」のみを置く。
-//   例: simulation + renderer の両方が使うプールサイズ、ワールド境界、linger時間、シェイプID
-// 単一モジュール（+ そのテスト）でしか使わないロジック固有の倍率・閾値は、そのモジュール内に定義する。
-//   例: AMP_DAMAGE_MULT → combat.ts, SCRAMBLE_RADIUS → update.ts
-
 import { MAX_TEAMS } from './team.ts';
 import type { TimeScale } from './types.ts';
 export const POOL_UNITS = 1600;

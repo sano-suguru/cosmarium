@@ -8,7 +8,6 @@ import { TEAMS, teamAt } from './team.ts';
 import type { UnitIndex, UnitTypeIndex } from './types.ts';
 import { NO_TYPE, NO_UNIT } from './types.ts';
 
-// リセット時に使用済みスロットのみ走査するための最高インデックス追跡
 let _unitHWM = 0;
 let _particleHWM = 0;
 let _projectileHWM = 0;
@@ -80,7 +79,6 @@ export function decMotherships(team: Team) {
     throw new RangeError(`mothershipIdx[${team}] already NO_UNIT`);
   }
   _mothershipIdx[team] = NO_UNIT;
-  // 母艦撃沈時タイプリセット
   _mothershipType[team] = NO_TYPE;
 }
 export function incUnits(team: Team) {

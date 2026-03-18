@@ -4,8 +4,6 @@ import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
 
-// 型
-
 type Tier = 'low' | 'mid' | 'high';
 type TierPhase = 'early' | 'mid' | 'late';
 export type WeightedCandidate = { idx: UnitTypeIndex; weight: number };
@@ -24,8 +22,6 @@ export type ShopSlot = {
 /** 購入不可の理由。null なら購入可能 */
 export type PurchaseBlock = 'no_credits' | 'max_star' | 'slots_full' | 'sold_out';
 
-// 定数
-
 export const ROUND_CREDITS = 10;
 export const REROLL_COST = 1;
 export const SHOP_SIZE = 5;
@@ -40,8 +36,6 @@ const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
 };
 
 const TIER_IDX: Record<Tier, 0 | 1 | 2> = { low: 0, mid: 1, high: 2 };
-
-// マージ経験値
 
 export function mergeExpToLevel(exp: number): number {
   if (exp >= 5) {
@@ -65,13 +59,9 @@ export function spawnCount(slot: ShopSlot, spawnCountMul: number): number {
   return Math.max(1, Math.round(effectiveCount(slot) * spawnCountMul));
 }
 
-// 売却
-
 export function sellPrice(mergeExp: number): number {
   return mergeExpToLevel(mergeExp) + 1;
 }
-
-// ティア
 
 export const COST_LOW_MAX = 3;
 export const COST_MID_MAX = 6;
@@ -107,8 +97,6 @@ export function buildWeightedCandidates(round: number): WeightedCandidate[] {
   }
   return candidates;
 }
-
-// スロット変換
 
 export function slotsToProduction(
   slots: readonly (ShopSlot | null)[],
