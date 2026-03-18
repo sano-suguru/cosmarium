@@ -8,6 +8,7 @@ import { getElement } from './dom-util.ts';
 import { FleetCompose } from './fleet-compose/FleetCompose.tsx';
 import {
   advanceRound,
+  confirmMothership,
   goToMenu,
   launchRound,
   onCodexToggle,
@@ -20,8 +21,9 @@ import { Hud } from './hud/Hud.tsx';
 import { handleAutoFollowToggle } from './keyboard-controls.ts';
 import { KillFeed } from './kill-feed/KillFeed.tsx';
 import { Menu } from './menu/Menu.tsx';
+import { MothershipSelect } from './mothership-select/MothershipSelect.tsx';
 import { PlayControls } from './play-controls/PlayControls.tsx';
-import { codexOpen$, composeVisible$, gameState$, playUiVisible$, resultData$ } from './signals.ts';
+import { codexOpen$, composePhase$, gameState$, playUiVisible$, resultData$ } from './signals.ts';
 
 function App() {
   useEffect(() => {
@@ -41,7 +43,10 @@ function App() {
       {gameState$.value === 'menu' && !codexOpen$.value && (
         <Menu onStart={startNewRun} onSpectate={startSpectate} onMelee={startMelee} onCodex={onCodexToggle} />
       )}
-      {composeVisible$.value && !codexOpen$.value && (
+      {composePhase$.value === 'mothership' && !codexOpen$.value && (
+        <MothershipSelect onConfirm={confirmMothership} onBack={goToMenu} />
+      )}
+      {composePhase$.value === 'fleet' && !codexOpen$.value && (
         <FleetCompose onLaunch={launchRound} onBack={goToMenu} onCodexToggle={onCodexToggle} />
       )}
       {resultData && !codexOpen$.value && (

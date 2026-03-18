@@ -1,43 +1,51 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
-import { MOTHERSHIP_DEFS } from '../mothership-defs.ts';
+import { getMothershipDef, MOTHERSHIP_DEFS } from '../mothership-defs.ts';
 import { filledSlots, SLOT_COUNT } from '../production-config.ts';
-import { mergeBonusCount, ROUND_CREDITS, shopPrice } from '../shop-tiers.ts';
+import type { ShopSlot } from '../shop-tiers.ts';
+import { MAX_MERGE_LEVEL, mergeExpToLevel, ROUND_CREDITS, SHOP_PRICE } from '../shop-tiers.ts';
 import { rng } from '../state.ts';
 import type { ProductionSlot } from '../types-fleet.ts';
+import { unitTypeCost } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { generateEnemySetup } from './enemy-fleet.ts';
+import type { FleetProfile } from './enemy-fleet-profile.ts';
+import { profileFleet } from './enemy-fleet-profile.ts';
 
 afterEach(() => {
   resetPools();
   resetState();
 });
 
-function estimateFleetCost(slots: readonly (ProductionSlot | null)[]): number {
-  let totalCost = 0;
-  for (const slot of slots) {
-    if (!slot) {
-      continue;
-    }
-    totalCost += estimateSlotCost(slot);
+function estimateFleetCost(botSlots: readonly (ShopSlot | null)[] | null): number {
+  if (!botSlots) {
+    return 0;
   }
-  return totalCost;
+  let total = 0;
+  for (const s of botSlots) {
+    if (s) {
+      total += SHOP_PRICE * (1 + s.mergeExp);
+    }
+  }
+  return total;
 }
 
-function estimateSlotCost(slot: ProductionSlot): number {
-  const price = shopPrice(slot.type);
-  const t = TYPES[slot.type];
-  const baseCount = t?.clusterSize ?? 1;
-  const bonus = mergeBonusCount(baseCount);
-  const mergeLevel = baseCount > 0 ? Math.round((slot.count - baseCount) / bonus) : 0;
-  return price * (1 + mergeLevel);
+function assertMergeLevelsWithinLimit(botSlots: readonly (ShopSlot | null)[] | null): void {
+  if (!botSlots) {
+    return;
+  }
+  for (const s of botSlots) {
+    if (s) {
+      expect(mergeExpToLevel(s.mergeExp)).toBeLessThanOrEqual(MAX_MERGE_LEVEL);
+    }
+  }
 }
 
 function countHighCostSlots(slots: readonly (ProductionSlot | null)[]): number {
   let count = 0;
   for (const slot of slots) {
-    if (slot && shopPrice(slot.type) >= 6) {
+    if (slot && unitTypeCost(slot.type) >= 8) {
       count++;
     }
   }
@@ -45,16 +53,18 @@ function countHighCostSlots(slots: readonly (ProductionSlot | null)[]): number {
 }
 
 describe('generateFixedNpc (via generateEnemySetup round 1-2)', () => {
-  it('round=1 → 偵察隊（Drone のみ）', () => {
-    const { setup, archetypeName } = generateEnemySetup(rng, 1);
+  it('round=1 → 偵察隊（Drone のみ）、botSlots=null', () => {
+    const { setup, archetypeName, botSlots } = generateEnemySetup(rng, 1);
     expect(archetypeName).toBe('偵察隊');
+    expect(botSlots).toBeNull();
     const filled = filledSlots(setup.slots);
     expect(filled.length).toBe(1);
   });
 
-  it('round=2 → 前衛部隊（Drone + Fighter）', () => {
-    const { setup, archetypeName } = generateEnemySetup(rng, 2);
+  it('round=2 → 前衛部隊（Drone + Fighter）、botSlots=null', () => {
+    const { setup, archetypeName, botSlots } = generateEnemySetup(rng, 2);
     expect(archetypeName).toBe('前衛部隊');
+    expect(botSlots).toBeNull();
     const filled = filledSlots(setup.slots);
     expect(filled.length).toBe(2);
   });
@@ -87,13 +97,15 @@ describe('generateEnemySetup', () => {
     }
   });
 
-  it('各スロットの count が clusterSize 以上（マージで増加可能）', () => {
+  it('各スロットの count が spawnCountMul 適用後の最小値以上', () => {
     for (let i = 0; i < 50; i++) {
       const { setup } = generateEnemySetup(rng, 5);
+      const spawnMul = getMothershipDef(setup.mothershipType).spawnCountMul;
       for (const slot of setup.slots) {
         if (slot) {
           const t = TYPES[slot.type];
-          expect(slot.count).toBeGreaterThanOrEqual(t?.clusterSize ?? 1);
+          const minCount = Math.max(1, Math.round((t?.clusterSize ?? 1) * spawnMul));
+          expect(slot.count).toBeGreaterThanOrEqual(minCount);
         }
       }
     }
@@ -120,10 +132,11 @@ describe('generateEnemySetup', () => {
     }
   });
 
-  it('総shopPriceがROUND_CREDITS以下（予算制約準拠）', () => {
+  it('総購入コストがROUND_CREDITS+母艦ボーナス以下（予算制約準拠）', () => {
     for (let i = 0; i < 50; i++) {
-      const { setup } = generateEnemySetup(rng, 5);
-      expect(estimateFleetCost(setup.slots)).toBeLessThanOrEqual(ROUND_CREDITS);
+      const { setup, botSlots } = generateEnemySetup(rng, 5);
+      const msCredits = getMothershipDef(setup.mothershipType).creditsPerRound;
+      expect(estimateFleetCost(botSlots)).toBeLessThanOrEqual(ROUND_CREDITS + msCredits);
     }
   });
 
@@ -148,5 +161,22 @@ describe('generateEnemySetup', () => {
       lateHighCost += countHighCostSlots(generateEnemySetup(rng, 10).setup.slots);
     }
     expect(lateHighCost).toBeGreaterThan(earlyHighCost);
+  });
+
+  it.each([3, 5, 10])('botSlots の全スロットが MAX_MERGE_LEVEL を超えない (round=%i)', (round) => {
+    for (let i = 0; i < 50; i++) {
+      const { botSlots } = generateEnemySetup(rng, round);
+      assertMergeLevelsWithinLimit(botSlots);
+    }
+  });
+
+  it('botSlots から profileFleet で FleetProfile を取得できる', () => {
+    const { botSlots } = generateEnemySetup(rng, 5);
+    if (!botSlots) {
+      throw new Error('round>=3 must have botSlots');
+    }
+    const profile: FleetProfile = profileFleet(botSlots);
+    expect(profile.total).toBeGreaterThanOrEqual(0);
+    expect(profile.roles.attack + profile.roles.support + profile.roles.special).toBeLessThanOrEqual(profile.total);
   });
 });

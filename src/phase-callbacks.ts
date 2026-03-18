@@ -9,7 +9,8 @@ import type { GameLoopState } from './simulation/update.ts';
 import type { TeamTuple } from './team.ts';
 import { copyTeamCounts, TEAM0, TEAM1 } from './team.ts';
 import type { BattleResult, BonusPhaseData, ProductionState } from './types-fleet.ts';
-import { goToMeleeResult, goToResult, setCallbacks } from './ui/game-control.ts';
+import { setCallbacks } from './ui/game-control.ts';
+import { goToMeleeResult, goToResult } from './ui/game-result.ts';
 import {
   hideMothershipHpBar,
   setupMeleeHUD,

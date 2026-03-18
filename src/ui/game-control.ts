@@ -1,12 +1,12 @@
 import { batch } from '@preact/signals';
 import { cam, setAutoFollow } from '../input/camera.ts';
-import type { MeleeResult } from '../melee-tracker.ts';
 import { EMPTY_FLEET_SETUP } from '../mothership-defs.ts';
-import { _resetRunState, endRun, getRunInfo, isRunActive, processRoundEnd, resetRun } from '../run.ts';
+import { _resetRunState, endRun, getRunInfo, isRunActive, resetRun } from '../run.ts';
 import {
   buildFleetFromShop,
   getShopCredits,
   getShopOfferings,
+  getShopPurchaseBlocks,
   getShopSlots,
   initShop,
   initShopRound,
@@ -18,20 +18,21 @@ import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale, UnitTypeIndex } from '../types.ts';
-import type { FleetSetup, ProductionState, RoundEndInput } from '../types-fleet.ts';
+import type { FleetSetup, ProductionState } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
-import { meleeResultToBattleResult } from './ffa-round.ts';
-import { resetMothershipType } from './fleet-compose/FleetCompose.tsx';
+import { getSelectedMothershipType, resetMothershipType, setMothershipType } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
+import { _resetMothershipSelect } from './mothership-select/MothershipSelect.tsx';
 import { prepareRoundEnemy } from './round-enemy.ts';
 import {
   composeEnemyArchName$,
   composeEnemySetup$,
-  composeVisible$,
+  composePhase$,
   playUiVisible$,
   resultData$,
   shopCredits$,
   shopOfferings$,
+  shopPurchaseBlocks$,
   shopSlots$,
 } from './signals.ts';
 
@@ -69,6 +70,7 @@ function syncShopSignals(): void {
     shopCredits$.value = getShopCredits();
     shopOfferings$.value = getShopOfferings();
     shopSlots$.value = getShopSlots();
+    shopPurchaseBlocks$.value = getShopPurchaseBlocks();
   });
 }
 let unsubShop: (() => void) | null = null;
@@ -85,26 +87,23 @@ export function resetCurrentRoundShop(): void {
     throw new Error('resetCurrentRoundShop: run is not active');
   }
   initShop();
-  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits);
+  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits, getSelectedMothershipType());
 }
 function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
 }
-function goToCompose(preserveState: boolean) {
+function goToCompose() {
   if (state.codexOpen) {
     toggleCodex();
   }
   state.gameState = 'compose';
   playUiVisible$.value = false;
   resultData$.value = null;
-  if (!preserveState) {
-    resetMothershipType();
-  }
   composeEnemySetup$.value = currentEnemySetup;
   composeEnemyArchName$.value = currentEnemyArchName;
-  composeVisible$.value = true;
+  composePhase$.value = 'fleet';
 }
 
 export function startSpectate() {
@@ -118,7 +117,7 @@ export function startSpectate() {
 function enterPlayFromCompose() {
   state.gameState = 'play';
   resetCam();
-  composeVisible$.value = false;
+  composePhase$.value = null;
   resultData$.value = null;
   playUiVisible$.value = true;
   seedRng(uniqueSeed());
@@ -169,28 +168,6 @@ export function launchRound(mothershipType: UnitTypeIndex) {
   }
 }
 
-export function goToResult(input: RoundEndInput) {
-  const outcome = processRoundEnd(input);
-  state.gameState = 'result';
-  playUiVisible$.value = false;
-
-  if (outcome.type === 'runComplete') {
-    resultData$.value = { type: 'run', runResult: outcome.runResult };
-  } else {
-    resultData$.value = { type: 'round', roundResult: outcome.roundResult, runStatus: outcome.status };
-  }
-}
-
-export function goToMeleeResult(result: MeleeResult) {
-  if (isRunActive()) {
-    goToResult({ roundType: 'ffa', battleResult: meleeResultToBattleResult(result) });
-    return;
-  }
-  state.gameState = 'result';
-  playUiVisible$.value = false;
-  resultData$.value = { type: 'melee', meleeResult: result };
-}
-
 export function goToMenu() {
   if (state.codexOpen) {
     toggleCodex();
@@ -202,7 +179,7 @@ export function goToMenu() {
   updateHudRoundInfo();
   state.gameState = 'menu';
   playUiVisible$.value = false;
-  composeVisible$.value = false;
+  composePhase$.value = null;
   resultData$.value = null;
   resetMothershipType();
 }
@@ -229,10 +206,18 @@ function applyRoundEnemy(round: number) {
 export function startNewRun() {
   resetRun();
   initShop();
+  resetMothershipType();
   seedRng(uniqueSeed());
-  initShopRound(createRng(uniqueSeed()), 1);
+  state.gameState = 'compose';
+  composePhase$.value = 'mothership';
+}
+
+export function confirmMothership(mothershipType: UnitTypeIndex) {
+  setMothershipType(mothershipType);
+  _resetMothershipSelect();
+  initShopRound(createRng(uniqueSeed()), 1, 0, mothershipType);
   applyRoundEnemy(1);
-  goToCompose(false);
+  goToCompose();
 }
 
 export function advanceRound() {
@@ -243,9 +228,9 @@ export function advanceRound() {
   if (!info) {
     throw new Error('advanceRound called without active run');
   }
-  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits);
+  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits, getSelectedMothershipType());
   applyRoundEnemy(info.round);
-  goToCompose(true);
+  goToCompose();
 }
 
 export function _resetGameControl() {
@@ -260,6 +245,8 @@ export function _resetGameControl() {
   onBonusStart = throwNotReady;
   unsubShop?.();
   unsubShop = null;
+  composePhase$.value = null;
+  _resetMothershipSelect();
   state.gameState = 'menu';
   state.codexOpen = false;
   _resetRunState();
@@ -268,14 +255,9 @@ export function _resetGameControl() {
 
 export function onCodexToggle() {
   toggleCodex();
-  if (state.gameState === 'compose') {
-    if (state.codexOpen) {
-      composeVisible$.value = false;
-    } else {
-      composeEnemySetup$.value = currentEnemySetup;
-      composeEnemyArchName$.value = currentEnemyArchName;
-      composeVisible$.value = true;
-    }
+  if (state.gameState === 'compose' && !state.codexOpen) {
+    composeEnemySetup$.value = currentEnemySetup;
+    composeEnemyArchName$.value = currentEnemyArchName;
   }
   if (state.codexOpen) {
     setAutoFollow(false);

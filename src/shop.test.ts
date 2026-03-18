@@ -7,6 +7,7 @@ import {
   _setShopRng,
   _setShopSlot,
   buildFleetFromShop,
+  canPurchaseItem,
   getShopCredits,
   getShopOfferings,
   getShopSlots,
@@ -18,16 +19,26 @@ import {
   toggleLock,
 } from './shop.ts';
 import type { ShopSlot } from './shop-tiers.ts';
-import { effectiveCount, REROLL_COST, ROUND_CREDITS, SHOP_SIZE, sellPrice, shopPrice } from './shop-tiers.ts';
+import {
+  effectiveCount,
+  MAX_MERGE_LEVEL,
+  mergeExpToLevel,
+  REROLL_COST,
+  ROUND_CREDITS,
+  SHOP_PRICE,
+  SHOP_SIZE,
+  sellPrice,
+  spawnCount,
+} from './shop-tiers.ts';
 import { HIVE_TYPE } from './unit-type-accessors.ts';
 import { TYPES } from './unit-types.ts';
 
-function makeTestSlot(baseCount: number, mergeLevel: number): ShopSlot {
+function makeTestSlot(baseCount: number, mergeExp: number): ShopSlot {
   const type = SORTED_TYPE_INDICES[0];
   if (type === undefined) {
     throw new Error('SORTED_TYPE_INDICES is empty');
   }
-  return { type, baseCount, mergeLevel };
+  return { type, baseCount, mergeExp };
 }
 
 function filledSlotCount(): number {
@@ -42,7 +53,7 @@ function fillAllSlots(): void {
       throw new Error(`SORTED_TYPE_INDICES[${i}] is undefined`);
     }
     const baseCount = TYPES[typeIdx]?.clusterSize ?? 1;
-    _setShopSlot(i, { type: typeIdx, baseCount, mergeLevel: 0 });
+    _setShopSlot(i, { type: typeIdx, baseCount, mergeExp: 0 });
   }
   _setShopCredits(ROUND_CREDITS);
 }
@@ -88,38 +99,6 @@ beforeEach(() => {
   initShop();
 });
 
-describe('shopPrice', () => {
-  it('Drone (cost=1) → 1 Cr', () => {
-    expect.assertions(3);
-    const droneIdx = SORTED_TYPE_INDICES[0];
-    expect(droneIdx).toBeDefined();
-    if (droneIdx === undefined) {
-      return;
-    }
-    expect(TYPES[droneIdx]?.cost).toBe(1);
-    expect(shopPrice(droneIdx)).toBe(1);
-  });
-
-  it('高コストユニットは 8 Cr 以下に圧縮', () => {
-    for (const idx of SORTED_TYPE_INDICES) {
-      expect(shopPrice(idx)).toBeGreaterThanOrEqual(1);
-      expect(shopPrice(idx)).toBeLessThanOrEqual(8);
-    }
-  });
-
-  it('HIGH_PRICE フォールバックは cost > 9 のタイプのみ', () => {
-    for (const idx of SORTED_TYPE_INDICES) {
-      const cost = TYPES[idx]?.cost ?? 0;
-      const price = shopPrice(idx);
-      if (price === 8) {
-        expect(cost).toBeGreaterThan(9);
-      } else {
-        expect(cost).toBeLessThanOrEqual(9);
-      }
-    }
-  });
-});
-
 describe('initShopRound', () => {
   it('クレジット = ROUND_CREDITS、offerings が SHOP_SIZE 個', () => {
     const rng = makeRng();
@@ -153,7 +132,7 @@ describe('purchaseItem', () => {
     const creditsBefore = getShopCredits();
     const result = purchaseItem(0);
     expect(result).toBe(true);
-    expect(getShopCredits()).toBe(creditsBefore - item.shopPrice);
+    expect(getShopCredits()).toBe(creditsBefore - SHOP_PRICE);
     expect(getShopOfferings()[0]).toBeNull();
     const slot = getShopSlots().find((s) => s !== null && s.type === item.type);
     expect(slot).toBeDefined();
@@ -184,7 +163,7 @@ describe('purchaseItem', () => {
 });
 
 describe('マージ', () => {
-  it('同タイプ購入で mergeLevel 増加', () => {
+  it('同タイプ購入で mergeExp 増加', () => {
     expect.assertions(4);
     const rng = makeRng();
     initShopRound(rng, 1);
@@ -195,30 +174,71 @@ describe('マージ', () => {
     }
     purchaseItem(0);
 
-    // 同じタイプの offerings を探すか、リロールで出す
-    // マージの統合テストは effectiveCount の単体テストでカバー
     const slotBefore = getShopSlots().find((s) => s !== null && s.type === item0.type);
     expect(slotBefore).toBeDefined();
-    expect(slotBefore?.mergeLevel).toBe(0);
-    expect(effectiveCount({ type: item0.type, baseCount: TYPES[item0.type]?.clusterSize ?? 1, mergeLevel: 0 })).toBe(
+    expect(slotBefore?.mergeExp).toBe(0);
+    expect(effectiveCount({ type: item0.type, baseCount: TYPES[item0.type]?.clusterSize ?? 1, mergeExp: 0 })).toBe(
       TYPES[item0.type]?.clusterSize ?? 1,
     );
   });
 
-  it('effectiveCount がマージレベルに応じて増加', () => {
-    // baseCount=8, mergeBonusCount=4
+  it('effectiveCount が mergeExp に応じて増加', () => {
+    // baseCount=8: Lv1(exp=0)=8, Lv2(exp=2)=12, Lv3(exp=5)=16
     expect(effectiveCount(makeTestSlot(8, 0))).toBe(8);
-    expect(effectiveCount(makeTestSlot(8, 1))).toBe(12);
-    expect(effectiveCount(makeTestSlot(8, 2))).toBe(16);
-    // baseCount=1, mergeBonusCount=1
+    expect(effectiveCount(makeTestSlot(8, 2))).toBe(12);
+    expect(effectiveCount(makeTestSlot(8, 5))).toBe(16);
+    // baseCount=1: Lv1(exp=0)=1, Lv2(exp=2)=2, Lv3(exp=5)=3
     expect(effectiveCount(makeTestSlot(1, 0))).toBe(1);
-    expect(effectiveCount(makeTestSlot(1, 1))).toBe(2);
-    expect(effectiveCount(makeTestSlot(1, 3))).toBe(4);
+    expect(effectiveCount(makeTestSlot(1, 2))).toBe(2);
+    expect(effectiveCount(makeTestSlot(1, 5))).toBe(3);
+  });
+
+  it('★3 + 空スロット + 同タイプ → 重複配置禁止で false', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    const item = getShopOfferings()[0];
+    if (!item) {
+      return;
+    }
+    // スロット0に★3のユニットを配置（マージ不可）
+    const baseCount = TYPES[item.type]?.clusterSize ?? 1;
+    _setShopSlot(0, { type: item.type, baseCount, mergeExp: 5 });
+    // スロット1以降は空 → 空きあり
+    _setShopCredits(ROUND_CREDITS);
+
+    // 同タイプ購入 → マージ不可 + 同タイプ既存 → false（重複配置禁止）
+    expect(purchaseItem(0)).toBe(false);
+    // スロット1は空のまま（重複配置されていない）
+    expect(getShopSlots()[1]).toBeNull();
+  });
+
+  it('★3（mergeExp>=5）でマージ不可、新規配置もスロット満杯なら購入失敗', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    const item = getShopOfferings()[0];
+    if (!item) {
+      return;
+    }
+    // スロット0に★3のユニットを配置
+    const baseCount = TYPES[item.type]?.clusterSize ?? 1;
+    _setShopSlot(0, { type: item.type, baseCount, mergeExp: 5 });
+    // 残りスロットを全て埋める
+    for (let i = 1; i < SLOT_COUNT; i++) {
+      const typeIdx = SORTED_TYPE_INDICES[i];
+      if (typeIdx === undefined) {
+        break;
+      }
+      _setShopSlot(i, { type: typeIdx, baseCount: TYPES[typeIdx]?.clusterSize ?? 1, mergeExp: 0 });
+    }
+    _setShopCredits(ROUND_CREDITS);
+
+    // 同タイプのofferingを購入 → マージ不可＋スロット満杯 → false
+    expect(purchaseItem(0)).toBe(false);
   });
 });
 
 describe('sellSlot', () => {
-  it('売却でクレジット回復（半額）、スロット解放', () => {
+  it('売却でクレジット回復、スロット解放', () => {
     expect.assertions(5);
     const rng = makeRng();
     initShopRound(rng, 1);
@@ -232,7 +252,8 @@ describe('sellSlot', () => {
     const slotIdx = getShopSlots().findIndex((s) => s !== null);
     expect(slotIdx).toBeGreaterThanOrEqual(0);
 
-    const refund = sellPrice(item.type);
+    const slot = getShopSlots()[slotIdx];
+    const refund = slot ? sellPrice(slot.mergeExp) : 0;
     const result = sellSlot(slotIdx);
     expect(result).toBe(true);
     expect(getShopCredits()).toBe(creditsAfterBuy + refund);
@@ -320,33 +341,102 @@ describe('buildFleetFromShop', () => {
     if (!shopSlot) {
       return;
     }
-    expect(slot.count).toBe(effectiveCount(shopSlot));
+    // Hive の spawnCountMul=1.5 が適用される
+    const expected = Math.max(1, Math.round(effectiveCount(shopSlot) * 1.5));
+    expect(slot.count).toBe(expected);
   });
 });
 
 describe('sellPrice', () => {
-  it('半額（切り捨て）、最低 1 Cr', () => {
-    for (const idx of SORTED_TYPE_INDICES) {
-      const sp = sellPrice(idx);
-      expect(sp).toBeGreaterThanOrEqual(1);
-      expect(sp).toBe(Math.max(1, Math.floor(shopPrice(idx) / 2)));
-    }
+  it('レベル連動: Lv1=1Cr, Lv2=2Cr, Lv3=3Cr', () => {
+    expect(sellPrice(0)).toBe(1);
+    expect(sellPrice(2)).toBe(2);
+    expect(sellPrice(5)).toBe(3);
   });
 
-  it('mergeLevel=0 のデフォルト引数が明示指定と一致', () => {
-    for (const idx of SORTED_TYPE_INDICES) {
-      expect(sellPrice(idx)).toBe(sellPrice(idx, 0));
-    }
+  it('mergeExp 中間値も正しくレベル変換', () => {
+    expect(sellPrice(1)).toBe(1); // exp=1 → Lv1 → 1Cr
+    expect(sellPrice(3)).toBe(2); // exp=3 → Lv2 → 2Cr
+    expect(sellPrice(4)).toBe(2); // exp=4 → Lv2 → 2Cr
+    expect(sellPrice(10)).toBe(3); // exp=10 → Lv3 → 3Cr
+  });
+});
+
+describe('mergeExpToLevel', () => {
+  it('閾値ベースでレベル変換', () => {
+    expect(mergeExpToLevel(0)).toBe(0);
+    expect(mergeExpToLevel(1)).toBe(0);
+    expect(mergeExpToLevel(2)).toBe(1);
+    expect(mergeExpToLevel(4)).toBe(1);
+    expect(mergeExpToLevel(5)).toBe(2);
+    expect(mergeExpToLevel(10)).toBe(2);
+  });
+});
+
+describe('MAX_MERGE_LEVEL', () => {
+  it('最大レベルは 2（★3）', () => {
+    expect(MAX_MERGE_LEVEL).toBe(2);
+  });
+});
+
+describe('canPurchaseItem', () => {
+  it('購入可能 → null', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    expect(canPurchaseItem(0)).toBeNull();
   });
 
-  it('マージ済みスロットの売却で投資額の半額が返る', () => {
-    for (const idx of SORTED_TYPE_INDICES) {
-      const price = shopPrice(idx);
-      for (const ml of [1, 2, 3]) {
-        const sp = sellPrice(idx, ml);
-        expect(sp).toBe(Math.max(1, Math.floor((price * (1 + ml)) / 2)));
-        expect(sp).toBeGreaterThanOrEqual(sellPrice(idx, 0));
-      }
+  it('クレジット不足 → no_credits', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    _setShopCredits(0);
+    expect(canPurchaseItem(0)).toBe('no_credits');
+  });
+
+  it('★3到達 + 同タイプ → max_star', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    const item = getShopOfferings()[0];
+    if (!item) {
+      return;
     }
+    const baseCount = TYPES[item.type]?.clusterSize ?? 1;
+    _setShopSlot(0, { type: item.type, baseCount, mergeExp: 5 });
+    _setShopCredits(ROUND_CREDITS);
+    expect(canPurchaseItem(0)).toBe('max_star');
+  });
+
+  it('全スロット満杯 + 異タイプ → slots_full', () => {
+    fillAllSlots();
+    initShopRound(makeRng(999), 1);
+    const nonMergeIdx = findNonMergeableOffering();
+    expect(nonMergeIdx).toBeGreaterThanOrEqual(0);
+    expect(canPurchaseItem(nonMergeIdx)).toBe('slots_full');
+  });
+
+  it('sold out → sold_out', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1);
+    purchaseItem(0);
+    // offerings[0] は null（sold out）
+    expect(canPurchaseItem(0)).toBe('sold_out');
+  });
+});
+
+describe('spawnCount', () => {
+  it('effectiveCount × spawnCountMul を反映', () => {
+    // baseCount=8, mergeExp=0 → effectiveCount=8, ×1.5 = 12
+    expect(spawnCount(makeTestSlot(8, 0), 1.5)).toBe(12);
+    // baseCount=8, mergeExp=2 → effectiveCount=12, ×1.5 = 18
+    expect(spawnCount(makeTestSlot(8, 2), 1.5)).toBe(18);
+  });
+
+  it('spawnCountMul=1 なら effectiveCount と同値', () => {
+    expect(spawnCount(makeTestSlot(8, 0), 1)).toBe(effectiveCount(makeTestSlot(8, 0)));
+    expect(spawnCount(makeTestSlot(1, 5), 1)).toBe(effectiveCount(makeTestSlot(1, 5)));
+  });
+
+  it('最小値 1 を保証', () => {
+    expect(spawnCount(makeTestSlot(1, 0), 0.1)).toBe(1);
   });
 });

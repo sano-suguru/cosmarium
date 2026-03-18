@@ -4,46 +4,57 @@ import type { FleetSetup } from './types-fleet.ts';
 import { DREADNOUGHT_TYPE, HIVE_TYPE, REACTOR_TYPE, unitType } from './unit-type-accessors.ts';
 import { NO_FIRE } from './unit-type-resolve.ts';
 
-interface MothershipDef {
+export interface MothershipDef {
   readonly type: UnitTypeIndex;
   readonly name: string;
   readonly description: string;
-  /** 生産間隔倍率（低い＝速い） */
-  readonly productionRateMul: number;
+  /** 生産間隔倍率（0.7 = 30%高速, 1.3 = 30%低速） */
+  readonly productionTimeMul: number;
   /** 味方の通常射撃クールダウン倍率（高い＝回転速い）。abilityCooldown には適用しない */
   readonly attackCdMul: number;
+  /** クラスタースポーン数倍率（デフォルト 1.0） */
+  readonly spawnCountMul: number;
+  /** 毎ラウンド追加クレジット（デフォルト 0） */
+  readonly creditsPerRound: number;
+  /** Bot 母艦選択の重み [early, mid, late]。[0,0,0] = Bot 候補外 */
+  readonly botWeights: readonly [early: number, mid: number, late: number];
 }
 
 const HIVE_DEF: MothershipDef = {
   type: HIVE_TYPE,
   name: 'Hive',
-  description: '生産速度が30%向上する',
-  productionRateMul: 0.7,
+  description: '生産速度30%UP＋スポーン数50%UP',
+  productionTimeMul: 0.7,
   attackCdMul: 1.0,
+  spawnCountMul: 1.5,
+  creditsPerRound: 0,
+  botWeights: [3, 2, 1],
 };
 
 const DREADNOUGHT_DEF: MothershipDef = {
   type: DREADNOUGHT_TYPE,
   name: 'Dreadnought',
   description: '重装甲＋遠距離主砲を搭載',
-  productionRateMul: 1.3,
+  productionTimeMul: 1.3,
   attackCdMul: 1.0,
+  spawnCountMul: 1.0,
+  creditsPerRound: 0,
+  botWeights: [1, 2, 1],
 };
 
 const REACTOR_DEF: MothershipDef = {
   type: REACTOR_TYPE,
   name: 'Reactor',
-  description: '味方全体の攻撃速度が25%向上',
-  productionRateMul: 1.0,
-  attackCdMul: 1.25,
+  description: '毎ラウンド+2Cr／スポーン数20%減',
+  productionTimeMul: 1.0,
+  attackCdMul: 1.0,
+  spawnCountMul: 0.8,
+  creditsPerRound: 2,
+  botWeights: [1, 1, 1],
 };
 
 /** UI セレクタ用の母艦定義リスト */
-export const MOTHERSHIP_DEFS: readonly [MothershipDef, MothershipDef, MothershipDef] = [
-  HIVE_DEF,
-  DREADNOUGHT_DEF,
-  REACTOR_DEF,
-];
+export const MOTHERSHIP_DEFS: readonly MothershipDef[] = [HIVE_DEF, DREADNOUGHT_DEF, REACTOR_DEF];
 
 const _defsByType = new Map<number, MothershipDef>(MOTHERSHIP_DEFS.map((d) => [d.type, d]));
 
@@ -53,7 +64,10 @@ const NEUTRAL_DEF: MothershipDef = {
   name: '',
   description: '',
   attackCdMul: 1.0,
-  productionRateMul: 1.0,
+  productionTimeMul: 1.0,
+  spawnCountMul: 1.0,
+  creditsPerRound: 0,
+  botWeights: [0, 0, 0],
 };
 
 /**

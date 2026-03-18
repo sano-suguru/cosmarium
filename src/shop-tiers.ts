@@ -2,43 +2,35 @@ import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
 import { createProductionSlot } from './production-config.ts';
 import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
-import { TYPES } from './unit-types.ts';
+import { unitTypeCost } from './unit-type-accessors.ts';
 
 // ── 型 ──────────────────────────────────────────────────────────
 
 type Tier = 'low' | 'mid' | 'high';
 type TierPhase = 'early' | 'mid' | 'late';
-export type WeightedCandidate = { idx: UnitTypeIndex; price: number; weight: number };
+export type WeightedCandidate = { idx: UnitTypeIndex; weight: number };
 
 export type ShopItem = {
   readonly type: UnitTypeIndex;
-  readonly shopPrice: number;
   locked: boolean;
 };
 
 export type ShopSlot = {
   readonly type: UnitTypeIndex;
   readonly baseCount: number;
-  mergeLevel: number;
+  mergeExp: number;
 };
+
+/** 購入不可の理由。null なら購入可能 */
+export type PurchaseBlock = 'no_credits' | 'max_star' | 'slots_full' | 'sold_out';
 
 // ── 定数 ─────────────────────────────────────────────────────────
 
 export const ROUND_CREDITS = 10;
 export const REROLL_COST = 1;
 export const SHOP_SIZE = 5;
-
-/** unitType.cost → shopPrice 圧縮テーブル */
-const PRICE_TABLE: readonly [number, number][] = [
-  [1, 1],
-  [3, 2],
-  [4, 3],
-  [5, 4],
-  [6, 5],
-  [8, 6],
-  [9, 7],
-];
-const HIGH_PRICE = 8;
+export const SHOP_PRICE = 3;
+export const MAX_MERGE_LEVEL = 2;
 
 /** ラウンド依存のティア重み。[low, mid, high] を返す */
 const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
@@ -49,39 +41,47 @@ const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
 
 const TIER_IDX: Record<Tier, 0 | 1 | 2> = { low: 0, mid: 1, high: 2 };
 
-// ── マージ ───────────────────────────────────────────────────────
+// ── マージ経験値 ─────────────────────────────────────────────────
 
-export function mergeBonusCount(baseCount: number): number {
+export function mergeExpToLevel(exp: number): number {
+  if (exp >= 5) {
+    return 2;
+  }
+  if (exp >= 2) {
+    return 1;
+  }
+  return 0;
+}
+
+function mergeBonusCount(baseCount: number): number {
   return Math.max(1, Math.floor(baseCount * 0.5));
 }
 
 export function effectiveCount(slot: ShopSlot): number {
-  return slot.baseCount + slot.mergeLevel * mergeBonusCount(slot.baseCount);
+  return slot.baseCount + mergeExpToLevel(slot.mergeExp) * mergeBonusCount(slot.baseCount);
 }
 
-// ── 価格 ─────────────────────────────────────────────────────────
-
-export function shopPrice(typeIdx: UnitTypeIndex): number {
-  const cost = TYPES[typeIdx]?.cost ?? 0;
-  for (const [threshold, price] of PRICE_TABLE) {
-    if (cost <= threshold) {
-      return price;
-    }
-  }
-  return HIGH_PRICE;
+export function spawnCount(slot: ShopSlot, spawnCountMul: number): number {
+  return Math.max(1, Math.round(effectiveCount(slot) * spawnCountMul));
 }
 
-export function sellPrice(typeIdx: UnitTypeIndex, mergeLevel = 0): number {
-  return Math.max(1, Math.floor((shopPrice(typeIdx) * (1 + mergeLevel)) / 2));
+// ── 売却 ─────────────────────────────────────────────────────────
+
+export function sellPrice(mergeExp: number): number {
+  return mergeExpToLevel(mergeExp) + 1;
 }
 
 // ── ティア ────────────────────────────────────────────────────────
 
-function priceTier(price: number): Tier {
-  if (price <= 3) {
+export const COST_LOW_MAX = 3;
+export const COST_MID_MAX = 6;
+
+function costTier(typeIdx: UnitTypeIndex): Tier {
+  const cost = unitTypeCost(typeIdx);
+  if (cost <= COST_LOW_MAX) {
     return 'low';
   }
-  if (price <= 5) {
+  if (cost <= COST_MID_MAX) {
     return 'mid';
   }
   return 'high';
@@ -100,10 +100,9 @@ function tierWeight(tier: Tier, round: number): number {
 export function buildWeightedCandidates(round: number): WeightedCandidate[] {
   const candidates: WeightedCandidate[] = [];
   for (const idx of SORTED_TYPE_INDICES) {
-    const price = shopPrice(idx);
-    const w = tierWeight(priceTier(price), round);
+    const w = tierWeight(costTier(idx), round);
     if (w > 0) {
-      candidates.push({ idx, price, weight: w });
+      candidates.push({ idx, weight: w });
     }
   }
   return candidates;
@@ -111,11 +110,14 @@ export function buildWeightedCandidates(round: number): WeightedCandidate[] {
 
 // ── スロット変換 ─────────────────────────────────────────────────
 
-export function slotsToProduction(slots: readonly (ShopSlot | null)[]): (ProductionSlot | null)[] {
+export function slotsToProduction(
+  slots: readonly (ShopSlot | null)[],
+  spawnCountMul: number,
+): (ProductionSlot | null)[] {
   return slots.map((s) => {
     if (!s) {
       return null;
     }
-    return createProductionSlot(s.type, effectiveCount(s));
+    return createProductionSlot(s.type, spawnCount(s, spawnCountMul));
   });
 }

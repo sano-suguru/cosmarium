@@ -2,7 +2,7 @@ import { Layers, Trash2 } from 'lucide-preact';
 import { getMothershipDef } from '../../mothership-defs.ts';
 import { getProductionTime } from '../../production-config.ts';
 import type { ShopSlot } from '../../shop-tiers.ts';
-import { effectiveCount } from '../../shop-tiers.ts';
+import { mergeExpToLevel, sellPrice, spawnCount } from '../../shop-tiers.ts';
 import type { UnitTypeIndex } from '../../types.ts';
 import { TYPES } from '../../unit-types.ts';
 import { shopSlots$ } from '../signals.ts';
@@ -30,8 +30,10 @@ function SlotCard({ slotIndex, slot, mothershipType, onSell }: SlotCardProps) {
     return null;
   }
 
-  const productionMul = getMothershipDef(mothershipType).productionRateMul;
-  const count = effectiveCount(slot);
+  const { productionTimeMul, spawnCountMul } = getMothershipDef(mothershipType);
+  const count = spawnCount(slot, spawnCountMul);
+
+  const mergeLevel = mergeExpToLevel(slot.mergeExp);
 
   return (
     <div class={`${styles.slotCard} ${styles.slotFilled}`}>
@@ -40,19 +42,19 @@ function SlotCard({ slotIndex, slot, mothershipType, onSell }: SlotCardProps) {
         <div class={styles.slotName}>
           <span class={`${styles.dot} ${styles.dotTeam0}`} />
           {t.name}
-          {slot.mergeLevel > 0 && (
+          {mergeLevel > 0 && (
             <span class={styles.mergeBadge}>
-              <Layers size={10} />+{slot.mergeLevel}
+              <Layers size={10} />★{mergeLevel + 1}
             </span>
           )}
         </div>
         <div class={styles.slotStats}>
-          {count}機 / {getProductionTime(slot.type, productionMul).toFixed(1)}秒
+          {count}機 / {getProductionTime(slot.type, productionTimeMul).toFixed(1)}秒
         </div>
       </div>
       <button type="button" class={styles.sellBtn} onClick={() => onSell(slotIndex)}>
         <Trash2 size={11} />
-        売却
+        売却 ({sellPrice(slot.mergeExp)}Cr)
       </button>
     </div>
   );

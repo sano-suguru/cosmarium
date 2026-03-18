@@ -158,7 +158,7 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
     return;
   }
 
-  const productionMul = getMothershipDef(mothershipType[team]).productionRateMul;
+  const productionMul = getMothershipDef(mothershipType[team]).productionTimeMul;
 
   // スロット数がキャッシュサイズを超えていたらフェイルファスト
   if (ps.slots.length > SLOT_COUNT) {

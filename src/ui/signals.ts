@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import type { ShopItem, ShopSlot } from '../shop-tiers.ts';
+import type { PurchaseBlock, ShopItem, ShopSlot } from '../shop-tiers.ts';
 import { state } from '../state.ts';
 import type { GameState, TimeScale, UnitTypeIndex } from '../types.ts';
 import type { FleetSetup } from '../types-fleet.ts';
@@ -14,7 +14,8 @@ export const codexSelected$ = signal<UnitTypeIndex>(state.codexSelected as UnitT
 /** resultData$ が non-null のとき結果パネルを表示。null で非表示。 */
 export const resultData$ = signal<ResultData | null>(null);
 
-export const composeVisible$ = signal(false);
+type ComposePhase = 'mothership' | 'fleet';
+export const composePhase$ = signal<ComposePhase | null>(null);
 export const composeEnemySetup$ = signal<FleetSetup | null>(null);
 export const composeEnemyArchName$ = signal('');
 
@@ -25,6 +26,7 @@ export const autoFollowActive$ = signal(false);
 export const shopCredits$ = signal(0);
 export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
 export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);
+export const shopPurchaseBlocks$ = signal<readonly (PurchaseBlock | null)[]>([]);
 
 /** timeScale$ は state.timeScale の signal ミラー。Object.defineProperty で自動同期。 */
 export const timeScale$ = signal<TimeScale>(state.timeScale);

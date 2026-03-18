@@ -109,7 +109,7 @@ export function updateProductionHud(ps: ProductionState): void {
     }
     return;
   }
-  const productionMul = getMothershipDef(mothershipType[TEAM0]).productionRateMul;
+  const productionMul = getMothershipDef(mothershipType[TEAM0]).productionTimeMul;
   const prev = hudProductionSlots$.peek();
   if (hasProductionHudChanged(prev, ps, productionMul)) {
     hudProductionSlots$.value = buildEntries(ps, productionMul);

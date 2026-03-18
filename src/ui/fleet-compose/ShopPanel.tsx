@@ -1,27 +1,34 @@
 import { Coins, Lock, Plus, RefreshCw, Unlock } from 'lucide-preact';
-import type { ShopItem } from '../../shop-tiers.ts';
-import { REROLL_COST } from '../../shop-tiers.ts';
+import type { PurchaseBlock, ShopItem } from '../../shop-tiers.ts';
+import { REROLL_COST, SHOP_PRICE } from '../../shop-tiers.ts';
 import { ROLE_LABELS } from '../../unit-type-accessors.ts';
 import { TYPES } from '../../unit-types.ts';
-import { shopCredits$, shopOfferings$ } from '../signals.ts';
+import { shopCredits$, shopOfferings$, shopPurchaseBlocks$ } from '../signals.ts';
 import styles from './ShopPanel.module.css';
+
+const BLOCK_LABELS: Record<PurchaseBlock, string> = {
+  no_credits: '不足',
+  max_star: '★3到達',
+  slots_full: '満杯',
+  sold_out: '売切',
+};
 
 type ShopCardProps = {
   readonly item: ShopItem;
   readonly index: number;
-  readonly canAfford: boolean;
+  readonly blocked: PurchaseBlock | null;
   readonly onBuy: (idx: number) => void;
   readonly onToggleLock: (idx: number) => void;
 };
 
-function ShopCard({ item, index, canAfford, onBuy, onToggleLock }: ShopCardProps) {
+function ShopCard({ item, index, blocked, onBuy, onToggleLock }: ShopCardProps) {
   const t = TYPES[item.type];
   if (!t) {
     return null;
   }
 
   return (
-    <div class={`${styles.shopCard} ${canAfford ? '' : styles.shopCardDisabled}`}>
+    <div class={`${styles.shopCard} ${blocked !== null ? styles.shopCardDisabled : ''}`}>
       <button
         type="button"
         class={styles.lockBtn}
@@ -35,11 +42,11 @@ function ShopCard({ item, index, canAfford, onBuy, onToggleLock }: ShopCardProps
       <div class={styles.shopCluster}>{t.clusterSize}機</div>
       <div class={styles.shopPrice}>
         <Coins size={11} />
-        <span>{item.shopPrice}</span>
+        <span>{SHOP_PRICE}</span>
       </div>
-      <button type="button" class={styles.buyBtn} disabled={!canAfford} onClick={() => onBuy(index)}>
+      <button type="button" class={styles.buyBtn} disabled={blocked !== null} onClick={() => onBuy(index)}>
         <Plus size={12} />
-        購入
+        {blocked !== null && blocked !== 'no_credits' ? BLOCK_LABELS[blocked] : '購入'}
       </button>
     </div>
   );
@@ -54,6 +61,7 @@ type ShopPanelProps = {
 export function ShopPanel({ onBuy, onToggleLock, onReroll }: ShopPanelProps) {
   const offerings = shopOfferings$.value;
   const credits = shopCredits$.value;
+  const blocks = shopPurchaseBlocks$.value;
   const canReroll = credits >= REROLL_COST;
 
   return (
@@ -79,7 +87,7 @@ export function ShopPanel({ onBuy, onToggleLock, onReroll }: ShopPanelProps) {
               key={`${item.type}-${i}`}
               item={item}
               index={i}
-              canAfford={credits >= item.shopPrice}
+              blocked={blocks[i] ?? 'sold_out'}
               onBuy={onBuy}
               onToggleLock={onToggleLock}
             />

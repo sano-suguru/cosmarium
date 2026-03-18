@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import { ArrowLeft, BookOpen, RotateCcw, ShieldAlert, Swords } from 'lucide-preact';
-import { getMothershipDef, MOTHERSHIP_DEFS } from '../../mothership-defs.ts';
+import { getMothershipDef } from '../../mothership-defs.ts';
 import { getRunInfo } from '../../run.ts';
 import { purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
 import type { UnitTypeIndex } from '../../types.ts';
@@ -29,6 +29,14 @@ const mothershipType$ = signal<UnitTypeIndex>(HIVE_TYPE);
 
 export function resetMothershipType() {
   mothershipType$.value = HIVE_TYPE;
+}
+
+export function getSelectedMothershipType(): UnitTypeIndex {
+  return mothershipType$.value;
+}
+
+export function setMothershipType(type: UnitTypeIndex) {
+  mothershipType$.value = type;
 }
 
 /** テスト専用: モジュールレベル変数をリセット */
@@ -71,31 +79,6 @@ function EnemyFleetHeader() {
   );
 }
 
-function MothershipSelector() {
-  const current = mothershipType$.value;
-
-  return (
-    <div class={styles.mothershipSection}>
-      <div class={styles.mothershipTitle}>MOTHERSHIP</div>
-      <div class={styles.mothershipGrid}>
-        {MOTHERSHIP_DEFS.map((d) => (
-          <button
-            key={d.type}
-            type="button"
-            class={`${styles.mothershipCard} ${current === d.type ? styles.mothershipActive : ''}`}
-            onClick={() => {
-              mothershipType$.value = d.type;
-            }}
-          >
-            <div class={styles.mothershipName}>{d.name}</div>
-            <div class={styles.mothershipDesc}>{d.description}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 type FleetComposeProps = {
   readonly onLaunch: (mothershipType: UnitTypeIndex) => void;
   readonly onBack: () => void;
@@ -118,7 +101,6 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         {runInfo && <RunInfoBar info={runInfo} class={styles.roundInfo} livesClass={styles.lives} />}
         <CreditBar />
         <EnemyFleetHeader />
-        <MothershipSelector />
         <ShopPanel onBuy={purchaseItem} onToggleLock={toggleLock} onReroll={rerollOfferings} />
         <SlotPanel mothershipType={mothershipType$.value} onSell={sellSlot} />
         <div class={styles.actions}>
@@ -129,7 +111,6 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
             type="button"
             class={`${btnStyles.btn} ${styles.reset}`}
             onClick={() => {
-              resetMothershipType();
               resetCurrentRoundShop();
             }}
           >
