@@ -1,5 +1,5 @@
 import { batch } from '@preact/signals';
-import { cam, setAutoFollow } from '../input/camera.ts';
+import { cam, setAutoFollow, snapCamera } from '../input/camera.ts';
 import { EMPTY_FLEET_SETUP } from '../mothership-defs.ts';
 import { _resetRunState, endRun, getRunInfo, isRunActive, resetRun } from '../run.ts';
 import {
@@ -93,6 +93,7 @@ function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
+  snapCamera();
   setAutoFollow(false);
 }
 function goToCompose() {
