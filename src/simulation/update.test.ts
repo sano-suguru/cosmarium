@@ -57,9 +57,6 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// ============================================================
-// 0. buildHash call count (tick 単位の検証)
-// ============================================================
 describe('buildHash call count — tick 単位検証', () => {
   it('tick(SIM_DT) 1回 → buildHash 1回', () => {
     spawnAt(0, DRONE_TYPE, 0, 0);
@@ -86,9 +83,6 @@ describe('buildHash call count — tick 単位検証', () => {
   });
 });
 
-// ============================================================
-// 1. 固定タイムステップ
-// ============================================================
 describe('固定タイムステップ', () => {
   it('tick(SIM_DT) で SIM_DT 分だけパーティクルの life が減少する', () => {
     spawnParticle(0, 0, 0, 0, 1.0, 1, 1, 1, 1, SH_CIRCLE);
@@ -104,9 +98,6 @@ describe('固定タイムステップ', () => {
   });
 });
 
-// ============================================================
-// 2. Particle + Beam (Step 5-6) — シンプルなので先にテスト
-// ============================================================
 describe('パーティクル pass', () => {
   it('移動 + drag 0.97', () => {
     spawnParticle(0, 0, 100, 200, 1.0, 1, 1, 1, 1, SH_CIRCLE);
@@ -134,9 +125,6 @@ describe('ビーム pass', () => {
   });
 });
 
-// ============================================================
-// 3. steer + combat + trail (Step 2)
-// ============================================================
 describe('steer + combat + trail', () => {
   it('shieldLingerTimer が毎フレーム減衰する', () => {
     const idx = spawnAt(0, DRONE_TYPE, 0, 0);
@@ -164,9 +152,6 @@ describe('steer + combat + trail', () => {
   });
 });
 
-// ============================================================
-// 4. Reflector reflect field (Step 3)
-// ============================================================
 describe('Reflector reflect field', () => {
   it('範囲内の味方が reflectFieldHp=MAX になる（エネルギーあり）', () => {
     const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
@@ -238,9 +223,6 @@ describe('Reflector reflect field', () => {
   });
 });
 
-// ============================================================
-// 4b. Bastion tether (Step 3b)
-// ============================================================
 describe('Bastion tether', () => {
   it('範囲内の味方に shieldLingerTimer を付与しテザービームを生成する', () => {
     const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
@@ -333,9 +315,6 @@ describe('Bastion tether', () => {
   });
 });
 
-// ============================================================
-// 4c. Bastion self-shield (energy absorb)
-// ============================================================
 describe('Bastion self-shield', () => {
   it('energy>0 のBastionは被弾ダメージの30%をenergyで吸収する', () => {
     const bastion = spawnAt(0, BASTION_TYPE, 0, 0);
@@ -402,9 +381,6 @@ describe('Bastion self-shield', () => {
   });
 });
 
-// ============================================================
-// 5. Projectile pass (Step 4)
-// ============================================================
 describe('projectile pass', () => {
   it('移動: x += vx*dt', () => {
     spawnProjectile(0, 0, 300, 0, 1.0, 5, 0, 2, 1, 0, 0);
@@ -528,10 +504,6 @@ describe('projectile pass', () => {
     expect(p.b).toBeCloseTo(1 * 0.3, 5);
   });
 });
-
-// ============================================================
-// 5b. Railgun hitscan
-// ============================================================
 
 describe('railgun hitscan', () => {
   it('射線上の敵にダメージが入る', () => {
@@ -664,9 +636,6 @@ describe('キル時クールダウン短縮', () => {
   });
 });
 
-// ============================================================
-// 6. reinforce
-// ============================================================
 describe('reinforce', () => {
   it('reinforce が呼び出され両チームにユニットが増える', () => {
     state.reinforcementTimer = 2.49;
@@ -687,9 +656,6 @@ describe('reinforce', () => {
   });
 });
 
-// ============================================================
-// 8. swarmN 更新
-// ============================================================
 describe('swarmN 更新', () => {
   it('同型味方3体が近傍 → swarmN=3', () => {
     const a = spawnAt(0, DRONE_TYPE, 0, 0); // swarm:true
@@ -763,9 +729,6 @@ describe('swarmN 更新', () => {
   });
 });
 
-// ============================================================
-// 9. Reflector shieldCooldown recovery
-// ============================================================
 describe('Reflector shieldCooldown 回復', () => {
   it('shieldCooldownがdt分カウントダウンされる', () => {
     const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
@@ -806,9 +769,6 @@ describe('Reflector shieldCooldown 回復', () => {
   });
 });
 
-// ============================================================
-// 10. reflectFieldHp による確定反射
-// ============================================================
 describe('reflectFieldHp 反射', () => {
   it('reflectFieldHp > 0 で確定反射し、damage分減算される', () => {
     const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
@@ -934,9 +894,6 @@ describe('reflectFieldHp 反射', () => {
   });
 });
 
-// ============================================================
-// Amplifier tether
-// ============================================================
 const AMPLIFIER_TYPE = unitTypeIndex('Amplifier');
 const FIGHTER_TYPE_IDX = unitTypeIndex('Fighter');
 
@@ -984,9 +941,6 @@ describe('Amplifier tether', () => {
   });
 });
 
-// ============================================================
-// KillEvent 伝播テスト
-// ============================================================
 describe('KillEvent 伝播', () => {
   it('projectile kill: KillEvent に sourceUnit 情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
@@ -1024,9 +978,6 @@ describe('KillEvent 伝播', () => {
   });
 });
 
-// ============================================================
-// Scrambler debuff
-// ============================================================
 const SCRAMBLER_TYPE = unitTypeIndex('Scrambler');
 
 describe('Scrambler debuff', () => {
@@ -1122,9 +1073,6 @@ describe('Catalyst buff', () => {
   });
 });
 
-// ============================================================
-// stepOnce 勝敗判定（返り値ベース）
-// ============================================================
 describe('stepOnce 勝敗判定', () => {
   /** バトルモード用: battlePhase='battle' で勝敗判定が有効になる */
   function battleGameLoopState() {
@@ -1214,9 +1162,6 @@ describe('stepOnce 勝敗判定', () => {
   });
 });
 
-// ============================================================
-// stepOnce MELEE 勝敗判定
-// ============================================================
 describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
   function meleeGameLoopState(numTeams: number) {
     const gs = makeGameLoopState();

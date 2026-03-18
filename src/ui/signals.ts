@@ -22,7 +22,7 @@ export const composeEnemyArchName$ = signal('');
 export const playUiVisible$ = signal(false);
 export const autoFollowActive$ = signal(false);
 
-// ── ショップ状態 ──
+// ショップ状態
 export const shopCredits$ = signal(0);
 export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
 export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);

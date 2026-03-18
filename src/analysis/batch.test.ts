@@ -56,7 +56,7 @@ describe('parseIntArg', () => {
   });
 });
 
-// ─── collectArgPairs ──────────────────────────────────────────────
+// collectArgPairs
 
 describe('collectArgPairs', () => {
   it('--key value ペアを収集する', () => {
@@ -90,7 +90,7 @@ describe('collectArgPairs', () => {
   });
 });
 
-// ─── parseFleetArg ────────────────────────────────────────────────
+// parseFleetArg
 
 describe('parseFleetArg', () => {
   it('有効な艦隊指定をパースする', () => {

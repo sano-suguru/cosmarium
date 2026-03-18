@@ -28,7 +28,7 @@ import { fleetDiversity, ngramEntropy, rleCompressionRatio, spatialEntropy } fro
 import type { BattleStateSnapshot } from './entropy-battle.ts';
 import { battleComplexity } from './entropy-battle.ts';
 
-// ─── Trial Execution ──────────────────────────────────────────────
+// Trial Execution
 
 function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): GameLoopState {
   let reinforcementTimer = 0;
@@ -193,7 +193,7 @@ export function runTrial(trialIndex: number, config: BatchConfig): TrialResult {
   };
 }
 
-// ─── Snapshot Collection ──────────────────────────────────────────
+// Snapshot Collection
 
 /**
  * 座標収集用の再利用バッファ。`collectPositions` が毎回 `.length = 0` でリセットし

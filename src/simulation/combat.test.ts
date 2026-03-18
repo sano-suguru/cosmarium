@@ -105,9 +105,6 @@ describe('combat — COOLDOWN REGRESSION', () => {
   });
 });
 
-// ============================================================
-// Amplifier buff effects
-// ============================================================
 describe('combat — AMPLIFIER buff effects', () => {
   const FIGHTER_TYPE_C = FIGHTER_TYPE;
 
@@ -174,9 +171,6 @@ describe('combat — AMPLIFIER buff effects', () => {
   });
 });
 
-// ============================================================
-// KillEvent 伝播テスト
-// ============================================================
 describe('combat — KillEvent 伝播', () => {
   it('ramTarget: 敵kill時の KillEvent に攻撃者情報が含まれる', () => {
     const events: { killerTeam: number | undefined; killerType: number | undefined }[] = [];
@@ -233,9 +227,6 @@ describe('combat — KillEvent 伝播', () => {
   });
 });
 
-// ============================================================
-// SCRAMBLER debuff effects
-// ============================================================
 describe('combat — SCRAMBLER debuff effects', () => {
   const SCRAMBLER_TYPE = unitTypeIndex('Scrambler');
   const FIGHTER_TYPE_S = FIGHTER_TYPE;

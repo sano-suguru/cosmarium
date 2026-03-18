@@ -20,7 +20,7 @@ import type { FleetSetup } from './types-fleet.ts';
 import { TYPES } from './unit-types.ts';
 import { weightedPick } from './weighted-pick.ts';
 
-// ── ショップ状態 ─────────────────────────────────────────────────
+// ショップ状態
 
 type ShopState = {
   credits: number;
@@ -56,12 +56,12 @@ export function onShopChange(cb: () => void): () => void {
   };
 }
 
-// ── ショップ RNG + ラウンド ──────────────────────────────────────
+// ショップ RNG + ラウンド
 
 let shopRng: (() => number) | null = null;
 let shopRound = 1;
 
-// ── offerings 生成 ───────────────────────────────────────────────
+// offerings 生成
 
 function generateOfferings(rng: () => number, round: number): void {
   const candidates = buildWeightedCandidates(round);
@@ -84,7 +84,7 @@ function generateOfferings(rng: () => number, round: number): void {
   }
 }
 
-// ── Public API ───────────────────────────────────────────────────
+// Public API
 
 export function initShop(): void {
   shop.credits = 0;
@@ -250,7 +250,7 @@ export function getShopSlots(): readonly (ShopSlot | null)[] {
   return [...shop.slots];
 }
 
-// ── テスト専用 ──────────────────────────────────────────────────
+// テスト専用
 
 export function _resetShopListeners(): void {
   listeners.length = 0;

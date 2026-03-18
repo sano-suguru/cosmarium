@@ -15,7 +15,7 @@ import {
 import type { BattleStateSnapshot } from './entropy-battle.ts';
 import { battleComplexity } from './entropy-battle.ts';
 
-// ─── Shannon Entropy ───────────────────────────────────────────────
+// Shannon Entropy
 
 describe('shannonEntropy', () => {
   it('returns 0 for empty input', () => {
@@ -65,7 +65,7 @@ describe('normalizedEntropy', () => {
   });
 });
 
-// ─── Fleet Diversity ───────────────────────────────────────────────
+// Fleet Diversity
 
 describe('fleetDiversity', () => {
   it('returns 0 for single-type fleet', () => {
@@ -140,7 +140,7 @@ describe('fleetCostEntropy', () => {
   });
 });
 
-// ─── N-gram ────────────────────────────────────────────────────────
+// N-gram
 
 describe('ngramFrequencies', () => {
   it('returns empty map for n > sequence length', () => {
@@ -172,7 +172,7 @@ describe('ngramEntropy', () => {
   });
 });
 
-// ─── Compression / LZ Complexity ───────────────────────────────────
+// Compression / LZ Complexity
 
 describe('lzComplexity', () => {
   it('returns 0 for empty sequence', () => {
@@ -209,7 +209,7 @@ describe('rleCompressionRatio', () => {
   });
 });
 
-// ─── Spatial Entropy ───────────────────────────────────────────────
+// Spatial Entropy
 
 describe('spatialEntropy', () => {
   it('returns 0 for single unit', () => {
@@ -249,7 +249,7 @@ describe('spatialEntropy', () => {
   });
 });
 
-// ─── Battle Complexity ─────────────────────────────────────────────
+// Battle Complexity
 
 describe('battleComplexity', () => {
   it('returns 0 for insufficient snapshots', () => {

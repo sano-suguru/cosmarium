@@ -16,7 +16,7 @@ import type {
 } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
-// ─── Aggregation Helpers ─────────────────────────────────────────
+// Aggregation Helpers
 
 function aggregateKD(
   trials: readonly TrialResult[],
@@ -107,7 +107,7 @@ function aggregateDamageAndSupport(trials: readonly TrialResult[]): {
   return { dmgDealt, dmgReceived, healing, support };
 }
 
-// ─── Unit Summary ────────────────────────────────────────────────
+// Unit Summary
 
 function findTopIndex(matrix: KillMatrix, typeIdx: number, mode: 'victim' | 'threat'): number | null {
   let best = 0;
@@ -237,7 +237,7 @@ function computeUnitSummary(trials: readonly TrialResult[], killMatrix: KillMatr
   return result;
 }
 
-// ─── Summary ─────────────────────────────────────────────────────
+// Summary
 
 export function computeSummary(config: BatchConfig, trials: readonly TrialResult[]): BatchSummary {
   const winCounts: Record<string, number> = {};

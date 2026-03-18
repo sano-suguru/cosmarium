@@ -7,7 +7,7 @@ import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
 import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 import type { KillContext } from './on-kill-effects.ts';
 
-// ─── Kill Hook ───────────────────────────────────────────────────
+// Kill Hook
 
 type KillEvent = {
   victim: UnitIndex;
@@ -110,7 +110,7 @@ export function dispatchKillEvent(
   _keDepth--;
 }
 
-// ─── Spawn Hook ──────────────────────────────────────────────────
+// Spawn Hook
 
 interface SpawnEvent {
   unitIndex: UnitIndex;

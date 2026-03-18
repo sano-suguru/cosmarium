@@ -8,7 +8,7 @@ import { TYPES } from '../unit-types.ts';
 import { botFillSlots } from './enemy-fleet-bot.ts';
 import { deriveArchetypeFromProfile, pickMothershipTypeByRound, profileFleet } from './enemy-fleet-profile.ts';
 
-// ── 固定NPC ─────────────────────────────────────────────────────
+// 固定NPC
 
 function generateFixedNpc(round: number): {
   readonly setup: FleetSetup;
@@ -35,7 +35,7 @@ function generateFixedNpc(round: number): {
   throw new Error(`generateFixedNpc: unexpected round ${round}`);
 }
 
-// ── Public API ──────────────────────────────────────────────────
+// Public API
 
 /**
  * battle 用 — ショップ制約準拠の敵艦隊生成（プロシージャルBot）。

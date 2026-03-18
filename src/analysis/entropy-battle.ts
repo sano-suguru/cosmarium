@@ -4,7 +4,7 @@
 
 import { lzComplexity, rleCompressionRatio } from './entropy.ts';
 
-// ─── Battle State Complexity ───────────────────────────────────────
+// Battle State Complexity
 
 export interface BattleStateSnapshot {
   /** チームごとの生存ユニット数 */
@@ -73,7 +73,7 @@ function killDiffCompression(snapshots: readonly BattleStateSnapshot[]): number 
   return rleCompressionRatio(killDiffs, 10);
 }
 
-// ─── Utility ───────────────────────────────────────────────────────
+// Utility
 
 /** 母集団標準偏差（n で割る）。全スナップショットを母集団として扱う */
 function standardDeviation(values: readonly number[]): number {

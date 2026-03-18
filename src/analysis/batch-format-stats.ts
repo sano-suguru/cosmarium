@@ -5,7 +5,7 @@
 import { KILL_CONTEXT_LABEL_LIST } from '../simulation/on-kill-effects.ts';
 import type { SynergyPair, UnitTypeSummary } from './batch-types.ts';
 
-// ─── Damage Table ────────────────────────────────────────────────
+// Damage Table
 
 export function formatDamageTable(unitSummary: readonly UnitTypeSummary[]): string[] {
   const lines: string[] = [];
@@ -33,7 +33,7 @@ export function formatDamageTable(unitSummary: readonly UnitTypeSummary[]): stri
   return lines;
 }
 
-// ─── Support Table ───────────────────────────────────────────────
+// Support Table
 
 export function formatSupportTable(unitSummary: readonly UnitTypeSummary[]): string[] {
   const lines: string[] = [];
@@ -60,7 +60,7 @@ export function formatSupportTable(unitSummary: readonly UnitTypeSummary[]): str
   return lines;
 }
 
-// ─── Lifespan Table ──────────────────────────────────────────────
+// Lifespan Table
 
 export function formatLifespanTable(unitSummary: readonly UnitTypeSummary[]): string[] {
   const lines: string[] = [];
@@ -86,7 +86,7 @@ export function formatLifespanTable(unitSummary: readonly UnitTypeSummary[]): st
   return lines;
 }
 
-// ─── Kill Context Table ─────────────────────────────────────────
+// Kill Context Table
 
 export function formatKillContextTable(unitSummary: readonly UnitTypeSummary[]): string[] {
   const lines: string[] = [];
@@ -116,7 +116,7 @@ export function formatKillContextTable(unitSummary: readonly UnitTypeSummary[]):
   return lines;
 }
 
-// ─── Synergy Table ──────────────────────────────────────────────
+// Synergy Table
 
 export function formatSynergyTable(synergyPairs: readonly SynergyPair[]): string[] {
   const lines: string[] = [];

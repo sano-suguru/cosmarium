@@ -143,7 +143,7 @@ describe('resetMeleeTracking', () => {
   });
 });
 
-// ========== 新テスト: データ収集ロジック ==========
+// 新テスト: データ収集ロジック
 
 describe('kill hook — チーム別キル数', () => {
   it('killerTeam のキル数が正しく加算される', () => {

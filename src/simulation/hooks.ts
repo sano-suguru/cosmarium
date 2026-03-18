@@ -18,7 +18,7 @@ import { EVENT_STACK_MAX_DEPTH, stackAt, subscribe } from './hook-utils.ts';
 export type DamageKind = 'direct' | 'aoe' | 'beam' | 'ram' | 'chain' | 'sweep' | 'emp' | 'reflect' | 'tether';
 type SupportKind = 'heal' | 'amp' | 'scramble' | 'catalyst';
 
-// ─── Damage Hook ─────────────────────────────────────────────────
+// Damage Hook
 
 interface DamageEvent {
   attackerType: UnitTypeIndex;
@@ -79,7 +79,7 @@ export function _resetDamageHooks(): void {
   _dmgDepth = 0;
 }
 
-// ─── Support Hook ────────────────────────────────────────────────
+// Support Hook
 
 interface SupportEvent {
   casterType: UnitTypeIndex;

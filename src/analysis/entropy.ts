@@ -2,7 +2,7 @@ import type { FleetComposition } from '../types-fleet.ts';
 import { unitTypeCost } from '../unit-type-accessors.ts';
 import { UNIT_TYPE_COUNT } from '../unit-types.ts';
 
-// ─── Shannon Entropy ───────────────────────────────────────────────
+// Shannon Entropy
 
 /**
  * 離散確率分布のシャノンエントロピー H = -Σ p_i log2(p_i) を計算。
@@ -47,7 +47,7 @@ export function normalizedEntropy(counts: readonly number[]): number {
   return shannonEntropy(counts) / Math.log2(nonZero);
 }
 
-// ─── Fleet Diversity ───────────────────────────────────────────────
+// Fleet Diversity
 
 /**
  * 艦隊構成のシャノンエントロピーを「多様性スコア」として計算。
@@ -86,7 +86,7 @@ export function fleetCostEntropy(fleet: FleetComposition): number {
   return normalizedEntropy(costDist);
 }
 
-// ─── N-gram Frequency Analysis ─────────────────────────────────────
+// N-gram Frequency Analysis
 
 /**
  * イベントシーケンスから N-gram 頻度マップを生成。
@@ -143,7 +143,7 @@ export function ngramEntropy(sequence: readonly number[], n: number): number {
   return shannonEntropy(counts);
 }
 
-// ─── Compression Ratio (Kolmogorov Complexity Approximation) ───────
+// Compression Ratio (Kolmogorov Complexity Approximation)
 
 /**
  * LZ76 アルゴリズムによるコルモゴロフ複雑性の近似。
@@ -225,7 +225,7 @@ export function rleCompressionRatio(data: readonly number[], binSize: number = 1
   return runs / data.length;
 }
 
-// ─── Spatial Entropy ───────────────────────────────────────────────
+// Spatial Entropy
 
 /**
  * 2D 空間のグリッド分割によるエントロピー。

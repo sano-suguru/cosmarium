@@ -136,7 +136,7 @@ describe('formatSummary', () => {
     expect(output).toContain('混成艦隊シナジー分析');
   });
 
-  // ─── 勝率フォーマット ─────────────────────────────────────────
+  // 勝率フォーマット
   it('winRates のラベルとパーセンテージを正しく表示する', () => {
     const summary = makeMinimalSummary({
       stats: {
@@ -169,7 +169,7 @@ describe('formatSummary', () => {
     expect(output).toContain('時間切: 100.0%');
   });
 
-  // ─── ユニットサマリー詳細 ─────────────────────────────────────
+  // ユニットサマリー詳細
   it('unitSummary にユニット名・キル・デス列が含まれる', () => {
     const summary = makeMinimalSummary({
       unitSummary: [
@@ -234,7 +234,7 @@ describe('formatSummary', () => {
     expect(output).not.toMatch(/候補: NormalUnit/);
   });
 
-  // ─── キルマトリクス ───────────────────────────────────────────
+  // キルマトリクス
   it('killMatrix データがあるときキルマトリクスセクションを出力する', () => {
     const matrixData = [new Int32Array([0, 15]), new Int32Array([8, 0])];
     const summary = makeMinimalSummary({
@@ -267,7 +267,7 @@ describe('formatSummary', () => {
     expect(output).toContain('苦手=');
   });
 
-  // ─── エッジケース: ゼロ試行 ───────────────────────────────────
+  // エッジケース: ゼロ試行
   it('試合数ゼロでもクラッシュせず基本情報を出力する', () => {
     const summary = makeMinimalSummary({
       config: { ...makeMinimalConfig(), trials: 0 },
@@ -281,7 +281,7 @@ describe('formatSummary', () => {
     expect(output).not.toContain('#000');
   });
 
-  // ─── エッジケース: 全引き分け ─────────────────────────────────
+  // エッジケース: 全引き分け
   it('全試合引き分けのとき draw 100% が表示される', () => {
     const summary = makeMinimalSummary({
       config: { ...makeMinimalConfig(), trials: 5 },
@@ -301,7 +301,7 @@ describe('formatSummary', () => {
     expect(output).not.toContain('チーム1:');
   });
 
-  // ─── エッジケース: 大きなステップ数 ───────────────────────────
+  // エッジケース: 大きなステップ数
   it('数千ステップの値を正しくフォーマットする', () => {
     const summary = makeMinimalSummary({
       config: { ...makeMinimalConfig(), trials: 1, maxSteps: 99999 },
@@ -321,7 +321,7 @@ describe('formatSummary', () => {
     expect(output).toContain('85433');
   });
 
-  // ─── ダメージテーブル ─────────────────────────────────────────
+  // ダメージテーブル
   it('ダメージ統計セクションが表示される', () => {
     const summary = makeMinimalSummary({
       unitSummary: [
@@ -340,7 +340,7 @@ describe('formatSummary', () => {
     expect(output).toContain('Cannon');
   });
 
-  // ─── サポートテーブル ─────────────────────────────────────────
+  // サポートテーブル
   it('サポート効果統計セクションが表示される', () => {
     const summary = makeMinimalSummary({
       unitSummary: [
@@ -358,7 +358,7 @@ describe('formatSummary', () => {
     expect(output).toContain('Medic');
   });
 
-  // ─── 生存時間テーブル ─────────────────────────────────────────
+  // 生存時間テーブル
   it('生存時間分布セクションが表示される', () => {
     const summary = makeMinimalSummary({
       unitSummary: [makeUnitSummary({ name: 'Tank', totalSpawned: 10, avgLifespan: 45.67 })],
@@ -370,7 +370,7 @@ describe('formatSummary', () => {
     expect(output).toContain('45.67');
   });
 
-  // ─── 死因内訳テーブル ─────────────────────────────────────────
+  // 死因内訳テーブル
   it('死因内訳セクションが表示される', () => {
     const summary = makeMinimalSummary({
       unitSummary: [
@@ -388,7 +388,7 @@ describe('formatSummary', () => {
   });
 });
 
-// ─── ヘルパー ───────────────────────────────────────────────────
+// ヘルパー
 
 function makeUnitSummary(overrides: Partial<UnitTypeSummary> & { name: string }): UnitTypeSummary {
   return {

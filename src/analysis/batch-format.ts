@@ -107,7 +107,7 @@ function formatUnitTable(unitSummary: readonly UnitTypeSummary[]): string[] {
   return lines;
 }
 
-// ─── Kill Matrix ─────────────────────────────────────────────────
+// Kill Matrix
 
 function collectKillPairs(
   matrix: KillMatrix,
@@ -175,7 +175,7 @@ import {
   formatSynergyTable,
 } from './batch-format-stats.ts';
 
-// ─── Main Format ─────────────────────────────────────────────────
+// Main Format
 
 export function formatSummary(summary: BatchSummary): string {
   const lines: string[] = [];

@@ -184,7 +184,7 @@ export interface SynergyPair {
   readonly coCount: number;
 }
 
-// ─── RoundRobin Types ───────────────────────────────────────────
+// RoundRobin Types
 
 export interface MatchupResult {
   readonly typeA: UnitTypeIndex;
@@ -228,7 +228,7 @@ export interface RoundRobinConfig {
   readonly logger?: ((msg: string) => void) | undefined;
 }
 
-// ─── Worker TypedArray シリアライズ ──────────────────────────────
+// Worker TypedArray シリアライズ
 
 /** 2D Int32Array を structured clone 安全な形式に平坦化した表現 */
 interface FlatMatrix {

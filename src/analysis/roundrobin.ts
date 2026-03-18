@@ -18,7 +18,7 @@ import type {
 import { typeName } from './batch-types.ts';
 import { formatRoundRobin, parseRoundRobinArgs } from './roundrobin-format.ts';
 
-// ─── Core ─────────────────────────────────────────────────────────
+// Core
 
 /** 指定コスト上限内でモノタイプ艦隊を構築。cost <= 0 または購入不可なら null */
 function buildMonoFleet(typeIndex: UnitTypeIndex, costCap: number): FleetEntry[] | null {

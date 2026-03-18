@@ -51,7 +51,7 @@ export function profileFleet(slots: readonly (ShopSlot | null)[]): FleetProfile 
   return { roles, total, hasHigh, allLow, hasDefensive };
 }
 
-// ── 母艦タイプ選択 ─────────────────────────────────────────────
+// 母艦タイプ選択
 
 /**
  * ラウンド依存の母艦選択。序盤は Hive（生産力）重め、中盤以降は均等化。
@@ -85,7 +85,7 @@ export function pickMothershipTypeByRound(rng: () => number, round: number): Uni
   return entry.type;
 }
 
-// ── アーキタイプ名導出 ──────────────────────────────────────────
+// アーキタイプ名導出
 
 export function deriveArchetypeFromProfile(profile: FleetProfile): string {
   const { roles, total, hasHigh, allLow, hasDefensive } = profile;

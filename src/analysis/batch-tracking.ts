@@ -20,7 +20,7 @@ import type {
 } from './batch-types.ts';
 import { typeName } from './batch-types.ts';
 
-// ─── TypedArray Helpers (noUncheckedIndexedAccess 対策) ─────────
+// TypedArray Helpers (noUncheckedIndexedAccess 対策)
 
 function at(arr: Int32Array | Float64Array, idx: number): number {
   return arr[idx] ?? 0;
@@ -30,7 +30,7 @@ function accum(arr: Int32Array | Float64Array, idx: number, delta: number): void
   arr[idx] = (arr[idx] ?? 0) + delta;
 }
 
-// ─── Tracking Hooks ──────────────────────────────────────────────
+// Tracking Hooks
 
 export function createKillTracker(): KillTracker {
   const size = UNIT_TYPE_COUNT;
@@ -109,7 +109,7 @@ export function installSupportHook(tracker: SupportTracker): () => void {
   });
 }
 
-// ─── Snapshot Tracking ───────────────────────────────────────────
+// Snapshot Tracking
 
 /** エントロピー計算に十分な精度を持つキルシーケンスの上限長 */
 const MAX_KILL_SEQUENCE_LENGTH = 10800;
@@ -208,7 +208,7 @@ export function installAllTrackers(getCurrentTime: () => number) {
   return { kill, damage, support, sequence, lifespan, killContext, spawnedByType, unsubscribeAll };
 }
 
-// ─── Cross-Trial Aggregation ────────────────────────────────────
+// Cross-Trial Aggregation
 
 export function aggregateLifespan(trials: readonly TrialResult[]): Map<number, number> {
   const totalLifespan = new Map<number, number>();
