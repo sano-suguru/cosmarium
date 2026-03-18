@@ -10,7 +10,7 @@ import {
 import { recordBonusKill } from './bonus-round.ts';
 import { REF_FPS, SIM_DT } from './constants.ts';
 import { drainAccumulator } from './drain-accumulator.ts';
-import { addShake, cam, initCamera, setAutoFollow, updateAutoFollow } from './input/camera.ts';
+import { addShake, cam, initCamera, updateAutoFollow } from './input/camera.ts';
 import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
 import { advanceMeleeElapsed, advanceMeleeEndTimer, onMeleeEnd } from './melee-tracker.ts';
 import { installPhaseCallbacks } from './phase-callbacks.ts';
@@ -25,7 +25,7 @@ import { emptyProductions } from './simulation/production.ts';
 import { onKillUnitPermanent } from './simulation/spawn-hooks.ts';
 import { onUnitKilled } from './simulation/squadron.ts';
 import type { GameLoopState } from './simulation/update.ts';
-import { stepOnce } from './simulation/update.ts';
+import { stepOnce, stepWorld } from './simulation/update.ts';
 import { rng, state } from './state.ts';
 import type { Team } from './team.ts';
 import { TEAM0, TEAM1 } from './team.ts';
@@ -42,6 +42,11 @@ import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
 const BASE_SPEED = 0.55;
 /** result 状態のスロー再生倍率 */
 const AFTERMATH_SPEED = 0.2;
+/** Codex デモは常に2チーム（team 0 vs team 1） */
+const CODEX_DEMO_TEAMS = 2;
+/** Codex デモ中は shake 不要（no-op） */
+// biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op for demo shake
+const noShake = () => {};
 
 initRenderer();
 
@@ -54,7 +59,7 @@ initCamera();
 initMinimap();
 
 onKillUnitPermanent((e) => {
-  if (state.codexOpen || state.gameState !== 'play') {
+  if (state.gameState !== 'play') {
     return;
   }
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
@@ -84,9 +89,6 @@ let simAccumulator = 0;
 let demoAccumulator = 0;
 
 const gameLoopState: GameLoopState = {
-  get codexOpen() {
-    return state.codexOpen;
-  },
   get reinforcementTimer() {
     return state.reinforcementTimer;
   },
@@ -95,7 +97,6 @@ const gameLoopState: GameLoopState = {
   },
   battlePhase: 'spectate' as BattlePhase,
   activeTeamCount: 2,
-  updateCodexDemo,
   productions: emptyProductions(),
   bonusData: null,
   phaseElapsed: 0,
@@ -194,10 +195,10 @@ function frame(now: number) {
   }
 
   if (state.codexOpen) {
-    setAutoFollow(false);
     demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () => {
       savePrevPositions();
-      stepOnce(SIM_DT, demoRng, gameLoopState, addShake);
+      stepWorld(SIM_DT, demoRng, CODEX_DEMO_TEAMS, noShake);
+      updateCodexDemo(SIM_DT);
     });
     setInterpAlpha(demoAccumulator / SIM_DT);
     syncDemoCamera();

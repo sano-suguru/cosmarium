@@ -33,7 +33,7 @@ Preact 関数コンポーネント + Preact Signals + CSS Modules でUI層を構
 |---------|------|
 | `signals.ts` | Preact Signals: gameState$, codexOpen$, playUiVisible$ 等。state.ts と双方向同期 |
 | `game-control.ts` | ゲームフロー制御: 開始/メニュー遷移/キーボード(Tab/Esc/速度) |
-| `codex/codex-logic.ts` | Codex コアロジック: プール snapshot/restore |
+| `codex/codex-logic.ts` | Codex コアロジック: デモ生成・クリーンアップ |
 | `codex-demos.ts` | Codex デモ用ユニット生成 |
 | `dom-util.ts` | 型安全な `getElement()` ラッパー |
 | `format.ts` | テキストフォーマットヘルパー |
@@ -51,11 +51,7 @@ Preact 関数コンポーネント + Preact Signals + CSS Modules でUI層を構
 
 Codex は**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUnit()` で実際のプールに生ユニットを生成する。
 
-**snapshot/restore 方式**: Codex open → `snapshotPools()` で全プール状態を保存 → `clearAllPools()` でプールを空にし → デモ専用ユニットを生成。閉じ時は `restorePools(snapshot)` で元の状態に完全復元。
-
-- `snapshotPools()`: 全 alive エンティティの shallow copy + beams/trackingBeams + poolCounts を保存
-- `clearAllPools()`: 全スロット `.alive=false` + カウントリセット + beams/trackingBeams/pendingChains 消去
-- `restorePools(snapshot)`: clearAllPools → snapshot 内容を Object.assign で書き戻し + setPoolCounts でカウント復元
+**menu/compose 限定**: Codex は menu/compose 状態でのみ開ける（play/result では無効）。menu/compose ではプールが空なので snapshot/restore は不要。開く時は `clearAllPools()` でプールをクリアしデモユニットを生成、閉じ時は `clearCurrentDemo()` でクリーンアップする。
 
 ## 変更ガイド
 

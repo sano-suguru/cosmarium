@@ -1,6 +1,5 @@
 import { cam } from '../input/camera.ts';
 import { screenEffects } from '../screen-effects.ts';
-import { state } from '../state.ts';
 import type { FBO } from '../types.ts';
 import { required } from './assert.ts';
 import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
@@ -124,8 +123,8 @@ export function renderFrame(now: number) {
   const W = viewport.W,
     H = viewport.H;
 
-  const cx = state.codexOpen ? cam.x : cam.x + cam.shakeX;
-  const cy = state.codexOpen ? cam.y : cam.y + cam.shakeY;
+  const cx = cam.x + cam.shakeX;
+  const cy = cam.y + cam.shakeY;
   const cz = cam.z;
 
   renderScenePass(sceneFBO, W, H, cx, cy, cz, now);

@@ -211,14 +211,8 @@ export function resetState() {
 }
 
 /** テスト用 GameLoopState ファクトリ。state のプロパティをリアルタイムに参照する getter/setter でラップする */
-export function makeGameLoopState(
-  updateCodexDemo: (dt: number) => void = () => undefined,
-  battlePhase: GameLoopState['battlePhase'] = 'spectate',
-): GameLoopState {
+export function makeGameLoopState(battlePhase: GameLoopState['battlePhase'] = 'spectate'): GameLoopState {
   return {
-    get codexOpen() {
-      return state.codexOpen;
-    },
     get reinforcementTimer() {
       return state.reinforcementTimer;
     },
@@ -227,7 +221,6 @@ export function makeGameLoopState(
     },
     battlePhase,
     activeTeamCount: 2,
-    updateCodexDemo,
     productions: emptyProductions(),
     bonusData: null,
     phaseElapsed: 0,
@@ -255,17 +248,6 @@ export function asType(n: number): UnitTypeIndex {
 /** spawnUnit() の PRNG 依存（angle, cooldown, wanderAngle）を固定値で確定的にユニットを生成する共通ヘルパー */
 export function spawnAt(team: Team, type: UnitTypeIndex, x: number, y: number): UnitIndex {
   return spawnUnit(team, type, x, y, () => 0);
-}
-
-/** テスト用：プール内の生存オブジェクト数をカウントする */
-export function countAlive(size: number, get: (i: number) => { alive: boolean }): number {
-  let count = 0;
-  for (let i = 0; i < size; i++) {
-    if (get(i).alive) {
-      count++;
-    }
-  }
-  return count;
 }
 
 /** テスト用 killUnit ラッパー。大半のテストでは killContext を気にしないためデフォルトを提供 */

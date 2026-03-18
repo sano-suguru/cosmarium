@@ -44,7 +44,7 @@ describe('stepOnce フェーズ別 (200u/5Kp/100pr)', () => {
 
   bench('stepOnce (swarm+steer+combat+fields)', () => {
     setupWorld(200, 5000, 100);
-    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), shake);
+    stepOnce(dt, rng, makeGameLoopState('battle'), shake);
     resetPools();
   });
 

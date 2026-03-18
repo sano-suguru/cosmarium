@@ -198,10 +198,8 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
 }
 
 export interface GameLoopState extends ReinforcementState {
-  codexOpen: boolean;
   battlePhase: BattlePhase;
   activeTeamCount: number;
-  updateCodexDemo: (dt: number) => void;
   productions: Productions;
   bonusData: BonusPhaseData | null;
   phaseElapsed: number;
@@ -251,17 +249,12 @@ function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'dr
   }
 }
 
-export function stepOnce(
-  dt: number,
-  rng: () => number,
-  gameState: GameLoopState,
-  shake: ShakeFn,
-): Team | 'draw' | null {
-  buildHash(gameState.activeTeamCount);
+export function stepWorld(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn): void {
+  buildHash(activeTeamCount);
   resetReflected();
   updateSquadronObjectives(dt, rng);
 
-  processAllUnits(dt, rng, gameState.activeTeamCount, shake);
+  processAllUnits(dt, rng, activeTeamCount, shake);
   decayAndRegen(dt);
   applyAllFields(dt);
 
@@ -270,10 +263,14 @@ export function stepOnce(
   updateBeams(dt);
   updateChains(dt, rng, shake);
   updateTrackingBeams(dt);
+}
 
-  if (gameState.codexOpen) {
-    gameState.updateCodexDemo(dt);
-    return null;
-  }
+export function stepOnce(
+  dt: number,
+  rng: () => number,
+  gameState: GameLoopState,
+  shake: ShakeFn,
+): Team | 'draw' | null {
+  stepWorld(dt, rng, gameState.activeTeamCount, shake);
   return stepPhase(dt, rng, gameState);
 }

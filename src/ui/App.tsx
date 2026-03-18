@@ -32,7 +32,7 @@ function App() {
       return;
     }
     return effect(() => {
-      el.style.display = playUiVisible$.value && !codexOpen$.value ? 'block' : 'none';
+      el.style.display = playUiVisible$.value ? 'block' : 'none';
     });
   }, []);
 
@@ -49,22 +49,14 @@ function App() {
       {composePhase$.value === 'fleet' && !codexOpen$.value && (
         <FleetCompose onLaunch={launchRound} onBack={goToMenu} onCodexToggle={onCodexToggle} />
       )}
-      {resultData && !codexOpen$.value && (
-        <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />
-      )}
-      {gameState$.value === 'play' && !codexOpen$.value && (
+      {resultData && <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />}
+      {gameState$.value === 'play' && (
         <>
           <Hud />
           <KillFeed />
         </>
       )}
-      {playUiVisible$.value && !codexOpen$.value && (
-        <PlayControls
-          onCodexToggle={onCodexToggle}
-          onAutoFollowToggle={handleAutoFollowToggle}
-          onSpeedChange={setSpd}
-        />
-      )}
+      {playUiVisible$.value && <PlayControls onAutoFollowToggle={handleAutoFollowToggle} onSpeedChange={setSpd} />}
       {codexOpen$.value && <Codex onClose={onCodexToggle} />}
       {import.meta.env.DEV && <DevOverlay />}
     </>

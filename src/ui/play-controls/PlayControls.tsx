@@ -1,4 +1,4 @@
-import { BookOpen, Crosshair } from 'lucide-preact';
+import { Crosshair } from 'lucide-preact';
 import { SPEEDS } from '../../constants.ts';
 import type { TimeScale } from '../../types.ts';
 import { autoFollowActive$, timeScale$ } from '../signals.ts';
@@ -7,20 +7,16 @@ import styles from './PlayControls.module.css';
 const SPEED_LABELS = ['\u25b6', '\u25b6\u25b6', '\u25b6\u25b6\u25b6'] as const;
 
 type PlayControlsProps = {
-  readonly onCodexToggle: () => void;
   readonly onAutoFollowToggle: () => void;
   readonly onSpeedChange: (speed: TimeScale) => void;
 };
 
-export function PlayControls({ onCodexToggle, onAutoFollowToggle, onSpeedChange }: PlayControlsProps) {
+export function PlayControls({ onAutoFollowToggle, onSpeedChange }: PlayControlsProps) {
   const speed = timeScale$.value;
   const followActive = autoFollowActive$.value;
 
   return (
     <>
-      <button type="button" class={styles.codexBtn} onClick={onCodexToggle}>
-        <BookOpen size={12} /> TAB: CODEX
-      </button>
       <button
         type="button"
         class={`${styles.autoFollowBtn} ${followActive ? styles.autoFollowBtnActive : ''}`}
@@ -30,7 +26,7 @@ export function PlayControls({ onCodexToggle, onAutoFollowToggle, onSpeedChange 
       </button>
       <div class={styles.controls}>
         <span class={styles.controlsDesktop}>
-          [ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ TAB: Codex ] [ F: Follow ] [ +/-: Speed ] [ 1/2/3: Speed ]
+          [ SCROLL: Zoom ] [ DRAG: Pan ] [ SPACE: Reset ] [ F: Follow ] [ +/-: Speed ] [ 1/2/3: Speed ]
         </span>
         <span class={styles.controlsTouch}>
           [ ピンチ: ズーム ] [ ドラッグ: パン ] [ ミニマップ: ジャンプ ] [ ▶: 速度 ]

@@ -46,16 +46,13 @@ import { stepOnce as tick } from './update.ts';
 
 const shake = vi.fn();
 
-const mockUpdateCodexDemo = vi.fn((_dt: number) => undefined);
-
 function gameLoopState() {
-  return makeGameLoopState(mockUpdateCodexDemo);
+  return makeGameLoopState();
 }
 
 afterEach(() => {
   resetPools();
   resetState();
-  mockUpdateCodexDemo.mockReset();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -198,8 +195,7 @@ describe('Reflector reflect field', () => {
     expect(unit(enemy).reflectFieldHp).toBe(0);
   });
 
-  it('codexOpen=true → Reflector は通常通りフィールドを付与する', () => {
-    state.codexOpen = true;
+  it('Reflector は味方にフィールドを付与する', () => {
     const ref = spawnAt(0, REFLECTOR_TYPE, 0, 0);
     const ally = spawnAt(0, FIGHTER_TYPE, 50, 0);
     unit(ref).trailTimer = 99;
@@ -692,30 +688,6 @@ describe('reinforce', () => {
 });
 
 // ============================================================
-// 7. codexOpen 分岐
-// ============================================================
-describe('codexOpen 分岐', () => {
-  it('codexOpen=true → reinforce スキップ + updateCodexDemo 呼出', () => {
-    state.codexOpen = true;
-    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    unit(idx).trailTimer = 99;
-    tick(0.016, rng, gameLoopState(), shake);
-    expect(mockUpdateCodexDemo).toHaveBeenCalled();
-  });
-
-  it('codexOpen=true → 全ユニットの steer/combat が走る（snapshot/restore方式）', () => {
-    state.codexOpen = true;
-    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(idx).trailTimer = 99;
-    unit(idx).cooldown = 0;
-    unit(enemy).trailTimer = 99;
-    tick(0.016, rng, gameLoopState(), shake);
-    expect(unit(idx).target).toBeGreaterThanOrEqual(0);
-  });
-});
-
-// ============================================================
 // 8. swarmN 更新
 // ============================================================
 describe('swarmN 更新', () => {
@@ -781,8 +753,7 @@ describe('swarmN 更新', () => {
     expect(unit(a).swarmN).toBe(0);
   });
 
-  it('codexOpen=true → swarmN は通常通り更新される（snapshot/restore方式）', () => {
-    state.codexOpen = true;
+  it('swarmN は2体以上で更新される', () => {
     const a = spawnAt(0, DRONE_TYPE, 0, 0);
     const b = spawnAt(0, DRONE_TYPE, 20, 0);
     unit(a).trailTimer = 99;
@@ -1157,7 +1128,7 @@ describe('Catalyst buff', () => {
 describe('stepOnce 勝敗判定', () => {
   /** バトルモード用: battlePhase='battle' で勝敗判定が有効になる */
   function battleGameLoopState() {
-    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    const gs = makeGameLoopState();
     gs.battlePhase = 'battle';
     return gs;
   }
@@ -1214,7 +1185,7 @@ describe('stepOnce 勝敗判定', () => {
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
-    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    const gs = makeGameLoopState();
     gs.battlePhase = 'battleEnding';
     // team 0 のみ生存だが battleEnding なので null
     const result = tick(SIM_DT, rng, gs, shake);
@@ -1225,7 +1196,7 @@ describe('stepOnce 勝敗判定', () => {
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
-    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    const gs = makeGameLoopState();
     gs.battlePhase = 'meleeEnding';
     const result = tick(SIM_DT, rng, gs, shake);
     expect(result).toBeNull();
@@ -1235,7 +1206,7 @@ describe('stepOnce 勝敗判定', () => {
     const b = spawnAt(1, DRONE_TYPE, 100, 0);
     unit(b).alive = false;
     decUnits(1);
-    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    const gs = makeGameLoopState();
     gs.battlePhase = 'aftermath';
     // team 0 のみ生存だが aftermath なので null
     const result = tick(SIM_DT, rng, gs, shake);
@@ -1248,7 +1219,7 @@ describe('stepOnce 勝敗判定', () => {
 // ============================================================
 describe('stepOnce MELEE 勝敗判定（母艦ベース）', () => {
   function meleeGameLoopState(numTeams: number) {
-    const gs = makeGameLoopState(mockUpdateCodexDemo);
+    const gs = makeGameLoopState();
     gs.battlePhase = 'melee';
     gs.activeTeamCount = numTeams;
     return gs;

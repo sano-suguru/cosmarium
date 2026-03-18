@@ -5,7 +5,7 @@ import { goToMenu, onCodexToggle, setSpd } from './game-control.ts';
 import { autoFollowActive$ } from './signals.ts';
 
 export function handleAutoFollowToggle() {
-  if (state.gameState === 'play' && !state.codexOpen) {
+  if (state.gameState === 'play') {
     toggleAutoFollow();
   }
 }
@@ -13,14 +13,7 @@ export function handleAutoFollowToggle() {
 function onResultKeydown(e: KeyboardEvent) {
   if (e.code === 'Escape') {
     e.preventDefault();
-    if (state.codexOpen) {
-      onCodexToggle();
-    } else {
-      goToMenu();
-    }
-  } else if (e.code === 'Tab') {
-    e.preventDefault();
-    onCodexToggle();
+    goToMenu();
   }
 }
 
@@ -68,15 +61,13 @@ function onPlayKeydown(e: KeyboardEvent) {
     setSpd(SPEEDS[idx] ?? unreachable(idx));
     e.preventDefault();
   } else if (e.code === 'KeyF') {
-    if (!state.codexOpen) {
-      toggleAutoFollow();
-      e.preventDefault();
-    }
+    toggleAutoFollow();
+    e.preventDefault();
   }
 }
 
 function onCodexKey(e: KeyboardEvent) {
-  if ((e.code === 'Tab' || e.code === 'Escape') && (state.gameState === 'play' || state.gameState === 'menu')) {
+  if ((e.code === 'Tab' || e.code === 'Escape') && state.gameState === 'menu') {
     e.preventDefault();
     onCodexToggle();
   }

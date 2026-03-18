@@ -1,27 +1,13 @@
-import { beams, trackingBeams } from '../../beams.ts';
 import { isPurchasable } from '../../fleet-cost.ts';
 import type { CameraSnapshot } from '../../input/camera.ts';
 import { restoreCamera, snapCamera, snapshotCamera, updateDemoCamera } from '../../input/camera.ts';
-import type { PoolCountsState } from '../../pools.ts';
-import {
-  clearAllPools,
-  getParticleHWM,
-  getProjectileHWM,
-  getUnitHWM,
-  mothershipIdx,
-  poolCounts,
-  restoreHWM,
-  setPoolCounts,
-  teamUnitCounts,
-} from '../../pools.ts';
-import { particle, projectile, unit } from '../../pools-query.ts';
-import { resetChains, restoreChains, snapshotChains } from '../../simulation/chain-lightning.ts';
+import { clearAllPools, getUnitHWM, poolCounts } from '../../pools.ts';
+import { unit } from '../../pools-query.ts';
+import { resetChains } from '../../simulation/chain-lightning.ts';
 import { demoFlag } from '../../simulation/combat.ts';
 import { spawnUnit } from '../../simulation/spawn.ts';
-import { restoreSquadrons, snapshotSquadrons } from '../../simulation/squadron.ts';
 import { state } from '../../state.ts';
-import { copyTeamCounts, copyTeamTuple } from '../../team.ts';
-import type { Beam, Particle, Projectile, TrackingBeam, Unit, UnitIndex, UnitTypeIndex } from '../../types.ts';
+import type { UnitTypeIndex } from '../../types.ts';
 import { NO_UNIT } from '../../types.ts';
 import { DEFAULT_UNIT_TYPE, unitType } from '../../unit-type-accessors.ts';
 import { demoByFlag, demoDefault, demoRng } from '../codex-demos.ts';
@@ -29,87 +15,6 @@ import { clearKillFeed } from '../kill-feed/KillFeed.tsx';
 
 let codexDemoTimer = 0;
 let cameraSnapshotBeforeCodex: CameraSnapshot | null = null;
-
-interface PoolSnapshot {
-  units: Array<{ index: number; copy: Unit }>;
-  particles: Array<{ index: number; copy: Particle }>;
-  projectiles: Array<{ index: number; copy: Projectile }>;
-  beams: Beam[];
-  trackingBeams: TrackingBeam[];
-  pendingChains: ReturnType<typeof snapshotChains>;
-  counts: PoolCountsState;
-  hwm: { units: number; particles: number; projectiles: number };
-}
-
-let poolSnapshot: PoolSnapshot | null = null;
-
-/** 全プール状態のスナップショット。全フィールドはプリミティブ型（検証済み）のため shallow copy で安全。新フィールド追加時は参照型でないことを確認すること */
-export function snapshotPools(): PoolSnapshot {
-  snapshotSquadrons();
-  const unitHWM = getUnitHWM();
-  const particleHWM = getParticleHWM();
-  const projectileHWM = getProjectileHWM();
-  const units: PoolSnapshot['units'] = [];
-  for (let i = 0; i < unitHWM; i++) {
-    const u = unit(i);
-    if (u.alive) {
-      units.push({ index: i, copy: { ...u } });
-    }
-  }
-  const particles: PoolSnapshot['particles'] = [];
-  for (let i = 0; i < particleHWM; i++) {
-    const p = particle(i);
-    if (p.alive) {
-      particles.push({ index: i, copy: { ...p } });
-    }
-  }
-  const projectiles: PoolSnapshot['projectiles'] = [];
-  for (let i = 0; i < projectileHWM; i++) {
-    const p = projectile(i);
-    if (p.alive) {
-      projectiles.push({ index: i, copy: { ...p } });
-    }
-  }
-  return {
-    units,
-    particles,
-    projectiles,
-    beams: beams.map((b) => ({ ...b })),
-    trackingBeams: trackingBeams.map((tb) => ({ ...tb })),
-    pendingChains: snapshotChains(),
-    counts: {
-      units: poolCounts.units,
-      particles: poolCounts.particles,
-      projectiles: poolCounts.projectiles,
-      teamUnits: copyTeamCounts(teamUnitCounts),
-      mothershipIndices: copyTeamTuple<UnitIndex>(mothershipIdx),
-    },
-    hwm: { units: unitHWM, particles: particleHWM, projectiles: projectileHWM },
-  };
-}
-
-export function restorePools(snapshot: PoolSnapshot) {
-  clearAllPools();
-  restoreSquadrons();
-  restoreChains(snapshot.pendingChains);
-  for (const entry of snapshot.units) {
-    Object.assign(unit(entry.index), entry.copy);
-  }
-  for (const entry of snapshot.particles) {
-    Object.assign(particle(entry.index), entry.copy);
-  }
-  for (const entry of snapshot.projectiles) {
-    Object.assign(projectile(entry.index), entry.copy);
-  }
-  for (const b of snapshot.beams) {
-    beams.push(b);
-  }
-  for (const tb of snapshot.trackingBeams) {
-    trackingBeams.push(tb);
-  }
-  setPoolCounts(snapshot.counts);
-  restoreHWM(snapshot.hwm.units, snapshot.hwm.particles, snapshot.hwm.projectiles);
-}
 
 function clearCurrentDemo() {
   clearAllPools();
@@ -121,11 +26,7 @@ function closeCodex() {
   if (!state.codexOpen) {
     return;
   }
-  if (poolSnapshot) {
-    restorePools(poolSnapshot);
-    poolSnapshot = null;
-  }
-  codexDemoTimer = 0;
+  clearCurrentDemo();
   state.codexOpen = false;
   if (cameraSnapshotBeforeCodex) {
     restoreCamera(cameraSnapshotBeforeCodex);
@@ -258,9 +159,11 @@ export function toggleCodex() {
     closeCodex();
     clearKillFeed();
   } else {
+    if (state.gameState !== 'menu' && state.gameState !== 'compose') {
+      throw new Error(`toggleCodex called in invalid gameState: ${state.gameState}`);
+    }
     clearKillFeed();
     cameraSnapshotBeforeCodex = snapshotCamera();
-    poolSnapshot = snapshotPools();
     state.codexOpen = true;
     if (!isPurchasable(state.codexSelected)) {
       state.codexSelected = DEFAULT_UNIT_TYPE;

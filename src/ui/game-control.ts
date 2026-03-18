@@ -93,6 +93,7 @@ function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
   cam.targetZ = 1;
+  setAutoFollow(false);
 }
 function goToCompose() {
   if (state.codexOpen) {
@@ -258,9 +259,6 @@ export function onCodexToggle() {
   if (state.gameState === 'compose' && !state.codexOpen) {
     composeEnemySetup$.value = currentEnemySetup;
     composeEnemyArchName$.value = currentEnemyArchName;
-  }
-  if (state.codexOpen) {
-    setAutoFollow(false);
   }
 }
 

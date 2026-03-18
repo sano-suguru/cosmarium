@@ -4,7 +4,7 @@ import { unitPool } from './pools-init.ts';
 import { initParticleFreeStack, rebuildParticleFreeStack } from './pools-particle.ts';
 import { particle, projectile, squadron, unit } from './pools-query.ts';
 import type { Team, TeamCounts, TeamTuple } from './team.ts';
-import { assignTeamTuple, TEAMS, teamAt } from './team.ts';
+import { TEAMS, teamAt } from './team.ts';
 import type { UnitIndex, UnitTypeIndex } from './types.ts';
 import { NO_TYPE, NO_UNIT } from './types.ts';
 
@@ -42,12 +42,6 @@ export function resetHWM() {
   _unitHWM = 0;
   _particleHWM = 0;
   _projectileHWM = 0;
-}
-
-export function restoreHWM(units: number, particles: number, projectiles: number) {
-  _unitHWM = units;
-  _particleHWM = particles;
-  _projectileHWM = projectiles;
 }
 
 const _counts = { units: 0, particles: 0, projectiles: 0 };
@@ -175,57 +169,6 @@ export function clearAllPools() {
   beams.length = 0;
   trackingBeams.length = 0;
   clearBeamPools();
-}
-
-export interface PoolCountsState {
-  readonly units: number;
-  readonly particles: number;
-  readonly projectiles: number;
-  readonly teamUnits: Readonly<TeamCounts>;
-  readonly mothershipIndices: Readonly<TeamTuple<UnitIndex>>;
-}
-
-function validateMothershipIndices(mothershipIndices: Readonly<TeamTuple<UnitIndex>>) {
-  for (const t of TEAMS) {
-    const idx = mothershipIndices[t];
-    if (idx !== NO_UNIT && (idx < 0 || idx >= POOL_UNITS)) {
-      throw new RangeError(`mothershipIndices[${t}] out of range: ${idx}`);
-    }
-  }
-}
-
-function validatePoolCounts(s: PoolCountsState) {
-  if (s.units < 0 || s.units > POOL_UNITS) {
-    throw new RangeError(`unitCount out of range: ${s.units}`);
-  }
-  if (s.particles < 0 || s.particles > POOL_PARTICLES) {
-    throw new RangeError(`particleCount out of range: ${s.particles}`);
-  }
-  if (s.projectiles < 0 || s.projectiles > POOL_PROJECTILES) {
-    throw new RangeError(`projectileCount out of range: ${s.projectiles}`);
-  }
-  let sum = 0;
-  for (const t of TEAMS) {
-    const v = s.teamUnits[t];
-    if (v < 0) {
-      throw new RangeError('teamUnitCounts must be non-negative');
-    }
-    sum += v;
-  }
-  if (sum !== s.units) {
-    throw new RangeError(`teamUnitCounts sum (${sum}) !== units (${s.units})`);
-  }
-  validateMothershipIndices(s.mothershipIndices);
-}
-
-export function setPoolCounts(s: PoolCountsState) {
-  validatePoolCounts(s);
-  _counts.units = s.units;
-  _counts.particles = s.particles;
-  _counts.projectiles = s.projectiles;
-  assignTeamTuple(_teamUnits, s.teamUnits);
-  assignTeamTuple(_mothershipIdx, s.mothershipIndices);
-  rebuildParticleFreeStack();
 }
 
 /** teamCount チーム中、母艦が生存している数を返す */

@@ -1,35 +1,38 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS } from './constants.ts';
+import { asType, resetPools, resetState, spawnAt } from './__test__/pool-helper.ts';
+import { beams, trackingBeams } from './beams.ts';
+import { POOL_PARTICLES, POOL_PROJECTILES, POOL_UNITS, SH_CIRCLE } from './constants.ts';
 import { unitIdx } from './pool-index.ts';
 import {
+  clearAllPools,
   countAliveMotherships,
   decParticles,
   decProjectiles,
   decUnits,
+  getParticleHWM,
+  getProjectileHWM,
+  getUnitHWM,
   incParticles,
   incProjectiles,
   incUnits,
+  mothershipIdx,
   mothershipType,
   poolCounts,
   registerMothership,
   resetPoolCounts,
-  setPoolCounts,
   setUnitCount,
   teamUnitCounts,
 } from './pools.ts';
-import { particle, projectile, unit } from './pools-query.ts';
-import type { TeamCounts, TeamTuple } from './team.ts';
+import { particle, projectile, squadron, unit } from './pools-query.ts';
+import { spawnParticle, spawnProjectile } from './simulation/spawn.ts';
+import { addBeam } from './simulation/spawn-beams.ts';
+import { assignToSquadron } from './simulation/squadron.ts';
 import { TEAMS } from './team.ts';
-import type { UnitIndex } from './types.ts';
 import { NO_TYPE, NO_UNIT } from './types.ts';
 
-/** 2チーム分のカウントから TeamCounts タプルを生成するヘルパー */
-function tc(t0: number, t1: number): TeamCounts {
-  return [t0, t1, 0, 0, 0];
-}
-
 afterEach(() => {
-  resetPoolCounts();
+  resetPools();
+  resetState();
   vi.restoreAllMocks();
 });
 
@@ -169,90 +172,6 @@ describe('setUnitCount', () => {
   });
 });
 
-const NO_MOTHERSHIPS: TeamTuple<UnitIndex> = [NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT];
-
-/** setPoolCounts 用のヘルパー: デフォルト値をマージ */
-function pc(overrides: Partial<Parameters<typeof setPoolCounts>[0]>): Parameters<typeof setPoolCounts>[0] {
-  return {
-    units: 0,
-    particles: 0,
-    projectiles: 0,
-    teamUnits: tc(0, 0),
-    mothershipIndices: NO_MOTHERSHIPS,
-    ...overrides,
-  };
-}
-
-describe('setPoolCounts', () => {
-  it('有効な値でカウントを一括設定', () => {
-    setPoolCounts(pc({ units: 10, particles: 20, projectiles: 30, teamUnits: tc(5, 5) }));
-    expect(poolCounts.units).toBe(10);
-    expect(poolCounts.particles).toBe(20);
-    expect(poolCounts.projectiles).toBe(30);
-    expect(teamUnitCounts[0]).toBe(5);
-    expect(teamUnitCounts[1]).toBe(5);
-  });
-
-  it('上限値で設定可能', () => {
-    setPoolCounts(
-      pc({ units: POOL_UNITS, particles: POOL_PARTICLES, projectiles: POOL_PROJECTILES, teamUnits: tc(POOL_UNITS, 0) }),
-    );
-    expect(poolCounts.units).toBe(POOL_UNITS);
-    expect(poolCounts.particles).toBe(POOL_PARTICLES);
-    expect(poolCounts.projectiles).toBe(POOL_PROJECTILES);
-  });
-
-  it('0で設定可能', () => {
-    setPoolCounts(pc({}));
-    expect(poolCounts.units).toBe(0);
-    expect(poolCounts.particles).toBe(0);
-    expect(poolCounts.projectiles).toBe(0);
-  });
-
-  it('unitCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(pc({ units: -1 }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ units: POOL_UNITS + 1 }))).toThrow(RangeError);
-  });
-
-  it('particleCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(pc({ particles: -1 }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ particles: POOL_PARTICLES + 1 }))).toThrow(RangeError);
-  });
-
-  it('projectileCount が範囲外で RangeError', () => {
-    expect(() => setPoolCounts(pc({ projectiles: -1 }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ projectiles: POOL_PROJECTILES + 1 }))).toThrow(RangeError);
-  });
-
-  it('teamUnits 合計が units と不一致で RangeError', () => {
-    expect(() => setPoolCounts(pc({ units: 10, teamUnits: tc(3, 3) }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ units: 10, teamUnits: tc(0, 0) }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ teamUnits: tc(1, 0) }))).toThrow(RangeError);
-  });
-
-  it('teamUnits に負値で RangeError', () => {
-    expect(() => setPoolCounts(pc({ units: 10, teamUnits: [0, 0, 0, -1, 11] as TeamCounts }))).toThrow(RangeError);
-    expect(() => setPoolCounts(pc({ units: 10, teamUnits: [0, 0, 0, 11, -1] as TeamCounts }))).toThrow(RangeError);
-  });
-
-  it('mothershipIndices が範囲外で RangeError', () => {
-    expect(() =>
-      setPoolCounts(pc({ mothershipIndices: [unitIdx(POOL_UNITS), NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT] })),
-    ).toThrow(RangeError);
-  });
-
-  it('有効な mothershipIndices で正常設定', () => {
-    setPoolCounts(
-      pc({
-        units: 1,
-        teamUnits: tc(1, 0),
-        mothershipIndices: [unitIdx(0), NO_UNIT, NO_UNIT, NO_UNIT, NO_UNIT],
-      }),
-    );
-    expect(poolCounts.units).toBe(1);
-  });
-});
-
 describe('teamUnitCounts', () => {
   it('incUnits/decUnits で per-team カウントが増減する', () => {
     incUnits(0);
@@ -312,5 +231,77 @@ describe('countAliveMotherships', () => {
     // team 1 の母艦を撃沈
     unit(1).alive = false;
     expect(countAliveMotherships(2)).toBe(1);
+  });
+});
+
+describe('clearAllPools', () => {
+  it('全プールをクリアする', () => {
+    // unit を生成
+    spawnAt(0, asType(0), 100, 100);
+    spawnAt(1, asType(0), 200, 200);
+
+    // particle を生成
+    spawnParticle(10, 10, 1, 1, 60, 2, 1, 1, 1, SH_CIRCLE);
+
+    // projectile を生成
+    spawnProjectile(50, 50, 2, 2, 30, 10, 0, 3, 1, 0.5, 0.5);
+
+    // beam を追加
+    addBeam(0, 0, 100, 100, 1, 1, 1, 30, 2);
+
+    // 事前確認: 何かが存在する
+    expect(poolCounts.units).toBeGreaterThan(0);
+    expect(poolCounts.particles).toBeGreaterThan(0);
+    expect(poolCounts.projectiles).toBeGreaterThan(0);
+    expect(getUnitHWM()).toBeGreaterThan(0);
+    expect(beams.length).toBeGreaterThan(0);
+
+    clearAllPools();
+
+    // 全 alive スロットが false
+    for (let i = 0; i < 2; i++) {
+      expect(unit(i).alive).toBe(false);
+    }
+    expect(particle(0).alive).toBe(false);
+    expect(projectile(0).alive).toBe(false);
+
+    // poolCounts が 0
+    expect(poolCounts.units).toBe(0);
+    expect(poolCounts.particles).toBe(0);
+    expect(poolCounts.projectiles).toBe(0);
+
+    // teamUnitCounts が全チーム 0
+    for (const t of TEAMS) {
+      expect(teamUnitCounts[t]).toBe(0);
+    }
+
+    // mothershipIdx / mothershipType がリセット
+    for (const t of TEAMS) {
+      expect(mothershipIdx[t]).toBe(NO_UNIT);
+      expect(mothershipType[t]).toBe(NO_TYPE);
+    }
+
+    // HWM が 0
+    expect(getUnitHWM()).toBe(0);
+    expect(getParticleHWM()).toBe(0);
+    expect(getProjectileHWM()).toBe(0);
+
+    // beams / trackingBeams が空
+    expect(beams.length).toBe(0);
+    expect(trackingBeams.length).toBe(0);
+  });
+
+  it('squadron もクリアされる', () => {
+    const idx = spawnAt(0, asType(0), 100, 100);
+    assignToSquadron(idx, 0);
+
+    // squadron が生成されたことを確認
+    expect(squadron(0).alive).toBe(true);
+    expect(squadron(0).memberCount).toBeGreaterThan(0);
+
+    clearAllPools();
+
+    expect(squadron(0).alive).toBe(false);
+    expect(squadron(0).memberCount).toBe(0);
   });
 });

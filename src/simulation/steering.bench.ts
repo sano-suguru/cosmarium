@@ -43,7 +43,7 @@ describe('stepOnce (全ユニット処理)', () => {
       spawnAt(0, asType(1), rng() * 4000, rng() * 4000);
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
-    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), () => undefined);
+    stepOnce(dt, rng, makeGameLoopState('battle'), () => undefined);
     resetPools();
   });
 
@@ -53,7 +53,7 @@ describe('stepOnce (全ユニット処理)', () => {
       spawnAt(0, asType(1), rng() * 4000, rng() * 4000);
       spawnAt(1, asType(1), rng() * 4000, rng() * 4000);
     }
-    stepOnce(dt, rng, makeGameLoopState(undefined, 'battle'), () => undefined);
+    stepOnce(dt, rng, makeGameLoopState('battle'), () => undefined);
     resetPools();
   });
 });

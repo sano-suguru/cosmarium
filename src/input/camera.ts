@@ -180,7 +180,7 @@ export function initCamera() {
   canvas.addEventListener('pointercancel', handlePointerEnd);
 
   addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'Space' && state.gameState === 'play' && !state.codexOpen) {
+    if (e.code === 'Space' && state.gameState === 'play') {
       setAutoFollow(false);
       cam.targetX = 0;
       cam.targetY = 0;
@@ -257,6 +257,9 @@ export function snapCamera(): void {
   cam.x = cam.targetX;
   cam.y = cam.targetY;
   cam.z = cam.targetZ;
+  cam.shake = 0;
+  cam.shakeX = 0;
+  cam.shakeY = 0;
 }
 
 export function updateDemoCamera(centroid: { cx: number; cy: number; radius: number }): void {

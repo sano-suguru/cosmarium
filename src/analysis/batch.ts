@@ -33,10 +33,8 @@ import { battleComplexity } from './entropy-battle.ts';
 function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): GameLoopState {
   let reinforcementTimer = 0;
   return {
-    codexOpen: false,
     battlePhase: mode === 'battle' ? 'battle' : 'melee',
     activeTeamCount: activeTeams,
-    updateCodexDemo: () => undefined,
     get reinforcementTimer() {
       return reinforcementTimer;
     },

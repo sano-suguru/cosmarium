@@ -271,29 +271,6 @@ export function computeSquadronLeaderObjective(
   out.y = dy * inv * speed;
 }
 
-const _squadronSnapshot: Squadron[] = [];
-
-export function snapshotSquadrons(): void {
-  for (let i = 0; i < POOL_SQUADRONS; i++) {
-    const s = squadron(i);
-    const existing = _squadronSnapshot[i];
-    if (existing === undefined) {
-      _squadronSnapshot[i] = { ...s };
-    } else {
-      Object.assign(existing, s);
-    }
-  }
-}
-
-export function restoreSquadrons(): void {
-  for (let i = 0; i < POOL_SQUADRONS; i++) {
-    const snap = _squadronSnapshot[i];
-    if (snap !== undefined) {
-      Object.assign(squadron(i), snap);
-    }
-  }
-}
-
 /** テザー描画対象のリーダーを返す。リーダー自身・未所属・リーダー死亡時は NO_UNIT */
 export function getSquadronTetherTarget(u: Unit, i: UnitIndex): UnitIndex {
   return memberLeaderIdx(u, i);

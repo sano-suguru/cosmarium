@@ -41,29 +41,6 @@ export function resetChains() {
   pendingChains.length = 0;
 }
 
-export function snapshotChains() {
-  return pendingChains.map((pc) => ({
-    hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
-    team: pc.team,
-    sourceKiller: { ...pc.sourceKiller },
-    elapsed: pc.elapsed,
-    nextHop: pc.nextHop,
-  }));
-}
-
-export function restoreChains(snapshot: ReturnType<typeof snapshotChains>) {
-  pendingChains.length = 0;
-  for (const pc of snapshot) {
-    pendingChains.push({
-      hops: pc.hops.map((h) => ({ ...h, col: [h.col[0], h.col[1], h.col[2]] as Color3 })),
-      team: pc.team,
-      sourceKiller: { ...pc.sourceKiller },
-      elapsed: pc.elapsed,
-      nextHop: pc.nextHop,
-    });
-  }
-}
-
 /** @returns true if all hops are done and the chain should be removed */
 function advanceChainHops(pc: PendingChain, dt: number, rng: () => number, shake: ShakeFn): boolean {
   pc.elapsed += dt;

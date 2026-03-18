@@ -1,26 +1,7 @@
-.codexBtn {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: var(--z-controls);
-  background: none;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  color: #0ff;
-  padding: 6px 14px;
-  font-family: inherit;
-  font-size: 11px;
-  cursor: pointer;
-  letter-spacing: 1px;
-}
-.codexBtn:hover {
-  background: rgba(0, 255, 255, 0.1);
-  border-color: #0ff;
-}
-
 .autoFollowBtn {
   position: fixed;
   top: 12px;
-  right: 130px;
+  right: 12px;
   z-index: var(--z-controls);
   background: none;
   border: 1px solid rgba(0, 255, 255, 0.2);
@@ -116,18 +97,12 @@
     min-height: 44px;
     min-width: 44px;
   }
-  .codexBtn,
   .autoFollowBtn {
     padding: 10px 16px;
     font-size: 13px;
     min-height: 44px;
     top: calc(12px + env(safe-area-inset-top, 0px));
-  }
-  .codexBtn {
     right: calc(12px + env(safe-area-inset-right, 0px));
-  }
-  .autoFollowBtn {
-    right: calc(150px + env(safe-area-inset-right, 0px));
   }
   .speed {
     bottom: 24px;

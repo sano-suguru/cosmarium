@@ -26,13 +26,6 @@ export function* teamsOf(n: number): Generator<Team> {
   }
 }
 
-/** TeamTuple<T> を in-place コピーする（dst を上書き） */
-export function assignTeamTuple<T>(dst: TeamTuple<T>, src: Readonly<TeamTuple<T>>): void {
-  for (const t of TEAMS) {
-    dst[t] = src[t];
-  }
-}
-
 export const TEAM0: Team = 0;
 export const TEAM1: Team = 1;
 export const TEAM2: Team = 2;
@@ -47,11 +40,6 @@ export type TeamCounts = TeamTuple<number>;
 /** TeamCounts の浅いコピーを型安全に生成する */
 export function copyTeamCounts(src: Readonly<TeamCounts>): TeamCounts {
   return src.slice() as unknown as TeamCounts;
-}
-
-/** TeamTuple<T> の浅いコピーを型安全に生成する。Array.slice() は T[] を返すため固定長タプル型へのキャストが必要（copyTeamCounts と同パターン） */
-export function copyTeamTuple<T>(src: Readonly<TeamTuple<T>>): TeamTuple<T> {
-  return (src as readonly T[]).slice() as unknown as TeamTuple<T>;
 }
 
 /** TeamTuple<T> を型安全に map する。Array.map() は U[] を返すため固定長タプル型へのキャストが必要（copyTeamCounts と同パターン） */

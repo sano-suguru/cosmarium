@@ -15,8 +15,6 @@ import {
   computeSquadronLeashFactor,
   formSquadrons,
   onUnitKilled,
-  restoreSquadrons,
-  snapshotSquadrons,
   succeedLeader,
   updateSquadronObjectives,
 } from './squadron.ts';
@@ -257,27 +255,6 @@ describe('updateSquadronObjectives', () => {
 
     expect(s.objectiveX).toBe(100);
     expect(s.objectiveY).toBe(200);
-  });
-});
-
-describe('snapshotSquadrons / restoreSquadrons', () => {
-  it('スナップショットと復元が正しく機能する', () => {
-    const a = spawnAt(0, DRONE_TYPE, 0, 0);
-    assignToSquadron(a, TEAM0);
-
-    const si = unit(a).squadronIdx;
-    squadron(si).objectiveX = 999;
-
-    snapshotSquadrons();
-
-    // 変更
-    squadron(si).objectiveX = 0;
-    squadron(si).alive = false;
-
-    restoreSquadrons();
-
-    expect(squadron(si).objectiveX).toBe(999);
-    expect(squadron(si).alive).toBe(true);
   });
 });
 
