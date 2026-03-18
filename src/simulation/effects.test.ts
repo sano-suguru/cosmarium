@@ -3,24 +3,27 @@ import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { trailColor } from '../colors.ts';
 import { unitIdx } from '../pool-index.ts';
-import { poolCounts } from '../pools.ts';
+import { mothershipIdx, poolCounts, registerMothership } from '../pools.ts';
 import { particle, unit } from '../pools-query.ts';
 import { rng, state } from '../state.ts';
 import type { Team } from '../team.ts';
+import type { UnitIndex } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import {
   ARCER_TYPE,
+  BOMBER_TYPE,
   CARRIER_TYPE,
   CRUISER_TYPE,
   DRONE_TYPE,
   FIGHTER_TYPE,
   FLAGSHIP_TYPE,
+  HIVE_TYPE,
   unitType,
 } from '../unit-type-accessors.ts';
 import { KILL_CONTEXT } from './on-kill-effects.ts';
 import { buildHash } from './spatial-hash.ts';
 import type { Killer } from './spawn.ts';
-import { captureKiller } from './spawn.ts';
+import { captureKiller, spawnUnit } from './spawn.ts';
 import { onKillUnit } from './spawn-hooks.ts';
 
 vi.mock('../screen-effects.ts', () => ({
@@ -34,7 +37,8 @@ import { addAberration, addFreeze } from '../screen-effects.ts';
 const shake = vi.fn();
 
 import { CHAIN_DAMAGE_DECAY, chainLightning, updateChains } from './chain-lightning.ts';
-import { boostBurst, boostTrail, destroyMutualKill, destroyUnit, explosion, trail } from './effects.ts';
+import { destroyMutualKill, destroyUnit, explosion, killUnit } from './effects.ts';
+import { boostBurst, boostTrail, trail } from './effects-trail.ts';
 
 const DUMMY_KILLER: Killer = { index: NO_UNIT, team: 0, type: DRONE_TYPE };
 
@@ -537,5 +541,119 @@ describe('destroyMutualKill', () => {
     destroyMutualKill(unitIdx(0), unitIdx(1), true, true, rng, KILL_CONTEXT.ProjectileDirect, shake);
     // 両方のexplosionでパーティクルが生成される
     expect(poolCounts.particles).toBeGreaterThan(before);
+  });
+});
+
+const testRng = () => 0.5;
+
+describe('killUnit', () => {
+  it('ユニットを無効化し poolCounts.unitCount を減少させる', () => {
+    spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
+    expect(poolCounts.units).toBe(1);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(unit(0).alive).toBe(false);
+    expect(poolCounts.units).toBe(0);
+  });
+
+  it('二重killしても poolCounts が負にならない', () => {
+    spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(poolCounts.units).toBe(0);
+  });
+
+  it('フックに killer 引数が伝播される', () => {
+    const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
+    spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
+    spawnUnit(1, FIGHTER_TYPE, 100, 100, testRng);
+    killUnit(unitIdx(0), captureKiller(unitIdx(1)), KILL_CONTEXT.ProjectileDirect);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.victim).toBe(0);
+    expect(calls[0]?.killer).toBe(1);
+  });
+
+  it('相打ち: killerFrom で事前キャプチャした情報が正しく伝播される', () => {
+    const calls: { victimTeam: number; killerTeam: number | undefined }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victimTeam: e.victimTeam, killerTeam: e.killerTeam });
+    });
+    spawnUnit(0, DRONE_TYPE, 0, 0, testRng); // index 0, team 0
+    spawnUnit(1, FIGHTER_TYPE, 100, 100, testRng); // index 1, team 1
+    const killer0 = captureKiller(unitIdx(0));
+    const killer1 = captureKiller(unitIdx(1));
+    killUnit(unitIdx(0), killer1, KILL_CONTEXT.ProjectileDirect);
+    killUnit(unitIdx(1), killer0, KILL_CONTEXT.ProjectileDirect);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.victimTeam).toBe(1);
+    expect(calls[1]?.killerTeam).toBe(0);
+  });
+
+  it('killer 省略時は NO_UNIT がフックに渡される', () => {
+    const calls: { victim: UnitIndex; killer: UnitIndex }[] = [];
+    onKillUnit((e) => {
+      calls.push({ victim: e.victim, killer: e.killer });
+    });
+    spawnUnit(0, DRONE_TYPE, 0, 0, testRng);
+    killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.killer).toBe(NO_UNIT);
+  });
+
+  it('alive ユニットの KilledUnitSnapshot を正しく返す', () => {
+    spawnUnit(1, BOMBER_TYPE, 100, 200, testRng);
+    const snap = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(snap).toBeDefined();
+    expect(snap?.x).toBe(100);
+    expect(snap?.y).toBe(200);
+    expect(snap?.team).toBe(1);
+    expect(snap?.type).toBe(2);
+  });
+
+  it('二重 kill は undefined を返す', () => {
+    spawnUnit(0, FIGHTER_TYPE, 50, 60, testRng);
+    const first = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    const second = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(first).toBeDefined();
+    expect(second).toBeUndefined();
+  });
+
+  it('返り値は独立オブジェクトで、2回 kill しても互いに影響しない', () => {
+    spawnUnit(0, FIGHTER_TYPE, 10, 20, testRng);
+    spawnUnit(1, BOMBER_TYPE, 30, 40, testRng);
+    const snap1 = killUnit(unitIdx(0), undefined, KILL_CONTEXT.ProjectileDirect);
+    const snap2 = killUnit(unitIdx(1), undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(snap1).not.toBe(snap2);
+    expect(snap1?.x).toBe(10);
+    expect(snap2?.x).toBe(30);
+  });
+
+  it('Mothership kill で mothershipIdx が NO_UNIT になる', () => {
+    const mothershipType = HIVE_TYPE;
+    const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    registerMothership(0, idx, mothershipType);
+    expect(mothershipIdx[0]).toBe(idx);
+    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(mothershipIdx[0]).toBe(NO_UNIT);
+  });
+
+  it('通常ユニット kill で mothershipIdx が変化しない', () => {
+    const mothershipType = HIVE_TYPE;
+    const msIdx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    registerMothership(0, msIdx, mothershipType);
+    const fighterIdx = spawnUnit(0, FIGHTER_TYPE, 100, 100, testRng);
+    killUnit(fighterIdx, undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(mothershipIdx[0]).toBe(msIdx);
+  });
+
+  it('Mothership 二重 kill で decMotherships エラーにならない', () => {
+    const mothershipType = HIVE_TYPE;
+    const idx = spawnUnit(0, mothershipType, 0, 0, testRng);
+    registerMothership(0, idx, mothershipType);
+    killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect);
+    expect(() => killUnit(idx, undefined, KILL_CONTEXT.ProjectileDirect)).not.toThrow();
+    expect(mothershipIdx[0]).toBe(NO_UNIT);
   });
 });

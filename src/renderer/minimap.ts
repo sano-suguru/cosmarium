@@ -5,7 +5,15 @@ import { lerpX, lerpY } from '../interpolation.ts';
 import { getUnitHWM, poolCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import { unitType } from '../unit-type-accessors.ts';
-import { MINIMAP_MAX, minimapBuffer, minimapData, minimapDataI32, mmVAO, writeSlots } from './buffers.ts';
+import {
+  MINIMAP_MAX,
+  minimapBuffer,
+  minimapData,
+  minimapDataI32,
+  mmVAO,
+  STRIDE_FLOATS,
+  writeSlots,
+} from './buffers.ts';
 import { minimapProgram } from './shaders.ts';
 import { gl, viewport } from './webgl-setup.ts';
 
@@ -26,7 +34,7 @@ function writeMinimap(
   if (minimapInstanceCount >= MINIMAP_MAX) {
     return;
   }
-  writeSlots(minimapData, minimapDataI32, minimapInstanceCount * 9, x, y, sizeX, r, g, b, a, sizeY, shape);
+  writeSlots(minimapData, minimapDataI32, minimapInstanceCount * STRIDE_FLOATS, x, y, sizeX, r, g, b, a, sizeY, shape);
   minimapInstanceCount++;
 }
 
@@ -111,7 +119,7 @@ export function drawMinimap() {
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, minimapBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, minimapData.subarray(0, minimapInstanceCount * 9), gl.DYNAMIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, minimapData.subarray(0, minimapInstanceCount * STRIDE_FLOATS), gl.DYNAMIC_DRAW);
   gl.bindVertexArray(mmVAO);
   gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, minimapInstanceCount);
   gl.bindVertexArray(null);

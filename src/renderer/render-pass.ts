@@ -2,7 +2,7 @@ import { cam } from '../input/camera.ts';
 import { screenEffects } from '../screen-effects.ts';
 import type { FBO } from '../types.ts';
 import { required } from './assert.ts';
-import { instanceBuffer, instanceData, mainVAO, qVAO } from './buffers.ts';
+import { instanceBuffer, instanceData, mainVAO, qVAO, STRIDE_FLOATS } from './buffers.ts';
 import type { BloomScales } from './fbo.ts';
 import { fbos } from './fbo.ts';
 import { renderScene } from './render-scene.ts';
@@ -42,7 +42,7 @@ function renderScenePass(sceneFBO: FBO, W: number, H: number, cx: number, cy: nu
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, instanceData.subarray(0, ic * 9), gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, instanceData.subarray(0, ic * STRIDE_FLOATS), gl.DYNAMIC_DRAW);
     gl.bindVertexArray(mainVAO);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, ic);
     gl.bindVertexArray(null);

@@ -1,6 +1,6 @@
 import { TAU } from '../constants.ts';
 import { devWarn } from '../ui/dev-overlay/DevOverlay.tsx';
-import { instanceData, instanceDataI32, MAX_INSTANCES, writeSlots } from './buffers.ts';
+import { instanceData, instanceDataI32, MAX_INSTANCES, STRIDE_FLOATS, writeSlots } from './buffers.ts';
 
 // TAU multiple keeps sin(now*N) continuous at wrap boundary; ×10000 ≈ 17.5h before reset
 export const WRAP_PERIOD = TAU * 10000;
@@ -45,7 +45,7 @@ export function writeInstance(
   shape: number,
 ) {
   if (_writer.idx < MAX_INSTANCES) {
-    writeSlots(instanceData, instanceDataI32, _writer.idx * 9, x, y, size, r, g, b, a, angle, shape);
+    writeSlots(instanceData, instanceDataI32, _writer.idx * STRIDE_FLOATS, x, y, size, r, g, b, a, angle, shape);
     _writer.idx++;
   } else if (!_writer.overflowWarned) {
     devWarn(`writeInstance: idx(${_writer.idx}) >= MAX_INSTANCES(${MAX_INSTANCES}), drawing skipped`);

@@ -38,8 +38,6 @@
 ## Critical Gotchas
 
 - blendモード: シーン=`SRC_ALPHA, ONE`(加算)、ミニマップ=`SRC_ALPHA, ONE_MINUS_SRC_ALPHA`(通常)。混同注意
-- `instanceData`は`subarray(0, ic*9)`で必要分のみ転送。全体送信しない
-- instance layout: 9 slots/stride=36bytes。slot 8(shape ID)はint(`vertexAttribIPointer`)。offset 28の`aA`はmmVAOでは`aSY`(Y-scale)に転用
 - シェーダコンパイルエラーは`devError()`で報告→黒画面。CIでは検出不可
 
 ## 初期化順序（main.tsから）

@@ -4,35 +4,24 @@ import {
   advanceParticleHWM,
   advanceProjectileHWM,
   advanceUnitHWM,
-  decMotherships,
   decParticles,
   decProjectiles,
-  decUnits,
   incParticles,
   incProjectiles,
   incUnits,
-  teamUnitCounts,
 } from '../pools.ts';
 import { allocParticleSlot, freeParticleSlot } from '../pools-particle.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import type { Team } from '../team.ts';
 import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitTypeIndex } from '../types.ts';
 import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_TYPE, NO_UNIT } from '../types.ts';
-import { isMothership, unitType } from '../unit-type-accessors.ts';
-import type { KillContext } from './on-kill-effects.ts';
-import { dispatchKillEvent, dispatchSpawnEvent } from './spawn-hooks.ts';
+import { unitType } from '../unit-type-accessors.ts';
+import { dispatchSpawnEvent } from './spawn-hooks.ts';
 
 export interface Killer {
   index: UnitIndex;
   team: Team;
   type: UnitTypeIndex;
-}
-
-interface KilledUnitSnapshot {
-  readonly x: number;
-  readonly y: number;
-  readonly team: Team;
-  readonly type: UnitTypeIndex;
 }
 
 interface KilledParticleSnapshot {
@@ -139,29 +128,6 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
     }
   }
   return NO_UNIT;
-}
-
-export function killUnit(
-  i: UnitIndex,
-  killer: Killer | undefined,
-  killContext: KillContext,
-): KilledUnitSnapshot | undefined {
-  const u = unit(i);
-  if (u.alive) {
-    const snap: KilledUnitSnapshot = { x: u.x, y: u.y, team: u.team, type: u.type };
-    const squadronIdx = u.squadronIdx;
-    u.alive = false;
-    // 実行順序契約: alive=false → decUnits → decMotherships → hook
-    // hook 内では teamUnitCounts・mothershipIdx ともに減算/更新済み。
-    // 母艦 kill 時は mothershipIdx[victimTeam] === NO_UNIT が保証される。
-    decUnits(u.team);
-    if (isMothership(u.type)) {
-      decMotherships(u.team);
-    }
-    dispatchKillEvent(i, u.team, u.type, squadronIdx, killContext, killer, teamUnitCounts[u.team]);
-    return snap;
-  }
-  return undefined;
 }
 
 export function killParticle(i: ParticleIndex): KilledParticleSnapshot | undefined {

@@ -20,9 +20,11 @@ const mockWriteSlots = vi.fn();
 // vi.mock ホイスティングにより buffers.ts の実値を参照できないためリテラル指定
 // ⚠ MAX_INSTANCES は buffers.ts の値と一致させること
 vi.mock('./buffers.ts', () => {
+  // STRIDE_BYTES=36, STRIDE_FLOATS=9 — vi.mock ホイスティングによりリテラル指定
   const ab = new ArrayBuffer(100_000 * 9 * 4);
   return {
     MAX_INSTANCES: 100_000,
+    STRIDE_FLOATS: 9,
     instanceData: new Float32Array(ab),
     instanceDataI32: new Int32Array(ab),
     writeSlots: (...args: unknown[]) => mockWriteSlots(...args),

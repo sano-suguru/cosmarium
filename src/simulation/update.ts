@@ -24,7 +24,7 @@ import { updateChains } from './chain-lightning.ts';
 import { combat, combatMothershipTick } from './combat.ts';
 import type { ShakeFn } from './combat-context.ts';
 import { resetReflected } from './combat-reflect.ts';
-import { boostBurst, boostTrail, flagshipTrail, trail } from './effects.ts';
+import { boostBurst, boostTrail, flagshipTrail, trail } from './effects-trail.ts';
 import { computeProductionCap, tickProduction } from './production.ts';
 import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';

@@ -3,6 +3,7 @@ import { mainLocations, minimapLocations } from './shaders.ts';
 import { gl } from './webgl-setup.ts';
 
 const STRIDE_BYTES = 36;
+export const STRIDE_FLOATS = STRIDE_BYTES / 4;
 export const MINIMAP_MAX = 1200;
 export const MAX_INSTANCES = 100000;
 

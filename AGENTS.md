@@ -243,7 +243,7 @@ Maintain passing `bun run typecheck` at each unit. Don't change multiple modules
 
 | Issue | Details |
 |-------|---------|
-| `NeighborSlice` ライフサイクル | `getNeighbors()` が返す `NeighborSlice` はシングルトン。次の `getNeighbors()` 呼び出しで上書きされるため即座に消費すること。`nb.count` と `nb.at(i)` でアクセス。`buildHash()` 後のみ有効。複数回の `getNeighbors` を跨ぐ場合はスナップショット（`combat-sweep.ts` 参照）。 |
+| `NeighborSlice` ライフサイクル | `getNeighbors()` が返す `NeighborSlice` はシングルトン。次の `getNeighbors()` 呼び出しで上書きされるため即座に消費すること。`buildHash()` 後のみ有効。複数回の `getNeighbors` を跨ぐ場合はスナップショット（`combat-sweep.ts` 参照）。 |
 | `codexOpen` impact | Affects 4 layers: skip non-demo unit steer/combat, lock camera, disable input, skip HUD. See main loop. |
 | GLSL compilation | GPU-only. Runtime only. No CI validation. Test shader changes in browser. |
 

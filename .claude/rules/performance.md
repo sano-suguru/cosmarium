@@ -21,5 +21,4 @@ Pre-allocated arrays + `.alive` flag. Unit/Projectile: linear scan for first dea
 
 | Issue | Details |
 |-------|---------|
-| `destroyUnit()` vs `killUnit()` | Always use `destroyUnit()` for unit kill + explosion combo — it takes a snapshot internally. `killUnit()` returns a snapshot (safe to use after call). For particle/projectile, save values to locals **before** `kill()` — kill may reuse the slot immediately. |
-| `neighborBuffer` | Shared buffer updated by `getNeighbors()`. Use immediately, do not copy. |
+| particle/projectile kill | Save values to locals **before** `kill()` — kill may reuse the slot immediately. |

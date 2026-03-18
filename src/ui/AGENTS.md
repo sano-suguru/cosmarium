@@ -83,8 +83,6 @@ Codex は**プレビュー専用ではない**。`setupCodexDemo()` → `spawnUn
 
 ## Critical Gotchas
 
-- `codex-logic.ts` → `game-control.ts` の逆方向 import は循環依存になるため禁止（dependency-cruiser ルール `no-codex-to-game-control` で強制済み）
-- Pointer Events 統一済み（mouse/touch 両対応）。CSS メディアクエリで操作ガイド・レイアウトをタッチデバイス向けに出し分け
-- Codex デモ中の RNG: main.ts が `demoRng`（`Math.random` ベース）を注入。意図的に非決定論的
-- `style.css` にはグローバルリセット・Canvas・minimap スタイルのみ残存。コンポーネント固有スタイルは CSS Modules に配置
+- Codex デモ中の RNG: main.ts が `demoRng`（`Math.random` ベース）を注入。意図的に非決定論的（決定論的 RNG への「修正」は誤り）
+- `style.css` にはグローバルリセット・Canvas・minimap スタイルのみ。コンポーネント固有スタイルは CSS Modules に配置
 - 共通ボタンスタイルは `shared/button.module.css` の `.btn` クラスを使用
