@@ -54,6 +54,7 @@ export interface Unit {
   ampBoostTimer: number;
   scrambleTimer: number;
   catalystTimer: number;
+  mergeMul: number;
   squadronIdx: SquadronIndex;
 }
 

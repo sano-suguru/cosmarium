@@ -72,6 +72,7 @@ export type RunResult = {
 export type ProductionSlot = {
   readonly type: UnitTypeIndex;
   readonly count: number;
+  readonly mergeExp: number;
 };
 
 export interface FleetSetup {

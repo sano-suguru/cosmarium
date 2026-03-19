@@ -49,7 +49,7 @@ function SlotCard({ slotIndex, slot, mothershipType, onSell }: SlotCardProps) {
           )}
         </div>
         <div class={styles.slotStats}>
-          {count}機 / {getProductionTime(slot.type, productionTimeMul).toFixed(1)}秒
+          {count}機 / {getProductionTime(slot.type, productionTimeMul, slot.mergeExp).toFixed(1)}秒
         </div>
       </div>
       <button type="button" class={styles.sellBtn} onClick={() => onSell(slotIndex)}>

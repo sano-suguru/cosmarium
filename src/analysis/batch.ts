@@ -61,7 +61,7 @@ function fleetToSetup(fleet: FleetComposition, mothershipType = HIVE_TYPE): Flee
   for (let i = 0; i < fleet.length; i++) {
     const entry = fleet[i];
     if (entry && entry.count > 0) {
-      slots[i] = createProductionSlot(entry.type, entry.count);
+      slots[i] = createProductionSlot(entry.type, entry.count, 0);
     }
   }
   return { mothershipType, slots };

@@ -57,6 +57,7 @@ for (let i = 0; i < POOL_UNITS; i++) {
     ampBoostTimer: 0,
     scrambleTimer: 0,
     catalystTimer: 0,
+    mergeMul: 1,
     squadronIdx: NO_SQUADRON,
   };
 }

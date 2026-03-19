@@ -29,6 +29,7 @@ import {
   SHOP_PRICE,
   SHOP_SIZE,
   sellPrice,
+  slotsToProduction,
   spawnCount,
 } from './shop-tiers.ts';
 import { HIVE_TYPE } from './unit-type-accessors.ts';
@@ -345,6 +346,26 @@ describe('buildFleetFromShop', () => {
     // Hive の spawnCountMul=1.5 が適用される
     const expected = Math.max(1, Math.round(effectiveCount(shopSlot) * 1.5));
     expect(slot.count).toBe(expected);
+  });
+});
+
+describe('slotsToProduction — mergeExp 引き継ぎ', () => {
+  it('ShopSlot.mergeExp が ProductionSlot.mergeExp に引き継がれる', () => {
+    const type = SORTED_TYPE_INDICES[0];
+    if (type === undefined) {
+      throw new Error('SORTED_TYPE_INDICES is empty');
+    }
+    const shopSlots: (ShopSlot | null)[] = [
+      { type, baseCount: 3, mergeExp: 4 },
+      null,
+      { type, baseCount: 2, mergeExp: 0 },
+    ];
+    const result = slotsToProduction(shopSlots, 1.0);
+    expect(result[0]).not.toBeNull();
+    expect(result[0]?.mergeExp).toBe(4);
+    expect(result[1]).toBeNull();
+    expect(result[2]).not.toBeNull();
+    expect(result[2]?.mergeExp).toBe(0);
   });
 });
 

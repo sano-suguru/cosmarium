@@ -51,7 +51,7 @@ const hudProductionSlots$ = signal<readonly SlotHudEntry[]>([]);
 
 /** 5%刻みに量子化して変更検出の頻度を下げる */
 function computeTimerPct(slot: ProductionSlot, timer: number, productionMul: number): number {
-  const productionTime = getProductionTime(slot.type, productionMul);
+  const productionTime = getProductionTime(slot.type, productionMul, slot.mergeExp);
   const pctRaw = Math.min(timer / productionTime, 1);
   return Math.round(pctRaw * 20) / 20;
 }

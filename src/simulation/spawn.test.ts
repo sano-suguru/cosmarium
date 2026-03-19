@@ -9,6 +9,7 @@ import {
 } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { POOL_UNITS, SH_CIRCLE } from '../constants.ts';
+import { MAX_MERGE_EXP, MERGE_STAT_BONUS } from '../merge-config.ts';
 import { particleIdx, projectileIdx, unitIdx } from '../pool-index.ts';
 import { poolCounts } from '../pools.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
@@ -128,6 +129,36 @@ describe('spawnUnit', () => {
     expect(reused).toBe(0);
     expect(unit(0).team).toBe(1);
     expect(unit(0).x).toBe(50);
+  });
+
+  it('mergeExp=0 → mergeMul=1, HP=基礎値', () => {
+    const idx = spawnUnit(0, FIGHTER_TYPE, 0, 0, testRng, 0);
+    const u = unit(idx);
+    const t = unitType(FIGHTER_TYPE);
+    expect(u.mergeMul).toBe(1);
+    expect(u.hp).toBe(t.hp);
+    expect(u.maxHp).toBe(t.hp);
+  });
+
+  it('mergeExp=3 → HP/maxHp が (1 + 3 * 0.04) 倍にベイクされる', () => {
+    const exp = 3;
+    const idx = spawnUnit(0, FIGHTER_TYPE, 0, 0, testRng, exp);
+    const u = unit(idx);
+    const t = unitType(FIGHTER_TYPE);
+    const expectedMul = 1 + exp * MERGE_STAT_BONUS;
+    expect(u.mergeMul).toBeCloseTo(expectedMul);
+    expect(u.hp).toBeCloseTo(t.hp * expectedMul);
+    expect(u.maxHp).toBeCloseTo(t.hp * expectedMul);
+  });
+
+  it('mergeExp=MAX_MERGE_EXP（境界値） → 正常動作', () => {
+    const idx = spawnUnit(0, DRONE_TYPE, 0, 0, testRng, MAX_MERGE_EXP);
+    const u = unit(idx);
+    const t = unitType(DRONE_TYPE);
+    const expectedMul = 1 + MAX_MERGE_EXP * MERGE_STAT_BONUS;
+    expect(u.mergeMul).toBeCloseTo(expectedMul);
+    expect(u.hp).toBeCloseTo(t.hp * expectedMul);
+    expect(u.maxHp).toBeCloseTo(t.hp * expectedMul);
   });
 });
 

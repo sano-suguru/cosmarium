@@ -1,4 +1,5 @@
 import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
+import { MAX_MERGE_EXP } from './merge-config.ts';
 import { createProductionSlot } from './production-config.ts';
 import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
@@ -41,7 +42,7 @@ const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
 const TIER_IDX: Record<Tier, 0 | 1 | 2> = { low: 0, mid: 1, high: 2 };
 
 export function mergeExpToLevel(exp: number): number {
-  if (exp >= 5) {
+  if (exp >= MAX_MERGE_EXP) {
     return 3;
   }
   if (exp >= 2) {
@@ -114,6 +115,6 @@ export function slotsToProduction(
     if (!s) {
       return null;
     }
-    return createProductionSlot(s.type, spawnCount(s, spawnCountMul));
+    return createProductionSlot(s.type, spawnCount(s, spawnCountMul), s.mergeExp);
   });
 }

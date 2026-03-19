@@ -89,6 +89,7 @@ export function resetPools() {
     u.ampBoostTimer = 0;
     u.scrambleTimer = 0;
     u.catalystTimer = 0;
+    u.mergeMul = 1;
     u.squadronIdx = NO_SQUADRON;
   }
   for (let i = 0; i < pHwm; i++) {

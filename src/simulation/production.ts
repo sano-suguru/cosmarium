@@ -47,7 +47,14 @@ function spawnCluster(
   }
   const spread = CLUSTER_SPREAD_BASE + slot.count * CLUSTER_SPREAD_PER_COUNT;
   for (let j = 0; j < slot.count; j++) {
-    const idx = spawnUnit(team, slot.type, cx + (rng() - 0.5) * spread, cy + (rng() - 0.5) * spread, rng);
+    const idx = spawnUnit(
+      team,
+      slot.type,
+      cx + (rng() - 0.5) * spread,
+      cy + (rng() - 0.5) * spread,
+      rng,
+      slot.mergeExp,
+    );
     if (idx === NO_UNIT) {
       throw new Error('spawnCluster: pool exhaustion after capacity pre-check (invariant violation)');
     }
@@ -129,7 +136,7 @@ function precomputeProdTimes(ps: ProductionState, productionMul: number): Float6
   const prodTimes = new Float64Array(SLOT_COUNT);
   for (let i = 0; i < ps.slots.length; i++) {
     const slot = ps.slots[i];
-    prodTimes[i] = slot ? getProductionTime(slot.type, productionMul) : 0;
+    prodTimes[i] = slot ? getProductionTime(slot.type, productionMul, slot.mergeExp) : 0;
   }
   return prodTimes;
 }

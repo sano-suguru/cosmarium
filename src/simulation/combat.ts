@@ -120,7 +120,7 @@ function fillCombatCtx(
   _ctx.ui = ui;
   _ctx.dt = dt;
   _ctx.c = c;
-  _ctx.vd = (1 + u.vet * 0.2) * ampDmg;
+  _ctx.vd = (1 + u.vet * 0.2) * ampDmg * u.mergeMul;
   _ctx.t = t;
   _ctx.range = computeEffectiveRange(u, t.attackRange);
   _ctx.rng = rng;

@@ -1,3 +1,4 @@
+import { MAX_MERGE_EXP, MERGE_PRODUCTION_BONUS } from './merge-config.ts';
 import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
@@ -8,7 +9,7 @@ export const SLOT_COUNT = 5;
 /** 1ティックあたりのチーム全体の最大クラスタースポーン回数（全スロット共有、バースト防止） */
 export const MAX_CLUSTERS_PER_TICK = 5;
 
-export function createProductionSlot(type: UnitTypeIndex, count: number): ProductionSlot {
+export function createProductionSlot(type: UnitTypeIndex, count: number, mergeExp: number): ProductionSlot {
   const cost = unitTypeCost(type);
   if (cost === 0) {
     throw new RangeError(`Cannot create production slot for zero-cost unit type ${type}`);
@@ -16,7 +17,13 @@ export function createProductionSlot(type: UnitTypeIndex, count: number): Produc
   if (count <= 0) {
     throw new RangeError(`Cannot create production slot with non-positive count ${count} for unit type ${type}`);
   }
-  return { type, count };
+  if (mergeExp < 0) {
+    throw new RangeError(`Cannot create production slot with negative mergeExp ${mergeExp} for unit type ${type}`);
+  }
+  if (mergeExp > MAX_MERGE_EXP) {
+    throw new RangeError(`mergeExp ${mergeExp} exceeds MAX_MERGE_EXP ${MAX_MERGE_EXP} for unit type ${type}`);
+  }
+  return { type, count, mergeExp };
 }
 
 /**
@@ -25,8 +32,8 @@ export function createProductionSlot(type: UnitTypeIndex, count: number): Produc
  * 例: Drone(cost=1) × Hive(mul=0.7) = 0.7秒、Fighter(cost=3) × Hive = 2.1秒
  * 最小値 0.1秒でクランプし、ゼロ除算を防止。
  */
-export function getProductionTime(typeIdx: UnitTypeIndex, productionMul: number): number {
-  return Math.max(0.1, unitTypeCost(typeIdx) * productionMul);
+export function getProductionTime(typeIdx: UnitTypeIndex, productionMul: number, mergeExp: number): number {
+  return Math.max(0.1, (unitTypeCost(typeIdx) * productionMul) / (1 + mergeExp * MERGE_PRODUCTION_BONUS));
 }
 
 /** nullable スロット配列から有効なスロットのみを抽出する型安全ヘルパー */

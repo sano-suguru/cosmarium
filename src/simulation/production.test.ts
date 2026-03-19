@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fillUnitPool, makeRng, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
+import { MAX_MERGE_EXP, MERGE_PRODUCTION_BONUS, MERGE_STAT_BONUS } from '../merge-config.ts';
 import { countAliveMotherships, decMotherships, mothershipIdx, registerMothership, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
-import { MAX_CLUSTERS_PER_TICK } from '../production-config.ts';
+import { createProductionSlot, MAX_CLUSTERS_PER_TICK } from '../production-config.ts';
 import type { Team } from '../team.ts';
 import { TEAM0 } from '../team.ts';
 import type { ProductionSlot } from '../types-fleet.ts';
-import { DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, REACTOR_TYPE } from '../unit-type-accessors.ts';
+import { DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, REACTOR_TYPE, unitType } from '../unit-type-accessors.ts';
 import { computeProductionCap, initProductionState, tickProduction } from './production.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -28,7 +29,11 @@ describe('production', () => {
   });
 
   it('initProductionState はタイマーを0で初期化', () => {
-    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 5 }, { type: FIGHTER_TYPE, count: 3 }, null];
+    const slots: (ProductionSlot | null)[] = [
+      { type: DRONE_TYPE, count: 5, mergeExp: 0 },
+      { type: FIGHTER_TYPE, count: 3, mergeExp: 0 },
+      null,
+    ];
     const ps = initProductionState(slots);
     expect(ps.timers).toEqual([0, 0, 0]);
     expect(ps.slots).toEqual(slots);
@@ -42,8 +47,8 @@ describe('production', () => {
   it('tickProduction は独立タイマーで各スロットを並行処理する', () => {
     setupMothership(rng);
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 3 }, // Drone cost=1, productionTime=1*0.7=0.7s
-      { type: FIGHTER_TYPE, count: 2 }, // Fighter cost=3, productionTime=3*0.7=2.1s
+      { type: DRONE_TYPE, count: 3, mergeExp: 0 }, // Drone cost=1, productionTime=1*0.7=0.7s
+      { type: FIGHTER_TYPE, count: 2, mergeExp: 0 }, // Fighter cost=3, productionTime=3*0.7=2.1s
     ];
     const ps = initProductionState(slots);
 
@@ -64,8 +69,8 @@ describe('production', () => {
   it('母艦が撃破されると全スロット生産停止', () => {
     setupMothership(rng);
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 1 },
-      { type: FIGHTER_TYPE, count: 1 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: FIGHTER_TYPE, count: 1, mergeExp: 0 },
     ];
     const ps = initProductionState(slots);
 
@@ -83,11 +88,11 @@ describe('production', () => {
     // 5スロット × count=1 で予算キャップを検証
     // 全スロット ready でも MAX_CLUSTERS_PER_TICK=5 にキャップされる
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
     ];
     const ps = initProductionState(slots);
 
@@ -100,7 +105,7 @@ describe('production', () => {
 
   it('computeProductionCap 到達でスポーン停止', () => {
     setupMothership(rng, REACTOR_TYPE);
-    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
     const ps = initProductionState(slots);
 
     // teamUnitCounts を CAP ぎりぎりまで人為的に上げる
@@ -117,7 +122,7 @@ describe('production', () => {
 
   it('computeProductionCap 未到達では通常生産', () => {
     setupMothership(rng, REACTOR_TYPE);
-    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
     const ps = initProductionState(slots);
 
     const initial = teamUnitCounts[0];
@@ -129,7 +134,7 @@ describe('production', () => {
   it('タイマーキャップ: 大量 dt でもタイマーが1周期以内にクランプされる', () => {
     setupMothership(rng, REACTOR_TYPE);
     const slots: (ProductionSlot | null)[] = [
-      { type: FIGHTER_TYPE, count: 1 }, // cost=3, productionTime=3.0s
+      { type: FIGHTER_TYPE, count: 1, mergeExp: 0 }, // cost=3, productionTime=3.0s
     ];
     const ps = initProductionState(slots);
 
@@ -151,9 +156,9 @@ describe('production', () => {
     setupMothership(rng, REACTOR_TYPE);
     // 3スロットとも Drone(cost=1, productionTime=1.0s)
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
-      { type: DRONE_TYPE, count: 1 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
     ];
     const ps = initProductionState(slots);
 
@@ -171,7 +176,7 @@ describe('production', () => {
 
   it('グローバルプール満杯でタイマーが凍結される', () => {
     setupMothership(rng, REACTOR_TYPE);
-    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1 }];
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
     const ps = initProductionState(slots);
     fillUnitPool();
     tickProduction(10.0, TEAM0, rng, ps, CAP);
@@ -181,9 +186,9 @@ describe('production', () => {
   it('null スロットはスキップされ有効スロットのみ処理', () => {
     setupMothership(rng, REACTOR_TYPE);
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 1 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
       null,
-      { type: DRONE_TYPE, count: 1 },
+      { type: DRONE_TYPE, count: 1, mergeExp: 0 },
       null,
     ];
     const ps = initProductionState(slots);
@@ -194,7 +199,7 @@ describe('production', () => {
 
   it('スロット count > 残りキャパで部分スポーンしない（アトミック性）', () => {
     setupMothership(rng, REACTOR_TYPE);
-    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 3 }];
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 3, mergeExp: 0 }];
     const ps = initProductionState(slots);
     // CAP - 2 まで埋める（残り2。count=3 はスポーン不可）
     for (let i = teamUnitCounts[0]; i < CAP - 2; i++) {
@@ -208,7 +213,7 @@ describe('production', () => {
   it('継続生産: タイマーは余剰を持ち越す', () => {
     setupMothership(rng, REACTOR_TYPE);
     const slots: (ProductionSlot | null)[] = [
-      { type: DRONE_TYPE, count: 2 }, // cost=1, productionTime=1.0s
+      { type: DRONE_TYPE, count: 2, mergeExp: 0 }, // cost=1, productionTime=1.0s
     ];
     const ps = initProductionState(slots);
 
@@ -223,6 +228,66 @@ describe('production', () => {
     tickProduction(0.3, TEAM0, rng, ps, CAP);
     expect(teamUnitCounts[0]).toBe(initialUnits + 2);
     expect(ps.timers[0]).toBeCloseTo(0.0, 5);
+  });
+
+  it('mergeExp 付きスロットで生産時間が短縮される', () => {
+    setupMothership(rng, REACTOR_TYPE);
+    const mergeExp = 5;
+    // Drone cost=1, productionMul=1.0 → base=1.0s
+    // mergeExp=5 → 1.0 / (1 + 5*MERGE_PRODUCTION_BONUS) ≈ 0.8696s
+    const boostedTime = 1.0 / (1 + mergeExp * MERGE_PRODUCTION_BONUS);
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp }];
+    const ps = initProductionState(slots);
+    const initial = teamUnitCounts[0];
+
+    // boostedTime + 小マージン → spawn
+    tickProduction(boostedTime + 0.001, TEAM0, rng, ps, CAP);
+    expect(teamUnitCounts[0]).toBe(initial + 1);
+
+    // mergeExp=0 の場合は同じ時間ではスポーンしない（短縮の証拠）
+    const slotsNoBoost: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
+    const psNoBoost = initProductionState(slotsNoBoost);
+    const initial2 = teamUnitCounts[0];
+    tickProduction(boostedTime + 0.001, TEAM0, rng, psNoBoost, CAP);
+    expect(teamUnitCounts[0]).toBe(initial2); // まだスポーンしない
+  });
+
+  it('mergeExp 付きスポーンで HP がブーストされる', () => {
+    setupMothership(rng, REACTOR_TYPE);
+    const slots: (ProductionSlot | null)[] = [{ type: FIGHTER_TYPE, count: 1, mergeExp: 3 }];
+    const ps = initProductionState(slots);
+    const initial = teamUnitCounts[0];
+
+    tickProduction(10.0, TEAM0, rng, ps, CAP);
+    expect(teamUnitCounts[0]).toBe(initial + 1);
+
+    // 最後にスポーンされたユニットの HP を検証
+    const fighterType = unitType(FIGHTER_TYPE);
+    const expectedMul = 1 + 3 * MERGE_STAT_BONUS;
+    // 母艦以降にスポーンされたユニットを探す
+    let found = false;
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unit(i);
+      if (u.alive && u.type === FIGHTER_TYPE) {
+        expect(u.hp).toBeCloseTo(fighterType.hp * expectedMul);
+        expect(u.maxHp).toBeCloseTo(fighterType.hp * expectedMul);
+        expect(u.mergeMul).toBeCloseTo(expectedMul);
+        found = true;
+        break;
+      }
+    }
+    expect(found).toBe(true);
+  });
+});
+
+describe('createProductionSlot validation', () => {
+  it('mergeExp > MAX_MERGE_EXP で RangeError', () => {
+    expect(() => createProductionSlot(DRONE_TYPE, 1, MAX_MERGE_EXP + 1)).toThrow(RangeError);
+  });
+
+  it('mergeExp = MAX_MERGE_EXP は正常', () => {
+    const slot = createProductionSlot(DRONE_TYPE, 1, MAX_MERGE_EXP);
+    expect(slot.mergeExp).toBe(MAX_MERGE_EXP);
   });
 });
 

@@ -22,13 +22,13 @@ function generateFixedNpc(round: number): {
   );
 
   if (round === 1) {
-    slots[0] = createProductionSlot(DRONE_TYPE, 3);
+    slots[0] = createProductionSlot(DRONE_TYPE, 3, 0);
     // 固定NPCはショップBot経由でないため ShopSlot を持たない
     return { setup: { mothershipType, slots }, archetypeName: '偵察隊', botSlots: null };
   }
   if (round === 2) {
-    slots[0] = createProductionSlot(DRONE_TYPE, 3);
-    slots[1] = createProductionSlot(FIGHTER_TYPE, 2);
+    slots[0] = createProductionSlot(DRONE_TYPE, 3, 0);
+    slots[1] = createProductionSlot(FIGHTER_TYPE, 2, 0);
     // 固定NPCはショップBot経由でないため ShopSlot を持たない
     return { setup: { mothershipType, slots }, archetypeName: '前衛部隊', botSlots: null };
   }
@@ -63,7 +63,7 @@ export function generateEnemySetup(
   const productionSlots = slotsToProduction(botSlots, getMothershipDef(mothershipType).spawnCountMul);
   // 全 null フォールバック: 最低1つの non-null スロットを保証
   if (filledSlots(productionSlots).length === 0) {
-    productionSlots[0] = createProductionSlot(DRONE_TYPE, TYPES[DRONE_TYPE]?.clusterSize ?? 1);
+    productionSlots[0] = createProductionSlot(DRONE_TYPE, TYPES[DRONE_TYPE]?.clusterSize ?? 1, 0);
   }
 
   return {

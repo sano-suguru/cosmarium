@@ -1,4 +1,5 @@
 import { POOL_PROJECTILES, POOL_UNITS } from '../constants.ts';
+import { MERGE_STAT_BONUS } from '../merge-config.ts';
 import { projectileIdx, unitIdx } from '../pool-index.ts';
 import {
   advanceParticleHWM,
@@ -68,11 +69,19 @@ export function captureKiller(i: UnitIndex): Killer | undefined {
   return { index: i, team: u.team, type: u.type };
 }
 
-export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number, rng: () => number): UnitIndex {
+export function spawnUnit(
+  team: Team,
+  type: UnitTypeIndex,
+  x: number,
+  y: number,
+  rng: () => number,
+  mergeExp = 0,
+): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
     if (!u.alive) {
       const t = unitType(type);
+      u.mergeMul = 1 + mergeExp * MERGE_STAT_BONUS;
       u.alive = true;
       u.team = team;
       u.type = type;
@@ -85,8 +94,8 @@ export function spawnUnit(team: Team, type: UnitTypeIndex, x: number, y: number,
       u.kbVx = 0;
       u.kbVy = 0;
       u.angle = rng() * 6.283;
-      u.hp = t.hp;
-      u.maxHp = t.hp;
+      u.hp = t.hp * u.mergeMul;
+      u.maxHp = t.hp * u.mergeMul;
       u.cooldown = rng() * t.fireRate;
       u.target = NO_UNIT;
       u.wanderAngle = rng() * 6.283;
