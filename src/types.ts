@@ -33,8 +33,6 @@ export interface Unit {
   beamOn: number;
   sweepPhase: number;
   sweepBaseAngle: number;
-  kills: number;
-  vet: number;
   burstCount: number;
   broadsidePhase: number;
   swarmN: number;

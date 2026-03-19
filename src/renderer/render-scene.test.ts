@@ -149,20 +149,6 @@ describe('writeOverlay', () => {
     expect(shieldCall?.angle).toBeCloseTo(1, 5);
   });
 
-  it('vet overlay は angle=0 で描画される', () => {
-    const idx = spawnAt(0, DRONE_TYPE, 100, 100);
-    const u = unit(idx);
-    u.vet = 1;
-    u.kills = 3;
-    u.angle = 2.0;
-
-    renderSceneAll(0);
-
-    const calls = getWriteCalls();
-    const vetOverlay = calls.find((c) => c.shape === SH_EXPLOSION_RING && c.angle === 0);
-    expect(vetOverlay).toBeDefined();
-  });
-
   it('swarm overlay は angle=0 で描画される', () => {
     const idx = spawnAt(0, DRONE_TYPE, 100, 100);
     const u = unit(idx);
@@ -373,33 +359,6 @@ describe('writeInstance（直接使用）', () => {
     const expectedAngle = Math.atan2(1, 1);
     const prCall = calls.find((c) => c.shape === SH_DIAMOND && Math.abs(c.angle - expectedAngle) < 0.01);
     expect(prCall).toBeDefined();
-  });
-
-  it('vet=1 のユニット本体は金色方向にティント適用される', () => {
-    // vet=0 の基本色を取得
-    spawnAt(0, DRONE_TYPE, 100, 100);
-    renderSceneAll(0);
-    const baseCalls = getWriteCalls();
-    const baseCall = baseCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
-    expect(baseCall).toBeDefined();
-
-    // リセットして vet=1 のユニットを生成
-    resetPools();
-    mockWriteSlots.mockClear();
-    const idx1 = spawnAt(0, DRONE_TYPE, 100, 100);
-    const u = unit(idx1);
-    u.vet = 1;
-    u.kills = 3;
-
-    renderSceneAll(0);
-
-    const vetCalls = getWriteCalls();
-    const vetCall = vetCalls.find((c) => c.a === 0.9 && c.x === 100 && c.y === 100);
-    expect(vetCall).toBeDefined();
-    // vet=1 → vetTint=0.15: r は基本色より増加（金色方向へシフト）
-    if (baseCall && vetCall) {
-      expect(vetCall.r).toBeGreaterThan(baseCall.r);
-    }
   });
 });
 

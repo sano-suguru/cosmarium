@@ -56,7 +56,7 @@ function spawnFireBeam(x: number, y: number, cos: number, sin: number, c: Color3
  * armament は呼び出し元で解決して渡す（依存注入パターン）。
  */
 export function mothershipCombat(ctx: CombatContext, arm: Armament): void {
-  const { u, ui, c, vd, rng } = ctx;
+  const { u, ui, c, baseDmgMul, rng } = ctx;
   const sz = unitType(u.type).size;
 
   if (u.cooldown > 0) {
@@ -89,7 +89,7 @@ export function mothershipCombat(ctx: CombatContext, arm: Armament): void {
     cos * DREADNOUGHT_PROJ_SPEED,
     sin * DREADNOUGHT_PROJ_SPEED,
     arm.range / DREADNOUGHT_PROJ_SPEED + DREADNOUGHT_FLIGHT_MARGIN,
-    arm.damage * vd,
+    arm.damage * baseDmgMul,
     u.team,
     DREADNOUGHT_PROJ_SIZE,
     c[0],

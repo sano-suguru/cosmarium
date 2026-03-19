@@ -21,7 +21,7 @@ function makeCombatCtx(overrides: Partial<CombatContext> = {}): CombatContext {
     ui: 0 as never,
     dt: 1 / 60,
     c: [1, 1, 1],
-    vd: 1,
+    baseDmgMul: 1,
     t: unitType(HIVE_TYPE),
     range: 0,
     rng: makeRng(),
@@ -124,13 +124,13 @@ describe('mothershipCombat', () => {
     expect(poolCounts.projectiles).toBe(0);
   });
 
-  it('vd ダメージ倍率が弾の damage に反映される', () => {
+  it('baseDmgMul ダメージ倍率が弾の damage に反映される', () => {
     const mIdx = setupMothership(TEAM0, DREADNOUGHT_TYPE);
     const m = unit(mIdx);
     const target = spawnAt(TEAM1, DRONE_TYPE, 200, 0);
     m.target = target;
     m.cooldown = 0;
-    const ctx = makeCombatCtx({ u: m, ui: mIdx, vd: 2.0 });
+    const ctx = makeCombatCtx({ u: m, ui: mIdx, baseDmgMul: 2.0 });
     mothershipCombat(ctx, DREADNOUGHT_ARMAMENT);
     // HWM 内を走査して alive な projectile を見つける
     let found = false;

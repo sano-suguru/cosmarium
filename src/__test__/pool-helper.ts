@@ -70,8 +70,6 @@ export function resetPools() {
     u.beamOn = 0;
     u.sweepPhase = 0;
     u.sweepBaseAngle = 0;
-    u.kills = 0;
-    u.vet = 0;
     u.burstCount = 0;
     u.broadsidePhase = 0;
     u.swarmN = 0;

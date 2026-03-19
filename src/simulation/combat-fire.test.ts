@@ -52,34 +52,6 @@ describe('combat — NORMAL FIRE', () => {
     expect(poolCounts.projectiles).toBe(0);
   });
 
-  it('vet=1: damage×1.2', () => {
-    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(fighter).cooldown = 0;
-    unit(fighter).target = enemy;
-    unit(fighter).vet = 1;
-    buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
-    const fighterType = unitType(FIGHTER_TYPE);
-
-    expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.2);
-    expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.2);
-  });
-
-  it('vet=2: damage×1.4', () => {
-    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(fighter).cooldown = 0;
-    unit(fighter).target = enemy;
-    unit(fighter).vet = 2;
-    buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
-    const fighterType = unitType(FIGHTER_TYPE);
-
-    expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.4);
-    expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.4);
-  });
-
   it('mergeMul=1.12: damage×1.12', () => {
     const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
@@ -92,22 +64,6 @@ describe('combat — NORMAL FIRE', () => {
 
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.12);
     expect(projectile(1).damage).toBeCloseTo(fighterType.damage * 1.12);
-  });
-
-  it('vet + mergeMul 併用: damage × (1 + vet*0.2) × mergeMul', () => {
-    const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(fighter).cooldown = 0;
-    unit(fighter).target = enemy;
-    unit(fighter).vet = 1;
-    unit(fighter).mergeMul = 1.08;
-    buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
-    const fighterType = unitType(FIGHTER_TYPE);
-    const expected = fighterType.damage * 1.2 * 1.08;
-
-    expect(projectile(0).damage).toBeCloseTo(expected);
-    expect(projectile(1).damage).toBeCloseTo(expected);
   });
 
   it('homing: Launcher → 3発ホーミングミサイル (homing burst)', () => {
@@ -224,7 +180,7 @@ describe('combat — DRONE SWARM', () => {
     buildHash();
     combat(unit(drone), drone, 0.016, rng, 1, shake);
     expect(poolCounts.projectiles).toBe(1);
-    // dmg = 1 * 1.0 (vd) * 1.0 (no allies) = 1.0
+    // dmg = 1 * 1.0 (baseDmgMul) * 1.0 (no allies) = 1.0
     expect(projectile(0).damage).toBeCloseTo(1.0);
   });
 

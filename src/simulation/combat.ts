@@ -30,7 +30,7 @@ const _ctx: CombatContext = {
   ui: unitIdx(0),
   dt: 0,
   c: [0, 0, 0],
-  vd: 0,
+  baseDmgMul: 0,
   t: unitType(DEFAULT_UNIT_TYPE),
   range: 0,
   rng: () => {
@@ -120,7 +120,7 @@ function fillCombatCtx(
   _ctx.ui = ui;
   _ctx.dt = dt;
   _ctx.c = c;
-  _ctx.vd = (1 + u.vet * 0.2) * ampDmg * u.mergeMul;
+  _ctx.baseDmgMul = ampDmg * u.mergeMul;
   _ctx.t = t;
   _ctx.range = computeEffectiveRange(u, t.attackRange);
   _ctx.rng = rng;

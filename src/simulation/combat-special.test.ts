@@ -37,7 +37,7 @@ afterEach(() => {
 const shake = vi.fn();
 
 describe('combat — LANCER', () => {
-  it('衝突時に敵にダメージ (mass×2.5×vd) + 自傷 (敵mass×2)', () => {
+  it('衝突時に敵にダメージ (mass×2.5×baseDmgMul) + 自傷 (敵mass×2)', () => {
     const lancerType = unitType(LANCER_TYPE);
     const fighterType = unitType(FIGHTER_TYPE);
     const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
@@ -46,7 +46,7 @@ describe('combat — LANCER', () => {
     const lancerHpBefore = unit(lancer).hp;
     const enemyHpBefore = unit(enemy).hp;
     combat(unit(lancer), lancer, 0.016, rng, 1, shake);
-    // size合計 > distance=5 → 衝突, vet=0 → vd=1
+    // size合計 > distance=5 → 衝突, baseDmgMul=1
     expect(unit(enemy).hp).toBe(enemyHpBefore - Math.ceil(lancerType.mass * 2.5 * 1));
     expect(unit(lancer).hp).toBe(lancerHpBefore - Math.ceil(fighterType.mass * 2));
   });

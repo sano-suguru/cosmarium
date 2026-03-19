@@ -12,7 +12,7 @@ import {
   renderHpBar,
   renderOverlays,
   renderStunStars,
-  renderVetSwarmOverlays,
+  renderSwarmOverlay,
   SCRAMBLE_OVERLAY_MIN,
 } from './render-overlays.ts';
 import {
@@ -24,7 +24,6 @@ import {
   writeInstance,
 } from './render-write.ts';
 
-const VET_TINT_FACTOR = 0.15;
 /** HP バー・スタンスター等の追加余白 */
 const UNIT_EXTRA_MARGIN = 10;
 
@@ -39,13 +38,12 @@ const EXPLOSION_RING_DECAY = 1.7;
 let _cr = 0;
 let _cg = 0;
 let _cb = 0;
-function computeUnitColor(c: Color3, vet: number, hpRatio: number, stun: number, hitFlash: number, now: number) {
+function computeUnitColor(c: Color3, hpRatio: number, stun: number, hitFlash: number, now: number) {
   const flash = hpRatio < 0.3 ? Math.sin(now * 15) * 0.3 + 0.7 : 1;
   const sf = stun > 0 ? Math.sin(now * 25) * 0.3 + 0.5 : 1;
-  const vetTint = vet * VET_TINT_FACTOR;
-  const r0 = (c[0] + (1 - c[0]) * vetTint) * flash * sf;
-  const g0 = (c[1] + (0.9 - c[1]) * vetTint) * flash * sf;
-  const b0 = (c[2] + (0.3 - c[2]) * vetTint) * flash * sf;
+  const r0 = c[0] * flash * sf;
+  const g0 = c[1] * flash * sf;
+  const b0 = c[2] * flash * sf;
   _cr = r0 + (1 - r0) * hitFlash;
   _cg = g0 + (1 - g0) * hitFlash;
   _cb = b0 + (1 - b0) * hitFlash;
@@ -59,8 +57,8 @@ function renderUnitIfVisible(rx: number, ry: number, u: Unit, ut: UnitType, c: C
   }
   renderOverlays(rx, ry, u, ut, now, rs);
   renderStunStars(rx, ry, u, ut, now, rs);
-  renderVetSwarmOverlays(rx, ry, u, ut, c, now, rs);
-  computeUnitColor(c, u.vet, u.hp / u.maxHp, u.stun, u.hitFlash, now);
+  renderSwarmOverlay(rx, ry, u, ut, c, rs);
+  computeUnitColor(c, u.hp / u.maxHp, u.stun, u.hitFlash, now);
   writeInstance(rx, ry, ut.size * rs, _cr, _cg, _cb, 0.9, u.angle, ut.shape);
   renderHpBar(rx, ry, u, ut, rs);
 }

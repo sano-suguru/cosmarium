@@ -87,48 +87,6 @@ describe('steer — スタン', () => {
   });
 });
 
-describe('steer — ベテラン速度', () => {
-  it('vet=0 → spd×1.0', () => {
-    const idx = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const u = unit(idx);
-    u.vet = 0;
-    u.angle = 0;
-    buildHash();
-    // 長めのdtで速度を安定させる
-    for (let i = 0; i < 100; i++) {
-      steer(u, idx, 0.033, rng);
-    }
-    const spd = Math.sqrt(u.vx * u.vx + u.vy * u.vy);
-    const t = unitType(FIGHTER_TYPE);
-    // vet=0の目標速度はspd * 1.0
-    expect(spd).toBeGreaterThan(0);
-    expect(spd).toBeLessThanOrEqual(t.speed * 1.1); // マージン含む
-  });
-
-  it('vet=2 → vet=0 より速い', () => {
-    // vet=0
-    const i0 = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const u0 = unit(i0);
-    u0.vet = 0;
-    u0.angle = 0;
-
-    // vet=2
-    const i2 = spawnAt(0, FIGHTER_TYPE, 500, 500); // 離れた位置
-    const u2 = unit(i2);
-    u2.vet = 2;
-    u2.angle = 0;
-
-    buildHash();
-    for (let i = 0; i < 100; i++) {
-      steer(u0, i0, 0.033, rng);
-      steer(u2, i2, 0.033, rng);
-    }
-    const spd0 = Math.sqrt(u0.vx * u0.vx + u0.vy * u0.vy);
-    const spd2 = Math.sqrt(u2.vx * u2.vx + u2.vy * u2.vy);
-    expect(spd2).toBeGreaterThan(spd0);
-  });
-});
-
 describe('steer — ターゲット探索', () => {
   it('近傍の敵を最短距離でターゲット', () => {
     const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
@@ -136,30 +94,6 @@ describe('steer — ターゲット探索', () => {
     spawnAt(1, FIGHTER_TYPE, 150, 0);
     buildHash();
     steer(unit(ally), ally, 0.016, rng);
-    expect(unit(ally).target).toBe(nearEnemy);
-  });
-
-  it('ベテラン敵を優先: 近い敵(vet=0)より少し遠い敵(vet=2)がターゲットされる', () => {
-    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0); // vet=0, 距離80
-    const vetEnemy = spawnAt(1, FIGHTER_TYPE, 100, 0); // vet=2, 距離100
-    unit(nearEnemy).vet = 0;
-    unit(vetEnemy).vet = 2;
-    buildHash();
-    steer(unit(ally), ally, 0.016, rng);
-    // score: 80/(1+0)=80 vs 100/(1+0.6)=62.5 → vet=2が選ばれる
-    expect(unit(ally).target).toBe(vetEnemy);
-  });
-
-  it('距離差が大きい場合は近い敵を優先', () => {
-    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const nearEnemy = spawnAt(1, FIGHTER_TYPE, 80, 0); // vet=0, 距離80
-    const farVetEnemy = spawnAt(1, FIGHTER_TYPE, 300, 0); // vet=2, 距離300
-    unit(nearEnemy).vet = 0;
-    unit(farVetEnemy).vet = 2;
-    buildHash();
-    steer(unit(ally), ally, 0.016, rng);
-    // score: 80/(1+0)=80 vs 300/(1+0.6)=187.5 → 近い敵が選ばれる
     expect(unit(ally).target).toBe(nearEnemy);
   });
 
@@ -1078,7 +1012,6 @@ describe('steer — Catalyst バフ', () => {
     const u = unit(idx);
     u.catalystTimer = 0;
     u.angle = 0;
-    u.vet = 0;
     buildHash();
     for (let i = 0; i < 100; i++) {
       steer(u, idx, 0.033, rng);
@@ -1086,7 +1019,7 @@ describe('steer — Catalyst バフ', () => {
 
     const spd = Math.sqrt(u.vx ** 2 + u.vy ** 2);
     const t = unitType(FIGHTER_TYPE);
-    // vet=0, catalyst=0 → drag/wanderの影響で t.speed より低めに収束
+    // catalyst=0 → drag/wanderの影響で t.speed より低めに収束
     expect(spd).toBeGreaterThan(t.speed * 0.6);
     expect(spd).toBeLessThan(t.speed * 1.15);
   });

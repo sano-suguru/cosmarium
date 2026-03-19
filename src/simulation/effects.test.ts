@@ -82,46 +82,6 @@ describe('explosion', () => {
     expect(unit(idx).kbVx).toBeGreaterThan(0);
   });
 
-  it('killer有効 → kills++ される（destroyUnit経由）', () => {
-    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
-    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    expect(unit(killer).kills).toBe(0);
-    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect, shake);
-    expect(unit(killer).kills).toBe(1);
-  });
-
-  it('kills >= 3 → vet=1（destroyUnit経由）', () => {
-    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
-    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
-    unit(killer).kills = 2;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect, shake);
-    expect(unit(killer).kills).toBe(3);
-    expect(unit(killer).vet).toBe(1);
-  });
-
-  it('kills >= 8 → vet=2（destroyUnit経由）', () => {
-    const killer = spawnAt(0, FIGHTER_TYPE, 100, 100);
-    const victim = spawnAt(1, DRONE_TYPE, 0, 0);
-    unit(killer).kills = 7;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    destroyUnit(victim, killer, rng, KILL_CONTEXT.ProjectileDirect, shake);
-    expect(unit(killer).kills).toBe(8);
-    expect(unit(killer).vet).toBe(2);
-  });
-
-  it('killer=-1 → vet処理スキップ', () => {
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // killer=-1 でエラーが起きないことを確認
-    explosion(0, 0, 0, DRONE_TYPE, rng, shake);
-    expect(poolCounts.particles).toBeGreaterThan(0);
-  });
-
   it('cost >= 8 (Cruiser, type=3) → addAberration + addFreeze(0.03)', () => {
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -492,44 +452,24 @@ describe('killUnitWithExplosion', () => {
 });
 
 describe('destroyMutualKill', () => {
-  it('相打ち時はkiller双方のkillsを加算しない（両者deadのためスキップ）', () => {
+  it('相打ち時は両方kill、on-kill効果スキップ', () => {
     const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect, shake);
-    expect(unit(a).kills).toBe(0);
-    expect(unit(b).kills).toBe(0);
+    expect(unit(a).alive).toBe(false);
+    expect(unit(b).alive).toBe(false);
   });
 
-  it('相打ち時はvet昇格をスキップする（両者deadのため）', () => {
+  it('片方のみHP枯渇 → 枯渇側のみkill', () => {
     const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(a).kills = 2;
-    unit(b).kills = 2;
     buildHash();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    destroyMutualKill(a, b, true, true, rng, KILL_CONTEXT.ProjectileDirect, shake);
-    expect(unit(a).kills).toBe(2);
-    expect(unit(a).vet).toBe(0);
-    expect(unit(b).kills).toBe(2);
-    expect(unit(b).vet).toBe(0);
-  });
-
-  it('片方のみHP枯渇 → 枯渇側のみkill、killer側のみvet加算', () => {
-    const a = spawnAt(0, FIGHTER_TYPE, 0, 0);
-    const b = spawnAt(1, FIGHTER_TYPE, 100, 0);
-    unit(a).kills = 7;
-    buildHash();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // bのみHP枯渇 → aがbをkill
     destroyMutualKill(a, b, false, true, rng, KILL_CONTEXT.ProjectileDirect, shake);
     expect(unit(b).alive).toBe(false);
     expect(unit(a).alive).toBe(true);
-    expect(unit(a).kills).toBe(8);
-    expect(unit(a).vet).toBe(2);
-    // bはkillしていないのでkills変化なし
-    expect(unit(b).kills).toBe(0);
   });
 
   it('両方死亡後もexplosionパーティクルが生成される', () => {

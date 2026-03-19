@@ -34,11 +34,11 @@ function ramCollisionSparks(x: number, y: number, rng: () => number) {
 }
 
 function applyRamDamage(ctx: CombatContext, oi: UnitIndex, o: Unit, oType: UnitType) {
-  const { u, ui, vd } = ctx;
+  const { u, ui, baseDmgMul } = ctx;
   const kind = 'ram';
   const hasField = o.reflectFieldHp > 0;
   const fieldMul = hasField ? 0.5 : 1;
-  const ramDmg = Math.ceil(u.mass * 2.5 * vd * fieldMul);
+  const ramDmg = Math.ceil(u.mass * 2.5 * baseDmgMul * fieldMul);
   o.hp -= ramDmg;
   emitDamage(u.type, u.team, o.type, o.team, ramDmg, kind);
   if (hasField) {
@@ -185,7 +185,7 @@ export function dischargeEmp(ctx: CombatContext) {
 }
 
 export function castChain(ctx: CombatContext): void {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const d = tgtDistOrClear(u);
   if (d < 0) {
     return;
@@ -196,7 +196,7 @@ export function castChain(ctx: CombatContext): void {
     if (!killer) {
       return;
     }
-    chainLightning(u.x, u.y, u.team, t.damage * vd, 5, c, killer, ctx.rng, ctx.shake);
+    chainLightning(u.x, u.y, u.team, t.damage * baseDmgMul, 5, c, killer, ctx.rng, ctx.shake);
     spawnParticle(u.x, u.y, 0, 0, 0.15, t.size, c[0], c[1], c[2], SH_EXPLOSION_RING);
   }
 }

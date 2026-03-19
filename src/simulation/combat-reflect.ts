@@ -128,7 +128,7 @@ function reflectNearbyProjectiles(ctx: CombatContext, u: CombatContext['u'], ref
 
 /** Reflector の弱射撃（プロジェクタイル反射不能時のサブ攻撃） */
 function fireWeakShot(ctx: CombatContext): void {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const o = unit(u.target);
   if (!o.alive) {
     u.target = NO_UNIT;
@@ -148,7 +148,7 @@ function fireWeakShot(ctx: CombatContext): void {
     Math.cos(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
     Math.sin(aim.ang) * REFLECTOR_WEAK_SHOT_SPEED,
     aim.dist / REFLECTOR_WEAK_SHOT_SPEED + 0.1,
-    t.damage * vd,
+    t.damage * baseDmgMul,
     u.team,
     1.5,
     c[0],

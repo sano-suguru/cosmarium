@@ -33,8 +33,6 @@ const _boundaryForce: SteerForce = { x: 0, y: 0 };
 
 const GLOBAL_TARGET_PROB = 0.012;
 
-const VET_SPEED_BONUS = 0.12;
-
 export const STUN_DRAG_BASE = 0.93;
 const KB_DRAG_BASE = 0.88;
 const KB_EPSILON = 0.01;
@@ -78,7 +76,7 @@ function steerStunned(u: Unit, dt: number) {
 
 function applyVelocity(u: Unit, t: UnitType, tgt: number, dt: number) {
   const catalyzed = u.catalystTimer > 0;
-  const spd = t.speed * (1 + u.vet * VET_SPEED_BONUS) * (catalyzed ? CATALYST_SPEED_MULT : 1);
+  const spd = t.speed * (catalyzed ? CATALYST_SPEED_MULT : 1);
   const boostVel = t.boost ? tickBoost(u, t.boost, tgt, spd, dt, catalyzed) : null;
   const accelLerp = dt * t.accel;
   u.vx += (Math.cos(u.angle) * spd - u.vx) * accelLerp;

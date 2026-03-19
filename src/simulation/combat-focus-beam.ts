@@ -12,9 +12,9 @@ import { addBeam } from './spawn-beams.ts';
 
 /** フォーカスビームのダメージ適用 + 着弾エフェクト */
 function tryApplyBeamDamage(ctx: CombatContext, o: ReturnType<typeof unit>): boolean {
-  const { u, ui, c, t, vd } = ctx;
+  const { u, ui, c, t, baseDmgMul } = ctx;
   u.cooldown = t.fireRate;
-  const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * vd, ctx.rng, ui, ctx.shake);
+  const dmg = applyBeamDefenses(o, u.target, t.damage * u.beamOn * baseDmgMul, ctx.rng, ui, ctx.shake);
   if (!u.alive) {
     return false;
   }

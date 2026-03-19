@@ -602,7 +602,7 @@ describe('railgun hitscan', () => {
 });
 
 describe('キル時クールダウン短縮', () => {
-  it('sourceUnit 指定時: キルで kills カウントが上昇', () => {
+  it('sourceUnit 指定時: キルでユニットが死亡する', () => {
     const sniper = spawnAt(0, SNIPER_TYPE, 0, 0);
     unit(sniper).trailTimer = 99;
     const enemy = spawnAt(1, DRONE_TYPE, 3, 0); // hp=3
@@ -611,7 +611,6 @@ describe('キル時クールダウン短縮', () => {
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0, { sourceUnit: sniper });
     tick(0.016, rng, gameLoopState(), shake);
     expect(unit(enemy).alive).toBe(false);
-    expect(unit(sniper).kills).toBe(1);
   });
 
   it('cooldownResetOnKill: キル時にクールダウンが短縮される', () => {
@@ -626,10 +625,9 @@ describe('キル時クールダウン短縮', () => {
     expect(unit(sniper).cooldown).toBeCloseTo(0.8, 1);
   });
 
-  it('sourceUnit 未指定: キルしても誰のvetも上昇しない', () => {
+  it('sourceUnit 未指定: キルでもユニットが死亡する', () => {
     const enemy = spawnAt(1, DRONE_TYPE, 3, 0);
     unit(enemy).trailTimer = 99;
-    // sourceUnit なし（デフォルト NO_UNIT）→ 誰もvet上昇しない
     spawnProjectile(0, 0, 0, 0, 1.0, 100, 0, 2, 1, 0, 0);
     tick(0.016, rng, gameLoopState(), shake);
     expect(unit(enemy).alive).toBe(false);

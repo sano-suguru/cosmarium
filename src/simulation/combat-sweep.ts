@@ -127,7 +127,7 @@ function processSweepTarget(
     return false;
   }
   sweepHitMap.get(ctx.ui)?.add(ni);
-  const dmg = applyBeamDefenses(n, ni, ctx.t.damage * ctx.vd, ctx.rng, ctx.ui, ctx.shake);
+  const dmg = applyBeamDefenses(n, ni, ctx.t.damage * ctx.baseDmgMul, ctx.rng, ctx.ui, ctx.shake);
   if (dmg < 0) {
     return false;
   }

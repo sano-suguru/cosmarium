@@ -59,13 +59,13 @@ function spawnMuzzleFlash(ctx: CombatContext, ang: number) {
 }
 
 function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul = 1, burstIdx = 0) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const sizeMul = 1 + (dmgMul - 1) * 0.5;
   const wb = (dmgMul - 1) * 0.4;
   const vxInherit = u.vx * 0.3;
   const vyInherit = u.vy * 0.3;
   const life = d / sp + 0.1;
-  const dmg = t.damage * vd * dmgMul;
+  const dmg = t.damage * baseDmgMul * dmgMul;
   const pSize = (1.8 + t.damage * 0.25) * sizeMul;
   const pr = c[0] + (1 - c[0]) * wb;
   const pg = c[1] + (1 - c[1]) * wb;
@@ -119,7 +119,7 @@ function fireBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
 }
 
 function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const shots = t.shots;
   if (u.burstCount <= 0) {
     u.burstCount = shots;
@@ -132,7 +132,7 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number)
     Math.cos(spreadAng) * sp,
     Math.sin(spreadAng) * sp,
     d / sp + 1,
-    t.damage * vd,
+    t.damage * baseDmgMul,
     u.team,
     2.5,
     c[0],
@@ -146,7 +146,7 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number)
 }
 
 function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   u.cooldown = t.fireRate;
   spawnProjectile(
     u.x,
@@ -154,7 +154,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
     Math.cos(ang) * sp,
     Math.sin(ang) * sp,
     d / sp + 0.2,
-    t.damage * vd,
+    t.damage * baseDmgMul,
     u.team,
     AOE_PROJ_SIZE,
     c[0] * 0.8,

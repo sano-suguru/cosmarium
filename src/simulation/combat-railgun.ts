@@ -153,7 +153,7 @@ function applyRailgunHits(
 }
 
 export function fireRailgun(ctx: CombatContext, ang: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   u.cooldown = t.fireRate;
 
   const dx = Math.cos(ang);
@@ -162,7 +162,7 @@ export function fireRailgun(ctx: CombatContext, ang: number) {
   const oy = u.y + dy * t.size;
 
   const hits = collectRayHits(ox, oy, dx, dy, t.attackRange, u.team);
-  const beamEndDist = applyRailgunHits(ctx, hits, t.damage * vd, ox, oy, dx, dy, ang);
+  const beamEndDist = applyRailgunHits(ctx, hits, t.damage * baseDmgMul, ox, oy, dx, dy, ang);
 
   const bx = ox + dx * beamEndDist;
   const by = oy + dy * beamEndDist;

@@ -59,7 +59,7 @@
 | 34 | Homing (SH_HOMING) | homing projectile |
 | 35 | Beam (SH_BEAM) | beam segments |
 | 36 | Lightning (SH_LIGHTNING) | チェーンライトニングのビームセグメント |
-| 37 | Explosion Ring (SH_EXPLOSION_RING) | explosion ring, vet glow, EMP ring, shield aura |
+| 37 | Explosion Ring (SH_EXPLOSION_RING) | explosion ring, EMP ring, shield aura |
 | 38 | Diamond Ring (SH_DIAMOND_RING) | scramble debuff overlay |
 | 39 | Octagon Shield (SH_OCT_SHIELD) | shield linger, Bastion shield |
 | 40 | Reflect Field (SH_REFLECT_FIELD) | Reflector味方フィールド |

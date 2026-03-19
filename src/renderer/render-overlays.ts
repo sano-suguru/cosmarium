@@ -14,13 +14,6 @@ import {
 import type { Color3, Unit, UnitType } from '../types.ts';
 import { isCircleVisible, isSegmentVisible, writeInstance, writeOverlay } from './render-write.ts';
 
-/** vet リングの基本サイズ倍率 */
-const VET_OVERLAY_BASE = 1.4;
-/** vet レベルあたりの追加サイズ倍率 */
-const VET_OVERLAY_PER_LEVEL = 0.3;
-/** vet リングのパルス振幅 */
-const VET_PULSE_AMP = 0.1;
-
 /** scramble outer overlay の固定最小サイズ (renderBuffOverlays 内の Math.max(30, ...) と対応) */
 export const SCRAMBLE_OVERLAY_MIN = 30;
 /** scramble inner overlay の固定最小サイズ */
@@ -30,8 +23,7 @@ const SCRAMBLE_INNER_MIN = 22;
  * 全オーバーレイの最大サイズ倍率（カリング半径の基準）。
  * 各オーバーレイはこの値以下でなければならない:
  *   scramble outer = OVERLAY_FACTOR (定義)
- *   swarm          = OVERLAY_FACTOR
- *   vet max        = (VET_OVERLAY_BASE + 2 * VET_OVERLAY_PER_LEVEL) * (1 + VET_PULSE_AMP) = 2.2
+ *   swarm          = OVERLAY_FACTOR = 2.2
  *   catalyst max   = BUFF_OVERLAY_FACTOR * (1 + CATALYST_PULSE_AMP) = 1.904
  *   shield linger  = SHIELD_LINGER_FACTOR = 1.8
  *   reflect field  = REFLECT_FIELD_FACTOR = 1.6
@@ -238,21 +230,7 @@ export function renderCatalystGhosts(rx: number, ry: number, u: Unit, ut: UnitTy
   }
 }
 
-export function renderVetSwarmOverlays(
-  rx: number,
-  ry: number,
-  u: Unit,
-  ut: UnitType,
-  c: Color3,
-  now: number,
-  rs: number,
-) {
-  if (u.vet > 0) {
-    const pulse = 1 + Math.sin(now * 4) * VET_PULSE_AMP;
-    const vetSize = ut.size * (VET_OVERLAY_BASE + u.vet * VET_OVERLAY_PER_LEVEL) * rs * pulse;
-    const vetAlpha = 0.1 + u.vet * 0.08;
-    writeOverlay(rx, ry, vetSize, 1, 0.9, 0.3, vetAlpha, SH_EXPLOSION_RING);
-  }
+export function renderSwarmOverlay(rx: number, ry: number, u: Unit, ut: UnitType, c: Color3, rs: number) {
   if (u.swarmN > 0) {
     writeOverlay(rx, ry, ut.size * OVERLAY_FACTOR * rs, c[0], c[1], c[2], 0.06 + u.swarmN * 0.03, SH_EXPLOSION_RING);
   }

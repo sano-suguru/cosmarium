@@ -55,13 +55,12 @@ describe('combat — FOCUS BEAM', () => {
     expect(unit(frig).beamOn).toBe(0);
   });
 
-  it('ダメージは damage × beamOn × vd', () => {
+  it('ダメージは damage × beamOn × baseDmgMul', () => {
     const frig = spawnAt(0, asType(12), 0, 0);
     const enemy = spawnAt(1, asType(1), 100, 0);
     unit(frig).target = enemy;
     unit(frig).beamOn = 1.5;
     unit(frig).cooldown = 0;
-    unit(frig).vet = 0;
     buildHash();
     const hpBefore = unit(enemy).hp;
     combat(unit(frig), frig, 0.016, rng, 1, shake);
@@ -118,7 +117,6 @@ describe('combat — FOCUS BEAM', () => {
     unit(frig).target = enemy;
     unit(frig).cooldown = 0;
     unit(frig).beamOn = 0;
-    unit(frig).vet = 0;
     unit(enemy).hp = 9999;
     buildHash();
     const hpBefore = unit(enemy).hp;

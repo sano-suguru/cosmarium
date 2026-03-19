@@ -7,7 +7,7 @@ export interface CombatContext {
   ui: UnitIndex;
   dt: number;
   c: Color3;
-  vd: number;
+  baseDmgMul: number;
   t: UnitType;
   range: number;
   rng: () => number;

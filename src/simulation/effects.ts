@@ -100,23 +100,6 @@ function applyKnockbackToNeighbors(x: number, y: number, size: number) {
   }
 }
 
-/**
- * killer のスナップショット (team/type) とプールスロットの現在値を照合し、
- * スロット再利用でない場合のみ kills/vet を加算する。
- */
-function updateKillerVet(killer: Killer) {
-  const ku = unit(killer.index);
-  if (ku.alive && ku.team === killer.team && ku.type === killer.type) {
-    ku.kills++;
-    if (ku.kills >= 3) {
-      ku.vet = 1;
-    }
-    if (ku.kills >= 8) {
-      ku.vet = 2;
-    }
-  }
-}
-
 export function explosion(x: number, y: number, team: Team, type: UnitTypeIndex, rng: () => number, shake: ShakeFn) {
   const ut = unitType(type);
   const size = ut.size;
@@ -181,7 +164,6 @@ export function destroyUnit(
   if (snap) {
     explosion(snap.x, snap.y, snap.team, snap.type, rng, shake);
     if (resolved) {
-      updateKillerVet(resolved);
       applyOnKillEffects(resolved.index, resolved.team, killContext);
     }
   }
@@ -215,15 +197,13 @@ export function destroyMutualKill(
     explosion(snapA.x, snapA.y, snapA.team, snapA.type, rng, shake);
   }
 
-  // vet加算 + on-kill効果（相打ちではkillerもdeadのため除外）
+  // on-kill効果（相打ちではkillerもdeadのため除外）
   const isMutualKill = aHpDepleted && bHpDepleted;
   if (!isMutualKill) {
     if (snapB) {
-      updateKillerVet(killerA);
       applyOnKillEffects(killerA.index, killerA.team, killContext);
     }
     if (snapA) {
-      updateKillerVet(killerB);
       applyOnKillEffects(killerB.index, killerB.team, killContext);
     }
   }

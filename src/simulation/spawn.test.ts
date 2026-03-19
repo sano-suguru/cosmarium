@@ -110,8 +110,6 @@ describe('spawnUnit', () => {
     expect(u.mass).toBe(fighter.mass);
     expect(u.vx).toBe(0);
     expect(u.vy).toBe(0);
-    expect(u.kills).toBe(0);
-    expect(u.vet).toBe(0);
   });
 
   it('プール満杯時に -1 を返す', () => {

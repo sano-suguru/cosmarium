@@ -100,7 +100,7 @@ function flagshipRecoilExhaust(ctx: CombatContext) {
 }
 
 function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const sp = FLAGSHIP_MAIN_GUN_SPEED;
   const dx = Math.cos(lockAngle);
   const dy = Math.sin(lockAngle);
@@ -116,7 +116,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
       Math.cos(ba) * sp,
       Math.sin(ba) * sp,
       t.attackRange / sp + 0.1,
-      t.damage * vd,
+      t.damage * baseDmgMul,
       u.team,
       7,
       c[0],
@@ -158,9 +158,9 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
 }
 
 function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   const sp = 350;
-  const perpDmg = Math.ceil(t.damage * 0.6 * vd);
+  const perpDmg = Math.ceil(t.damage * 0.6 * baseDmgMul);
 
   for (const side of [-1, 1] as const) {
     const ba = lockAngle + side * (Math.PI / 2);

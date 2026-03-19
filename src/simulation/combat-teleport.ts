@@ -51,7 +51,7 @@ function blinkDepart(ctx: CombatContext) {
 }
 
 function fireBlinkShots(ctx: CombatContext) {
-  const { u, c, t, vd } = ctx;
+  const { u, c, t, baseDmgMul } = ctx;
   if (u.target === NO_UNIT) {
     return;
   }
@@ -69,7 +69,7 @@ function fireBlinkShots(ctx: CombatContext) {
       Math.cos(shotAng) * BLINK_SHOT_SPEED,
       Math.sin(shotAng) * BLINK_SHOT_SPEED,
       aim.dist / BLINK_SHOT_SPEED + 0.1,
-      t.damage * vd,
+      t.damage * baseDmgMul,
       u.team,
       2,
       c[0],
