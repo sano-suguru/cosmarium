@@ -15,14 +15,14 @@ import {
 import { particle, unit } from '../pools-query.ts';
 import { swapRemove } from '../swap-remove.ts';
 import type { Team, TeamTuple } from '../team.ts';
-import { MAX_TEAMS, TEAM0, TEAM1, teamAt } from '../team.ts';
+import { TEAM0, TEAM1, TEAMS, teamAt } from '../team.ts';
 import type { Armament, BattlePhase, Unit, UnitIndex, UnitType } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import type { BonusPhaseData, ProductionState } from '../types-fleet.ts';
 import { FLAGSHIP_TYPE, isMothership, unitType } from '../unit-type-accessors.ts';
 import { updateChains } from './chain-lightning.ts';
 import { combat, combatMothershipTick } from './combat.ts';
-import type { ShakeFn } from './combat-context.ts';
+import type { MutableTeamCombatMods, ShakeFn } from './combat-context.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { boostBurst, boostTrail, flagshipTrail, trail } from './effects-trail.ts';
 import { computeProductionCap, tickProduction } from './production.ts';
@@ -139,30 +139,39 @@ function processTrailAndBoost(u: Unit, ut: UnitType, dt: number, rng: () => numb
   }
 }
 
-// チーム単位の母艦情報プリコンピュート用 static 配列
-const _msAttackCdMul: TeamTuple<number> = [1, 1, 1, 1, 1];
+// チーム単位の母艦情報プリコンピュート用 static 配列（GC 回避でオブジェクト再利用）
+const _teamMods: TeamTuple<MutableTeamCombatMods> = [
+  { attackCdMul: 1, dmgMul: 1 },
+  { attackCdMul: 1, dmgMul: 1 },
+  { attackCdMul: 1, dmgMul: 1 },
+  { attackCdMul: 1, dmgMul: 1 },
+  { attackCdMul: 1, dmgMul: 1 },
+];
 const _msArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
 
 /** 全チームの母艦攻撃クールダウン倍率・武装をプリコンピュート */
 function initializeMothershipStats(activeTeamCount: number) {
-  for (let t = 0; t < MAX_TEAMS; t++) {
-    _msAttackCdMul[t] = 1;
+  for (const t of TEAMS) {
+    _teamMods[t].attackCdMul = 1;
+    _teamMods[t].dmgMul = 1;
     _msArmament[t] = null;
   }
   for (let t = 0; t < activeTeamCount; t++) {
     const team = teamAt(t);
     const msDef = getMothershipDef(mothershipType[team]);
-    _msAttackCdMul[team] = msDef.attackCdMul;
+    _teamMods[team].attackCdMul = msDef.attackCdMul;
+    _teamMods[team].dmgMul = msDef.unitDmgMul;
     _msArmament[team] = getMothershipArmament(mothershipType[team]);
   }
 }
 
 /** 母艦 or 通常ユニットの戦闘処理を振り分け */
 function updateUnitCombat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, shake: ShakeFn) {
+  const mods = _teamMods[u.team];
   if (isMothership(u.type)) {
-    combatMothershipTick(u, ui, dt, rng, _msAttackCdMul[u.team], _msArmament[u.team], shake);
+    combatMothershipTick(u, ui, dt, rng, mods, _msArmament[u.team], shake);
   } else {
-    combat(u, ui, dt, rng, _msAttackCdMul[u.team], shake);
+    combat(u, ui, dt, rng, mods, shake);
   }
 }
 

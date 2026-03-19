@@ -1,23 +1,22 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { makeRng } from './__test__/pool-helper.ts';
 import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
-import { SLOT_COUNT } from './production-config.ts';
+import { DEFAULT_SLOT_COUNT } from './production-config.ts';
 import {
-  _setShopCredits,
-  _setShopRng,
-  _setShopSlot,
   buildFleetFromShop,
   canPurchaseItem,
   getShopCredits,
-  getShopOfferings,
-  getShopSlots,
+  getShopFreeRerolls,
   initShop,
   initShopRound,
   purchaseItem,
   rerollOfferings,
   sellSlot,
+  snapshotOfferings,
+  snapshotSlots,
   toggleLock,
 } from './shop.ts';
+import { _setShopCredits, _setShopRng, _setShopSlot, readOfferings, readSlots } from './shop-state.ts';
 import type { ShopSlot } from './shop-tiers.ts';
 import {
   effectiveCount,
@@ -32,7 +31,7 @@ import {
   slotsToProduction,
   spawnCount,
 } from './shop-tiers.ts';
-import { HIVE_TYPE } from './unit-type-accessors.ts';
+import { CARRIER_BAY_TYPE, COLOSSUS_TYPE, HIVE_TYPE, SYNDICATE_TYPE } from './unit-type-accessors.ts';
 import { TYPES } from './unit-types.ts';
 
 function makeTestSlot(baseCount: number, mergeExp: number): ShopSlot {
@@ -44,12 +43,12 @@ function makeTestSlot(baseCount: number, mergeExp: number): ShopSlot {
 }
 
 function filledSlotCount(): number {
-  return getShopSlots().filter((s) => s !== null).length;
+  return readSlots().filter((s) => s !== null).length;
 }
 
-/** スロットを SLOT_COUNT 個の異なるタイプで確定的に埋める */
+/** スロットを DEFAULT_SLOT_COUNT 個の異なるタイプで確定的に埋める */
 function fillAllSlots(): void {
-  for (let i = 0; i < SLOT_COUNT; i++) {
+  for (let i = 0; i < DEFAULT_SLOT_COUNT; i++) {
     const typeIdx = SORTED_TYPE_INDICES[i];
     if (typeIdx === undefined) {
       throw new Error(`SORTED_TYPE_INDICES[${i}] is undefined`);
@@ -63,12 +62,12 @@ function fillAllSlots(): void {
 /** マージ不可（スロットにないタイプ）の offering index を返す。見つからなければ -1 */
 function findNonMergeableOffering(): number {
   const slotTypes = new Set(
-    getShopSlots()
+    readSlots()
       .filter((s): s is ShopSlot => s !== null)
       .map((s) => s.type),
   );
   for (let i = 0; i < SHOP_SIZE; i++) {
-    const item = getShopOfferings()[i];
+    const item = readOfferings()[i];
     if (item && !slotTypes.has(item.type)) {
       return i;
     }
@@ -106,7 +105,7 @@ describe('initShopRound', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
     expect(getShopCredits()).toBe(ROUND_CREDITS);
-    const items = getShopOfferings().filter((o) => o !== null);
+    const items = readOfferings().filter((o) => o !== null);
     expect(items.length).toBe(SHOP_SIZE);
   });
 
@@ -125,7 +124,7 @@ describe('purchaseItem', () => {
     expect.assertions(5);
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     expect(item).not.toBeNull();
     if (!item) {
       return;
@@ -135,8 +134,8 @@ describe('purchaseItem', () => {
     const result = purchaseItem(0);
     expect(result).toBe(true);
     expect(getShopCredits()).toBe(creditsBefore - SHOP_PRICE);
-    expect(getShopOfferings()[0]).toBeNull();
-    const slot = getShopSlots().find((s) => s !== null && s.type === item.type);
+    expect(readOfferings()[0]).toBeNull();
+    const slot = readSlots().find((s) => s !== null && s.type === item.type);
     expect(slot).toBeDefined();
   });
 
@@ -154,7 +153,7 @@ describe('purchaseItem', () => {
 
   it('全スロット満杯で同タイプ以外は購入失敗', () => {
     fillAllSlots();
-    expect(filledSlotCount()).toBe(SLOT_COUNT);
+    expect(filledSlotCount()).toBe(DEFAULT_SLOT_COUNT);
 
     // 全スロット満杯状態でスロットにないタイプの購入を試行
     initShopRound(makeRng(999), 1);
@@ -169,14 +168,14 @@ describe('マージ', () => {
     expect.assertions(4);
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item0 = getShopOfferings()[0];
+    const item0 = readOfferings()[0];
     expect(item0).not.toBeNull();
     if (!item0) {
       return;
     }
     purchaseItem(0);
 
-    const slotBefore = getShopSlots().find((s) => s !== null && s.type === item0.type);
+    const slotBefore = readSlots().find((s) => s !== null && s.type === item0.type);
     expect(slotBefore).toBeDefined();
     expect(slotBefore?.mergeExp).toBe(0);
     expect(effectiveCount({ type: item0.type, baseCount: TYPES[item0.type]?.clusterSize ?? 1, mergeExp: 0 })).toBe(
@@ -198,7 +197,7 @@ describe('マージ', () => {
   it('★3 + 空スロット + 同タイプ → 重複配置禁止で false', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     if (!item) {
       return;
     }
@@ -211,13 +210,13 @@ describe('マージ', () => {
     // 同タイプ購入 → マージ不可 + 同タイプ既存 → false（重複配置禁止）
     expect(purchaseItem(0)).toBe(false);
     // スロット1は空のまま（重複配置されていない）
-    expect(getShopSlots()[1]).toBeNull();
+    expect(readSlots()[1]).toBeNull();
   });
 
   it('★3（mergeExp>=5）でマージ不可、新規配置もスロット満杯なら購入失敗', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     if (!item) {
       return;
     }
@@ -225,7 +224,7 @@ describe('マージ', () => {
     const baseCount = TYPES[item.type]?.clusterSize ?? 1;
     _setShopSlot(0, { type: item.type, baseCount, mergeExp: 5 });
     // 残りスロットを全て埋める
-    for (let i = 1; i < SLOT_COUNT; i++) {
+    for (let i = 1; i < DEFAULT_SLOT_COUNT; i++) {
       const typeIdx = SORTED_TYPE_INDICES[i];
       if (typeIdx === undefined) {
         break;
@@ -244,22 +243,22 @@ describe('sellSlot', () => {
     expect.assertions(5);
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     expect(item).not.toBeNull();
     if (!item) {
       return;
     }
     purchaseItem(0);
     const creditsAfterBuy = getShopCredits();
-    const slotIdx = getShopSlots().findIndex((s) => s !== null);
+    const slotIdx = readSlots().findIndex((s) => s !== null);
     expect(slotIdx).toBeGreaterThanOrEqual(0);
 
-    const slot = getShopSlots()[slotIdx];
+    const slot = readSlots()[slotIdx];
     const refund = slot ? sellPrice(slot.mergeExp) : 0;
     const result = sellSlot(slotIdx);
     expect(result).toBe(true);
     expect(getShopCredits()).toBe(creditsAfterBuy + refund);
-    expect(getShopSlots()[slotIdx]).toBeNull();
+    expect(readSlots()[slotIdx]).toBeNull();
   });
 
   it('空スロット売却で false', () => {
@@ -271,14 +270,14 @@ describe('rerollOfferings', () => {
   it('1Cr 消費で offerings が再生成される', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    const before = getShopOfferings().map((o) => o?.type);
+    const before = snapshotOfferings().map((o) => o?.type);
     const creditsBefore = getShopCredits();
 
     _setShopRng(makeRng(99));
     const result = rerollOfferings();
     expect(result).toBe(true);
     expect(getShopCredits()).toBe(creditsBefore - REROLL_COST);
-    const after = getShopOfferings().map((o) => o?.type);
+    const after = readOfferings().map((o) => o?.type);
     const changed = before.some((b, i) => b !== after[i]);
     expect(changed).toBe(true);
   });
@@ -295,18 +294,18 @@ describe('rerollOfferings', () => {
     expect.assertions(4);
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     expect(item).not.toBeNull();
     if (!item) {
       return;
     }
     toggleLock(0);
-    expect(getShopOfferings()[0]?.locked).toBe(true);
+    expect(readOfferings()[0]?.locked).toBe(true);
 
     _setShopRng(makeRng(99));
     rerollOfferings();
-    expect(getShopOfferings()[0]?.type).toBe(item.type);
-    expect(getShopOfferings()[0]?.locked).toBe(true);
+    expect(readOfferings()[0]?.type).toBe(item.type);
+    expect(readOfferings()[0]?.locked).toBe(true);
   });
 });
 
@@ -314,11 +313,11 @@ describe('toggleLock', () => {
   it('ロック状態が反転する', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    expect(getShopOfferings()[0]?.locked).toBe(false);
+    expect(readOfferings()[0]?.locked).toBe(false);
     toggleLock(0);
-    expect(getShopOfferings()[0]?.locked).toBe(true);
+    expect(readOfferings()[0]?.locked).toBe(true);
     toggleLock(0);
-    expect(getShopOfferings()[0]?.locked).toBe(false);
+    expect(readOfferings()[0]?.locked).toBe(false);
   });
 });
 
@@ -330,7 +329,7 @@ describe('buildFleetFromShop', () => {
     purchaseItem(0);
     const fleet = buildFleetFromShop(HIVE_TYPE);
     expect(fleet.mothershipType).toBe(HIVE_TYPE);
-    expect(fleet.slots.length).toBe(SLOT_COUNT);
+    expect(fleet.slots.length).toBe(DEFAULT_SLOT_COUNT);
     const filled = fleet.slots.filter((s) => s !== null);
     expect(filled.length).toBe(1);
     const slot = filled[0];
@@ -338,7 +337,7 @@ describe('buildFleetFromShop', () => {
     if (!slot) {
       return;
     }
-    const shopSlot = getShopSlots().find((s) => s !== null);
+    const shopSlot = readSlots().find((s) => s !== null);
     expect(shopSlot).toBeDefined();
     if (!shopSlot) {
       return;
@@ -426,7 +425,7 @@ describe('canPurchaseItem', () => {
   it('★3到達 + 同タイプ → max_star', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    const item = getShopOfferings()[0];
+    const item = readOfferings()[0];
     if (!item) {
       return;
     }
@@ -468,5 +467,113 @@ describe('spawnCount', () => {
 
   it('最小値 1 を保証', () => {
     expect(spawnCount(makeTestSlot(1, 0), 0.1)).toBe(1);
+  });
+});
+
+describe('initShop', () => {
+  it('スロット数を指定して初期化', () => {
+    initShop(3);
+    expect(readSlots().length).toBe(3);
+  });
+
+  it('デフォルトスロット数で初期化', () => {
+    initShop();
+    expect(readSlots().length).toBe(DEFAULT_SLOT_COUNT);
+  });
+});
+
+describe('sellSlot — sellBonus', () => {
+  it('Syndicate の sellBonus=1 が売却時に加算される', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, SYNDICATE_TYPE);
+    const item = readOfferings()[0];
+    if (!item) {
+      throw new Error('offering is null');
+    }
+    purchaseItem(0);
+    const slotIdx = readSlots().findIndex((s) => s !== null);
+    const slot = readSlots()[slotIdx];
+    if (!slot) {
+      throw new Error('slot is null');
+    }
+    const creditsBefore = getShopCredits();
+    sellSlot(slotIdx);
+    expect(getShopCredits()).toBe(creditsBefore + sellPrice(slot.mergeExp) + 1);
+  });
+});
+
+describe('rerollOfferings — freeRerolls', () => {
+  it('無料リロールでクレジット消費なし + freeRerolls デクリメント', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, SYNDICATE_TYPE);
+    const creditsBefore = getShopCredits();
+    const freeBefore = getShopFreeRerolls();
+    expect(freeBefore).toBe(2);
+
+    _setShopRng(makeRng(99));
+    rerollOfferings();
+    expect(getShopCredits()).toBe(creditsBefore);
+    expect(getShopFreeRerolls()).toBe(freeBefore - 1);
+  });
+
+  it('無料枠使い切り後は有料リロール', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, SYNDICATE_TYPE);
+    // 無料リロール2回消費
+    _setShopRng(makeRng(99));
+    rerollOfferings();
+    rerollOfferings();
+    expect(getShopFreeRerolls()).toBe(0);
+
+    const creditsBeforePaid = getShopCredits();
+    _setShopRng(makeRng(199));
+    rerollOfferings();
+    expect(getShopCredits()).toBe(creditsBeforePaid - REROLL_COST);
+  });
+});
+
+describe('initShopRound — スロットリサイズ', () => {
+  it('5→7: 既存スロットデータ保持 + 拡張分 null', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, HIVE_TYPE);
+    // スロット0に配置
+    purchaseItem(0);
+    const slot0 = snapshotSlots()[0];
+
+    // Carrier Bay (slotCount=7) でリサイズ
+    initShopRound(makeRng(42), 2, 0, CARRIER_BAY_TYPE);
+    expect(readSlots().length).toBe(7);
+    // 既存スロット0のデータ保持
+    expect(readSlots()[0]).toEqual(slot0);
+    // 拡張分は null
+    expect(readSlots()[5]).toBeNull();
+    expect(readSlots()[6]).toBeNull();
+  });
+
+  it('5→3: 後ろが空なら切り詰められる', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, HIVE_TYPE);
+    expect(readSlots().length).toBe(5);
+
+    // Colossus (slotCount=3) でリサイズ
+    initShopRound(makeRng(42), 2, 0, COLOSSUS_TYPE);
+    expect(readSlots().length).toBe(3);
+  });
+
+  it('縮小時に populated スロットが範囲内なら throw', () => {
+    const rng = makeRng();
+    initShopRound(rng, 1, 0, CARRIER_BAY_TYPE); // slotCount=7
+    expect(readSlots().length).toBe(7);
+    // スロット5に配置
+    const typeIdx = SORTED_TYPE_INDICES[0];
+    if (typeIdx === undefined) {
+      throw new Error('SORTED_TYPE_INDICES is empty');
+    }
+    _setShopSlot(5, { type: typeIdx, baseCount: 1, mergeExp: 0 });
+
+    // Colossus (slotCount=3) へのリサイズでスロット5が切り詰められる → throw
+    expect(() => initShopRound(makeRng(42), 2, 0, COLOSSUS_TYPE)).toThrow(
+      'resizeSlots: cannot truncate populated slot at index 5',
+    );
   });
 });

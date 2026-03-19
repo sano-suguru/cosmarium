@@ -3,8 +3,10 @@ import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
 
-/** 母艦あたりの生産スロット数 */
-export const SLOT_COUNT = 5;
+export const DEFAULT_SLOT_COUNT = 5;
+
+/** 最大スロット数（Carrier Bay の上限） */
+export const MAX_SLOT_COUNT = 7;
 
 /** 1ティックあたりのチーム全体の最大クラスタースポーン回数（全スロット共有、バースト防止） */
 export const MAX_CLUSTERS_PER_TICK = 5;

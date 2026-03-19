@@ -18,6 +18,7 @@ import {
 import { particle, projectile, squadron, unit } from '../pools-query.ts';
 import { _resetShopListeners } from '../shop.ts';
 import { resetChains } from '../simulation/chain-lightning.ts';
+import type { TeamCombatMods } from '../simulation/combat-context.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
 import { killUnit } from '../simulation/effects.ts';
 import { _resetDamageHooks, _resetSupportHooks } from '../simulation/hooks.ts';
@@ -87,7 +88,7 @@ export function resetPools() {
     u.ampBoostTimer = 0;
     u.scrambleTimer = 0;
     u.catalystTimer = 0;
-    u.mergeMul = 1;
+    u.mergeDmgMul = 1;
     u.squadronIdx = NO_SQUADRON;
   }
   for (let i = 0; i < pHwm; i++) {
@@ -209,6 +210,9 @@ export function resetState() {
   clearBeamPools();
   resetChains();
 }
+
+/** テスト/ベンチ用: 倍率なし（1倍）の TeamCombatMods */
+export const NEUTRAL_MODS: TeamCombatMods = { attackCdMul: 1, dmgMul: 1 };
 
 /** テスト用 GameLoopState ファクトリ。state のプロパティをリアルタイムに参照する getter/setter でラップする */
 export function makeGameLoopState(battlePhase: GameLoopState['battlePhase'] = 'spectate'): GameLoopState {

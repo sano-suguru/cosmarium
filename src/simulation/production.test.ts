@@ -271,7 +271,7 @@ describe('production', () => {
       if (u.alive && u.type === FIGHTER_TYPE) {
         expect(u.hp).toBeCloseTo(fighterType.hp * expectedMul);
         expect(u.maxHp).toBeCloseTo(fighterType.hp * expectedMul);
-        expect(u.mergeMul).toBeCloseTo(expectedMul);
+        expect(u.mergeDmgMul).toBeCloseTo(expectedMul);
         found = true;
         break;
       }

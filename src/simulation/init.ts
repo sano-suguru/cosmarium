@@ -1,3 +1,4 @@
+import { getMothershipDef } from '../mothership-defs.ts';
 import { clearAllPools, getUnitHWM, mothershipIdx, registerMothership } from '../pools.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { teamsOf } from '../team.ts';
@@ -83,15 +84,16 @@ export function initUnits(rng: () => number) {
   }
 }
 
-function spawnMothership(team: Team, cx: number, cy: number, rng: () => number, mothershipType: UnitTypeIndex) {
+function spawnMothership(team: Team, cx: number, cy: number, rng: () => number, msType: UnitTypeIndex) {
   if (mothershipIdx[team] !== NO_UNIT) {
     return;
   }
-  const idx = spawnUnit(team, mothershipType, cx, cy, rng);
+  const def = getMothershipDef(msType);
+  const idx = spawnUnit(team, msType, cx, cy, rng, 0, def.mothershipHpMul);
   if (idx === NO_UNIT) {
     throw new RangeError(`Failed to spawn mothership for team ${team}: unit pool exhausted`);
   }
-  registerMothership(team, idx, mothershipType);
+  registerMothership(team, idx, msType);
 }
 
 /** 母艦のみスポーン（生産駆動バトル用） */

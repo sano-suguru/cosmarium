@@ -57,6 +57,11 @@ export const DREADNOUGHT_TYPE = T('Dreadnought');
 export const REACTOR_TYPE = T('Reactor');
 export const ASTEROID_TYPE = T('Asteroid');
 export const ASTEROID_LARGE_TYPE = T('Asteroid Core');
+export const COLOSSUS_TYPE = T('Colossus');
+export const CARRIER_BAY_TYPE = T('Carrier Bay');
+export const ACCELERATOR_TYPE = T('Accelerator');
+export const SYNDICATE_TYPE = T('Syndicate');
+export const BLOODBORNE_TYPE = T('Bloodborne');
 export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
 export const TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex);
 export function unitTypeName(idx: UnitTypeIndex): string {

@@ -1,4 +1,4 @@
-import { SLOT_COUNT } from '../production-config.ts';
+import { DEFAULT_SLOT_COUNT } from '../production-config.ts';
 import type { ShopSlot, WeightedCandidate } from '../shop-tiers.ts';
 import { buildWeightedCandidates, MAX_MERGE_LEVEL, mergeExpToLevel, SHOP_PRICE } from '../shop-tiers.ts';
 import type { UnitTypeIndex } from '../types.ts';
@@ -87,8 +87,13 @@ function applyMerge(slots: (ShopSlot | null)[], outcome: MergeOutcome & { result
  * ショップと同じ制約（クレジット・ティア重み・マージ）でスロットを構築する。
  * 戦略: マージ優先 → 空スロット配置 → 予算完全消化
  */
-export function botFillSlots(rng: () => number, round: number, budget: number): readonly (ShopSlot | null)[] {
-  const slots: (ShopSlot | null)[] = Array.from({ length: SLOT_COUNT }, () => null);
+export function botFillSlots(
+  rng: () => number,
+  round: number,
+  budget: number,
+  slotCount: number = DEFAULT_SLOT_COUNT,
+): readonly (ShopSlot | null)[] {
+  const slots: (ShopSlot | null)[] = Array.from({ length: slotCount }, () => null);
   let credits = budget;
   const candidates = buildWeightedCandidates(round);
   const slotTypes = new Set<UnitTypeIndex>();

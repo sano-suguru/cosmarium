@@ -1164,3 +1164,131 @@
     float crackGlow=smoothstep(0.7,1.0,crack1)*exp(-max(dRock,0.0)*15.0)*0.4;
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+coreGlow*0.7+crackGlow;
     a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:24 Colossus] ————————————————————————————
+  else if(sh==24){ vec2 p=vU*0.82; float t=vA+uTime;
+    // Colossus: massive hexagonal heavy-armor mothership
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Hexagonal hull
+    float dHex=sdHexagon(p*0.9,0.55);
+    // Thick armor bands
+    float dArmor1=sdRoundedBox(pm-vec2(0.0,0.36),vec2(0.45,0.05),0.02);
+    float dArmor2=sdRoundedBox(pm-vec2(0.0,0.18),vec2(0.50,0.04),0.02);
+    float dBody=smin(dHex,dArmor1,0.04);
+    dBody=smin(dBody,dArmor2,0.04);
+    // Internal armor line cuts
+    float dCut1=sdRoundedBox(p-vec2(0.0,0.0),vec2(0.30,0.08),0.03);
+    dBody=max(dBody,-dCut1+0.01);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Heavy engine banks
+    float engP=0.50+0.50*sin(t*3.0+p.y*2.0);
+    float e1=length(pm-vec2(-0.58,0.15))-0.08;
+    float e2=length(pm-vec2(-0.58,0.30))-0.06;
+    float engC=exp(-16.0*max(min(e1,e2),0.0))*engP;
+    // Armor plate shimmer
+    float shimmer=exp(-abs(dBody)*6.0)*0.10*(0.5+0.5*sin(t*1.5+p.x*4.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+engC*0.50+shimmer;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:25 CarrierBay] ————————————————————————————
+  else if(sh==25){ vec2 p=vU*0.86; float t=vA+uTime;
+    // Carrier Bay: wide hangar-shaped mothership with open bays
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Wide rectangular hull
+    float dHull=sdRoundedBox(p,vec2(0.60,0.35),0.06);
+    // Forward taper
+    float dBow=sdRoundedBox(p-vec2(0.52,0.0),vec2(0.18,0.28),0.08);
+    float dBody=smin(dHull,dBow,0.06);
+    // Hangar bay openings (2 side bays)
+    float dBay=sdRoundedBox(pm-vec2(0.10,0.20),vec2(0.28,0.08),0.03);
+    dBody=max(dBody,-dBay);
+    // Central spine
+    float dSpine=sdRoundedBox(p-vec2(-0.10,0.0),vec2(0.50,0.04),0.02);
+    dBody=smin(dBody,dSpine,0.03);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Bay interior glow
+    float bayGlow=exp(-18.0*max(dBay,0.0))*(0.4+0.3*sin(t*2.0))*hf;
+    // Side engine arrays
+    float engP=0.55+0.45*sin(t*4.5+p.y*3.0);
+    float e1=length(pm-vec2(-0.68,0.12))-0.05;
+    float e2=length(pm-vec2(-0.68,0.24))-0.05;
+    float engC=exp(-20.0*max(min(e1,e2),0.0))*engP;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+bayGlow*0.45+engC*0.50;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:26 Accelerator] ————————————————————————————
+  else if(sh==26){ vec2 p=vU*0.84; float t=vA+uTime;
+    // Accelerator: pointed arrow/booster-shaped mothership
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Arrow-shaped hull
+    float dHull=sdTrapezoid(pm.yx-vec2(0.0,-0.10),0.15,0.08,0.55);
+    // Sharp nose
+    float dNose=sdCapsule(p,vec2(0.45,0.0),vec2(0.70,0.0),0.04);
+    float dBody=smin(dHull,dNose,0.05);
+    // Booster nacelles (wide rear)
+    float dBoost=sdRoundedBox(pm-vec2(-0.45,0.22),vec2(0.18,0.10),0.04);
+    dBody=smin(dBody,dBoost,0.04);
+    // Internal detail
+    float dSeam=sdCapsule(p,vec2(0.30,0.0),vec2(-0.30,0.0),0.003);
+    dBody=max(dBody,-dSeam+0.005);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Booster afterburner glow
+    float engP=0.60+0.40*sin(t*7.0);
+    float e1=length(pm-vec2(-0.65,0.22))-0.07;
+    float eMain=length(p-vec2(-0.62,0.0))-0.08;
+    float engC=exp(-18.0*max(min(e1,eMain),0.0))*engP;
+    // Speed lines shimmer
+    float speedLine=exp(-pm.y*8.0)*smoothstep(-0.50,0.40,p.x)*hf
+                    *(0.4+0.6*sin(t*5.0+p.x*10.0))*0.15;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+engC*0.60+speedLine;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:27 Syndicate] ————————————————————————————
+  else if(sh==27){ vec2 p=vU*0.88; float t=vA+uTime;
+    // Syndicate: circular mothership with currency-symbol-like pattern
+    float r=length(p);
+    float ang=atan(p.y,p.x);
+    // Circular hull
+    float dCircle=r-0.48;
+    // Inner ring detail
+    float dInner=abs(r-0.32)-0.02;
+    float dBody=min(dCircle,dInner);
+    // Vertical bar (currency symbol)
+    float dBar=sdRoundedBox(p,vec2(0.03,0.52),0.015);
+    dBody=min(dBody,dBar);
+    // Horizontal slashes
+    float dSlash1=sdRoundedBox(p-vec2(0.0,0.12),vec2(0.22,0.02),0.01);
+    float dSlash2=sdRoundedBox(p-vec2(0.0,-0.12),vec2(0.22,0.02),0.01);
+    dBody=min(dBody,min(dSlash1,dSlash2));
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Rotating ring glow
+    float ringGlow=exp(-abs(r-0.32)*20.0)*(0.4+0.3*sin(t*2.0+ang*4.0));
+    // Center pulse
+    float centerPulse=exp(-r*10.0)*(0.5+0.5*sin(t*3.0))*0.4;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+ringGlow*0.35+centerPulse;
+    a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:28 Bloodborne] ————————————————————————————
+  else if(sh==28){ vec2 p=vU*0.85; float t=vA+uTime;
+    // Bloodborne: distorted organic-looking mothership
+    float r=length(p);
+    float ang=atan(p.y,p.x);
+    vec2 pm=vec2(p.x,abs(p.y));
+    // Organic warped hull
+    float warp=0.06*sin(ang*3.0+t*0.8)+0.04*sin(ang*5.0-t*0.5)+0.03*sin(ang*7.0+t*1.2);
+    float dHull=r-(0.50+warp);
+    // Spine ridges
+    float dSpine=sdCapsule(p,vec2(-0.40,0.0),vec2(0.45,0.0),0.06);
+    float dBody=smin(dHull,dSpine,0.06);
+    // Organic tendrils
+    float dTendril=sdCapsule(pm,vec2(0.20,0.10),vec2(-0.10,0.45),0.025);
+    dBody=smin(dBody,dTendril,0.04);
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Pulsing veins
+    float vein=abs(sin(ang*6.0+t*2.0))*exp(-abs(r-0.35)*10.0)*hf*0.25;
+    // Dark core energy
+    float coreGlow=exp(-r*6.0)*(0.6+0.4*sin(t*3.5))*0.5;
+    // Engine-like organic exhaust
+    float exhaust=exp(-length(p-vec2(-0.52,0.0))*10.0)*(0.5+0.5*sin(t*4.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+vein+coreGlow+exhaust*0.40;
+    a=shapeSoftClamp(a, sh); }

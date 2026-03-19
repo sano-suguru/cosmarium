@@ -3,7 +3,7 @@ import type { PurchaseBlock, PurchaseCheck, ShopItem } from '../../shop-tiers.ts
 import { REROLL_COST, SHOP_PRICE } from '../../shop-tiers.ts';
 import { ROLE_LABELS } from '../../unit-type-accessors.ts';
 import { TYPES } from '../../unit-types.ts';
-import { shopCredits$, shopOfferings$, shopPurchaseBlocks$ } from '../signals.ts';
+import { shopCredits$, shopFreeRerolls$, shopOfferings$, shopPurchaseBlocks$ } from '../signals.ts';
 import styles from './ShopPanel.module.css';
 
 const BLOCK_LABELS: Record<PurchaseBlock, string> = {
@@ -73,8 +73,9 @@ type ShopPanelProps = {
 export function ShopPanel({ onBuy, onToggleLock, onReroll }: ShopPanelProps) {
   const offerings = shopOfferings$.value;
   const credits = shopCredits$.value;
+  const freeRerolls = shopFreeRerolls$.value;
   const blocks = shopPurchaseBlocks$.value;
-  const canReroll = credits >= REROLL_COST;
+  const canReroll = freeRerolls > 0 || credits >= REROLL_COST;
 
   return (
     <div class={styles.shopSection}>
@@ -82,7 +83,7 @@ export function ShopPanel({ onBuy, onToggleLock, onReroll }: ShopPanelProps) {
         <span>SHOP</span>
         <button type="button" class={styles.rerollBtn} disabled={!canReroll} onClick={onReroll}>
           <RefreshCw size={12} />
-          REROLL ({REROLL_COST} CR)
+          {freeRerolls > 0 ? `FREE REROLL (${freeRerolls})` : `REROLL (${REROLL_COST} CR)`}
         </button>
       </div>
       <div class={styles.shopGrid}>

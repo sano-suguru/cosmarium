@@ -2,7 +2,7 @@ import { POOL_UNITS } from '../constants.ts';
 import { getMothershipDef } from '../mothership-defs.ts';
 import { mothershipIdx, mothershipType, poolCounts, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
-import { getProductionTime, MAX_CLUSTERS_PER_TICK, SLOT_COUNT } from '../production-config.ts';
+import { getProductionTime, MAX_CLUSTERS_PER_TICK, MAX_SLOT_COUNT } from '../production-config.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
 import type { ProductionSlot, ProductionState } from '../types-fleet.ts';
@@ -38,6 +38,7 @@ function spawnCluster(
   unitCap: number,
   cx: number,
   cy: number,
+  hpMul: number,
 ): boolean {
   if (teamUnitCounts[team] + slot.count > unitCap) {
     return false;
@@ -54,6 +55,7 @@ function spawnCluster(
       cy + (rng() - 0.5) * spread,
       rng,
       slot.mergeExp,
+      hpMul,
     );
     if (idx === NO_UNIT) {
       throw new Error('spawnCluster: pool exhaustion after capacity pre-check (invariant violation)');
@@ -94,6 +96,7 @@ function roundRobinPass(
   cy: number,
   capacity: number,
   prodTimes: Float64Array,
+  hpMul: number,
 ): number {
   let spent = 0;
   for (let i = 0; i < ps.slots.length; i++) {
@@ -104,7 +107,7 @@ function roundRobinPass(
     if (!slot) {
       continue;
     }
-    if (spawnCluster(team, slot, rng, unitCap, cx, cy)) {
+    if (spawnCluster(team, slot, rng, unitCap, cx, cy, hpMul)) {
       ps.timers[i] = _slotTimer - _slotProdTime;
       spent++;
     }
@@ -121,10 +124,11 @@ function roundRobinSpawn(
   cx: number,
   cy: number,
   prodTimes: Float64Array,
+  hpMul: number,
 ): void {
   let remainingCapacity = MAX_CLUSTERS_PER_TICK;
   while (remainingCapacity > 0) {
-    const spent = roundRobinPass(ps, team, rng, unitCap, cx, cy, remainingCapacity, prodTimes);
+    const spent = roundRobinPass(ps, team, rng, unitCap, cx, cy, remainingCapacity, prodTimes, hpMul);
     if (spent === 0) {
       break;
     }
@@ -132,13 +136,25 @@ function roundRobinSpawn(
   }
 }
 
-function precomputeProdTimes(ps: ProductionState, productionMul: number): Float64Array {
-  const prodTimes = new Float64Array(SLOT_COUNT);
+const _prodTimesBuf = new Float64Array(MAX_SLOT_COUNT);
+
+function fillProdTimes(
+  out: Float64Array,
+  ps: ProductionState,
+  productionMul: number,
+  slotProductionMuls?: readonly number[],
+): void {
+  if (slotProductionMuls && ps.slots.length > slotProductionMuls.length) {
+    throw new RangeError(
+      `fillProdTimes: slots.length (${ps.slots.length}) exceeds slotProductionMuls.length (${slotProductionMuls.length})`,
+    );
+  }
+  out.fill(0);
   for (let i = 0; i < ps.slots.length; i++) {
     const slot = ps.slots[i];
-    prodTimes[i] = slot ? getProductionTime(slot.type, productionMul, slot.mergeExp) : 0;
+    const slotMul = slotProductionMuls?.[i] ?? 1.0;
+    out[i] = slot ? getProductionTime(slot.type, productionMul / slotMul, slot.mergeExp) : 0;
   }
-  return prodTimes;
 }
 
 function updateTimers(ps: ProductionState, dt: number, prodTimes: Float64Array): void {
@@ -165,18 +181,20 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
     return;
   }
 
-  const productionMul = getMothershipDef(mothershipType[team]).productionTimeMul;
+  const def = getMothershipDef(mothershipType[team]);
 
   // スロット数がキャッシュサイズを超えていたらフェイルファスト
-  if (ps.slots.length > SLOT_COUNT) {
-    throw new RangeError(`tickProduction: slots.length (${ps.slots.length}) exceeds SLOT_COUNT (${SLOT_COUNT})`);
+  if (ps.slots.length > MAX_SLOT_COUNT) {
+    throw new RangeError(
+      `tickProduction: slots.length (${ps.slots.length}) exceeds MAX_SLOT_COUNT (${MAX_SLOT_COUNT})`,
+    );
   }
 
-  const prodTimes = precomputeProdTimes(ps, productionMul);
-  updateTimers(ps, dt, prodTimes);
+  fillProdTimes(_prodTimesBuf, ps, def.productionTimeMul, def.slotProductionMuls);
+  updateTimers(ps, dt, _prodTimesBuf);
 
   // Phase 2 — ラウンドロビンスポーン
   if (teamUnitCounts[team] < unitCap) {
-    roundRobinSpawn(ps, team, rng, unitCap, m.x, m.y, prodTimes);
+    roundRobinSpawn(ps, team, rng, unitCap, m.x, m.y, _prodTimesBuf, def.unitHpMul);
   }
 }

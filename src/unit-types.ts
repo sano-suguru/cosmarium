@@ -12,16 +12,16 @@ import {
   sniper,
 } from './unit-defs-attack.ts';
 import {
-  asteroid,
-  asteroidLarge,
-  carrier,
-  disruptor,
+  accelerator,
+  bloodborne,
+  carrierBay,
+  colossus,
   dreadnought,
   hive,
   reactor,
-  scrambler,
-  teleporter,
-} from './unit-defs-special.ts';
+  syndicate,
+} from './unit-defs-mothership.ts';
+import { asteroid, asteroidLarge, carrier, disruptor, scrambler, teleporter } from './unit-defs-special.ts';
 import { amplifier, bastion, catalyst, healer, reflector } from './unit-defs-support.ts';
 
 export const TYPES: UnitType[] = [
@@ -49,6 +49,11 @@ export const TYPES: UnitType[] = [
   reactor, // 21
   asteroid, // 22
   asteroidLarge, // 23
+  colossus, // 24
+  carrierBay, // 25
+  accelerator, // 26
+  syndicate, // 27
+  bloodborne, // 28
 ];
 
 export const UNIT_TYPE_COUNT = TYPES.length;

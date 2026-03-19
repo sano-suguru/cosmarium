@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { NEUTRAL_MODS, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { beams } from '../beams.ts';
 import { poolCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
@@ -28,7 +28,7 @@ describe('combat — RAILGUN', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
-    combat(unit(sniper), sniper, 0.016, rng, 1, shake);
+    combat(unit(sniper), sniper, 0.016, rng, NEUTRAL_MODS, shake);
     // ヒットスキャンなのでプロジェクタイルは生成されない
     expect(poolCounts.projectiles).toBe(0);
     // tracerビームが追加される

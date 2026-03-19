@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, NEUTRAL_MODS, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
@@ -37,7 +37,7 @@ describe('combat — NORMAL FIRE', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     expect(unit(fighter).cooldown).toBeCloseTo(BURST_INTERVAL);
   });
@@ -48,18 +48,18 @@ describe('combat — NORMAL FIRE', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(0);
   });
 
-  it('mergeMul=1.12: damage×1.12', () => {
+  it('mergeDmgMul=1.12: damage×1.12', () => {
     const fighter = spawnAt(0, FIGHTER_TYPE, 0, 0);
     const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
-    unit(fighter).mergeMul = 1.12;
+    unit(fighter).mergeDmgMul = 1.12;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     const fighterType = unitType(FIGHTER_TYPE);
 
     expect(projectile(0).damage).toBeCloseTo(fighterType.damage * 1.12);
@@ -73,16 +73,16 @@ describe('combat — NORMAL FIRE', () => {
     unit(launcher).target = enemy;
     buildHash();
 
-    combat(unit(launcher), launcher, 0.016, rng, 1, shake);
+    combat(unit(launcher), launcher, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     expect(projectile(0).homing).toBe(true);
     expect(projectile(0).target).toBe(enemy);
     expect(unit(launcher).burstCount).toBe(2);
 
     unit(launcher).cooldown = 0;
-    combat(unit(launcher), launcher, 0.016, rng, 1, shake);
+    combat(unit(launcher), launcher, 0.016, rng, NEUTRAL_MODS, shake);
     unit(launcher).cooldown = 0;
-    combat(unit(launcher), launcher, 0.016, rng, 1, shake);
+    combat(unit(launcher), launcher, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(3);
     expect(unit(launcher).burstCount).toBe(0);
     expect(projectile(1).homing).toBe(true);
@@ -97,7 +97,7 @@ describe('combat — NORMAL FIRE', () => {
     unit(bomber).cooldown = 0;
     unit(bomber).target = enemy;
     buildHash();
-    combat(unit(bomber), bomber, 0.016, rng, 1, shake);
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     expect(projectile(0).aoe).toBe(bomberType.aoe);
   });
@@ -110,20 +110,20 @@ describe('combat — NORMAL FIRE', () => {
     unit(bomber).target = enemy;
     buildHash();
 
-    combat(unit(bomber), bomber, 0.016, rng, 1, shake);
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     expect(projectile(0).aoe).toBe(bomberType.aoe);
     expect(unit(bomber).burstCount).toBe(3);
 
     unit(bomber).cooldown = 0;
-    combat(unit(bomber), bomber, 0.016, rng, 1, shake);
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     expect(unit(bomber).burstCount).toBe(2);
 
     unit(bomber).cooldown = 0;
-    combat(unit(bomber), bomber, 0.016, rng, 1, shake);
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
     unit(bomber).cooldown = 0;
-    combat(unit(bomber), bomber, 0.016, rng, 1, shake);
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(4);
     expect(unit(bomber).burstCount).toBe(0);
     expect(unit(bomber).cooldown).toBeCloseTo(bomberType.fireRate, 1);
@@ -137,14 +137,14 @@ describe('combat — NORMAL FIRE', () => {
     buildHash();
 
     // given: チャージ開始
-    combat(unit(flagship), flagship, 0.016, rng, 1, shake);
+    combat(unit(flagship), flagship, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(0);
     expect(unit(flagship).beamOn).toBeGreaterThan(0);
 
     // when: チャージ完了まで進める (chargeTime=0.3s)
     const chargeFrames = Math.ceil(0.3 / 0.016) + 1;
     for (let i = 0; i < chargeFrames; i++) {
-      combat(unit(flagship), flagship, 0.016, rng, 1, shake);
+      combat(unit(flagship), flagship, 0.016, rng, NEUTRAL_MODS, shake);
     }
     // then: メイン砲3発発射、broadside待ち
     expect(poolCounts.projectiles).toBe(3);
@@ -152,7 +152,7 @@ describe('combat — NORMAL FIRE', () => {
 
     // when: broadside delay消化
     unit(flagship).cooldown = 0;
-    combat(unit(flagship), flagship, 0.016, rng, 1, shake);
+    combat(unit(flagship), flagship, 0.016, rng, NEUTRAL_MODS, shake);
     // then: メイン3 + 側面2 = 5発
     expect(poolCounts.projectiles).toBe(5);
     expect(unit(flagship).broadsidePhase).toBe(0);
@@ -165,7 +165,7 @@ describe('combat — NORMAL FIRE', () => {
     unit(fighter).target = enemy;
     unit(enemy).alive = false; // 死亡状態
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(fighter).target).toBe(NO_UNIT);
     expect(poolCounts.projectiles).toBe(0);
   });
@@ -178,7 +178,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     // dmg = 1 * 1.0 (baseDmgMul) * 1.0 (no allies) = 1.0
     expect(projectile(0).damage).toBeCloseTo(1.0);
@@ -195,7 +195,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).target = enemy;
     buildHash();
     unit(drone).swarmN = 3;
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     // dmg = 1 * 1.0 * (1 + 3*0.15) = 1.45
     expect(projectile(0).damage).toBeCloseTo(1.45);
   });
@@ -210,7 +210,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).target = enemy;
     buildHash();
     unit(drone).swarmN = 6;
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     // min(8, 6) * 0.15 = 0.9 → dmg = 1 * 1.9
     expect(projectile(0).damage).toBeCloseTo(1.9);
   });
@@ -224,7 +224,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     expect(projectile(0).damage).toBeCloseTo(1.0);
   });
 
@@ -237,7 +237,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     expect(projectile(0).damage).toBeCloseTo(1.0);
   });
 
@@ -247,7 +247,7 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).cooldown = 0;
     unit(drone).target = enemy;
     buildHash();
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     const p = projectile(0);
     expect(p.size).toBeCloseTo(2.05);
     expect(p.r).toBeCloseTo(0.242, 2);
@@ -265,9 +265,9 @@ describe('combat — DRONE SWARM', () => {
     unit(drone).target = enemy;
     buildHash();
     unit(drone).swarmN = 6;
-    combat(unit(drone), drone, 0.016, rng, 1, shake);
+    combat(unit(drone), drone, 0.016, rng, NEUTRAL_MODS, shake);
     const p = projectile(0);
-    // dmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725
+    // mergeDmgMul=1.9, sizeMul=1+(0.9)*0.5=1.45, size=2.05*1.45=2.9725
     expect(p.size).toBeCloseTo(2.9725);
     // wb=(1.9-1)*0.4=0.36
     expect(p.r).toBeCloseTo(0.242 + (1 - 0.242) * 0.36, 2);
@@ -284,7 +284,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).burstCount = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     expect(unit(fighter).burstCount).toBe(1);
   });
@@ -296,7 +296,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).burstCount = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(fighter).cooldown).toBeCloseTo(0.07);
   });
 
@@ -307,7 +307,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).burstCount = 1; // 残り1発
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     // burstCount=0 → cooldown = fireRate = 0.9
     expect(unit(fighter).burstCount).toBe(0);
     expect(unit(fighter).cooldown).toBeCloseTo(0.9);
@@ -318,7 +318,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).burstCount = 1;
     unit(fighter).target = NO_UNIT;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(fighter).burstCount).toBe(0);
   });
 
@@ -330,7 +330,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).target = enemy;
     unit(enemy).alive = false;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(fighter).burstCount).toBe(0);
     expect(unit(fighter).target).toBe(NO_UNIT);
   });
@@ -343,7 +343,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).angle = 0; // +x方向
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     const p0 = projectile(0);
     const p1 = projectile(1);
@@ -360,7 +360,7 @@ describe('combat — FIGHTER BURST', () => {
     unit(fighter).angle = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     const p0 = projectile(0);
     const p1 = projectile(1);

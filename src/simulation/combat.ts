@@ -3,7 +3,7 @@ import { unitIdx } from '../pool-index.ts';
 import { unit } from '../pools-query.ts';
 import type { Armament, DemoFlag, Unit, UnitIndex, UnitType } from '../types.ts';
 import { DEFAULT_UNIT_TYPE, unitType } from '../unit-type-accessors.ts';
-import type { CombatContext, ShakeFn } from './combat-context.ts';
+import type { CombatContext, ShakeFn, TeamCombatMods } from './combat-context.ts';
 import { fireNormal } from './combat-fire.ts';
 import { flagshipBarrage } from './combat-flagship.ts';
 import { focusBeam } from './combat-focus-beam.ts';
@@ -103,7 +103,7 @@ function fillCombatCtx(
   ui: UnitIndex,
   dt: number,
   rng: () => number,
-  attackCdMul: number,
+  mods: TeamCombatMods,
   shake: ShakeFn,
 ): boolean {
   if (u.stun > 0) {
@@ -112,7 +112,7 @@ function fillCombatCtx(
   const t = unitType(u.type);
   const scrCd = u.scrambleTimer > 0 ? SCRAMBLE_COOLDOWN_MULT : 1;
   const catCd = u.catalystTimer > 0 ? CATALYST_COOLDOWN_MULT : 1;
-  u.cooldown -= dt * scrCd * catCd * attackCdMul;
+  u.cooldown -= dt * scrCd * catCd * mods.attackCdMul;
   u.abilityCooldown -= dt * scrCd * catCd;
   const c = effectColor(u.type, u.team);
   const ampDmg = u.ampBoostTimer > 0 ? AMP_DAMAGE_MULT : 1;
@@ -120,7 +120,7 @@ function fillCombatCtx(
   _ctx.ui = ui;
   _ctx.dt = dt;
   _ctx.c = c;
-  _ctx.baseDmgMul = ampDmg * u.mergeMul;
+  _ctx.baseDmgMul = ampDmg * u.mergeDmgMul * mods.dmgMul;
   _ctx.t = t;
   _ctx.range = computeEffectiveRange(u, t.attackRange);
   _ctx.rng = rng;
@@ -128,8 +128,8 @@ function fillCombatCtx(
   return true;
 }
 
-export function combat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, attackCdMul: number, shake: ShakeFn) {
-  if (!fillCombatCtx(u, ui, dt, rng, attackCdMul, shake)) {
+export function combat(u: Unit, ui: UnitIndex, dt: number, rng: () => number, mods: TeamCombatMods, shake: ShakeFn) {
+  if (!fillCombatCtx(u, ui, dt, rng, mods, shake)) {
     return;
   }
 
@@ -156,11 +156,11 @@ export function combatMothershipTick(
   ui: UnitIndex,
   dt: number,
   rng: () => number,
-  attackCdMul: number,
+  mods: TeamCombatMods,
   armament: Armament | null,
   shake: ShakeFn,
 ) {
-  if (!fillCombatCtx(u, ui, dt, rng, attackCdMul, shake)) {
+  if (!fillCombatCtx(u, ui, dt, rng, mods, shake)) {
     return;
   }
   if (armament) {

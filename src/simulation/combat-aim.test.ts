@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, NEUTRAL_MODS, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
@@ -95,7 +95,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(2);
     // vy > 0 → 弾のvy成分が正方向にずれる（上を狙う）
     const p = projectile(0);
@@ -110,7 +110,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(fighter).cooldown = 0;
     unit(fighter).target = enemy;
     buildHash();
-    combat(unit(fighter), fighter, 0.016, rng, 1, shake);
+    combat(unit(fighter), fighter, 0.016, rng, NEUTRAL_MODS, shake);
     const p = projectile(0);
     // 直射方向は +x なので vy ≈ 0 (u.vy*0.3 分の微小オフセットのみ)
     expect(Math.abs(p.vy)).toBeLessThan(1);
@@ -122,7 +122,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(sniper).cooldown = 0;
     unit(sniper).target = enemy;
     buildHash();
-    combat(unit(sniper), sniper, 0.016, rng, 1, shake);
+    combat(unit(sniper), sniper, 0.016, rng, NEUTRAL_MODS, shake);
     // ヒットスキャンなのでプロジェクタイルは生成されない
     expect(poolCounts.projectiles).toBe(0);
     // 敵にダメージが入る
@@ -136,7 +136,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(reflector).cooldown = 0;
     unit(reflector).target = enemy;
     buildHash();
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     const p = projectile(0);
     // leadAccuracy=0.15 なのでわずかに上方向にずれる
@@ -150,7 +150,7 @@ describe('combat — 偏差射撃統合', () => {
     unit(flagship).cooldown = 0;
     unit(flagship).target = enemy;
     buildHash();
-    combat(unit(flagship), flagship, 0.016, rng, 1, shake);
+    combat(unit(flagship), flagship, 0.016, rng, NEUTRAL_MODS, shake);
     // チャージ開始 → sweepBaseAngle が直射 (0) より正方向にずれている
     expect(unit(flagship).sweepBaseAngle).toBeGreaterThan(0);
   });

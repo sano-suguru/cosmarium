@@ -68,6 +68,11 @@ const UNIT_MOD_MAP: Readonly<Record<string, UnitColorMod>> = {
   Reactor: { hue: -0.14, lum: 0.85, sat: 0.7, effectHue: -0.24, effectSat: 1.05 },
   Asteroid: { hue: 0.0, lum: 0.75, sat: 0.4, effectHue: 0.0, effectSat: 0.8 },
   'Asteroid Core': { hue: 0.02, lum: 0.7, sat: 0.5, effectHue: 0.05, effectSat: 0.9 },
+  Colossus: { hue: -0.2, lum: 0.75, sat: 0.55, effectHue: -0.3, effectSat: 0.9 },
+  'Carrier Bay': { hue: 0.16, lum: 0.82, sat: 0.68, effectHue: 0.26, effectSat: 1.1 },
+  Accelerator: { hue: -0.05, lum: 0.95, sat: 0.9, effectHue: -0.12, effectSat: 1.2 },
+  Syndicate: { hue: 0.12, lum: 0.88, sat: 0.75, effectHue: 0.2, effectSat: 1.15 },
+  Bloodborne: { hue: -0.22, lum: 0.7, sat: 0.85, effectHue: -0.35, effectSat: 1.1 },
 };
 
 const UNIT_MODS: readonly UnitColorMod[] = TYPES.map((t) => {

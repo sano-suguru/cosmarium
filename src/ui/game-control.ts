@@ -5,12 +5,13 @@ import { _resetRunState, endRun, getRunInfo, isRunActive, resetRun } from '../ru
 import {
   buildFleetFromShop,
   getShopCredits,
-  getShopOfferings,
+  getShopFreeRerolls,
   getShopPurchaseBlocks,
-  getShopSlots,
   initShop,
   initShopRound,
   onShopChange,
+  snapshotOfferings,
+  snapshotSlots,
 } from '../shop.ts';
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
 import { initBattleProduction, initBonusField, initMeleeProduction, initUnits } from '../simulation/init.ts';
@@ -31,6 +32,7 @@ import {
   playUiVisible$,
   resultData$,
   shopCredits$,
+  shopFreeRerolls$,
   shopOfferings$,
   shopPurchaseBlocks$,
   shopSlots$,
@@ -68,8 +70,9 @@ export function setCallbacks(cbs: GameCallbacks) {
 function syncShopSignals(): void {
   batch(() => {
     shopCredits$.value = getShopCredits();
-    shopOfferings$.value = getShopOfferings();
-    shopSlots$.value = getShopSlots();
+    shopFreeRerolls$.value = getShopFreeRerolls();
+    shopOfferings$.value = snapshotOfferings();
+    shopSlots$.value = snapshotSlots();
     shopPurchaseBlocks$.value = getShopPurchaseBlocks();
   });
 }

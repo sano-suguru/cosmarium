@@ -8,7 +8,14 @@ import { rng } from '../state.ts';
 import { TEAM0, TEAM1, TEAM2, TEAM3, TEAM4 } from '../team.ts';
 import { NO_UNIT } from '../types.ts';
 import type { FleetSetup } from '../types-fleet.ts';
-import { DREADNOUGHT_TYPE, HIVE_TYPE, isMothership, REACTOR_TYPE, unitType } from '../unit-type-accessors.ts';
+import {
+  BLOODBORNE_TYPE,
+  DREADNOUGHT_TYPE,
+  HIVE_TYPE,
+  isMothership,
+  REACTOR_TYPE,
+  unitType,
+} from '../unit-type-accessors.ts';
 
 vi.mock('../input/camera.ts', () => ({
   addShake: vi.fn(),
@@ -183,6 +190,14 @@ describe('initBattleProduction — 母艦タイプ別 HP', () => {
     initBattleProduction(rng, setup(REACTOR_TYPE), setup(HIVE_TYPE));
     expect(unit(mothershipIdx[0]).maxHp).toBe(unitType(REACTOR_TYPE).hp);
     expect(unit(mothershipIdx[1]).maxHp).toBe(unitType(HIVE_TYPE).hp);
+  });
+
+  it('Bloodborne の実効 HP が mothershipHpMul=0.5 で半減', () => {
+    initBattleProduction(rng, setup(BLOODBORNE_TYPE), setup(HIVE_TYPE));
+    const baseHp = unitType(BLOODBORNE_TYPE).hp;
+    const expected = baseHp * 0.5;
+    expect(unit(mothershipIdx[0]).hp).toBeCloseTo(expected);
+    expect(unit(mothershipIdx[0]).maxHp).toBeCloseTo(expected);
   });
 });
 

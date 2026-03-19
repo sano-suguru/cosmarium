@@ -1,42 +1,38 @@
 import { getMothershipDef } from './mothership-defs.ts';
-import { SLOT_COUNT } from './production-config.ts';
 import {
-  buildWeightedCandidates,
+  addCredits,
+  clearOffering,
+  clearSlot,
+  decrementFreeRerolls,
+  deductCredits,
+  getShopCredits,
+  getShopFreeRerolls,
+  getShopSellBonus,
+  incrementMergeExp,
+  initShopRound as initShopRoundState,
+  initShop as initShopState,
+  isShopRngReady,
+  placeSlot,
+  readOfferings,
+  readSlots,
+  regenerateOfferings,
+  toggleOfferingLock,
+} from './shop-state.ts';
+import {
   MAX_MERGE_LEVEL,
   mergeExpToLevel,
   type PurchaseCheck,
   REROLL_COST,
-  ROUND_CREDITS,
   SHOP_PRICE,
-  SHOP_SIZE,
   type ShopItem,
-  type ShopSlot,
   sellPrice,
   slotsToProduction,
 } from './shop-tiers.ts';
 import type { UnitTypeIndex } from './types.ts';
-import { NO_TYPE } from './types.ts';
 import type { FleetSetup } from './types-fleet.ts';
 import { TYPES } from './unit-types.ts';
-import { weightedPick } from './weighted-pick.ts';
 
-// ショップ状態
-
-type ShopState = {
-  credits: number;
-  readonly offerings: (ShopItem | null)[];
-  readonly slots: (ShopSlot | null)[];
-};
-
-function createShopState(): ShopState {
-  return {
-    credits: 0,
-    offerings: Array.from({ length: SHOP_SIZE }, () => null),
-    slots: Array.from({ length: SLOT_COUNT }, () => null),
-  };
-}
-
-const shop: ShopState = createShopState();
+// --- 通知ロジック（モジュールローカル） ---
 
 const listeners: (() => void)[] = [];
 
@@ -56,67 +52,37 @@ export function onShopChange(cb: () => void): () => void {
   };
 }
 
-// ショップ RNG + ラウンド
-
-let shopRng: (() => number) | null = null;
-let shopRound = 1;
-
-// offerings 生成
-
-function generateOfferings(rng: () => number, round: number): void {
-  const candidates = buildWeightedCandidates(round);
-
-  for (let i = 0; i < SHOP_SIZE; i++) {
-    if (shop.offerings[i]?.locked) {
-      continue; // locked は保持
-    }
-    if (candidates.length === 0) {
-      shop.offerings[i] = null;
-      continue;
-    }
-    const picked = weightedPick(candidates, rng);
-    const entry = candidates[picked];
-    if (!entry) {
-      shop.offerings[i] = null;
-      continue;
-    }
-    shop.offerings[i] = { type: entry.idx, locked: false };
-  }
+export function _resetShopListeners(): void {
+  listeners.length = 0;
 }
 
-// Public API
+// --- lifecycle ラッパー（state mutation → notify） ---
 
-export function initShop(): void {
-  shop.credits = 0;
-  shopRng = null;
-  shopRound = 1;
-  for (let i = 0; i < SHOP_SIZE; i++) {
-    shop.offerings[i] = null;
-  }
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    shop.slots[i] = null;
-  }
+export function initShop(slotCount?: number): void {
+  initShopState(slotCount);
   notifyChange();
 }
 
 export function initShopRound(
   rng: () => number,
   round: number,
-  bonusCredits = 0,
-  mothershipType: UnitTypeIndex = NO_TYPE,
+  bonusCredits?: number,
+  mothershipType?: UnitTypeIndex,
 ): void {
-  const msCredits = getMothershipDef(mothershipType).creditsPerRound;
-  shop.credits = ROUND_CREDITS + bonusCredits + msCredits;
-  shopRng = rng;
-  shopRound = round;
-  generateOfferings(rng, round);
+  initShopRoundState(rng, round, bonusCredits, mothershipType);
   notifyChange();
 }
 
+// --- query re-export (noBarrelFile 対策: import + 個別 export) ---
+
+import { snapshotOfferings, snapshotSlots } from './shop-state.ts';
+export { getShopCredits, getShopFreeRerolls, snapshotOfferings, snapshotSlots };
+
 /** 同タイプスロットへのマージ試行。成功ならスロットindex、不可なら -1 */
 function tryMergeSlot(typeIdx: UnitTypeIndex): number {
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    const s = shop.slots[i];
+  const slots = readSlots();
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
     if (s && s.type === typeIdx && mergeExpToLevel(s.mergeExp) < MAX_MERGE_LEVEL) {
       return i;
     }
@@ -126,19 +92,20 @@ function tryMergeSlot(typeIdx: UnitTypeIndex): number {
 
 /** offering 単位の購入可否チェック。'ok' = 購入可能 */
 function checkPurchase(item: ShopItem): PurchaseCheck {
-  if (shop.credits < SHOP_PRICE) {
+  if (getShopCredits() < SHOP_PRICE) {
     return 'no_credits';
   }
+  const slots = readSlots();
   const mergeIdx = tryMergeSlot(item.type);
   if (mergeIdx >= 0) {
     return 'ok'; // マージ可能
   }
   // マージ不可 + 同タイプ既存 → ★3到達
-  if (shop.slots.some((s) => s !== null && s.type === item.type)) {
+  if (slots.some((s) => s !== null && s.type === item.type)) {
     return 'max_star';
   }
   // 空スロットなし → 満杯
-  if (!shop.slots.some((s) => s === null)) {
+  if (!slots.some((s) => s === null)) {
     return 'slots_full';
   }
   return 'ok';
@@ -146,7 +113,8 @@ function checkPurchase(item: ShopItem): PurchaseCheck {
 
 /** offerings[idx] の購入可否を返す。'ok' = 購入可能 */
 export function canPurchaseItem(offeringIdx: number): PurchaseCheck {
-  const item = shop.offerings[offeringIdx];
+  const offerings = readOfferings();
+  const item = offerings[offeringIdx];
   if (!item) {
     return 'sold_out';
   }
@@ -155,7 +123,7 @@ export function canPurchaseItem(offeringIdx: number): PurchaseCheck {
 
 /** 全 offering の購入可否を一括計算 */
 export function getShopPurchaseBlocks(): PurchaseCheck[] {
-  return shop.offerings.map((item) => {
+  return readOfferings().map((item) => {
     if (!item) {
       return 'sold_out';
     }
@@ -165,7 +133,8 @@ export function getShopPurchaseBlocks(): PurchaseCheck[] {
 
 /** 購入: offerings[idx] → スロットへ配置 or マージ。成功 true */
 export function purchaseItem(offeringIdx: number): boolean {
-  const item = shop.offerings[offeringIdx];
+  const offerings = readOfferings();
+  const item = offerings[offeringIdx];
   if (!item) {
     return false;
   }
@@ -176,24 +145,22 @@ export function purchaseItem(offeringIdx: number): boolean {
   // 既存スロットに同タイプがあればマージ
   const mergeIdx = tryMergeSlot(item.type);
   if (mergeIdx >= 0) {
-    const s = shop.slots[mergeIdx];
-    if (s) {
-      shop.credits -= SHOP_PRICE;
-      s.mergeExp += 1;
-      shop.offerings[offeringIdx] = null;
-      notifyChange();
-      return true;
-    }
+    deductCredits(SHOP_PRICE);
+    incrementMergeExp(mergeIdx);
+    clearOffering(offeringIdx);
+    notifyChange();
+    return true;
   }
 
   // 空スロットに配置
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    if (shop.slots[i] === null) {
-      shop.credits -= SHOP_PRICE;
+  const slots = readSlots();
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i] === null) {
+      deductCredits(SHOP_PRICE);
       const t = TYPES[item.type];
       const baseCount = t?.clusterSize ?? 1;
-      shop.slots[i] = { type: item.type, baseCount, mergeExp: 0 };
-      shop.offerings[offeringIdx] = null;
+      placeSlot(i, { type: item.type, baseCount, mergeExp: 0 });
+      clearOffering(offeringIdx);
       notifyChange();
       return true;
     }
@@ -203,67 +170,42 @@ export function purchaseItem(offeringIdx: number): boolean {
 }
 
 export function sellSlot(slotIdx: number): boolean {
-  const s = shop.slots[slotIdx];
+  const slots = readSlots();
+  const s = slots[slotIdx];
   if (!s) {
     return false;
   }
-  shop.credits += sellPrice(s.mergeExp);
-  shop.slots[slotIdx] = null;
+  addCredits(sellPrice(s.mergeExp) + getShopSellBonus());
+  clearSlot(slotIdx);
   notifyChange();
   return true;
 }
 
 export function rerollOfferings(): boolean {
-  if (!shopRng) {
+  if (!isShopRngReady()) {
     throw new Error('shopRng not initialized — call initShopRound first');
   }
-  if (shop.credits < REROLL_COST) {
+  if (getShopFreeRerolls() > 0) {
+    decrementFreeRerolls();
+    regenerateOfferings();
+    notifyChange();
+    return true;
+  }
+  if (getShopCredits() < REROLL_COST) {
     return false;
   }
-  shop.credits -= REROLL_COST;
-  generateOfferings(shopRng, shopRound);
+  deductCredits(REROLL_COST);
+  regenerateOfferings();
   notifyChange();
   return true;
 }
 
 export function toggleLock(offeringIdx: number): void {
-  const item = shop.offerings[offeringIdx];
-  if (item) {
-    item.locked = !item.locked;
+  if (toggleOfferingLock(offeringIdx)) {
     notifyChange();
   }
 }
 
 export function buildFleetFromShop(mothershipType: UnitTypeIndex): FleetSetup {
-  return { mothershipType, slots: slotsToProduction(shop.slots, getMothershipDef(mothershipType).spawnCountMul) };
-}
-
-export function getShopCredits(): number {
-  return shop.credits;
-}
-
-export function getShopOfferings(): readonly (ShopItem | null)[] {
-  return [...shop.offerings];
-}
-
-export function getShopSlots(): readonly (ShopSlot | null)[] {
-  return [...shop.slots];
-}
-
-// テスト専用
-
-export function _resetShopListeners(): void {
-  listeners.length = 0;
-}
-
-export function _setShopSlot(idx: number, slot: ShopSlot | null): void {
-  shop.slots[idx] = slot;
-}
-
-export function _setShopCredits(credits: number): void {
-  shop.credits = credits;
-}
-
-export function _setShopRng(rng: () => number): void {
-  shopRng = rng;
+  return { mothershipType, slots: slotsToProduction(readSlots(), getMothershipDef(mothershipType).spawnCountMul) };
 }

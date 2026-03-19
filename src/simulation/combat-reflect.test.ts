@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asType, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
+import { asType, NEUTRAL_MODS, resetPools, resetState, spawnAt } from '../__test__/pool-helper.ts';
 import { projectileIdx } from '../pool-index.ts';
 import { poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
@@ -29,7 +29,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
     expect(p.team).toBe(1);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.vx).toBeGreaterThan(0);
     expect(p.team).toBe(0);
   });
@@ -40,7 +40,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(50, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
     const vxBefore = p.vx;
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.vx).toBe(vxBefore);
     expect(p.team).toBe(1);
   });
@@ -51,7 +51,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 0, 2, 1, 0, 0);
     const p = projectile(0);
     const vxBefore = p.vx;
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.vx).toBe(vxBefore);
   });
 
@@ -61,7 +61,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 0.1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
     expect(p.life).toBeCloseTo(0.1);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.life).toBeCloseTo(0.5);
   });
 
@@ -71,7 +71,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
     const speedBefore = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     const speedAfter = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
     expect(speedAfter).toBeCloseTo(speedBefore, 1);
   });
@@ -81,7 +81,7 @@ describe('combat — REFLECTOR', () => {
     unit(reflector).energy = 50;
     buildHash();
     spawnProjectile(20, 0, -100, 0, 1, 12, 1, 2, 1, 0, 0);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(reflector).energy).toBe(38); // 50 - 12
   });
 
@@ -90,7 +90,7 @@ describe('combat — REFLECTOR', () => {
     unit(reflector).energy = 5; // 弾のdamage(10)より低い
     buildHash();
     spawnProjectile(20, 0, -100, 0, 1, 10, 1, 2, 1, 0, 0);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(unit(reflector).energy).toBe(0);
     expect(unit(reflector).shieldCooldown).toBe(unitType(asType(6)).shieldCooldown);
   });
@@ -103,7 +103,7 @@ describe('combat — REFLECTOR', () => {
     spawnProjectile(20, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
     const vxBefore = p.vx;
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.vx).toBe(vxBefore); // 反射されない
     expect(p.team).toBe(1);
     expect(unit(reflector).energy).toBe(50); // エネルギー消費なし
@@ -115,7 +115,7 @@ describe('combat — REFLECTOR', () => {
     unit(reflector).cooldown = 0;
     unit(reflector).target = enemy;
     buildHash();
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(poolCounts.projectiles).toBe(1);
     expect(projectile(0).team).toBe(0);
     expect(unit(reflector).cooldown).toBeCloseTo(unitType(asType(6)).fireRate);
@@ -131,7 +131,7 @@ describe('combat — REFLECTOR', () => {
     expect(projectile(0).alive).toBe(false);
     expect(projectile(1).alive).toBe(true);
     expect(projectile(1).team).toBe(1);
-    combat(unit(reflector), reflector, 0.016, rng, 1, shake);
+    combat(unit(reflector), reflector, 0.016, rng, NEUTRAL_MODS, shake);
     expect(projectile(1).team).toBe(0);
     expect(projectile(1).vx).toBeGreaterThan(0);
   });
@@ -142,10 +142,10 @@ describe('combat — REFLECTOR', () => {
     buildHash();
     spawnProjectile(12, 0, -100, 0, 1, 5, 1, 2, 1, 0, 0);
     const p = projectile(0);
-    combat(unit(r1), r1, 0.016, rng, 1, shake);
+    combat(unit(r1), r1, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.team).toBe(0);
     const vxAfterFirst = p.vx;
-    combat(unit(r2), r2, 0.016, rng, 1, shake);
+    combat(unit(r2), r2, 0.016, rng, NEUTRAL_MODS, shake);
     expect(p.vx).toBe(vxAfterFirst);
     expect(p.team).toBe(0);
   });

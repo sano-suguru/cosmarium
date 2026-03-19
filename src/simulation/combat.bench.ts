@@ -1,6 +1,6 @@
 import { bench, describe } from 'vitest';
 import '../__test__/bench-helper.ts';
-import { makeRng, resetPools, spawnAt } from '../__test__/pool-helper.ts';
+import { makeRng, NEUTRAL_MODS, resetPools, spawnAt } from '../__test__/pool-helper.ts';
 import { unit } from '../pools-query.ts';
 import { unitTypeIndex } from '../unit-type-accessors.ts';
 import { combat } from './combat.ts';
@@ -23,7 +23,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, rng, 1, shake);
+    combat(u, a, dt, rng, NEUTRAL_MODS, shake);
     resetPools();
   });
 
@@ -34,7 +34,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, rng, 1, shake);
+    combat(u, a, dt, rng, NEUTRAL_MODS, shake);
     resetPools();
   });
 
@@ -47,7 +47,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, rng, 1, shake);
+    combat(u, a, dt, rng, NEUTRAL_MODS, shake);
     resetPools();
   });
 
@@ -60,7 +60,7 @@ describe('combat 武器タイプ別', () => {
     buildHash();
     const u = unit(a);
     u.cooldown = 0;
-    combat(u, a, dt, rng, 1, shake);
+    combat(u, a, dt, rng, NEUTRAL_MODS, shake);
     resetPools();
   });
 });

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
 import { getMothershipDef, MOTHERSHIP_DEFS } from '../mothership-defs.ts';
-import { filledSlots, SLOT_COUNT } from '../production-config.ts';
+import { DEFAULT_SLOT_COUNT, filledSlots } from '../production-config.ts';
 import type { ShopSlot } from '../shop-tiers.ts';
 import { MAX_MERGE_LEVEL, mergeExpToLevel, ROUND_CREDITS, SHOP_PRICE } from '../shop-tiers.ts';
 import { rng } from '../state.ts';
@@ -10,6 +10,7 @@ import type { ProductionSlot } from '../types-fleet.ts';
 import { unitTypeCost } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
 import { generateEnemySetup } from './enemy-fleet.ts';
+import { botFillSlots } from './enemy-fleet-bot.ts';
 import type { FleetProfile } from './enemy-fleet-profile.ts';
 import { profileFleet } from './enemy-fleet-profile.ts';
 
@@ -71,9 +72,9 @@ describe('generateFixedNpc (via generateEnemySetup round 1-2)', () => {
 });
 
 describe('generateEnemySetup', () => {
-  it('スロット数が SLOT_COUNT と一致する', () => {
+  it('スロット数が DEFAULT_SLOT_COUNT と一致する（固定NPC）', () => {
     const { setup } = generateEnemySetup(rng, 1);
-    expect(setup.slots.length).toBe(SLOT_COUNT);
+    expect(setup.slots.length).toBe(DEFAULT_SLOT_COUNT);
   });
 
   it('mothershipType が有効な母艦タイプの UnitTypeIndex', () => {
@@ -178,5 +179,35 @@ describe('generateEnemySetup', () => {
     const profile: FleetProfile = profileFleet(botSlots);
     expect(profile.total).toBeGreaterThanOrEqual(0);
     expect(profile.roles.attack + profile.roles.support + profile.roles.special).toBeLessThanOrEqual(profile.total);
+  });
+
+  it('generateEnemySetup のスロット数が母艦定義の slotCount と一致する', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateEnemySetup(rng, 5);
+      const def = getMothershipDef(setup.mothershipType);
+      expect(setup.slots.length).toBe(def.slotCount);
+    }
+  });
+});
+
+describe('botFillSlots', () => {
+  it('slotCount=3 → 長さ3、最低1つ non-null', () => {
+    for (let i = 0; i < 50; i++) {
+      const slots = botFillSlots(rng, 5, ROUND_CREDITS, 3);
+      expect(slots.length).toBe(3);
+      expect(slots.some((s) => s !== null)).toBe(true);
+    }
+  });
+
+  it('slotCount=7 → 長さ7', () => {
+    for (let i = 0; i < 50; i++) {
+      const slots = botFillSlots(rng, 5, ROUND_CREDITS, 7);
+      expect(slots.length).toBe(7);
+    }
+  });
+
+  it('デフォルト slotCount → 長さ DEFAULT_SLOT_COUNT', () => {
+    const slots = botFillSlots(rng, 5, ROUND_CREDITS);
+    expect(slots.length).toBe(DEFAULT_SLOT_COUNT);
   });
 });

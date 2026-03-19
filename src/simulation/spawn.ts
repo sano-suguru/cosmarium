@@ -76,12 +76,14 @@ export function spawnUnit(
   y: number,
   rng: () => number,
   mergeExp = 0,
+  hpMul = 1.0,
 ): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
     if (!u.alive) {
       const t = unitType(type);
-      u.mergeMul = 1 + mergeExp * MERGE_STAT_BONUS;
+      const mergeStat = 1 + mergeExp * MERGE_STAT_BONUS;
+      u.mergeDmgMul = mergeStat;
       u.alive = true;
       u.team = team;
       u.type = type;
@@ -94,8 +96,8 @@ export function spawnUnit(
       u.kbVx = 0;
       u.kbVy = 0;
       u.angle = rng() * 6.283;
-      u.hp = t.hp * u.mergeMul;
-      u.maxHp = t.hp * u.mergeMul;
+      u.hp = t.hp * mergeStat * hpMul;
+      u.maxHp = t.hp * mergeStat * hpMul;
       u.cooldown = rng() * t.fireRate;
       u.target = NO_UNIT;
       u.wanderAngle = rng() * 6.283;

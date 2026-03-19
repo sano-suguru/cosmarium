@@ -27,6 +27,7 @@ export const shopCredits$ = signal(0);
 export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
 export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);
 export const shopPurchaseBlocks$ = signal<readonly PurchaseCheck[]>([]);
+export const shopFreeRerolls$ = signal(0);
 
 /** timeScale$ は state.timeScale の signal ミラー。Object.defineProperty で自動同期。 */
 export const timeScale$ = signal<TimeScale>(state.timeScale);

@@ -41,9 +41,9 @@
 
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  max-width: 840px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-width: 960px;
   width: 100%;
 }
 
@@ -52,7 +52,7 @@
   border: 1px solid rgba(0, 255, 255, 0.1);
   border-top: 3px solid var(--accent);
   border-radius: 6px;
-  padding: 20px 16px;
+  padding: 16px 12px;
   cursor: pointer;
   text-align: center;
   transition:

@@ -1,5 +1,5 @@
 import { getMothershipDef } from '../mothership-defs.ts';
-import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
+import { createProductionSlot, DEFAULT_SLOT_COUNT, filledSlots } from '../production-config.ts';
 import type { ShopSlot } from '../shop-tiers.ts';
 import { ROUND_CREDITS, slotsToProduction } from '../shop-tiers.ts';
 import type { FleetSetup } from '../types-fleet.ts';
@@ -17,7 +17,7 @@ function generateFixedNpc(round: number): {
 } {
   const mothershipType = HIVE_TYPE;
   const slots: (ReturnType<typeof createProductionSlot> | null)[] = Array.from<null, null>(
-    { length: SLOT_COUNT },
+    { length: DEFAULT_SLOT_COUNT },
     () => null,
   );
 
@@ -56,11 +56,11 @@ export function generateEnemySetup(
 
   // 母艦先行決定 → creditsPerRound を予算に反映（プレイヤーとの対称性）
   const mothershipType = pickMothershipTypeByRound(rng, round);
-  const msCredits = getMothershipDef(mothershipType).creditsPerRound;
-  const botSlots = botFillSlots(rng, round, ROUND_CREDITS + msCredits);
+  const def = getMothershipDef(mothershipType);
+  const botSlots = botFillSlots(rng, round, ROUND_CREDITS + def.creditsPerRound, def.slotCount);
   const profile = profileFleet(botSlots);
 
-  const productionSlots = slotsToProduction(botSlots, getMothershipDef(mothershipType).spawnCountMul);
+  const productionSlots = slotsToProduction(botSlots, def.spawnCountMul);
   // 全 null フォールバック: 最低1つの non-null スロットを保証
   if (filledSlots(productionSlots).length === 0) {
     productionSlots[0] = createProductionSlot(DRONE_TYPE, TYPES[DRONE_TYPE]?.clusterSize ?? 1, 0);

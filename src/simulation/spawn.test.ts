@@ -129,11 +129,11 @@ describe('spawnUnit', () => {
     expect(unit(0).x).toBe(50);
   });
 
-  it('mergeExp=0 → mergeMul=1, HP=基礎値', () => {
+  it('mergeExp=0 → mergeDmgMul=1, HP=基礎値', () => {
     const idx = spawnUnit(0, FIGHTER_TYPE, 0, 0, testRng, 0);
     const u = unit(idx);
     const t = unitType(FIGHTER_TYPE);
-    expect(u.mergeMul).toBe(1);
+    expect(u.mergeDmgMul).toBe(1);
     expect(u.hp).toBe(t.hp);
     expect(u.maxHp).toBe(t.hp);
   });
@@ -144,7 +144,7 @@ describe('spawnUnit', () => {
     const u = unit(idx);
     const t = unitType(FIGHTER_TYPE);
     const expectedMul = 1 + exp * MERGE_STAT_BONUS;
-    expect(u.mergeMul).toBeCloseTo(expectedMul);
+    expect(u.mergeDmgMul).toBeCloseTo(expectedMul);
     expect(u.hp).toBeCloseTo(t.hp * expectedMul);
     expect(u.maxHp).toBeCloseTo(t.hp * expectedMul);
   });
@@ -154,7 +154,7 @@ describe('spawnUnit', () => {
     const u = unit(idx);
     const t = unitType(DRONE_TYPE);
     const expectedMul = 1 + MAX_MERGE_EXP * MERGE_STAT_BONUS;
-    expect(u.mergeMul).toBeCloseTo(expectedMul);
+    expect(u.mergeDmgMul).toBeCloseTo(expectedMul);
     expect(u.hp).toBeCloseTo(t.hp * expectedMul);
     expect(u.maxHp).toBeCloseTo(t.hp * expectedMul);
   });

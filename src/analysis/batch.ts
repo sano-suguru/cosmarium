@@ -5,7 +5,8 @@
  */
 
 import { SIM_DT, WORLD_SIZE } from '../constants.ts';
-import { createProductionSlot, filledSlots, SLOT_COUNT } from '../production-config.ts';
+import { getMothershipDef } from '../mothership-defs.ts';
+import { createProductionSlot, filledSlots, MAX_SLOT_COUNT } from '../production-config.ts';
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
 import { initBattleProduction, initMeleeProduction } from '../simulation/init.ts';
 import { emptyProductions } from '../simulation/production.ts';
@@ -54,10 +55,13 @@ function slotsToComposition(slots: readonly (ProductionSlot | null)[]): FleetCom
 
 /** CLI の FleetComposition → FleetSetup 変換。count は1サイクルの生産数として転用 */
 function fleetToSetup(fleet: FleetComposition, mothershipType = HIVE_TYPE): FleetSetup {
-  if (fleet.length > SLOT_COUNT) {
-    throw new RangeError(`Fleet has ${fleet.length} entries but max ${SLOT_COUNT} slots allowed`);
+  if (fleet.length > MAX_SLOT_COUNT) {
+    throw new RangeError(`Fleet has ${fleet.length} entries but max ${MAX_SLOT_COUNT} slots allowed`);
   }
-  const slots: (ProductionSlot | null)[] = Array.from({ length: SLOT_COUNT }, () => null);
+  const slots: (ProductionSlot | null)[] = Array.from(
+    { length: getMothershipDef(mothershipType).slotCount },
+    () => null,
+  );
   for (let i = 0; i < fleet.length; i++) {
     const entry = fleet[i];
     if (entry && entry.count > 0) {
