@@ -22,6 +22,7 @@ import type { ShopSlot } from './shop-tiers.ts';
 import {
   effectiveCount,
   MAX_MERGE_LEVEL,
+  mergeBonusLevel,
   mergeExpToLevel,
   REROLL_COST,
   ROUND_CREDITS,
@@ -364,18 +365,26 @@ describe('sellPrice', () => {
 
 describe('mergeExpToLevel', () => {
   it('閾値ベースでレベル変換', () => {
-    expect(mergeExpToLevel(0)).toBe(0);
-    expect(mergeExpToLevel(1)).toBe(0);
-    expect(mergeExpToLevel(2)).toBe(1);
-    expect(mergeExpToLevel(4)).toBe(1);
-    expect(mergeExpToLevel(5)).toBe(2);
-    expect(mergeExpToLevel(10)).toBe(2);
+    expect(mergeExpToLevel(0)).toBe(1);
+    expect(mergeExpToLevel(1)).toBe(1);
+    expect(mergeExpToLevel(2)).toBe(2);
+    expect(mergeExpToLevel(4)).toBe(2);
+    expect(mergeExpToLevel(5)).toBe(3);
+    expect(mergeExpToLevel(10)).toBe(3);
   });
 });
 
 describe('MAX_MERGE_LEVEL', () => {
-  it('最大レベルは 2（★3）', () => {
-    expect(MAX_MERGE_LEVEL).toBe(2);
+  it('最大レベルは 3', () => {
+    expect(MAX_MERGE_LEVEL).toBe(3);
+  });
+});
+
+describe('mergeBonusLevel', () => {
+  it('表示レベルからボーナス段階 (0,1,2) に変換', () => {
+    expect(mergeBonusLevel(0)).toBe(0);
+    expect(mergeBonusLevel(2)).toBe(1);
+    expect(mergeBonusLevel(5)).toBe(2);
   });
 });
 

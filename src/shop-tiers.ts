@@ -29,7 +29,7 @@ export const ROUND_CREDITS = 10;
 export const REROLL_COST = 1;
 export const SHOP_SIZE = 5;
 export const SHOP_PRICE = 3;
-export const MAX_MERGE_LEVEL = 2;
+export const MAX_MERGE_LEVEL = 3;
 
 /** ラウンド依存のティア重み。[low, mid, high] を返す */
 const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
@@ -42,12 +42,17 @@ const TIER_IDX: Record<Tier, 0 | 1 | 2> = { low: 0, mid: 1, high: 2 };
 
 export function mergeExpToLevel(exp: number): number {
   if (exp >= 5) {
-    return 2;
+    return 3;
   }
   if (exp >= 2) {
-    return 1;
+    return 2;
   }
-  return 0;
+  return 1;
+}
+
+/** ボーナス段階 (0,1,2)。表示レベル (1,2,3) から 1 を引いた値 */
+export function mergeBonusLevel(exp: number): number {
+  return mergeExpToLevel(exp) - 1;
 }
 
 function mergeBonusCount(baseCount: number): number {
@@ -55,7 +60,7 @@ function mergeBonusCount(baseCount: number): number {
 }
 
 export function effectiveCount(slot: ShopSlot): number {
-  return slot.baseCount + mergeExpToLevel(slot.mergeExp) * mergeBonusCount(slot.baseCount);
+  return slot.baseCount + mergeBonusLevel(slot.mergeExp) * mergeBonusCount(slot.baseCount);
 }
 
 export function spawnCount(slot: ShopSlot, spawnCountMul: number): number {
@@ -63,7 +68,7 @@ export function spawnCount(slot: ShopSlot, spawnCountMul: number): number {
 }
 
 export function sellPrice(mergeExp: number): number {
-  return mergeExpToLevel(mergeExp) + 1;
+  return mergeExpToLevel(mergeExp);
 }
 
 export const COST_LOW_MAX = 3;

@@ -42,9 +42,9 @@ function SlotCard({ slotIndex, slot, mothershipType, onSell }: SlotCardProps) {
         <div class={styles.slotName}>
           <span class={`${styles.dot} ${styles.dotTeam0}`} />
           {t.name}
-          {mergeLevel > 0 && (
+          {mergeLevel > 1 && (
             <span class={styles.mergeBadge}>
-              <Layers size={10} />★{mergeLevel + 1}
+              <Layers size={10} />★{mergeLevel}
             </span>
           )}
         </div>
