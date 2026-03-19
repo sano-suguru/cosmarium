@@ -5,10 +5,10 @@ import { TYPES } from './unit-types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];
 const MAGENTA: Color3 = [1.0, 0.2, 0.8];
-const GREEN: Color3 = [0.2, 0.9, 0.3];
-const PURPLE: Color3 = [0.7, 0.3, 0.9];
-const AMBER: Color3 = [0.95, 0.8, 0.15];
-const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, MAGENTA, GREEN, PURPLE, AMBER];
+const NEON_YELLOW: Color3 = [1.0, 0.95, 0.1];
+const NEON_ORANGE: Color3 = [1.0, 0.5, 0.05];
+const NEON_RED: Color3 = [1.0, 0.15, 0.15];
+const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, MAGENTA, NEON_YELLOW, NEON_ORANGE, NEON_RED];
 
 export function color3ToRgb(c: Color3): string {
   return `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
