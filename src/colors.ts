@@ -4,11 +4,11 @@ import type { Color3 } from './types.ts';
 import { TYPES } from './unit-types.ts';
 
 const CYAN: Color3 = [0.15, 0.85, 1.0];
-const VERMILION: Color3 = [1.0, 0.35, 0.2];
+const MAGENTA: Color3 = [1.0, 0.2, 0.8];
 const GREEN: Color3 = [0.2, 0.9, 0.3];
 const PURPLE: Color3 = [0.7, 0.3, 0.9];
 const AMBER: Color3 = [0.95, 0.8, 0.15];
-const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, VERMILION, GREEN, PURPLE, AMBER];
+const TEAM_BASE: Readonly<TeamTuple<Color3>> = [CYAN, MAGENTA, GREEN, PURPLE, AMBER];
 
 export function color3ToRgb(c: Color3): string {
   return `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
