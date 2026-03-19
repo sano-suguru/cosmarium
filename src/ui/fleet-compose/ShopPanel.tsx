@@ -1,5 +1,5 @@
 import { Coins, Lock, Plus, RefreshCw, Unlock } from 'lucide-preact';
-import type { PurchaseBlock, ShopItem } from '../../shop-tiers.ts';
+import type { PurchaseBlock, PurchaseCheck, ShopItem } from '../../shop-tiers.ts';
 import { REROLL_COST, SHOP_PRICE } from '../../shop-tiers.ts';
 import { ROLE_LABELS } from '../../unit-type-accessors.ts';
 import { TYPES } from '../../unit-types.ts';
@@ -13,10 +13,22 @@ const BLOCK_LABELS: Record<PurchaseBlock, string> = {
   sold_out: '売切',
 };
 
+function buyLabel(check: PurchaseCheck): string {
+  switch (check) {
+    case 'ok':
+    case 'no_credits':
+      return '購入';
+    case 'max_star':
+    case 'slots_full':
+    case 'sold_out':
+      return BLOCK_LABELS[check];
+  }
+}
+
 type ShopCardProps = {
   readonly item: ShopItem;
   readonly index: number;
-  readonly blocked: PurchaseBlock | null;
+  readonly blocked: PurchaseCheck;
   readonly onBuy: (idx: number) => void;
   readonly onToggleLock: (idx: number) => void;
 };
@@ -28,7 +40,7 @@ function ShopCard({ item, index, blocked, onBuy, onToggleLock }: ShopCardProps) 
   }
 
   return (
-    <div class={`${styles.shopCard} ${blocked !== null ? styles.shopCardDisabled : ''}`}>
+    <div class={`${styles.shopCard} ${blocked !== 'ok' ? styles.shopCardDisabled : ''}`}>
       <button
         type="button"
         class={styles.lockBtn}
@@ -44,9 +56,9 @@ function ShopCard({ item, index, blocked, onBuy, onToggleLock }: ShopCardProps) 
         <Coins size={11} />
         <span>{SHOP_PRICE}</span>
       </div>
-      <button type="button" class={styles.buyBtn} disabled={blocked !== null} onClick={() => onBuy(index)}>
+      <button type="button" class={styles.buyBtn} disabled={blocked !== 'ok'} onClick={() => onBuy(index)}>
         <Plus size={12} />
-        {blocked !== null && blocked !== 'no_credits' ? BLOCK_LABELS[blocked] : '購入'}
+        {buyLabel(blocked)}
       </button>
     </div>
   );

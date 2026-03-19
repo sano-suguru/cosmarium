@@ -4,7 +4,7 @@ import {
   buildWeightedCandidates,
   MAX_MERGE_LEVEL,
   mergeExpToLevel,
-  type PurchaseBlock,
+  type PurchaseCheck,
   REROLL_COST,
   ROUND_CREDITS,
   SHOP_PRICE,
@@ -124,14 +124,14 @@ function tryMergeSlot(typeIdx: UnitTypeIndex): number {
   return -1;
 }
 
-/** offering 単位の購入可否チェック。null = 購入可能 */
-function checkPurchase(item: ShopItem): PurchaseBlock | null {
+/** offering 単位の購入可否チェック。'ok' = 購入可能 */
+function checkPurchase(item: ShopItem): PurchaseCheck {
   if (shop.credits < SHOP_PRICE) {
     return 'no_credits';
   }
   const mergeIdx = tryMergeSlot(item.type);
   if (mergeIdx >= 0) {
-    return null; // マージ可能
+    return 'ok'; // マージ可能
   }
   // マージ不可 + 同タイプ既存 → ★3到達
   if (shop.slots.some((s) => s !== null && s.type === item.type)) {
@@ -141,11 +141,11 @@ function checkPurchase(item: ShopItem): PurchaseBlock | null {
   if (!shop.slots.some((s) => s === null)) {
     return 'slots_full';
   }
-  return null;
+  return 'ok';
 }
 
-/** offerings[idx] の購入可否を返す。null = 購入可能 */
-export function canPurchaseItem(offeringIdx: number): PurchaseBlock | null {
+/** offerings[idx] の購入可否を返す。'ok' = 購入可能 */
+export function canPurchaseItem(offeringIdx: number): PurchaseCheck {
   const item = shop.offerings[offeringIdx];
   if (!item) {
     return 'sold_out';
@@ -154,7 +154,7 @@ export function canPurchaseItem(offeringIdx: number): PurchaseBlock | null {
 }
 
 /** 全 offering の購入可否を一括計算 */
-export function getShopPurchaseBlocks(): (PurchaseBlock | null)[] {
+export function getShopPurchaseBlocks(): PurchaseCheck[] {
   return shop.offerings.map((item) => {
     if (!item) {
       return 'sold_out';
@@ -169,7 +169,7 @@ export function purchaseItem(offeringIdx: number): boolean {
   if (!item) {
     return false;
   }
-  if (checkPurchase(item) !== null) {
+  if (checkPurchase(item) !== 'ok') {
     return false;
   }
 

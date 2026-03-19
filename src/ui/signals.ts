@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import type { PurchaseBlock, ShopItem, ShopSlot } from '../shop-tiers.ts';
+import type { PurchaseCheck, ShopItem, ShopSlot } from '../shop-tiers.ts';
 import { state } from '../state.ts';
 import type { GameState, TimeScale, UnitTypeIndex } from '../types.ts';
 import type { FleetSetup } from '../types-fleet.ts';
@@ -26,7 +26,7 @@ export const autoFollowActive$ = signal(false);
 export const shopCredits$ = signal(0);
 export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
 export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);
-export const shopPurchaseBlocks$ = signal<readonly (PurchaseBlock | null)[]>([]);
+export const shopPurchaseBlocks$ = signal<readonly PurchaseCheck[]>([]);
 
 /** timeScale$ は state.timeScale の signal ミラー。Object.defineProperty で自動同期。 */
 export const timeScale$ = signal<TimeScale>(state.timeScale);

@@ -19,8 +19,11 @@ export type ShopSlot = {
   mergeExp: number;
 };
 
-/** 購入不可の理由。null なら購入可能 */
+/** 購入不可の理由 */
 export type PurchaseBlock = 'no_credits' | 'max_star' | 'slots_full' | 'sold_out';
+
+/** 購入可否チェック結果。'ok' = 購入可能 */
+export type PurchaseCheck = PurchaseBlock | 'ok';
 
 export const ROUND_CREDITS = 10;
 export const REROLL_COST = 1;

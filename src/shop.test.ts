@@ -380,10 +380,10 @@ describe('MAX_MERGE_LEVEL', () => {
 });
 
 describe('canPurchaseItem', () => {
-  it('購入可能 → null', () => {
+  it('購入可能 → ok', () => {
     const rng = makeRng();
     initShopRound(rng, 1);
-    expect(canPurchaseItem(0)).toBeNull();
+    expect(canPurchaseItem(0)).toBe('ok');
   });
 
   it('クレジット不足 → no_credits', () => {
