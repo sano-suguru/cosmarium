@@ -142,13 +142,13 @@ function sweepThroughDamage(ctx: CombatContext, prevAngle: number, currAngle: nu
   const { u, t } = ctx;
   const base = u.sweepBaseAngle;
   const TOL = 0.05;
-  _sweepSnapshotCount = snapshotNeighbors(u.x, u.y, t.range);
+  _sweepSnapshotCount = snapshotNeighbors(u.x, u.y, t.attackRange);
 
   const relPrev = normalizeAngleDelta(prevAngle, base);
   const relCurr = normalizeAngleDelta(currAngle, base);
   const lo = Math.min(relPrev, relCurr) - TOL;
   const hi = Math.max(relPrev, relCurr) + TOL;
-  const rangeSq = t.range * t.range;
+  const rangeSq = t.attackRange * t.attackRange;
 
   for (let i = 0; i < _sweepSnapshotCount; i++) {
     if (processSweepTarget(ctx, readSweepSnapshot(i), lo, hi, base, rangeSq)) {
@@ -208,8 +208,8 @@ export function sweepBeam(ctx: CombatContext) {
   const prevAngle = u.sweepBaseAngle + prevOffset;
   const currAngle = u.sweepBaseAngle + currOffset;
 
-  const beamEndX = u.x + Math.cos(currAngle) * t.range;
-  const beamEndY = u.y + Math.sin(currAngle) * t.range;
+  const beamEndX = u.x + Math.cos(currAngle) * t.attackRange;
+  const beamEndY = u.y + Math.sin(currAngle) * t.attackRange;
   const ox = u.x + Math.cos(u.angle) * t.size * 0.5;
   const oy = u.y + Math.sin(u.angle) * t.size * 0.5;
   addBeam(ox, oy, beamEndX, beamEndY, c[0], c[1], c[2], 0.06, 6, true);

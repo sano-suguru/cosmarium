@@ -13,6 +13,7 @@ import {
   FLAGSHIP_TYPE,
   HEALER_TYPE,
   LANCER_TYPE,
+  SCRAMBLER_TYPE,
   SNIPER_TYPE,
   unitType,
 } from '../unit-type-accessors.ts';
@@ -173,6 +174,69 @@ describe('steer — ターゲット探索', () => {
     // 新しいターゲットが見つからない場合は -1
     // (enemy is dead, so no valid targets nearby)
     expect(unit(ally).target).toBe(NO_UNIT);
+  });
+
+  it('ampBoostTimer > 0 でもターゲット検出結果は amp なしと同一（索敵に影響しない）', () => {
+    seedRng(42);
+    // amp 有り
+    const allyAmp = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemyAmp = spawnAt(1, FIGHTER_TYPE, 150, 0);
+    unit(allyAmp).ampBoostTimer = 1.0;
+    buildHash();
+    steer(unit(allyAmp), allyAmp, 0.016, rng);
+    expect(unit(allyAmp).target).toBe(enemyAmp);
+
+    resetPools();
+    resetState();
+
+    // amp 無し — 同一配置・同一シードで同じターゲットが選択される
+    seedRng(42);
+    const allyRef = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemyRef = spawnAt(1, FIGHTER_TYPE, 150, 0);
+    unit(allyRef).ampBoostTimer = 0;
+    buildHash();
+    steer(unit(allyRef), allyRef, 0.016, rng);
+    expect(unit(allyRef).target).toBe(enemyRef);
+  });
+
+  it('scrambleTimer > 0 でもターゲット検出結果は scramble なしと同一（索敵に影響しない）', () => {
+    seedRng(42);
+    // scramble 有り
+    const allySc = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemySc = spawnAt(1, FIGHTER_TYPE, 150, 0);
+    unit(allySc).scrambleTimer = 1.0;
+    buildHash();
+    steer(unit(allySc), allySc, 0.016, rng);
+    expect(unit(allySc).target).toBe(enemySc);
+
+    resetPools();
+    resetState();
+
+    // scramble 無し — 同一配置・同一シードで同じターゲットが選択される
+    seedRng(42);
+    const allyRef = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const enemyRef = spawnAt(1, FIGHTER_TYPE, 150, 0);
+    unit(allyRef).scrambleTimer = 0;
+    buildHash();
+    steer(unit(allyRef), allyRef, 0.016, rng);
+    expect(unit(allyRef).target).toBe(enemyRef);
+  });
+
+  it('Lancer (attackRange=0) が aggroRange 内の敵をターゲットとして検出', () => {
+    const t = unitType(LANCER_TYPE);
+    expect(t.attackRange).toBe(0);
+    expect(t.aggroRange).toBeGreaterThan(0);
+
+    const lancer = spawnAt(0, LANCER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 200, 0);
+    // 母艦なし（resolveMothershipTarget がスキップされる状態）
+    buildHash();
+    for (let i = 0; i < 10; i++) {
+      buildHash();
+      steer(unit(lancer), lancer, 0.033, rng);
+    }
+    expect(unit(lancer).target).toBe(enemy);
+    expect(unit(lancer).x).toBeGreaterThan(0);
   });
 });
 
@@ -881,6 +945,79 @@ describe('steer — HP退避ポテンシャル', () => {
     }
     // 近傍内の敵からは退避するので、より大きく後退する
     expect(uIn.x).toBeLessThan(uOut.x);
+  });
+
+  it('退避力は attackRange ベース（aggroRange ベースではない）', async () => {
+    await mockRetreat(FIGHTER_TYPE, 0.5);
+    const t = unitType(FIGHTER_TYPE);
+    // attackRange と aggroRange が異なることを前提として確認
+    expect(t.aggroRange).toBeGreaterThan(t.attackRange);
+
+    const ally = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const u = unit(ally);
+    u.hp = 1;
+    u.maxHp = 10;
+    // 敵を attackRange 内に配置
+    const enemyDist = t.attackRange * 0.5;
+    spawnAt(1, FIGHTER_TYPE, enemyDist, 0);
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u, ally, 0.033, rng);
+    }
+    const retreatX = u.x;
+    // 退避力は attackRange/d でスケーリングされる
+    // もし aggroRange/d だと約3倍強くなるため、退避量で検証
+    // attackRange ベースの退避量は aggroRange の 1/3 程度になるはず
+    expect(retreatX).toBeLessThan(0); // 退避自体は発生
+
+    // リセットして aggroRange ベースだった場合のシミュレーション（attackRange を aggroRange に差し替え）
+    resetPools();
+    resetState();
+    // aggroRange と同値の attackRange を持つモック型で比較
+    const { boost: _, ...rest } = unitType(FIGHTER_TYPE);
+    const mockAggro: UnitType = { ...rest, retreatHpRatio: 0.5, attackRange: t.aggroRange };
+    const { TYPES } = await import('../unit-types.ts');
+    vi.spyOn(await import('../unit-type-accessors.ts'), 'unitType').mockImplementation((id: UnitTypeIndex) => {
+      if (id === FIGHTER_TYPE) {
+        return mockAggro;
+      }
+      const tp = TYPES[id];
+      if (!tp) {
+        throw new Error(`Unknown type id: ${id}`);
+      }
+      return tp;
+    });
+    const ally2 = spawnAt(0, FIGHTER_TYPE, 0, 0);
+    const u2 = unit(ally2);
+    u2.hp = 1;
+    u2.maxHp = 10;
+    spawnAt(1, FIGHTER_TYPE, enemyDist, 0);
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u2, ally2, 0.033, rng);
+    }
+    // aggroRange ベースだと退避力が強いため、より大きく後退する
+    expect(u2.x).toBeLessThan(retreatX);
+  });
+
+  it('attackRange=0 のユニット (Scrambler) でも aggroRange > 0 なら退避が機能', async () => {
+    await mockRetreat(SCRAMBLER_TYPE, 0.4);
+    const ally = spawnAt(0, SCRAMBLER_TYPE, 0, 0);
+    const u = unit(ally);
+    u.hp = 1;
+    u.maxHp = 10;
+    spawnAt(1, FIGHTER_TYPE, 60, 0);
+    expect(unitType(SCRAMBLER_TYPE).attackRange).toBe(0);
+    expect(unitType(SCRAMBLER_TYPE).aggroRange).toBeGreaterThan(0);
+    buildHash();
+    for (let i = 0; i < 30; i++) {
+      buildHash();
+      steer(u, ally, 0.033, rng);
+    }
+    // aggroRange による退避力で敵から離れる
+    expect(u.x).toBeLessThan(0);
   });
 });
 

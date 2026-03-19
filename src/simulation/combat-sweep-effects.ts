@@ -16,8 +16,8 @@ export function sweepAfterimage(ctx: CombatContext, ox: number, oy: number, ease
       addBeam(
         ox,
         oy,
-        u.x + Math.cos(angle) * t.range,
-        u.y + Math.sin(angle) * t.range,
+        u.x + Math.cos(angle) * t.attackRange,
+        u.y + Math.sin(angle) * t.attackRange,
         c[0] * colorMul,
         c[1] * colorMul,
         c[2] * colorMul,

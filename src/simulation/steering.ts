@@ -100,7 +100,7 @@ function resolveTarget(
   u: Unit,
   nb: NeighborSlice,
   t: UnitType,
-  range: number,
+  aggroRange: number,
   massWeight: number,
   dt: number,
   rng: () => number,
@@ -112,7 +112,7 @@ function resolveTarget(
     _resolveResult.fy = boids.y;
     return _resolveResult;
   }
-  const local = computeBoidsAndFindLocal(u, nb, t, range, massWeight);
+  const local = computeBoidsAndFindLocal(u, nb, t, aggroRange, massWeight);
   _resolveResult.fx = local.fx;
   _resolveResult.fy = local.fy;
   if (local.target !== NO_UNIT) {
@@ -163,10 +163,10 @@ export function steerWithNeighbors(u: Unit, ui: UnitIndex, nb: NeighborSlice, dt
     return;
   }
   const t = unitType(u.type);
-  const range = computeEffectiveRange(u, t.range);
+  const aggroRange = t.aggroRange;
   const massWeight = t.massWeight;
 
-  const res = resolveTarget(u, nb, t, range, massWeight, dt, rng);
+  const res = resolveTarget(u, nb, t, aggroRange, massWeight, dt, rng);
   u.target = res.target;
 
   let fx = res.fx,

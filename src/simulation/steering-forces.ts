@@ -100,6 +100,7 @@ export function computeRetreatForce(u: Unit, nb: NeighborSlice, t: UnitType, hpR
     return _retreatForce;
   }
   const urgency = 1 - hpRatio / t.retreatHpRatio;
+  const retreatRange = t.attackRange > 0 ? t.attackRange : t.aggroRange;
   let rx = 0,
     ry = 0;
   for (let i = 0; i < nb.count; i++) {
@@ -114,7 +115,7 @@ export function computeRetreatForce(u: Unit, nb: NeighborSlice, t: UnitType, hpR
     if (d < 1) {
       continue;
     }
-    const f = t.range / d;
+    const f = retreatRange / d;
     rx += (dx / d) * f;
     ry += (dy / d) * f;
   }

@@ -17,7 +17,8 @@ describe('TYPES 配列', () => {
       'speed',
       'turnRate',
       'fireRate',
-      'range',
+      'attackRange',
+      'aggroRange',
       'damage',
       'shape',
       'trailInterval',
@@ -185,6 +186,16 @@ describe('unitTypeIndex', () => {
     for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
       const t = unitType(asType(i));
       expect(unitTypeIndex(t.name)).toBe(i);
+    }
+  });
+
+  it('標準戦闘ユニットの aggroRange === attackRange * 3', () => {
+    for (let i = 0; i < UNIT_TYPE_COUNT; i++) {
+      const t = unitType(asType(i));
+      if (t.attackRange === 0 || t.rams || t.scrambles || t.role === 'mothership' || t.role === 'environment') {
+        continue;
+      }
+      expect(t.aggroRange, `${t.name}: aggroRange should be attackRange * 3`).toBe(t.attackRange * 3);
     }
   });
 });

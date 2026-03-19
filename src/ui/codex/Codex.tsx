@@ -54,7 +54,12 @@ function CodexStatsPanel() {
           <StatBar label="HP" current={t.hp} max={200} color="#0ff" />
           <StatBar label="SPEED" current={t.speed} max={260} color="#0af" />
           <StatBar label="DAMAGE" current={t.damage} max={18} color="#f0f" />
-          <StatBar label="RANGE" current={t.range} max={600} color="#a0f" />
+          <StatBar
+            label={t.attackRange > 0 ? 'RANGE' : 'DETECT'}
+            current={t.attackRange > 0 ? t.attackRange : t.aggroRange}
+            max={600}
+            color="#a0f"
+          />
           <StatBar label="MASS" current={t.mass} max={30} color="#48f" />
           <div class={styles.attackDesc} style={{ color: col }}>
             : {t.attackDesc}

@@ -101,7 +101,7 @@ export function computeBoidsAndFindLocal(
   u: Unit,
   nb: NeighborSlice,
   t: UnitType,
-  range: number,
+  aggroRange: number,
   massWeight: number,
 ): BoidsSearchResult {
   _boids.sx = 0;
@@ -114,7 +114,7 @@ export function computeBoidsAndFindLocal(
   _boids.cc = 0;
 
   const sd = t.size * 6;
-  const limit = range * 3;
+  const limit = aggroRange;
   let bs = limit * limit;
   let bi: UnitIndex = NO_UNIT;
 

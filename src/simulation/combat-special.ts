@@ -148,12 +148,12 @@ function applyEmpDamage(ctx: CombatContext, oi: UnitIndex, oo: Unit) {
 export function dischargeEmp(ctx: CombatContext) {
   const { u, t } = ctx;
   const d = tgtDistOrClear(u);
-  if (d < 0 || d >= t.range) {
+  if (d < 0 || d >= t.attackRange) {
     return;
   }
   u.abilityCooldown = t.fireRate;
-  const rangeSq = t.range * t.range;
-  const nb = getNeighbors(u.x, u.y, t.range);
+  const rangeSq = t.attackRange * t.attackRange;
+  const nb = getNeighbors(u.x, u.y, t.attackRange);
   for (let i = 0; i < nb.count; i++) {
     const oi = nb.at(i),
       oo = unit(oi);
@@ -167,7 +167,7 @@ export function dischargeEmp(ctx: CombatContext) {
   }
   for (let i = 0; i < 20; i++) {
     const a = (i / 20) * 6.283,
-      r = t.range * 0.8;
+      r = t.attackRange * 0.8;
     spawnParticle(
       u.x + Math.cos(a) * r,
       u.y + Math.sin(a) * r,
@@ -181,7 +181,7 @@ export function dischargeEmp(ctx: CombatContext) {
       SH_CIRCLE,
     );
   }
-  spawnParticle(u.x, u.y, 0, 0, 0.45, t.range * 0.7, 0.4, 0.4, 1, SH_EXPLOSION_RING);
+  spawnParticle(u.x, u.y, 0, 0, 0.45, t.attackRange * 0.7, 0.4, 0.4, 1, SH_EXPLOSION_RING);
 }
 
 export function castChain(ctx: CombatContext): void {

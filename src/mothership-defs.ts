@@ -90,7 +90,7 @@ export function getMothershipArmament(t: UnitTypeIndex): Armament | null {
   if (ut.fireRate >= NO_FIRE) {
     return null;
   }
-  return { fireRate: ut.fireRate, damage: ut.damage, range: ut.range };
+  return { fireRate: ut.fireRate, damage: ut.damage, range: ut.attackRange };
 }
 
 export const EMPTY_FLEET_SETUP: FleetSetup = { mothershipType: HIVE_TYPE, slots: [] };

@@ -137,7 +137,7 @@ function fireWeakShot(ctx: CombatContext): void {
   const dx = o.x - u.x,
     dy = o.y - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  if (d >= t.range) {
+  if (d >= t.attackRange) {
     return;
   }
   u.cooldown = t.fireRate;
@@ -160,7 +160,7 @@ function fireWeakShot(ctx: CombatContext): void {
 
 export function reflectProjectiles(ctx: CombatContext) {
   const { u, c, t } = ctx;
-  const fireRange = t.range;
+  const fireRange = t.attackRange;
   const reflectR = t.size * REFLECT_RADIUS_MULT;
   if (u.shieldCooldown <= 0 && u.energy > 0) {
     reflectNearbyProjectiles(ctx, u, reflectR, u.team, c);

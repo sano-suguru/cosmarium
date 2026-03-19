@@ -62,5 +62,8 @@ const DEFAULTS: Pick<UnitType, DefaultKeys> = {
 };
 
 export function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, DefaultKeys>>): UnitType {
+  if (partial.retreatHpRatio !== undefined && partial.aggroRange === 0) {
+    throw new Error(`${partial.name}: retreatHpRatio requires aggroRange > 0`);
+  }
   return { ...DEFAULTS, ...partial };
 }

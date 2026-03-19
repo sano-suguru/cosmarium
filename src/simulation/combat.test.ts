@@ -110,7 +110,7 @@ describe('combat — AMPLIFIER buff effects', () => {
 
   it('ampBoostTimer > 0 のユニットの射程が AMP_RANGE_MULT 倍に拡張', () => {
     const t = unitType(FIGHTER_TYPE_C);
-    const baseRange = t.range;
+    const baseRange = t.attackRange;
     const extendedRange = baseRange * AMP_RANGE_MULT;
 
     // 基本射程外、バフ射程内に敵を配置
@@ -130,7 +130,7 @@ describe('combat — AMPLIFIER buff effects', () => {
 
   it('ampBoostTimer = 0 では射程拡張なし', () => {
     const t = unitType(FIGHTER_TYPE_C);
-    const baseRange = t.range;
+    const baseRange = t.attackRange;
 
     const fighter = spawnAt(0, FIGHTER_TYPE_C, 0, 0);
     const enemy = spawnAt(1, FIGHTER_TYPE_C, baseRange + 5, 0);
@@ -245,7 +245,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
 
   it('scrambleTimer > 0 で射程が縮小し射撃不発', () => {
     const t = unitType(FIGHTER_TYPE_S);
-    const baseRange = t.range;
+    const baseRange = t.attackRange;
     const scrambledRange = baseRange * SCRAMBLE_RANGE_MULT;
 
     // 基本射程内だが scramble 射程外に配置
@@ -265,7 +265,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
 
   it('scrambleTimer = 0 では射程縮小なし（対照）', () => {
     const t = unitType(FIGHTER_TYPE_S);
-    const baseRange = t.range;
+    const baseRange = t.attackRange;
     const scrambledRange = baseRange * SCRAMBLE_RANGE_MULT;
     const dist = scrambledRange + 5;
 
@@ -282,7 +282,7 @@ describe('combat — SCRAMBLER debuff effects', () => {
 
   it('amp + scramble が乗算的にスタック', () => {
     const t = unitType(FIGHTER_TYPE_S);
-    const baseRange = t.range;
+    const baseRange = t.attackRange;
     const combinedRange = baseRange * AMP_RANGE_MULT * SCRAMBLE_RANGE_MULT;
 
     const fighter = spawnAt(0, FIGHTER_TYPE_S, 0, 0);

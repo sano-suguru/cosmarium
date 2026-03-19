@@ -135,7 +135,8 @@ export interface UnitType {
   speed: number;
   turnRate: number;
   fireRate: number;
-  range: number;
+  attackRange: number;
+  aggroRange: number;
   damage: number;
   shape: number;
   trailInterval: number;

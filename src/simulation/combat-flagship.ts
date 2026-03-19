@@ -60,7 +60,7 @@ function flagshipPreviewBeam(ctx: CombatContext, lockAngle: number, progress: nu
   const { u, c, t } = ctx;
   const dx = Math.cos(lockAngle);
   const dy = Math.sin(lockAngle);
-  const beamLen = t.range * 0.5;
+  const beamLen = t.attackRange * 0.5;
   const w = 1.0 + 2.5 * progress;
   for (const sign of [-1, 1] as const) {
     const [mx, my] = flagshipWorld(u, t.size * MUZZLE_FWD, sign * 0.24 * t.size);
@@ -115,7 +115,7 @@ function flagshipFireMain(ctx: CombatContext, lockAngle: number) {
       oy,
       Math.cos(ba) * sp,
       Math.sin(ba) * sp,
-      t.range / sp + 0.1,
+      t.attackRange / sp + 0.1,
       t.damage * vd,
       u.team,
       7,
@@ -172,7 +172,7 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
       oy,
       baDx * sp,
       baDy * sp,
-      (t.range * 0.7) / sp + 0.1,
+      (t.attackRange * 0.7) / sp + 0.1,
       perpDmg,
       u.team,
       5,
@@ -203,7 +203,19 @@ function flagshipFireBroadside(ctx: CombatContext, lockAngle: number) {
       );
     }
 
-    addBeam(ox, oy, ox + baDx * t.range * 0.5, oy + baDy * t.range * 0.5, c[0], c[1], c[2], 0.06, 4.0, true, 6);
+    addBeam(
+      ox,
+      oy,
+      ox + baDx * t.attackRange * 0.5,
+      oy + baDy * t.attackRange * 0.5,
+      c[0],
+      c[1],
+      c[2],
+      0.06,
+      4.0,
+      true,
+      6,
+    );
   }
 
   ctx.shake(4, u.x, u.y);

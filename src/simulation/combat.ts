@@ -122,7 +122,7 @@ function fillCombatCtx(
   _ctx.c = c;
   _ctx.vd = (1 + u.vet * 0.2) * ampDmg;
   _ctx.t = t;
-  _ctx.range = computeEffectiveRange(u, t.range);
+  _ctx.range = computeEffectiveRange(u, t.attackRange);
   _ctx.rng = rng;
   _ctx.shake = shake;
   return true;
