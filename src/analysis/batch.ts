@@ -45,6 +45,7 @@ function makeBatchGameLoopState(mode: 'battle' | 'melee', activeTeams: number): 
     productions: emptyProductions(),
     bonusData: null,
     phaseElapsed: 0,
+    isAwakened: () => false,
   };
 }
 

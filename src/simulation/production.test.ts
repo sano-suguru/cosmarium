@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fillUnitPool, makeRng, resetPools, resetState } from '../__test__/pool-helper.ts';
 import { POOL_UNITS } from '../constants.ts';
 import { MAX_MERGE_EXP, MERGE_PRODUCTION_BONUS, MERGE_STAT_BONUS } from '../merge-config.ts';
+import { getMothershipDef } from '../mothership-defs.ts';
 import { countAliveMotherships, decMotherships, mothershipIdx, registerMothership, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import { createProductionSlot, MAX_CLUSTERS_PER_TICK } from '../production-config.ts';
 import type { Team } from '../team.ts';
 import { TEAM0 } from '../team.ts';
 import type { ProductionSlot } from '../types-fleet.ts';
-import { DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, REACTOR_TYPE, unitType } from '../unit-type-accessors.ts';
+import { ASCENSION_TYPE, DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, REACTOR_TYPE, unitType } from '../unit-type-accessors.ts';
 import { computeProductionCap, initProductionState, tickProduction } from './production.ts';
 import { spawnUnit } from './spawn.ts';
 
@@ -57,12 +58,12 @@ describe('production', () => {
     // Drone: productionTime = 1 * 0.7 = 0.7s
     // Fighter: productionTime = 3 * 0.7 = 2.1s
     // dt=0.8s → Drone timer=min(0.8, 0.7)=0.7 → spawn 3, timer=0.0; Fighter timer=0.8 < 2.1
-    tickProduction(0.8, TEAM0, rng, ps, CAP);
+    tickProduction(0.8, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + 3); // Drone x3
 
     // dt=1.4s → Drone timer=min(0.0+1.4, 0.7)=0.7 → 1回 spawn 3, timer=0.0
     //         → Fighter timer=min(0.8+1.4, 2.1)=2.1 → spawn 2, timer=0.0
-    tickProduction(1.4, TEAM0, rng, ps, CAP);
+    tickProduction(1.4, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + 3 + 3 + 2); // Drone 1回×3 + Fighter x2
   });
 
@@ -79,7 +80,7 @@ describe('production', () => {
     decMotherships(TEAM0);
 
     const initialUnits = teamUnitCounts[0];
-    tickProduction(10.0, TEAM0, rng, ps, CAP);
+    tickProduction(10.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits); // 何もスポーンしない
   });
 
@@ -99,7 +100,7 @@ describe('production', () => {
     const initialUnits = teamUnitCounts[0];
 
     // dt=1.0s → 全5スロット ready、MAX_CLUSTERS_PER_TICK=5 でちょうどキャップ
-    tickProduction(1.0, TEAM0, rng, ps, CAP);
+    tickProduction(1.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + MAX_CLUSTERS_PER_TICK);
   });
 
@@ -116,7 +117,7 @@ describe('production', () => {
     expect(teamUnitCounts[0]).toBe(CAP);
 
     const before = teamUnitCounts[0];
-    tickProduction(10.0, TEAM0, rng, ps, CAP);
+    tickProduction(10.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(before); // キャップで生産停止
   });
 
@@ -127,7 +128,7 @@ describe('production', () => {
 
     const initial = teamUnitCounts[0];
     expect(initial).toBeLessThan(CAP);
-    tickProduction(1.0, TEAM0, rng, ps, CAP); // cost=1, productionTime=1.0s → 1回スポーン
+    tickProduction(1.0, TEAM0, rng, ps, CAP, false); // cost=1, productionTime=1.0s → 1回スポーン
     expect(teamUnitCounts[0]).toBe(initial + 1);
   });
 
@@ -141,13 +142,13 @@ describe('production', () => {
     const initialUnits = teamUnitCounts[0];
 
     // dt=100s → timer=min(100, 3.0)=3.0 → 1回スポーン → timer=0.0（バースト防止）
-    tickProduction(100, TEAM0, rng, ps, CAP);
+    tickProduction(100, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + 1);
     expect(ps.timers[0]).toBeCloseTo(0.0, 5);
 
     // 次の tick で再び大量バーストしないことを確認
     const before = teamUnitCounts[0];
-    tickProduction(0.01, TEAM0, rng, ps, CAP); // timer=0.01 < 3.0 → スポーンなし
+    tickProduction(0.01, TEAM0, rng, ps, CAP, false); // timer=0.01 < 3.0 → スポーンなし
     expect(teamUnitCounts[0]).toBe(before);
     expect(ps.timers[0]).toBeCloseTo(0.01, 5);
   });
@@ -165,7 +166,7 @@ describe('production', () => {
     const initialUnits = teamUnitCounts[0];
     // dt=1.0s → 全スロットの timer=1.0 >= productionTime=1.0
     // ラウンドロビン: パス1で各1回ずつ(3体), timer=0.0 → パス2では誰も ready でない → 計3体
-    tickProduction(1.0, TEAM0, rng, ps, CAP);
+    tickProduction(1.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + 3);
 
     // 全スロットが均等にスポーンされたことを確認（タイマーが全て同じ）
@@ -179,7 +180,7 @@ describe('production', () => {
     const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
     const ps = initProductionState(slots);
     fillUnitPool();
-    tickProduction(10.0, TEAM0, rng, ps, CAP);
+    tickProduction(10.0, TEAM0, rng, ps, CAP, false);
     expect(ps.timers[0]).toBe(0); // タイマーが進んでいない
   });
 
@@ -193,7 +194,7 @@ describe('production', () => {
     ];
     const ps = initProductionState(slots);
     const initial = teamUnitCounts[0];
-    tickProduction(1.0, TEAM0, rng, ps, CAP);
+    tickProduction(1.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initial + 2); // 有効2スロット分のみ
   });
 
@@ -206,7 +207,7 @@ describe('production', () => {
       spawnUnit(TEAM0, DRONE_TYPE, 0, 0, rng);
     }
     const before = teamUnitCounts[0];
-    tickProduction(1.0, TEAM0, rng, ps, CAP);
+    tickProduction(1.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(before); // 部分スポーンなし
   });
 
@@ -220,12 +221,12 @@ describe('production', () => {
     const initialUnits = teamUnitCounts[0];
 
     // 0.8秒 → timer=0.8 < 1.0 → スポーンなし
-    tickProduction(0.8, TEAM0, rng, ps, CAP);
+    tickProduction(0.8, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits);
     expect(ps.timers[0]).toBeCloseTo(0.8, 5);
 
     // 0.3秒 → timer=min(0.8+0.3, 1.0)=1.0 >= 1.0 → spawn 2, timer=0.0
-    tickProduction(0.3, TEAM0, rng, ps, CAP);
+    tickProduction(0.3, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initialUnits + 2);
     expect(ps.timers[0]).toBeCloseTo(0.0, 5);
   });
@@ -241,14 +242,14 @@ describe('production', () => {
     const initial = teamUnitCounts[0];
 
     // boostedTime + 小マージン → spawn
-    tickProduction(boostedTime + 0.001, TEAM0, rng, ps, CAP);
+    tickProduction(boostedTime + 0.001, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initial + 1);
 
     // mergeExp=0 の場合は同じ時間ではスポーンしない（短縮の証拠）
     const slotsNoBoost: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
     const psNoBoost = initProductionState(slotsNoBoost);
     const initial2 = teamUnitCounts[0];
-    tickProduction(boostedTime + 0.001, TEAM0, rng, psNoBoost, CAP);
+    tickProduction(boostedTime + 0.001, TEAM0, rng, psNoBoost, CAP, false);
     expect(teamUnitCounts[0]).toBe(initial2); // まだスポーンしない
   });
 
@@ -258,7 +259,7 @@ describe('production', () => {
     const ps = initProductionState(slots);
     const initial = teamUnitCounts[0];
 
-    tickProduction(10.0, TEAM0, rng, ps, CAP);
+    tickProduction(10.0, TEAM0, rng, ps, CAP, false);
     expect(teamUnitCounts[0]).toBe(initial + 1);
 
     // 最後にスポーンされたユニットの HP を検証
@@ -330,5 +331,90 @@ describe('computeProductionCap', () => {
     const cap2 = computeProductionCap(Math.max(1, alive));
     expect(cap2).toBe(Math.floor(POOL_UNITS / 2));
     expect(cap2).toBeGreaterThan(cap3);
+  });
+});
+
+describe('ascension awakening', () => {
+  const rng = makeRng();
+
+  beforeEach(() => {
+    resetPools();
+    resetState();
+    rng.reset();
+  });
+
+  it('Ascension母艦 + 覚醒 → HP倍率適用', () => {
+    const idx = spawnUnit(TEAM0, ASCENSION_TYPE, 0, 0, rng);
+    registerMothership(TEAM0, idx, ASCENSION_TYPE);
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
+    const ps = initProductionState(slots);
+    const initial = teamUnitCounts[0];
+
+    tickProduction(10.0, TEAM0, rng, ps, CAP, true);
+    expect(teamUnitCounts[0]).toBe(initial + 1);
+
+    const droneType = unitType(DRONE_TYPE);
+    const def = getMothershipDef(ASCENSION_TYPE);
+    const expectedHp = droneType.hp * def.unitHpMul * def.awakeningHpMul;
+    let found = false;
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unit(i);
+      if (u.alive && u.type === DRONE_TYPE) {
+        expect(u.hp).toBeCloseTo(expectedHp);
+        expect(u.maxHp).toBeCloseTo(expectedHp);
+        found = true;
+        break;
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  it('非Ascension母艦 + 覚醒=true → HP変化なし（覚醒ボーナスなし）', () => {
+    setupMothership(rng, HIVE_TYPE);
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
+    const ps = initProductionState(slots);
+    const initial = teamUnitCounts[0];
+
+    tickProduction(10.0, TEAM0, rng, ps, CAP, true);
+    expect(teamUnitCounts[0]).toBe(initial + 1);
+
+    const droneType = unitType(DRONE_TYPE);
+    const def = getMothershipDef(HIVE_TYPE);
+    const expectedHp = droneType.hp * def.unitHpMul;
+    let found = false;
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unit(i);
+      if (u.alive && u.type === DRONE_TYPE) {
+        expect(u.hp).toBeCloseTo(expectedHp);
+        found = true;
+        break;
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  it('Ascension母艦 + 非覚醒 → HP変化なし', () => {
+    const idx = spawnUnit(TEAM0, ASCENSION_TYPE, 0, 0, rng);
+    registerMothership(TEAM0, idx, ASCENSION_TYPE);
+    const slots: (ProductionSlot | null)[] = [{ type: DRONE_TYPE, count: 1, mergeExp: 0 }];
+    const ps = initProductionState(slots);
+    const initial = teamUnitCounts[0];
+
+    tickProduction(10.0, TEAM0, rng, ps, CAP, false);
+    expect(teamUnitCounts[0]).toBe(initial + 1);
+
+    const droneType = unitType(DRONE_TYPE);
+    const def = getMothershipDef(ASCENSION_TYPE);
+    const expectedHp = droneType.hp * def.unitHpMul;
+    let found = false;
+    for (let i = 0; i < POOL_UNITS; i++) {
+      const u = unit(i);
+      if (u.alive && u.type === DRONE_TYPE) {
+        expect(u.hp).toBeCloseTo(expectedHp);
+        found = true;
+        break;
+      }
+    }
+    expect(found).toBe(true);
   });
 });

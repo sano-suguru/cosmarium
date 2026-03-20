@@ -1,7 +1,7 @@
 import type { UnitType } from './types.ts';
 import { NO_FIRE, resolve } from './unit-type-resolve.ts';
 
-/** Mothership role units (8) */
+/** Mothership role units (9) */
 
 const MS_UNIT = {
   cost: 0,
@@ -126,4 +126,17 @@ export const bloodborne: UnitType = resolve({
   mass: 55,
   accel: 1.2,
   description: '母艦HP半減と引き換えに毎ラウンド+4Cr。ハイリスク・ハイリターン。',
+});
+
+export const ascension: UnitType = resolve({
+  ...MS_UNIT,
+  name: 'Ascension',
+  size: 42,
+  hp: 350,
+  speed: 36,
+  turnRate: 0.3,
+  shape: 29,
+  mass: 45,
+  accel: 1.6,
+  description: 'マージ10回で覚醒。覚醒後は全ユニットのHP＋30%＆ダメージ＋20%。',
 });

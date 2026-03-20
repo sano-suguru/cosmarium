@@ -7,12 +7,12 @@ import type { ShopSlot } from '../shop-tiers.ts';
 import { MAX_MERGE_LEVEL, mergeExpToLevel, ROUND_CREDITS, SHOP_PRICE } from '../shop-tiers.ts';
 import { rng } from '../state.ts';
 import type { ProductionSlot } from '../types-fleet.ts';
-import { unitTypeCost } from '../unit-type-accessors.ts';
+import { ASCENSION_TYPE, COLOSSUS_TYPE, unitTypeCost } from '../unit-type-accessors.ts';
 import { TYPES } from '../unit-types.ts';
-import { generateEnemySetup } from './enemy-fleet.ts';
+import { generateBossSetup, generateEnemySetup } from './enemy-fleet.ts';
 import { botFillSlots } from './enemy-fleet-bot.ts';
 import type { FleetProfile } from './enemy-fleet-profile.ts';
-import { profileFleet } from './enemy-fleet-profile.ts';
+import { pickMothershipTypeByRound, profileFleet } from './enemy-fleet-profile.ts';
 
 afterEach(() => {
   resetPools();
@@ -186,6 +186,68 @@ describe('generateEnemySetup', () => {
       const { setup } = generateEnemySetup(rng, 5);
       const def = getMothershipDef(setup.mothershipType);
       expect(setup.slots.length).toBe(def.slotCount);
+    }
+  });
+});
+
+describe('generateBossSetup', () => {
+  it('always uses COLOSSUS_TYPE as mothership', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateBossSetup(rng, 7);
+      expect(setup.mothershipType).toBe(COLOSSUS_TYPE);
+    }
+  });
+
+  it('fills at least 1 slot', () => {
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateBossSetup(rng, 7);
+      expect(filledSlots(setup.slots).length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('has slot count matching Colossus definition', () => {
+    const def = getMothershipDef(COLOSSUS_TYPE);
+    for (let i = 0; i < 50; i++) {
+      const { setup } = generateBossSetup(rng, 7);
+      expect(setup.slots.length).toBe(def.slotCount);
+    }
+  });
+
+  it('ラウンドが上がるとフリートコストが単調増加する', () => {
+    function avgCostForRound(round: number): number {
+      let total = 0;
+      const n = 100;
+      for (let i = 0; i < n; i++) {
+        const { setup } = generateBossSetup(rng, round);
+        for (const slot of filledSlots(setup.slots)) {
+          total += unitTypeCost(slot.type) * slot.count;
+        }
+      }
+      return total / n;
+    }
+    const cost7 = avgCostForRound(7);
+    const cost14 = avgCostForRound(14);
+    const cost28 = avgCostForRound(28);
+    expect(cost14).toBeGreaterThan(cost7);
+    expect(cost28).toBeGreaterThan(cost14);
+  });
+
+  it('does not crash for a range of boss rounds', () => {
+    for (const round of [7, 14, 21, 28, 35]) {
+      for (let i = 0; i < 50; i++) {
+        expect(() => generateBossSetup(rng, round)).not.toThrow();
+      }
+    }
+  });
+});
+
+describe('pickMothershipTypeByRound', () => {
+  it('ASCENSION_TYPE を返さない', () => {
+    for (let round = 1; round <= 30; round++) {
+      for (let i = 0; i < 50; i++) {
+        const type = pickMothershipTypeByRound(rng, round);
+        expect(type).not.toBe(ASCENSION_TYPE);
+      }
     }
   });
 });

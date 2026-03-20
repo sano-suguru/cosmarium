@@ -81,7 +81,7 @@ frame() → dt clamp(0.05) → camera update + decay
 
 ### codexOpen State
 
-Affects 4 layers when toggled: simulation (skip steer/combat for non-demo units, skip reinforce), renderer (lock camera), input (disable controls), main (hide HUD). Codex spawns real units via `spawnUnit()` — uses snapshot/restore (`snapshotPools`/`restorePools`) to save and restore pool state.
+Affects 4 layers when toggled: simulation (skip steer/combat for non-demo units, skip reinforce), renderer (lock camera), input (disable controls), main (hide HUD). Codex spawns real units via `spawnUnit()` — opens with `clearAllPools()` to reset pool state, restores camera via `snapshotCamera`/`restoreCamera`.
 
 ### Game Modes & BattlePhase
 

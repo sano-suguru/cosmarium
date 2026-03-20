@@ -50,6 +50,15 @@
   letter-spacing: 1px;
   margin-bottom: 4px;
 }
+.ascensionStatus {
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.ascensionAwakened {
+  color: #0ff;
+}
 .enemyUnits {
   display: flex;
   flex-wrap: wrap;

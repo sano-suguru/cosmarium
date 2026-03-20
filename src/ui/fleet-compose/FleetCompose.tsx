@@ -1,15 +1,15 @@
 import { signal } from '@preact/signals';
 import { ArrowLeft, BookOpen, RotateCcw, ShieldAlert, Swords } from 'lucide-preact';
-import { getMothershipDef } from '../../mothership-defs.ts';
+import { ASCENSION_MERGE_THRESHOLD, getMothershipDef } from '../../mothership-defs.ts';
 import { getRunInfo } from '../../run.ts';
 import { purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
 import type { UnitTypeIndex } from '../../types.ts';
 import type { RoundType } from '../../types-fleet.ts';
-import { HIVE_TYPE } from '../../unit-type-accessors.ts';
+import { ASCENSION_TYPE, HIVE_TYPE } from '../../unit-type-accessors.ts';
 import { resetCurrentRoundShop } from '../game-control.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
-import { composeEnemyArchName$, composeEnemySetup$, shopSlots$ } from '../signals.ts';
+import { composeEnemyArchName$, composeEnemySetup$, runMergeCount$, shopSlots$ } from '../signals.ts';
 import { CreditBar } from './CreditBar.tsx';
 import styles from './FleetCompose.module.css';
 import { ShopPanel } from './ShopPanel.tsx';
@@ -21,6 +21,9 @@ function launchLabel(rt: RoundType | undefined): string {
   }
   if (rt === 'bonus') {
     return 'LAUNCH BONUS';
+  }
+  if (rt === 'boss') {
+    return 'LAUNCH BOSS';
   }
   return 'LAUNCH BATTLE';
 }
@@ -42,6 +45,26 @@ export function setMothershipType(type: UnitTypeIndex) {
 /** テスト専用: モジュールレベル変数をリセット */
 export function _resetFleetCompose() {
   resetMothershipType();
+}
+
+function AscensionProgress() {
+  if (mothershipType$.value !== ASCENSION_TYPE) {
+    return null;
+  }
+  const merges = runMergeCount$.value;
+  const awakened = merges >= ASCENSION_MERGE_THRESHOLD;
+  const pct = Math.min(100, (merges / ASCENSION_MERGE_THRESHOLD) * 100);
+  return (
+    <div class={styles.ascensionStatus}>
+      {awakened ? (
+        <span class={styles.ascensionAwakened}>覚醒済み — HP+30% DMG+20%</span>
+      ) : (
+        <span>
+          覚醒進捗: {merges}/{ASCENSION_MERGE_THRESHOLD} マージ ({Math.floor(pct)}%)
+        </span>
+      )}
+    </div>
+  );
 }
 
 function EnemyFleetHeader() {
@@ -103,6 +126,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         <EnemyFleetHeader />
         <ShopPanel onBuy={purchaseItem} onToggleLock={toggleLock} onReroll={rerollOfferings} />
         <SlotPanel mothershipType={mothershipType$.value} onSell={sellSlot} />
+        <AscensionProgress />
         <div class={styles.actions}>
           <button type="button" class={btnStyles.btn} onClick={onBack}>
             <ArrowLeft size={14} /> BACK

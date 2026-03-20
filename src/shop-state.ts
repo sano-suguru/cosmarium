@@ -28,6 +28,13 @@ const shop: ShopState = createShopState();
 let shopRng: (() => number) | null = null;
 let shopRound = 1;
 
+/** ラン中の累計マージ回数（アセンション覚醒用） */
+let runMergeCount = 0;
+
+export function getRunMergeCount(): number {
+  return runMergeCount;
+}
+
 function generateOfferings(rng: () => number, round: number): void {
   const candidates = buildWeightedCandidates(round);
 
@@ -71,6 +78,7 @@ export function initShop(slotCount: number = DEFAULT_SLOT_COUNT): void {
   shop.sellBonus = 0;
   shopRng = null;
   shopRound = 1;
+  runMergeCount = 0;
   for (let i = 0; i < SHOP_SIZE; i++) {
     shop.offerings[i] = null;
   }
@@ -167,6 +175,7 @@ export function incrementMergeExp(slotIdx: number): void {
   const s = shop.slots[slotIdx];
   if (s) {
     s.mergeExp += 1;
+    runMergeCount += 1;
   }
 }
 

@@ -13,6 +13,7 @@ import {
   snapshotOfferings,
   snapshotSlots,
 } from '../shop.ts';
+import { getRunMergeCount } from '../shop-state.ts';
 import { generateEnemySetup } from '../simulation/enemy-fleet.ts';
 import { initBattleProduction, initBonusField, initMeleeProduction, initUnits } from '../simulation/init.ts';
 import { createRng, rng, seedRng, state } from '../state.ts';
@@ -31,6 +32,7 @@ import {
   composePhase$,
   playUiVisible$,
   resultData$,
+  runMergeCount$,
   shopCredits$,
   shopFreeRerolls$,
   shopOfferings$,
@@ -45,7 +47,7 @@ let currentFfaTeamCount = 0;
 
 let seedCounter = 0;
 type GameCallbacks = {
-  battle: (productions: [ProductionState, ProductionState]) => void;
+  battle: (productions: [ProductionState, ProductionState], roundType: 'battle' | 'boss') => void;
   spectate: () => void;
   melee: (numTeams: number, productions: TeamTuple<ProductionState>) => void;
   bonus: (production: ProductionState, bonusInfo: { totalHp: number }) => void;
@@ -74,6 +76,7 @@ function syncShopSignals(): void {
     shopOfferings$.value = snapshotOfferings();
     shopSlots$.value = snapshotSlots();
     shopPurchaseBlocks$.value = getShopPurchaseBlocks();
+    runMergeCount$.value = getRunMergeCount();
   });
 }
 let unsubShop: (() => void) | null = null;
@@ -127,10 +130,10 @@ function enterPlayFromCompose() {
   playUiVisible$.value = true;
   seedRng(uniqueSeed());
 }
-function startBattle(mothershipType: UnitTypeIndex) {
+function startBattle(mothershipType: UnitTypeIndex, roundType: 'battle' | 'boss') {
   const setup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
-  onBattleStart(initBattleProduction(rng, setup, currentEnemySetup));
+  onBattleStart(initBattleProduction(rng, setup, currentEnemySetup), roundType);
 }
 
 export function startMelee() {
@@ -169,7 +172,7 @@ export function launchRound(mothershipType: UnitTypeIndex) {
   } else if (info.roundType === 'bonus') {
     startBonus(mothershipType);
   } else {
-    startBattle(mothershipType);
+    startBattle(mothershipType, info.roundType === 'boss' ? 'boss' : 'battle');
   }
 }
 
@@ -197,6 +200,7 @@ function applyRoundEnemy(round: number) {
   currentFfaTeamCount = 0;
   switch (s.roundType) {
     case 'battle':
+    case 'boss':
       currentEnemySetup = s.enemySetup;
       break;
     case 'ffa':
@@ -238,7 +242,7 @@ export function advanceRound() {
   goToCompose();
 }
 
-export function _resetGameControl() {
+export function _resetGameControlState() {
   seedCounter = 0;
   currentEnemySetup = EMPTY_FLEET_SETUP;
   currentEnemyArchName = '';
@@ -255,7 +259,6 @@ export function _resetGameControl() {
   state.gameState = 'menu';
   state.codexOpen = false;
   _resetRunState();
-  initShop();
 }
 
 export function onCodexToggle() {

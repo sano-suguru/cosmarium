@@ -20,9 +20,6 @@ const _boidsForce: SteerForce = { x: 0, y: 0 };
 const _boidsSearchResult: BoidsSearchResult = { target: NO_UNIT as UnitIndex, fx: 0, fy: 0 };
 
 const SEPARATION_SCALE = 400;
-const SEPARATION_WEIGHT = 3;
-const ALIGNMENT_WEIGHT = 0.5;
-const COHESION_WEIGHT = 0.01;
 const COHESION_RANGE = 150;
 const ALIGNMENT_RANGE = 120;
 
@@ -57,16 +54,16 @@ function accumulateBoidsNeighbor(u: Unit, o: Unit, sd: number, uMass: number) {
   }
 }
 
-function finalizeBoids(u: Unit) {
-  let fx = _boids.sx * SEPARATION_WEIGHT,
-    fy = _boids.sy * SEPARATION_WEIGHT;
+function finalizeBoids(u: Unit, t: UnitType) {
+  let fx = _boids.sx * t.separationWeight,
+    fy = _boids.sy * t.separationWeight;
   if (_boids.ac > 0) {
-    fx += (_boids.ax / _boids.ac - u.vx) * ALIGNMENT_WEIGHT;
-    fy += (_boids.ay / _boids.ac - u.vy) * ALIGNMENT_WEIGHT;
+    fx += (_boids.ax / _boids.ac - u.vx) * t.alignmentWeight;
+    fy += (_boids.ay / _boids.ac - u.vy) * t.alignmentWeight;
   }
   if (_boids.cc > 0) {
-    fx += (_boids.chx / _boids.cc - u.x) * COHESION_WEIGHT;
-    fy += (_boids.chy / _boids.cc - u.y) * COHESION_WEIGHT;
+    fx += (_boids.chx / _boids.cc - u.x) * t.cohesionWeight;
+    fy += (_boids.chy / _boids.cc - u.y) * t.cohesionWeight;
   }
   _boidsForce.x = fx;
   _boidsForce.y = fy;
@@ -92,7 +89,7 @@ export function computeBoidsForce(u: Unit, nb: NeighborSlice, t: UnitType): Stee
     accumulateBoidsNeighbor(u, o, sd, t.mass);
   }
 
-  finalizeBoids(u);
+  finalizeBoids(u, t);
   return _boidsForce;
 }
 
@@ -114,8 +111,8 @@ export function computeBoidsAndFindLocal(
   _boids.cc = 0;
 
   const sd = t.size * 6;
-  const limit = aggroRange;
-  let bs = limit * limit;
+  const aggroR2 = aggroRange * aggroRange;
+  let bs = aggroR2;
   let bi: UnitIndex = NO_UNIT;
 
   for (let i = 0; i < nb.count; i++) {
@@ -128,7 +125,7 @@ export function computeBoidsAndFindLocal(
     accumulateBoidsNeighbor(u, o, sd, t.mass);
 
     if (o.team !== u.team) {
-      const score = targetScore(u.x, u.y, o, massWeight);
+      const score = targetScore(u.x, u.y, o, massWeight, aggroR2);
       if (score < bs) {
         bs = score;
         bi = oi;
@@ -136,7 +133,7 @@ export function computeBoidsAndFindLocal(
     }
   }
 
-  finalizeBoids(u);
+  finalizeBoids(u, t);
   _boidsSearchResult.target = bi;
   _boidsSearchResult.fx = _boidsForce.x;
   _boidsSearchResult.fy = _boidsForce.y;

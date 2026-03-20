@@ -100,6 +100,7 @@ const gameLoopState: GameLoopState = {
   productions: emptyProductions(),
   bonusData: null,
   phaseElapsed: 0,
+  isAwakened: () => false,
 };
 
 installPhaseCallbacks(gameLoopState);
@@ -197,7 +198,7 @@ function frame(now: number) {
   if (state.codexOpen) {
     demoAccumulator = drainAccumulator(demoAccumulator + dt * BASE_SPEED, () => {
       savePrevPositions();
-      stepWorld(SIM_DT, demoRng, CODEX_DEMO_TEAMS, noShake);
+      stepWorld(SIM_DT, demoRng, { activeTeamCount: CODEX_DEMO_TEAMS, isAwakened: () => false }, noShake);
       updateCodexDemo(SIM_DT);
     });
     setInterpAlpha(demoAccumulator / SIM_DT);

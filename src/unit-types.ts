@@ -13,6 +13,7 @@ import {
 } from './unit-defs-attack.ts';
 import {
   accelerator,
+  ascension,
   bloodborne,
   carrierBay,
   colossus,
@@ -54,6 +55,7 @@ export const TYPES: UnitType[] = [
   accelerator, // 26
   syndicate, // 27
   bloodborne, // 28
+  ascension, // 29
 ];
 
 export const UNIT_TYPE_COUNT = TYPES.length;

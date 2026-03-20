@@ -1,3 +1,7 @@
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
+
 // hexDist — hexagonal distance
 float hexDist(vec2 uv) {
   vec2 av = abs(uv);

@@ -100,10 +100,15 @@ function RoundResultView({
     );
   }
 
+  const isBoss = roundResult.roundType === 'boss';
   return (
     <>
       <RunInfoBar info={runStatus} class={styles.roundInfo} livesClass={styles.lives} />
-      <VictoryTitle victory={roundResult.victory} winText="VICTORY" loseText="DEFEAT" />
+      <VictoryTitle
+        victory={roundResult.victory}
+        winText={isBoss ? 'BOSS DEFEATED' : 'VICTORY'}
+        loseText={isBoss ? 'BOSS SURVIVED' : 'DEFEAT'}
+      />
       <StatRows
         lines={[
           ['戦闘時間:', formatTime(roundResult.elapsed)],

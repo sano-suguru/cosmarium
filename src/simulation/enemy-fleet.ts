@@ -1,11 +1,13 @@
 import { getMothershipDef } from '../mothership-defs.ts';
 import { createProductionSlot, DEFAULT_SLOT_COUNT, filledSlots } from '../production-config.ts';
+import { bossBudgetMul } from '../round-schedule.ts';
 import type { ShopSlot } from '../shop-tiers.ts';
 import { ROUND_CREDITS, slotsToProduction } from '../shop-tiers.ts';
-import type { FleetSetup } from '../types-fleet.ts';
-import { DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE } from '../unit-type-accessors.ts';
-import { TYPES } from '../unit-types.ts';
+import type { UnitTypeIndex } from '../types.ts';
+import type { FleetSetup, ProductionSlot } from '../types-fleet.ts';
+import { COLOSSUS_TYPE, DRONE_TYPE, FIGHTER_TYPE, HIVE_TYPE, unitType } from '../unit-type-accessors.ts';
 import { botFillSlots } from './enemy-fleet-bot.ts';
+import type { FleetProfile } from './enemy-fleet-profile.ts';
 import { deriveArchetypeFromProfile, pickMothershipTypeByRound, profileFleet } from './enemy-fleet-profile.ts';
 
 // 固定NPC
@@ -35,6 +37,28 @@ function generateFixedNpc(round: number): {
   throw new Error(`generateFixedNpc: unexpected round ${round}`);
 }
 
+// 共通艦隊構築
+
+function buildFleet(
+  rng: () => number,
+  round: number,
+  msType: UnitTypeIndex,
+  budget: number,
+): {
+  productionSlots: (ProductionSlot | null)[];
+  botSlots: readonly (ShopSlot | null)[];
+  profile: FleetProfile;
+} {
+  const def = getMothershipDef(msType);
+  const botSlots = botFillSlots(rng, round, budget, def.slotCount);
+  const profile = profileFleet(botSlots);
+  const productionSlots = slotsToProduction(botSlots, def.spawnCountMul);
+  if (filledSlots(productionSlots).length === 0) {
+    productionSlots[0] = createProductionSlot(DRONE_TYPE, unitType(DRONE_TYPE).clusterSize, 0);
+  }
+  return { productionSlots, botSlots, profile };
+}
+
 // Public API
 
 /**
@@ -49,26 +73,38 @@ export function generateEnemySetup(
   readonly archetypeName: string;
   readonly botSlots: readonly (ShopSlot | null)[] | null;
 } {
-  // Phase 1a: 序盤固定NPC（ラウンド1-2）
   if (round <= 2) {
     return generateFixedNpc(round);
   }
 
-  // 母艦先行決定 → creditsPerRound を予算に反映（プレイヤーとの対称性）
   const mothershipType = pickMothershipTypeByRound(rng, round);
   const def = getMothershipDef(mothershipType);
-  const botSlots = botFillSlots(rng, round, ROUND_CREDITS + def.creditsPerRound, def.slotCount);
-  const profile = profileFleet(botSlots);
-
-  const productionSlots = slotsToProduction(botSlots, def.spawnCountMul);
-  // 全 null フォールバック: 最低1つの non-null スロットを保証
-  if (filledSlots(productionSlots).length === 0) {
-    productionSlots[0] = createProductionSlot(DRONE_TYPE, TYPES[DRONE_TYPE]?.clusterSize ?? 1, 0);
-  }
+  const { productionSlots, botSlots, profile } = buildFleet(
+    rng,
+    round,
+    mothershipType,
+    ROUND_CREDITS + def.creditsPerRound,
+  );
 
   return {
     setup: { mothershipType, slots: productionSlots },
     archetypeName: deriveArchetypeFromProfile(profile),
     botSlots,
+  };
+}
+
+/** ボスラウンド用 — 通常敵生成ベースで母艦を Colossus に固定し、追加予算で強化 */
+export function generateBossSetup(
+  rng: () => number,
+  round: number,
+): { readonly setup: FleetSetup; readonly archetypeName: string } {
+  const mothershipType = COLOSSUS_TYPE;
+  const def = getMothershipDef(mothershipType);
+  const budget = Math.floor((ROUND_CREDITS + def.creditsPerRound) * bossBudgetMul(round));
+  const { productionSlots } = buildFleet(rng, round, mothershipType, budget);
+
+  return {
+    setup: { mothershipType, slots: productionSlots },
+    archetypeName: 'BOSS: 超弩級艦隊',
   };
 }

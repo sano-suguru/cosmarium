@@ -6,10 +6,11 @@ import { updateChains } from './chain-lightning.ts';
 import { resetReflected } from './combat-reflect.ts';
 import { buildHash } from './spatial-hash.ts';
 import { spawnParticle, spawnProjectile } from './spawn.ts';
-import { stepOnce, updateBeams, updateParticles, updateTrackingBeams } from './update.ts';
+import { stepOnce } from './update.ts';
 import { applyAllFields } from './update-fields.ts';
 import { decayAndRegen } from './update-fields-regen.ts';
 import { updateProjectiles } from './update-projectiles.ts';
+import { updateBeams, updateParticles, updateTrackingBeams } from './update-vfx.ts';
 
 const rng = makeRng();
 const shake = () => undefined;

@@ -4,6 +4,7 @@ import { NO_TYPE } from './types.ts';
 import type { FleetSetup } from './types-fleet.ts';
 import {
   ACCELERATOR_TYPE,
+  ASCENSION_TYPE,
   BLOODBORNE_TYPE,
   CARRIER_BAY_TYPE,
   COLOSSUS_TYPE,
@@ -38,6 +39,10 @@ export interface MothershipDef {
   readonly sellBonus: number;
   /** 母艦HP倍率。スポーン後に適用 */
   readonly mothershipHpMul: number;
+  /** 覚醒時 HP 乗算倍率（デフォルト 1.0 = 覚醒ボーナスなし） */
+  readonly awakeningHpMul: number;
+  /** 覚醒時 DMG 乗算倍率（デフォルト 1.0 = 覚醒ボーナスなし） */
+  readonly awakeningDmgMul: number;
 }
 
 const MS_DEFAULTS = {
@@ -51,6 +56,8 @@ const MS_DEFAULTS = {
   freeRerolls: 0,
   sellBonus: 0,
   mothershipHpMul: 1.0,
+  awakeningHpMul: 1.0,
+  awakeningDmgMul: 1.0,
 } as const;
 
 const HIVE_DEF: MothershipDef = {
@@ -132,6 +139,22 @@ const BLOODBORNE_DEF: MothershipDef = {
   mothershipHpMul: 0.5,
 };
 
+/** 覚醒前のベーススロット数 */
+const ASCENSION_BASE_SLOTS = 4;
+/** 覚醒に必要なマージ回数 */
+export const ASCENSION_MERGE_THRESHOLD = 10;
+
+const ASCENSION_DEF: MothershipDef = {
+  ...MS_DEFAULTS,
+  type: ASCENSION_TYPE,
+  name: 'Ascension',
+  description: 'マージ10回で覚醒→HP+30%＆DMG+20%',
+  slotCount: ASCENSION_BASE_SLOTS,
+  botWeights: [0, 0, 0],
+  awakeningHpMul: 1.3,
+  awakeningDmgMul: 1.2,
+};
+
 /** UI セレクタ用の母艦定義リスト */
 export const MOTHERSHIP_DEFS: readonly MothershipDef[] = [
   HIVE_DEF,
@@ -142,6 +165,7 @@ export const MOTHERSHIP_DEFS: readonly MothershipDef[] = [
   ACCELERATOR_DEF,
   SYNDICATE_DEF,
   BLOODBORNE_DEF,
+  ASCENSION_DEF,
 ];
 
 const _defsByType = new Map<number, MothershipDef>(MOTHERSHIP_DEFS.map((d) => [d.type, d]));
@@ -156,11 +180,28 @@ const NEUTRAL_DEF: MothershipDef = {
 };
 
 /**
- * 母艦タイプから MothershipDef を取得。
+ * 母艦タイプから MothershipDef を取得（純粋ルックアップ）。
  * NO_TYPE（母艦未配備/撃沈後）の場合はニュートラルデフォルトを返す。
  */
 export function getMothershipDef(t: UnitTypeIndex): MothershipDef {
   return _defsByType.get(t) ?? NEUTRAL_DEF;
+}
+
+/** 母艦タイプとマージ回数から覚醒状態を判定する（純粋関数） */
+export function isMothershipAwakened(msType: UnitTypeIndex, mergeCount: number): boolean {
+  const def = getMothershipDef(msType);
+  const hasAwakeningBonus = def.awakeningHpMul !== 1 || def.awakeningDmgMul !== 1;
+  return hasAwakeningBonus && mergeCount >= ASCENSION_MERGE_THRESHOLD;
+}
+
+export function resolveUnitHpMul(msType: UnitTypeIndex, awakened: boolean): number {
+  const def = getMothershipDef(msType);
+  return awakened ? def.unitHpMul * def.awakeningHpMul : def.unitHpMul;
+}
+
+export function resolveUnitDmgMul(msType: UnitTypeIndex, awakened: boolean): number {
+  const def = getMothershipDef(msType);
+  return awakened ? def.unitDmgMul * def.awakeningDmgMul : def.unitDmgMul;
 }
 
 /**

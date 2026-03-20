@@ -16,7 +16,7 @@ import {
   setUnitCount,
 } from '../pools.ts';
 import { particle, projectile, squadron, unit } from '../pools-query.ts';
-import { _resetShopListeners } from '../shop.ts';
+import { _resetShopListeners, initShop } from '../shop.ts';
 import { resetChains } from '../simulation/chain-lightning.ts';
 import type { TeamCombatMods } from '../simulation/combat-context.ts';
 import { _resetSweepHits } from '../simulation/combat-sweep.ts';
@@ -32,12 +32,27 @@ import { resetTeamCenters } from '../simulation/team-center.ts';
 import type { GameLoopState } from '../simulation/update.ts';
 import { seedRng, state } from '../state.ts';
 import type { Team } from '../team.ts';
-import type { UnitIndex, UnitTypeIndex } from '../types.ts';
+import type { UnitIndex, UnitType, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
-import { _resetGameControl } from '../ui/game-control.ts';
+import { _resetGameControlState } from '../ui/game-control.ts';
 import { _resetKeyboardControls } from '../ui/keyboard-controls.ts';
-import { DEFAULT_UNIT_TYPE } from '../unit-type-accessors.ts';
+import { DEFAULT_UNIT_TYPE, unitType } from '../unit-type-accessors.ts';
+
+/** テスト用: UnitType のプロパティを一時的にオーバーライドし、復元関数を返す。try/finally で使用すること */
+export function overrideType(typeIdx: UnitTypeIndex, overrides: Partial<UnitType>): () => void {
+  const t = unitType(typeIdx) as unknown as Record<string, unknown>;
+  const saved: Record<string, unknown> = {};
+  for (const key of Object.keys(overrides)) {
+    saved[key] = t[key];
+    t[key] = (overrides as Record<string, unknown>)[key];
+  }
+  return () => {
+    for (const [k, v] of Object.entries(saved)) {
+      t[k] = v;
+    }
+  };
+}
 
 export function resetPools() {
   const uHwm = getUnitHWM();
@@ -143,10 +158,11 @@ export function resetPools() {
   _resetBattleTracker();
   _resetMeleeTracker();
   _resetFleetCompose();
-  _resetGameControl();
+  _resetGameControlState();
   _resetKeyboardControls();
   _resetShopListeners();
   resetTeamCenters();
+  initShop();
 }
 
 /** プールを意図的に満杯にするテスト専用ヘルパー。Readonly<> を bypass するため型キャストを使用 */
@@ -228,6 +244,7 @@ export function makeGameLoopState(battlePhase: GameLoopState['battlePhase'] = 's
     productions: emptyProductions(),
     bonusData: null,
     phaseElapsed: 0,
+    isAwakened: () => false,
   };
 }
 

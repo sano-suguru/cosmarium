@@ -1292,3 +1292,30 @@
     float exhaust=exp(-length(p-vec2(-0.52,0.0))*10.0)*(0.5+0.5*sin(t*4.0));
     a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+vein+coreGlow+exhaust*0.40;
     a=shapeSoftClamp(a, sh); }
+
+  // [SHAPE:29 Ascension] ————————————————————————————
+  else if(sh==29){ vec2 p=vU*0.85; float t=vA+uTime;
+    // Ascension: crystalline evolving mothership
+    float r=length(p);
+    float ang=atan(p.y,p.x);
+    // Diamond hull with slight rotation
+    vec2 rp=vec2(p.x*0.707-p.y*0.707, p.x*0.707+p.y*0.707);
+    float dDiamond=max(abs(rp.x),abs(rp.y))-0.42;
+    // Circular inner ring
+    float dRing=abs(r-0.28)-0.02;
+    float dBody=min(dDiamond,dRing);
+    // Radiating facets (6-fold symmetry)
+    float facetAng=mod(ang+PI/6.0, PI/3.0)-PI/6.0;
+    float dFacet=abs(r*sin(facetAng))-0.015;
+    float facetMask=step(0.18,r)*step(r,0.40);
+    dBody=min(dBody,dFacet+0.02*(1.0-facetMask));
+    float aa, hf, rim; shapeAA(dBody, sh, aa, hf, rim);
+    // Pulsing core (awakening energy)
+    float pulse=0.5+0.5*sin(t*2.5);
+    float coreGlow=exp(-r*8.0)*pulse*0.6;
+    // Facet shimmer
+    float shimmer=exp(-abs(r-0.35)*12.0)*(0.3+0.2*sin(ang*6.0+t*3.0));
+    // Outer aura
+    float aura=exp(-max(0.0,r-0.42)*6.0)*pulse*0.25;
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+coreGlow+shimmer*0.4+aura;
+    a=shapeSoftClamp(a, sh); }

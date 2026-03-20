@@ -9,5 +9,5 @@ afterEach(() => {
 vi.mock('../ui/game-control.ts', () => ({
   setSpd: vi.fn(),
   initUI: vi.fn(),
-  _resetGameControl: vi.fn(),
+  _resetGameControlState: vi.fn(),
 }));

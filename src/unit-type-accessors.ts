@@ -62,6 +62,7 @@ export const CARRIER_BAY_TYPE = T('Carrier Bay');
 export const ACCELERATOR_TYPE = T('Accelerator');
 export const SYNDICATE_TYPE = T('Syndicate');
 export const BLOODBORNE_TYPE = T('Bloodborne');
+export const ASCENSION_TYPE = T('Ascension');
 export const DEFAULT_UNIT_TYPE = 0 as UnitTypeIndex;
 export const TYPE_INDICES: readonly UnitTypeIndex[] = TYPES.map((_, i) => i as UnitTypeIndex);
 export function unitTypeName(idx: UnitTypeIndex): string {

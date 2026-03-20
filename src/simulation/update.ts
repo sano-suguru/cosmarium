@@ -1,19 +1,16 @@
-import { beams, getBeam, getTrackingBeam, releaseBeam, releaseTrackingBeam, trackingBeams } from '../beams.ts';
 import { BONUS_TIME_LIMIT } from '../bonus-round.ts';
-import { NEIGHBOR_RANGE, REF_FPS } from '../constants.ts';
-import { getMothershipArmament, getMothershipDef } from '../mothership-defs.ts';
-import { particleIdx, unitIdx } from '../pool-index.ts';
+import { NEIGHBOR_RANGE } from '../constants.ts';
+import { getMothershipArmament, getMothershipDef, resolveUnitDmgMul } from '../mothership-defs.ts';
+import { unitIdx } from '../pool-index.ts';
 import {
   countAliveMotherships,
-  getParticleHWM,
   getUnitHWM,
   mothershipIdx,
   mothershipType,
   poolCounts,
   teamUnitCounts,
 } from '../pools.ts';
-import { particle, unit } from '../pools-query.ts';
-import { swapRemove } from '../swap-remove.ts';
+import { unit } from '../pools-query.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { TEAM0, TEAM1, TEAMS, teamAt } from '../team.ts';
 import type { Armament, BattlePhase, Unit, UnitIndex, UnitType } from '../types.ts';
@@ -30,12 +27,12 @@ import type { ReinforcementState } from './reinforcements.ts';
 import { reinforce } from './reinforcements.ts';
 import type { NeighborSlice } from './spatial-hash.ts';
 import { buildHash, getNeighbors } from './spatial-hash.ts';
-import { killParticle } from './spawn.ts';
 import { updateSquadronObjectives } from './squadron.ts';
 import { steerWithNeighbors } from './steering.ts';
 import { applyAllFields } from './update-fields.ts';
 import { decayAndRegen } from './update-fields-regen.ts';
 import { updateProjectiles } from './update-projectiles.ts';
+import { updateBeams, updateParticles, updateTrackingBeams } from './update-vfx.ts';
 import { checkBattleWin, checkMeleeWin } from './win-check.ts';
 
 /** 全チーム分の生産状態タプル */
@@ -46,57 +43,6 @@ const SWARM_RADIUS_SQ = SWARM_RADIUS * SWARM_RADIUS;
 
 if (SWARM_RADIUS > NEIGHBOR_RANGE) {
   throw new Error(`SWARM_RADIUS (${SWARM_RADIUS}) が NEIGHBOR_RANGE (${NEIGHBOR_RANGE}) を超えています`);
-}
-
-export function updateParticles(dt: number) {
-  for (let i = 0, rem = poolCounts.particles; i < getParticleHWM() && rem > 0; i++) {
-    const pp = particle(i);
-    if (!pp.alive) {
-      continue;
-    }
-    rem--;
-    pp.x += pp.vx * dt;
-    pp.y += pp.vy * dt;
-    const drag = 0.97 ** (dt * REF_FPS);
-    pp.vx *= drag;
-    pp.vy *= drag;
-    pp.life -= dt;
-    if (pp.life <= 0) {
-      killParticle(particleIdx(i));
-    }
-  }
-}
-
-export function updateBeams(dt: number) {
-  for (let i = 0; i < beams.length; ) {
-    const bm = getBeam(i);
-    bm.life -= dt;
-    if (bm.life <= 0) {
-      releaseBeam(bm);
-      swapRemove(beams, i);
-    } else {
-      i++;
-    }
-  }
-}
-
-export function updateTrackingBeams(dt: number) {
-  for (let i = 0; i < trackingBeams.length; ) {
-    const tb = getTrackingBeam(i);
-    tb.life -= dt;
-    const src = unit(tb.srcUnit);
-    const tgt = unit(tb.tgtUnit);
-    if (tb.life <= 0 || !src.alive || !tgt.alive || src.team !== tgt.team) {
-      releaseTrackingBeam(tb);
-      swapRemove(trackingBeams, i);
-      continue;
-    }
-    tb.x1 = src.x;
-    tb.y1 = src.y;
-    tb.x2 = tgt.x;
-    tb.y2 = tgt.y;
-    i++;
-  }
 }
 
 function countSwarmFromNeighbors(u: Unit, nb: NeighborSlice): number {
@@ -149,8 +95,14 @@ const _teamMods: TeamTuple<MutableTeamCombatMods> = [
 ];
 const _msArmament: TeamTuple<Armament | null> = [null, null, null, null, null];
 
+type WorldStepConfig = {
+  activeTeamCount: number;
+  isAwakened: (team: Team) => boolean;
+};
+
 /** 全チームの母艦攻撃クールダウン倍率・武装をプリコンピュート */
-function initializeMothershipStats(activeTeamCount: number) {
+function initializeMothershipStats(config: WorldStepConfig) {
+  const { activeTeamCount, isAwakened } = config;
   for (const t of TEAMS) {
     _teamMods[t].attackCdMul = 1;
     _teamMods[t].dmgMul = 1;
@@ -158,9 +110,10 @@ function initializeMothershipStats(activeTeamCount: number) {
   }
   for (let t = 0; t < activeTeamCount; t++) {
     const team = teamAt(t);
+    const awake = isAwakened(team);
     const msDef = getMothershipDef(mothershipType[team]);
     _teamMods[team].attackCdMul = msDef.attackCdMul;
-    _teamMods[team].dmgMul = msDef.unitDmgMul;
+    _teamMods[team].dmgMul = resolveUnitDmgMul(mothershipType[team], awake);
     _msArmament[team] = getMothershipArmament(mothershipType[team]);
   }
 }
@@ -193,8 +146,8 @@ function processOneUnit(u: Unit, i: number, dt: number, rng: () => number, shake
   processTrailAndBoost(u, ut, dt, rng, wasNotBoosting);
 }
 
-function processAllUnits(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn) {
-  initializeMothershipStats(activeTeamCount);
+function processAllUnits(dt: number, rng: () => number, config: WorldStepConfig, shake: ShakeFn) {
+  initializeMothershipStats(config);
   for (let i = 0, rem = poolCounts.units; i < getUnitHWM() && rem > 0; i++) {
     const u = unit(i);
     if (!u.alive) {
@@ -205,9 +158,8 @@ function processAllUnits(dt: number, rng: () => number, activeTeamCount: number,
   }
 }
 
-export interface GameLoopState extends ReinforcementState {
+export interface GameLoopState extends ReinforcementState, WorldStepConfig {
   battlePhase: BattlePhase;
-  activeTeamCount: number;
   productions: Productions;
   bonusData: BonusPhaseData | null;
   phaseElapsed: number;
@@ -220,8 +172,8 @@ function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'dr
       return null;
     case 'battle': {
       const cap = computeProductionCap(2);
-      tickProduction(dt, TEAM0, rng, gs.productions[0], cap);
-      tickProduction(dt, TEAM1, rng, gs.productions[1], cap);
+      tickProduction(dt, TEAM0, rng, gs.productions[0], cap, gs.isAwakened(TEAM0));
+      tickProduction(dt, TEAM1, rng, gs.productions[1], cap, gs.isAwakened(TEAM1));
       return checkBattleWin();
     }
     case 'melee': {
@@ -229,7 +181,7 @@ function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'dr
       const cap = computeProductionCap(Math.max(1, aliveMs));
       for (let t = 0; t < gs.activeTeamCount; t++) {
         const team = teamAt(t);
-        tickProduction(dt, team, rng, gs.productions[team], cap);
+        tickProduction(dt, team, rng, gs.productions[team], cap, gs.isAwakened(team));
       }
       return checkMeleeWin(gs.activeTeamCount);
     }
@@ -239,7 +191,7 @@ function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'dr
         throw new Error('bonus phase without bonusData');
       }
       const cap = computeProductionCap(gs.activeTeamCount);
-      tickProduction(dt, TEAM0, rng, gs.productions[0], cap);
+      tickProduction(dt, TEAM0, rng, gs.productions[0], cap, gs.isAwakened(TEAM0));
       // ボーナスに敗北はない: 母艦撃沈・タイムアップ・全撃破いずれも TEAM0 勝利
       if (mothershipIdx[0] === NO_UNIT || gs.phaseElapsed >= BONUS_TIME_LIMIT || teamUnitCounts[TEAM1] === 0) {
         return TEAM0;
@@ -257,12 +209,12 @@ function stepPhase(dt: number, rng: () => number, gs: GameLoopState): Team | 'dr
   }
 }
 
-export function stepWorld(dt: number, rng: () => number, activeTeamCount: number, shake: ShakeFn): void {
-  buildHash(activeTeamCount);
+export function stepWorld(dt: number, rng: () => number, config: WorldStepConfig, shake: ShakeFn): void {
+  buildHash(config.activeTeamCount);
   resetReflected();
   updateSquadronObjectives(dt, rng);
 
-  processAllUnits(dt, rng, activeTeamCount, shake);
+  processAllUnits(dt, rng, config, shake);
   decayAndRegen(dt);
   applyAllFields(dt);
 
@@ -279,6 +231,6 @@ export function stepOnce(
   gameState: GameLoopState,
   shake: ShakeFn,
 ): Team | 'draw' | null {
-  stepWorld(dt, rng, gameState.activeTeamCount, shake);
+  stepWorld(dt, rng, gameState, shake);
   return stepPhase(dt, rng, gameState);
 }

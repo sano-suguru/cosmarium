@@ -118,7 +118,7 @@ function resolveTarget(
     return _resolveResult;
   }
   if (rng() < 1 - (1 - GLOBAL_TARGET_PROB) ** (dt * REF_FPS)) {
-    _resolveResult.target = findNearestGlobalEnemy(u, massWeight);
+    _resolveResult.target = findNearestGlobalEnemy(u, massWeight, aggroRange * aggroRange);
     return _resolveResult;
   }
   _resolveResult.target = NO_UNIT;

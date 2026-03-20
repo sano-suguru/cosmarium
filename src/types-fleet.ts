@@ -15,16 +15,16 @@ export type BattleResult = {
   readonly enemyKills: number;
 };
 
-export type RoundType = 'battle' | 'ffa' | 'bonus';
+export type RoundType = 'battle' | 'boss' | 'ffa' | 'bonus';
 
 export type RoundScheduleEntry = {
   readonly roundType: RoundType;
   readonly preview: boolean;
 };
 
-/** 戦闘系ラウンド結果（battle / ffa 共通） */
+/** 戦闘系ラウンド結果（battle / boss / ffa 共通） */
 export type CombatRoundResult = {
-  readonly roundType: 'battle' | 'ffa';
+  readonly roundType: 'battle' | 'boss' | 'ffa';
   readonly round: number;
   readonly victory: boolean;
   readonly elapsed: number;
@@ -46,7 +46,7 @@ export type RoundResult = CombatRoundResult | BonusRoundResult;
 
 /** processRoundEnd への入力: ラウンドタイプと報酬の対応を型で保証 */
 export type RoundEndInput =
-  | { readonly roundType: 'battle' | 'ffa'; readonly battleResult: BattleResult }
+  | { readonly roundType: 'battle' | 'boss' | 'ffa'; readonly battleResult: BattleResult }
   | { readonly roundType: 'bonus'; readonly battleResult: BattleResult; readonly bonusReward: BonusReward };
 
 export type RunStatus = {

@@ -184,6 +184,12 @@ export interface UnitType {
   shieldCooldown: number;
   /** 1回の生産でスポーンする基礎クラスター数 */
   clusterSize: number;
+  /** Boids separation 重み（デフォルト 3） */
+  separationWeight: number;
+  /** Boids alignment 重み（デフォルト 0.5） */
+  alignmentWeight: number;
+  /** Boids cohesion 重み（デフォルト 0.01） */
+  cohesionWeight: number;
 }
 
 /** ユニットのCodexデモで「どの能力を見せるか」を決めるフラグ名。aoe/shots は number 型のため対象外。'burst' は UnitType プロパティ名ではなく shots > 1 の派生フラグ */

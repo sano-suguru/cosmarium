@@ -58,15 +58,15 @@ export function profileFleet(slots: readonly (ShopSlot | null)[]): FleetProfile 
  * profileFleet とは独立 — 母艦→予算→艦隊の順序制約のため、母艦をプロファイルより先に確定する。
  * MOTHERSHIP_DEFS の botWeights からフェーズ別重みを取得するデータ駆動方式。
  */
-export function pickMothershipTypeByRound(rng: () => number, round: number): UnitTypeIndex {
-  let phase: number;
+function roundToPhase(round: number): number {
   if (round <= 4) {
-    phase = 0;
-  } else if (round <= 8) {
-    phase = 1;
-  } else {
-    phase = 2;
+    return 0;
   }
+  return round <= 8 ? 1 : 2;
+}
+
+export function pickMothershipTypeByRound(rng: () => number, round: number): UnitTypeIndex {
+  const phase = roundToPhase(round);
   const candidates: { weight: number; type: UnitTypeIndex }[] = [];
   for (const def of MOTHERSHIP_DEFS) {
     const w = def.botWeights[phase] ?? 0;

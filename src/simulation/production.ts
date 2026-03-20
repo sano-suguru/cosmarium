@@ -1,5 +1,5 @@
 import { POOL_UNITS } from '../constants.ts';
-import { getMothershipDef } from '../mothership-defs.ts';
+import { getMothershipDef, resolveUnitHpMul } from '../mothership-defs.ts';
 import { mothershipIdx, mothershipType, poolCounts, teamUnitCounts } from '../pools.ts';
 import { unit } from '../pools-query.ts';
 import { getProductionTime, MAX_CLUSTERS_PER_TICK, MAX_SLOT_COUNT } from '../production-config.ts';
@@ -166,7 +166,14 @@ function updateTimers(ps: ProductionState, dt: number, prodTimes: Float64Array):
   }
 }
 
-export function tickProduction(dt: number, team: Team, rng: () => number, ps: ProductionState, unitCap: number): void {
+export function tickProduction(
+  dt: number,
+  team: Team,
+  rng: () => number,
+  ps: ProductionState,
+  unitCap: number,
+  isAwakened: boolean,
+): void {
   const mIdx = mothershipIdx[team];
   if (mIdx === NO_UNIT) {
     return;
@@ -181,7 +188,9 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
     return;
   }
 
-  const def = getMothershipDef(mothershipType[team]);
+  const msType = mothershipType[team];
+  const def = getMothershipDef(msType);
+  const hpMul = resolveUnitHpMul(msType, isAwakened);
 
   // スロット数がキャッシュサイズを超えていたらフェイルファスト
   if (ps.slots.length > MAX_SLOT_COUNT) {
@@ -195,6 +204,6 @@ export function tickProduction(dt: number, team: Team, rng: () => number, ps: Pr
 
   // Phase 2 — ラウンドロビンスポーン
   if (teamUnitCounts[team] < unitCap) {
-    roundRobinSpawn(ps, team, rng, unitCap, m.x, m.y, _prodTimesBuf, def.unitHpMul);
+    roundRobinSpawn(ps, team, rng, unitCap, m.x, m.y, _prodTimesBuf, hpMul);
   }
 }

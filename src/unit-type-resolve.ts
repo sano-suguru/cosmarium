@@ -30,7 +30,10 @@ type DefaultKeys =
   | 'maxEnergy'
   | 'energyRegen'
   | 'shieldCooldown'
-  | 'clusterSize';
+  | 'clusterSize'
+  | 'separationWeight'
+  | 'alignmentWeight'
+  | 'cohesionWeight';
 
 const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   aoe: 0,
@@ -59,6 +62,9 @@ const DEFAULTS: Pick<UnitType, DefaultKeys> = {
   energyRegen: 0,
   shieldCooldown: 0,
   clusterSize: 1,
+  separationWeight: 3,
+  alignmentWeight: 0.5,
+  cohesionWeight: 0.01,
 };
 
 export function resolve(partial: Omit<UnitType, DefaultKeys> & Partial<Pick<UnitType, DefaultKeys>>): UnitType {
