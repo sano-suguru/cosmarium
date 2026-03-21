@@ -17,10 +17,11 @@ export type BattleResult = {
 
 export type RoundType = 'battle' | 'boss' | 'ffa' | 'bonus';
 
-export type RoundScheduleEntry = {
-  readonly roundType: RoundType;
-  readonly preview: boolean;
-};
+export type RoundScheduleEntry =
+  | { readonly roundType: 'battle'; readonly preview: false }
+  | { readonly roundType: 'boss'; readonly preview: true }
+  | { readonly roundType: 'ffa'; readonly preview: true }
+  | { readonly roundType: 'bonus'; readonly preview: true; readonly bonusIndex: number };
 
 /** 戦闘系ラウンド結果（battle / boss / ffa 共通） */
 export type CombatRoundResult = {

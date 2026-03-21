@@ -1126,43 +1126,68 @@
 
   // [SHAPE:22 Asteroid] ————————————————————————————
   else if(sh==22){ vec2 p=vU*0.58; float t=vA+uTime;
-    // Irregular rocky asteroid — circle + noise deformation
     float r=length(p);
     float ang=atan(p.y,p.x);
-    // Noise deformation for irregular silhouette
-    float noise=0.08*sin(ang*3.0+1.2)+0.06*sin(ang*5.0-0.8)+0.04*sin(ang*7.0+2.5);
+    // Multi-octave noise deformation for jagged silhouette
+    float n1=0.09*sin(ang*3.0+1.2)+0.065*sin(ang*5.0-0.8);
+    float n2=0.045*sin(ang*7.0+2.5)+0.025*sin(ang*11.0-1.6)+0.015*sin(ang*17.0+0.9);
+    float noise=n1+n2;
     float dRock=r-(0.55+noise);
-    // Crater indentations
-    float c1=length(p-vec2(0.15,0.2))-0.12;
-    float c2=length(p-vec2(-0.2,-0.1))-0.10;
-    float c3=length(p-vec2(0.05,-0.25))-0.08;
-    dRock=max(dRock,-0.02+min(min(c1,c2),c3)*0.3);
+    // Crater indentations with depth
+    float c1=length(p-vec2(0.15,0.2))-0.13;
+    float c2=length(p-vec2(-0.22,-0.12))-0.11;
+    float c3=length(p-vec2(0.06,-0.26))-0.09;
+    float c4=length(p-vec2(-0.08,0.32))-0.07;
+    float cMin=min(min(c1,c2),min(c3,c4));
+    dRock=max(dRock,-0.025+cMin*0.28);
     float aa, hf, rim; shapeAA(dRock, sh, aa, hf, rim);
-    // Subtle surface detail
-    float detail=0.15*sin(ang*11.0+t*0.3)*exp(-r*2.0);
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+detail*0.3;
+    // Crater shadow/highlight for 3D depth
+    float craterShade=smoothstep(0.0,0.12,-cMin)*0.25;
+    float craterHi=smoothstep(0.08,0.0,abs(cMin))*exp(-max(dRock,0.0)*12.0)*0.15;
+    // Rocky surface texture — layered high-freq noise
+    float tex=0.12*sin(ang*13.0+p.x*8.0)*sin(ang*9.0-p.y*6.0)*exp(-r*1.8);
+    float ridge=smoothstep(0.42,0.48,abs(sin(ang*6.0+r*4.0)))*exp(-max(dRock,0.0)*10.0)*0.12;
+    // Subtle dust shimmer at rim
+    float dust=exp(-abs(dRock)*18.0)*0.08*(0.5+0.5*sin(t*1.2+ang*8.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+craterShade+craterHi+tex*0.35+ridge+dust;
     a=shapeSoftClamp(a, sh); }
 
   // [SHAPE:23 AsteroidCore] ————————————————————————————
   else if(sh==23){ vec2 p=vU*0.55; float t=vA+uTime;
-    // Larger rock with inner glow
     float r=length(p);
     float ang=atan(p.y,p.x);
-    float noise=0.10*sin(ang*3.0+0.7)+0.07*sin(ang*5.0-1.3)+0.05*sin(ang*7.0+1.8)+0.03*sin(ang*11.0);
-    float dRock=r-(0.58+noise);
-    // Larger craters
-    float c1=length(p-vec2(0.20,0.22))-0.14;
-    float c2=length(p-vec2(-0.25,-0.15))-0.12;
-    float c3=length(p-vec2(0.08,-0.30))-0.10;
-    float c4=length(p-vec2(-0.10,0.30))-0.09;
-    dRock=max(dRock,-0.02+min(min(c1,c2),min(c3,c4))*0.25);
+    // Multi-octave noise for massive jagged silhouette
+    float n1=0.11*sin(ang*3.0+0.7)+0.075*sin(ang*5.0-1.3);
+    float n2=0.055*sin(ang*7.0+1.8)+0.035*sin(ang*11.0)+0.02*sin(ang*15.0-2.1);
+    float dRock=r-(0.58+n1+n2);
+    // Deep craters with varied sizes
+    float c1=length(p-vec2(0.20,0.22))-0.15;
+    float c2=length(p-vec2(-0.26,-0.16))-0.13;
+    float c3=length(p-vec2(0.08,-0.31))-0.11;
+    float c4=length(p-vec2(-0.12,0.31))-0.10;
+    float c5=length(p-vec2(0.30,-0.05))-0.07;
+    float cMin=min(min(c1,c2),min(min(c3,c4),c5));
+    dRock=max(dRock,-0.025+cMin*0.22);
     float aa, hf, rim; shapeAA(dRock, sh, aa, hf, rim);
-    // Inner core glow — pulsing energy
-    float coreGlow=exp(-r*4.0)*(0.6+0.4*sin(t*2.5));
-    // Surface cracks revealing inner light
-    float crack1=abs(sin(ang*4.0+p.x*3.0))*exp(-r*1.5);
-    float crackGlow=smoothstep(0.7,1.0,crack1)*exp(-max(dRock,0.0)*15.0)*0.4;
-    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+coreGlow*0.7+crackGlow;
+    // Crater depth shading
+    float craterShade=smoothstep(0.0,0.14,-cMin)*0.2;
+    // Inner core glow — layered pulsing energy
+    float pulse=0.55+0.3*sin(t*2.5)+0.15*sin(t*4.1+1.3);
+    float coreGlow=exp(-r*3.5)*pulse;
+    float coreRing=exp(-abs(r-0.18)*12.0)*pulse*0.3;
+    // Complex crack network — multiple intersecting veins
+    float ck1=abs(sin(ang*4.0+p.x*3.0+0.5*sin(p.y*5.0)));
+    float ck2=abs(sin(ang*6.0-p.y*4.0+0.4*sin(p.x*6.0)));
+    float ckMask=exp(-max(dRock,0.0)*14.0);
+    float cracks=smoothstep(0.72,1.0,ck1)*0.4+smoothstep(0.78,1.0,ck2)*0.25;
+    float crackGlow=cracks*ckMask*pulse;
+    // Radial energy veins from core
+    float vein=abs(sin(ang*8.0+t*0.8))*exp(-r*2.5);
+    float veinGlow=smoothstep(0.6,0.95,vein)*exp(-max(dRock,0.0)*10.0)*0.2*pulse;
+    // Mineral crystal sparkle
+    float sparkle=pow(max(sin(ang*19.0+p.x*12.0)*sin(ang*13.0-p.y*9.0),0.0),8.0);
+    float sparkleGlow=sparkle*exp(-max(dRock,0.0)*8.0)*0.3*(0.5+0.5*sin(t*5.0+ang*3.0));
+    a=hf*HF_WEIGHT[sh]+rim*RIM_WEIGHT[sh]+craterShade+coreGlow*0.65+coreRing+crackGlow+veinGlow+sparkleGlow;
     a=shapeSoftClamp(a, sh); }
 
   // [SHAPE:24 Colossus] ————————————————————————————

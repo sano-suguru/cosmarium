@@ -15,6 +15,7 @@ import { savePrevPositions, setInterpAlpha } from './interpolation.ts';
 import { advanceMeleeElapsed, advanceMeleeEndTimer, onMeleeEnd } from './melee-tracker.ts';
 import { installPhaseCallbacks } from './phase-callbacks.ts';
 import { getUnitHWM, teamUnitCounts } from './pools.ts';
+import { unit } from './pools-query.ts';
 import { initRenderer } from './renderer/init.ts';
 import { drawMinimap, initMinimap } from './renderer/minimap.ts';
 import { renderFrame } from './renderer/render-pass.ts';
@@ -38,6 +39,7 @@ import { initGameControl } from './ui/game-control.ts';
 import { updateHUD, updateProductionHud } from './ui/hud/Hud.tsx';
 import { initKeyboardControls } from './ui/keyboard-controls.ts';
 import { addKillFeedEntry } from './ui/kill-feed/KillFeed.tsx';
+import { unitType } from './unit-type-accessors.ts';
 
 const BASE_SPEED = 0.55;
 /** result 状態のスロー再生倍率 */
@@ -64,11 +66,11 @@ onKillUnitPermanent((e) => {
   }
   const ki = e.killerTeam !== undefined ? { team: e.killerTeam, type: e.killerType } : null;
   addKillFeedEntry(e.victimTeam, e.victimType, ki);
-  if (e.victimTeam === TEAM1) {
-    if (gameLoopState.battlePhase === 'battle') {
-      addEnemyKill();
-    } else if (gameLoopState.battlePhase === 'bonus' && gameLoopState.bonusData) {
-      recordBonusKill(gameLoopState.bonusData, e.victimType);
+  if (e.victimTeam === TEAM1 && gameLoopState.battlePhase === 'battle') {
+    addEnemyKill();
+  } else if (e.victimTeam === TEAM1 && gameLoopState.battlePhase === 'bonus' && gameLoopState.bonusData) {
+    if (unitType(e.victimType).role === 'environment') {
+      recordBonusKill(gameLoopState.bonusData, unit(e.victim).maxHp);
       addEnemyKill();
     }
   }

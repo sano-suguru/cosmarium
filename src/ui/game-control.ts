@@ -1,6 +1,7 @@
 import { batch } from '@preact/signals';
 import { cam, setAutoFollow, snapCamera } from '../input/camera.ts';
 import { EMPTY_FLEET_SETUP } from '../mothership-defs.ts';
+import { scheduleRound } from '../round-schedule.ts';
 import { _resetRunState, endRun, getRunInfo, isRunActive, resetRun } from '../run.ts';
 import {
   buildFleetFromShop,
@@ -50,7 +51,7 @@ type GameCallbacks = {
   battle: (productions: [ProductionState, ProductionState], roundType: 'battle' | 'boss') => void;
   spectate: () => void;
   melee: (numTeams: number, productions: TeamTuple<ProductionState>) => void;
-  bonus: (production: ProductionState, bonusInfo: { totalHp: number }) => void;
+  bonus: (production: ProductionState, totalHp: number) => void;
 };
 
 function throwNotReady(): never {
@@ -156,10 +157,18 @@ function startFfa(mothershipType: UnitTypeIndex) {
 }
 
 function startBonus(mothershipType: UnitTypeIndex) {
+  const info = getRunInfo();
+  if (!info) {
+    throw new Error('startBonus called without active run');
+  }
+  const entry = scheduleRound(info.round);
+  if (entry.roundType !== 'bonus') {
+    throw new Error(`startBonus: round ${info.round} is not a bonus round`);
+  }
   const setup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
-  const bonusInfo = initBonusField(rng, setup);
-  onBonusStart(bonusInfo.playerProduction, { totalHp: bonusInfo.totalHp });
+  const bonusInfo = initBonusField(rng, setup, entry.bonusIndex);
+  onBonusStart(bonusInfo.playerProduction, bonusInfo.totalHp);
 }
 
 export function launchRound(mothershipType: UnitTypeIndex) {

@@ -21,7 +21,7 @@ const float RIM_THRESH[NUM_SHAPES]=float[NUM_SHAPES](
   // 15-18: Bastion Amplifier Scrambler Catalyst  19: Hive
   0.015, 0.028, 0.030, 0.038, 0.022,
   // 20-23: Dreadnought Reactor Asteroid AsteroidCore
-  0.020, 0.024, 0.022, 0.020,
+  0.020, 0.024, 0.025, 0.023,
   // 24-28: Colossus CarrierBay Accelerator Syndicate Bloodborne  29: Ascension  30-31: reserved
   0.018, 0.022, 0.025, 0.024, 0.020, 0.024, 0.020, 0.020,
   // 32-36: Circle Diamond Homing Beam Lightning
@@ -40,7 +40,7 @@ const float RIM_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // 15-18: Bastion Amplifier Scrambler Catalyst  19: Hive
   0.25, 0.45, 0.48, 0.62, 0.42,
   // 20-23: Dreadnought Reactor Asteroid AsteroidCore
-  0.40, 0.38, 0.45, 0.42,
+  0.40, 0.38, 0.52, 0.48,
   // 24-28: Colossus CarrierBay Accelerator Syndicate Bloodborne  29: Ascension  30-31: reserved
   0.35, 0.40, 0.42, 0.38, 0.45, 0.42, 0.38, 0.38,
   // 32-36: Circle Diamond Homing Beam Lightning
@@ -59,7 +59,7 @@ const float HF_WEIGHT[NUM_SHAPES]=float[NUM_SHAPES](
   // 15-18: Bastion Amplifier Scrambler Catalyst  19: Hive
   0.22, 0.38, 0.38, 0.60, 0.28,
   // 20-23: Dreadnought Reactor Asteroid AsteroidCore
-  0.26, 0.32, 0.30, 0.28,
+  0.26, 0.32, 0.35, 0.32,
   // 24-28: Colossus CarrierBay Accelerator Syndicate Bloodborne  29: Ascension  30-31: reserved
   0.25, 0.30, 0.35, 0.32, 0.28, 0.35, 0.48, 0.48,
   // 32-36: Circle Diamond Homing Beam Lightning

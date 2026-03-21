@@ -1,14 +1,8 @@
-import type { UnitTypeIndex } from './types.ts';
 import type { BonusPhaseData, BonusReward } from './types-fleet.ts';
-import { unitType } from './unit-type-accessors.ts';
 
 /** ボーナスラウンドの制限時間（シミュレーション秒） */
 export const BONUS_TIME_LIMIT = 60;
 
-/** 全撃破時の基本報酬 */
-const BONUS_CR_BASE = 6;
-/** 全撃破ボーナス */
-const BONUS_CR_SWEEP = 2;
 /** 報酬上限 */
 const BONUS_CR_MAX = 8;
 
@@ -25,21 +19,16 @@ export function buildBonusResult(bd: BonusPhaseData): BonusReward {
   };
 }
 
-/** environment ロール検証付きボーナスキル記録（撃破ユニットの最大HPを加算） */
-export function recordBonusKill(bd: BonusPhaseData, victimType: UnitTypeIndex): void {
-  const ut = unitType(victimType);
-  if (ut.role === 'environment') {
-    bd.destroyedHp += ut.hp;
-  }
+/** 撃破ユニットの実 maxHp を加算（role チェックは呼び出し元で実施済み） */
+export function recordBonusKill(bd: BonusPhaseData, victimMaxHp: number): void {
+  bd.destroyedHp += victimMaxHp;
 }
 
-/** ボーナスラウンドの撃破報酬クレジットを計算（質量ベース） */
+/** ボーナスラウンドの撃破報酬クレジットを計算（平方根カーブ） */
 export function computeBonusCredits(destroyedHp: number, totalHp: number): number {
   if (destroyedHp <= 0 || totalHp <= 0) {
     return 0;
   }
   const ratio = Math.min(destroyedHp / totalHp, 1);
-  const base = Math.floor(ratio * BONUS_CR_BASE);
-  const sweep = destroyedHp >= totalHp ? BONUS_CR_SWEEP : 0;
-  return Math.min(base + sweep, BONUS_CR_MAX);
+  return Math.min(Math.floor(Math.sqrt(ratio) * BONUS_CR_MAX), BONUS_CR_MAX);
 }

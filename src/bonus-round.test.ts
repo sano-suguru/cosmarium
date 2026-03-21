@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeBonusCredits } from './bonus-round.ts';
 
-const TOTAL_HP = 11000; // 小200×25 + 大1500×4
+const TOTAL_HP = 10500; // 小200×30 + 大1500×3 (bonusIndex=0)
 
 describe('computeBonusCredits', () => {
   it('0ダメージ → 0', () => {
@@ -12,27 +12,29 @@ describe('computeBonusCredits', () => {
     expect(computeBonusCredits(-1, TOTAL_HP)).toBe(0);
   });
 
-  it('部分撃破 → 完了度に比例した報酬', () => {
-    // 2750/11000 = 0.25 → floor(0.25 * 6) = 1
-    expect(computeBonusCredits(2750, TOTAL_HP)).toBe(1);
+  it('10%撃破 → floor(sqrt(0.1)*8) = 2', () => {
+    expect(computeBonusCredits(TOTAL_HP * 0.1, TOTAL_HP)).toBe(2);
   });
 
-  it('全撃破(11000) → base + sweep', () => {
-    // ratio=1 → floor(1 * 6)=6, sweep=2, total=8
+  it('25%撃破 → floor(sqrt(0.25)*8) = 4', () => {
+    expect(computeBonusCredits(TOTAL_HP * 0.25, TOTAL_HP)).toBe(4);
+  });
+
+  it('50%撃破 → floor(sqrt(0.5)*8) = 5', () => {
+    expect(computeBonusCredits(TOTAL_HP * 0.5, TOTAL_HP)).toBe(5);
+  });
+
+  it('75%撃破 → floor(sqrt(0.75)*8) = 6', () => {
+    expect(computeBonusCredits(TOTAL_HP * 0.75, TOTAL_HP)).toBe(6);
+  });
+
+  it('全撃破 → 8', () => {
     expect(computeBonusCredits(TOTAL_HP, TOTAL_HP)).toBe(8);
   });
 
   it('MAX を超過しない', () => {
     expect(computeBonusCredits(TOTAL_HP, TOTAL_HP)).toBeLessThanOrEqual(8);
     expect(computeBonusCredits(50000, TOTAL_HP)).toBeLessThanOrEqual(8);
-  });
-
-  it('小1体分(200) → floor(200/11000 * 6) = 0', () => {
-    expect(computeBonusCredits(200, TOTAL_HP)).toBe(0);
-  });
-
-  it('小10体分(2000) → floor(2000/11000 * 6) = 1', () => {
-    expect(computeBonusCredits(2000, TOTAL_HP)).toBe(1);
   });
 
   it('報酬は撃破HPの増加に対して単調非減少', () => {

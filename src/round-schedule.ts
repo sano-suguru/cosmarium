@@ -10,15 +10,15 @@ export function scheduleRound(round: number): RoundScheduleEntry {
     throw new Error(`scheduleRound: invalid round ${round}`);
   }
   if (round % BOSS_PERIOD === 0) {
-    return { roundType: 'boss', preview: true };
+    return { roundType: 'boss', preview: true } as const;
   }
   if (round % FFA_PERIOD === 0) {
-    return { roundType: 'ffa', preview: true };
+    return { roundType: 'ffa', preview: true } as const;
   }
   if (round >= BONUS_OFFSET && round % FFA_PERIOD === BONUS_OFFSET) {
-    return { roundType: 'bonus', preview: true };
+    return { roundType: 'bonus', preview: true, bonusIndex: Math.floor((round - BONUS_OFFSET) / FFA_PERIOD) };
   }
-  return { roundType: 'battle', preview: false };
+  return { roundType: 'battle', preview: false } as const;
 }
 
 const BOSS_ESCALATION_EVERY = 2;

@@ -1,5 +1,6 @@
 import { getMothershipDef } from '../mothership-defs.ts';
 import { clearAllPools, getUnitHWM, mothershipIdx, registerMothership } from '../pools.ts';
+import { unit } from '../pools-query.ts';
 import type { Team, TeamTuple } from '../team.ts';
 import { teamsOf } from '../team.ts';
 import type { UnitTypeIndex } from '../types.ts';
@@ -28,7 +29,6 @@ import {
   SCRAMBLER_TYPE,
   SNIPER_TYPE,
   TELEPORTER_TYPE,
-  unitType,
 } from '../unit-type-accessors.ts';
 import { resetChains } from './chain-lightning.ts';
 import { emptyProductions, initProductionState } from './production.ts';
@@ -129,14 +129,28 @@ export function initMeleeProduction(
   return productions;
 }
 
-/** 小アステロイド配置数 */
-const BONUS_SMALL_COUNT = 25;
-/** 大アステロイドコア配置数 */
-const BONUS_LARGE_COUNT = 4;
-/** アステロイド散布半径（battleOrigin 基準） */
-const BONUS_SPREAD = 1600;
+/** 基本小アステロイド配置数 */
+const BONUS_SMALL_BASE = 30;
+/** 基本大アステロイドコア配置数 */
+const BONUS_LARGE_BASE = 3;
+/** 基本アステロイド散布半径（battleOrigin 基準） */
+const BONUS_SPREAD_BASE = 1600;
 /** 大アステロイドの散布倍率（中央に寄せる） */
 const BONUS_LARGE_SPREAD_MUL = 0.6;
+/** idx=0: 30体×1.0hp, idx=2: 54体×2.0hp, idx=5: 90体×3.5hp */
+const BONUS_SCALING = {
+  countGrowth: 0.4,
+  hpGrowth: 0.5,
+  spreadGrowth: 0.15,
+} as const;
+
+function bonusScaling(idx: number) {
+  return {
+    countMul: 1 + idx * BONUS_SCALING.countGrowth,
+    hpMul: 1 + idx * BONUS_SCALING.hpGrowth,
+    spreadMul: 1 + idx * BONUS_SCALING.spreadGrowth,
+  };
+}
 
 interface BonusFieldInfo {
   readonly totalHp: number;
@@ -146,9 +160,16 @@ interface BonusFieldInfo {
 /**
  * ボーナスラウンドのフィールドを初期化する。
  * プレイヤー母艦 + アステロイド配置（敵母艦なし）。
+ * round に応じて個数・HP・散布範囲をスケーリング。
  */
-export function initBonusField(rng: () => number, playerSetup: FleetSetup): BonusFieldInfo {
+export function initBonusField(rng: () => number, playerSetup: FleetSetup, bonusIdx: number): BonusFieldInfo {
   resetField();
+
+  const { countMul, hpMul, spreadMul } = bonusScaling(bonusIdx);
+
+  const smallCount = Math.round(BONUS_SMALL_BASE * countMul);
+  const largeCount = Math.round(BONUS_LARGE_BASE * countMul);
+  const spread = BONUS_SPREAD_BASE * spreadMul;
 
   // プレイヤー母艦（team 0）
   const [cx0, cy0] = battleOrigin(0);
@@ -156,18 +177,32 @@ export function initBonusField(rng: () => number, playerSetup: FleetSetup): Bonu
 
   // アステロイド配置（team 1 = プレイヤーの攻撃対象）
   const [cx1, cy1] = battleOrigin(1);
-  const asteroidHp = unitType(ASTEROID_TYPE).hp;
-  const largeHp = unitType(ASTEROID_LARGE_TYPE).hp;
-  const largeSpread = BONUS_SPREAD * BONUS_LARGE_SPREAD_MUL;
+  const largeSpread = spread * BONUS_LARGE_SPREAD_MUL;
 
-  for (let i = 0; i < BONUS_SMALL_COUNT; i++) {
-    spawnUnit(1, ASTEROID_TYPE, cx1 + (rng() - 0.5) * BONUS_SPREAD, cy1 + (rng() - 0.5) * BONUS_SPREAD, rng);
+  for (let i = 0; i < smallCount; i++) {
+    spawnUnit(1, ASTEROID_TYPE, cx1 + (rng() - 0.5) * spread, cy1 + (rng() - 0.5) * spread, rng, 0, hpMul);
   }
-  for (let i = 0; i < BONUS_LARGE_COUNT; i++) {
-    spawnUnit(1, ASTEROID_LARGE_TYPE, cx1 + (rng() - 0.5) * largeSpread, cy1 + (rng() - 0.5) * largeSpread, rng);
+  for (let i = 0; i < largeCount; i++) {
+    spawnUnit(
+      1,
+      ASTEROID_LARGE_TYPE,
+      cx1 + (rng() - 0.5) * largeSpread,
+      cy1 + (rng() - 0.5) * largeSpread,
+      rng,
+      0,
+      hpMul,
+    );
   }
 
-  const totalHp = BONUS_SMALL_COUNT * asteroidHp + BONUS_LARGE_COUNT * largeHp;
+  let totalHp = 0;
+  const hwm = getUnitHWM();
+  for (let i = 0; i < hwm; i++) {
+    const u = unit(i);
+    if (u.alive && u.team === 1) {
+      totalHp += u.maxHp;
+    }
+  }
+
   const playerProduction = initProductionState(playerSetup.slots);
   return { totalHp, playerProduction };
 }

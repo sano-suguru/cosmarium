@@ -106,8 +106,8 @@ export function installPhaseCallbacks(gs: GameLoopState) {
       setupMeleeHUD(numTeams);
       showMothershipHpBar(numTeams);
     },
-    bonus(production: ProductionState, bonusInfo: { totalHp: number }) {
-      initBattlePhase(gs, 'bonus', [production, emptyProduction()], createBonusData(bonusInfo.totalHp));
+    bonus(production: ProductionState, totalHp: number) {
+      initBattlePhase(gs, 'bonus', [production, emptyProduction()], createBonusData(totalHp));
       showMothershipHpBar(1);
     },
   });

@@ -11,16 +11,21 @@ describe('scheduleRound', () => {
     }
   });
 
-  it('returns bonus with preview for round 3 (FFA_PERIOD*n+BONUS_OFFSET pattern)', () => {
-    for (const r of [
+  it('returns bonus with preview and bonusIndex for round 3 (FFA_PERIOD*n+BONUS_OFFSET pattern)', () => {
+    const rounds = [
       BONUS_OFFSET,
       FFA_PERIOD + BONUS_OFFSET,
       FFA_PERIOD * 2 + BONUS_OFFSET,
       FFA_PERIOD * 3 + BONUS_OFFSET,
-    ]) {
+    ];
+    for (let i = 0; i < rounds.length; i++) {
+      const r = rounds[i] as number;
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('bonus');
       expect(entry.preview).toBe(true);
+      if (entry.roundType === 'bonus') {
+        expect(entry.bonusIndex).toBe(i);
+      }
     }
   });
 
@@ -64,6 +69,23 @@ describe('scheduleRound', () => {
       expect(entry.roundType).toBe('battle');
       expect(entry.preview).toBe(false);
     }
+  });
+
+  it('bonusIndex は0始まりで単調増加', () => {
+    let prevIdx = -1;
+    let count = 0;
+    for (let r = 1; r <= 50; r++) {
+      const entry = scheduleRound(r);
+      if (entry.roundType === 'bonus') {
+        if (count === 0) {
+          expect(entry.bonusIndex).toBe(0);
+        }
+        expect(entry.bonusIndex).toBeGreaterThan(prevIdx);
+        prevIdx = entry.bonusIndex;
+        count++;
+      }
+    }
+    expect(count).toBeGreaterThan(0);
   });
 });
 
