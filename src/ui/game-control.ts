@@ -25,7 +25,6 @@ import type { FleetSetup, ProductionState } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
 import { getSelectedMothershipType, resetMothershipType, setMothershipType } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
-import { _resetMothershipSelect } from './mothership-select/MothershipSelect.tsx';
 import { prepareRoundEnemy } from './round-enemy.ts';
 import {
   composeEnemyArchName$,
@@ -232,7 +231,6 @@ export function startNewRun() {
 
 export function confirmMothership(mothershipType: UnitTypeIndex) {
   setMothershipType(mothershipType);
-  _resetMothershipSelect();
   initShopRound(createRng(uniqueSeed()), 1, 0, mothershipType);
   applyRoundEnemy(1);
   goToCompose();
@@ -264,7 +262,6 @@ export function _resetGameControlState() {
   unsubShop?.();
   unsubShop = null;
   composePhase$.value = null;
-  _resetMothershipSelect();
   state.gameState = 'menu';
   state.codexOpen = false;
   _resetRunState();

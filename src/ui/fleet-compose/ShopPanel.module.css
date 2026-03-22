@@ -57,6 +57,7 @@
   font-family: "Share Tech Mono", monospace;
   text-align: center;
   transition: border-color 0.15s;
+  animation: cardAppear 0.2s ease-out;
 }
 .shopCard:hover:not(.shopCardDisabled):not(.shopCardEmpty) {
   border-color: rgba(0, 255, 255, 0.4);
@@ -132,6 +133,38 @@
   color: #444;
   border-color: rgba(255, 255, 255, 0.08);
   cursor: default;
+}
+
+/* === アニメーション === */
+.shrinkOut {
+  composes: shrinkOut from "../shared/shrink-out.module.css";
+  --shrink-scale: 0.8;
+}
+.rerollOut {
+  animation: rerollOut var(--anim-dur, 200ms) ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rerollOut {
+  from {
+    opacity: 1;
+    transform: perspective(400px) rotateY(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: perspective(400px) rotateY(90deg);
+  }
 }
 
 /* モバイル */

@@ -32,6 +32,42 @@
   box-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
 }
 
+/* === パルスアニメーション === */
+.pulseSpend {
+  animation: creditPulseSpend 0.3s ease-out;
+}
+.pulseGain {
+  animation: creditPulseGain 0.3s ease-out;
+}
+
+@keyframes creditPulseSpend {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 160, 0, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 12px rgba(255, 160, 0, 0.3),
+      inset 0 0 8px rgba(255, 160, 0, 0.06);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 160, 0, 0);
+  }
+}
+
+@keyframes creditPulseGain {
+  0% {
+    box-shadow: 0 0 0 rgba(0, 255, 128, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 12px rgba(0, 255, 128, 0.3),
+      inset 0 0 8px rgba(0, 255, 128, 0.06);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(0, 255, 128, 0);
+  }
+}
+
 /* モバイル */
 @media (pointer: coarse), (max-width: 768px) {
   .creditBar {

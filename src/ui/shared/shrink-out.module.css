@@ -1,0 +1,15 @@
+@keyframes shrinkOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--shrink-scale, 0.8));
+  }
+}
+
+.shrinkOut {
+  animation: shrinkOut var(--anim-dur, 250ms) ease-in forwards;
+  pointer-events: none;
+}

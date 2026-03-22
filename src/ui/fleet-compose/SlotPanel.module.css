@@ -21,7 +21,11 @@
   gap: 10px;
   padding: 8px 0;
 }
+.slotWrapper {
+  position: relative;
+}
 .slotCard {
+  position: relative;
   background: rgba(0, 20, 40, 0.6);
   border: 1px solid rgba(0, 255, 255, 0.1);
   border-radius: 4px;
@@ -111,6 +115,75 @@
   background: #0ff;
   box-shadow: 0 0 4px #0ff;
 }
+
+/* === アニメーション === */
+.pulseIn {
+  animation: pulseIn var(--anim-dur, 400ms) ease-out;
+}
+.mergeFlash {
+  animation: mergeFlash var(--anim-dur, 500ms) ease-out;
+}
+.shrinkOut {
+  composes: shrinkOut from "../shared/shrink-out.module.css";
+  --shrink-scale: 0.85;
+}
+
+.floatCredit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "Orbitron", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f8;
+  text-shadow: 0 0 8px rgba(0, 255, 128, 0.6);
+  pointer-events: none;
+  animation: floatUp var(--anim-dur, 600ms) ease-out forwards;
+}
+
+@keyframes pulseIn {
+  0% {
+    box-shadow: 0 0 0 rgba(0, 255, 128, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(0, 255, 128, 0.4),
+      inset 0 0 12px rgba(0, 255, 128, 0.08);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(0, 255, 128, 0);
+  }
+}
+
+@keyframes mergeFlash {
+  0% {
+    background: rgba(0, 30, 50, 0.7);
+    box-shadow: 0 0 0 rgba(255, 255, 0, 0);
+  }
+  40% {
+    background: rgba(80, 80, 0, 0.4);
+    box-shadow:
+      0 0 20px rgba(255, 255, 0, 0.3),
+      inset 0 0 16px rgba(255, 255, 0, 0.1);
+  }
+  100% {
+    background: rgba(0, 30, 50, 0.7);
+    box-shadow: 0 0 0 rgba(255, 255, 0, 0);
+  }
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 30px));
+  }
+}
+
 /* モバイル */
 @media (pointer: coarse), (max-width: 768px) {
   .slotGrid {

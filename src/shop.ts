@@ -78,16 +78,27 @@ export function initShopRound(
 import { snapshotOfferings, snapshotSlots } from './shop-state.ts';
 export { getShopCredits, getShopFreeRerolls, snapshotOfferings, snapshotSlots };
 
-/** 同タイプスロットへのマージ試行。成功ならスロットindex、不可なら -1 */
-function tryMergeSlot(typeIdx: UnitTypeIndex): number {
+export type BuyTarget = { idx: number; isMerge: boolean };
+
+/** 購入先スロット判定（マージ優先 → 空スロット）。1パス走査。 */
+export function findBuyTarget(typeIdx: UnitTypeIndex): BuyTarget {
   const slots = readSlots();
+  let firstEmpty = -1;
   for (let i = 0; i < slots.length; i++) {
     const s = slots[i];
     if (s && s.type === typeIdx && mergeExpToLevel(s.mergeExp) < MAX_MERGE_LEVEL) {
-      return i;
+      return { idx: i, isMerge: true };
+    }
+    if (s === null && firstEmpty < 0) {
+      firstEmpty = i;
     }
   }
-  return -1;
+  return { idx: firstEmpty, isMerge: false };
+}
+
+/** 売却時の獲得クレジット計算 */
+export function calculateSellCredit(mergeExp: number): number {
+  return sellPrice(mergeExp) + getShopSellBonus();
 }
 
 /** offering 単位の購入可否チェック。'ok' = 購入可能 */
@@ -95,20 +106,19 @@ function checkPurchase(item: ShopItem): PurchaseCheck {
   if (getShopCredits() < SHOP_PRICE) {
     return 'no_credits';
   }
-  const slots = readSlots();
-  const mergeIdx = tryMergeSlot(item.type);
-  if (mergeIdx >= 0) {
-    return 'ok'; // マージ可能
+  const target = findBuyTarget(item.type);
+  if (target.isMerge) {
+    return 'ok';
   }
-  // マージ不可 + 同タイプ既存 → ★3到達
+  // マージ不可 + 同タイプ既存 → ★3到達（重複配置禁止）
+  const slots = readSlots();
   if (slots.some((s) => s !== null && s.type === item.type)) {
     return 'max_star';
   }
-  // 空スロットなし → 満杯
-  if (!slots.some((s) => s === null)) {
-    return 'slots_full';
+  if (target.idx >= 0) {
+    return 'ok'; // 空スロットあり
   }
-  return 'ok';
+  return 'slots_full';
 }
 
 /** offerings[idx] の購入可否を返す。'ok' = 購入可能 */
@@ -132,7 +142,7 @@ export function getShopPurchaseBlocks(): PurchaseCheck[] {
 }
 
 /** 購入: offerings[idx] → スロットへ配置 or マージ。成功 true */
-export function purchaseItem(offeringIdx: number): boolean {
+export function purchaseItem(offeringIdx: number, expectedTarget?: BuyTarget): boolean {
   const offerings = readOfferings();
   const item = offerings[offeringIdx];
   if (!item) {
@@ -142,28 +152,27 @@ export function purchaseItem(offeringIdx: number): boolean {
     return false;
   }
 
-  // 既存スロットに同タイプがあればマージ
-  const mergeIdx = tryMergeSlot(item.type);
-  if (mergeIdx >= 0) {
+  const target = findBuyTarget(item.type);
+  if (expectedTarget && (target.idx !== expectedTarget.idx || target.isMerge !== expectedTarget.isMerge)) {
+    return false;
+  }
+
+  if (target.isMerge) {
     deductCredits(SHOP_PRICE);
-    incrementMergeExp(mergeIdx);
+    incrementMergeExp(target.idx);
     clearOffering(offeringIdx);
     notifyChange();
     return true;
   }
 
-  // 空スロットに配置
-  const slots = readSlots();
-  for (let i = 0; i < slots.length; i++) {
-    if (slots[i] === null) {
-      deductCredits(SHOP_PRICE);
-      const t = TYPES[item.type];
-      const baseCount = t?.clusterSize ?? 1;
-      placeSlot(i, { type: item.type, baseCount, mergeExp: 0 });
-      clearOffering(offeringIdx);
-      notifyChange();
-      return true;
-    }
+  if (target.idx >= 0) {
+    deductCredits(SHOP_PRICE);
+    const t = TYPES[item.type];
+    const baseCount = t?.clusterSize ?? 1;
+    placeSlot(target.idx, { type: item.type, baseCount, mergeExp: 0 });
+    clearOffering(offeringIdx);
+    notifyChange();
+    return true;
   }
 
   return false;
@@ -175,7 +184,7 @@ export function sellSlot(slotIdx: number): boolean {
   if (!s) {
     return false;
   }
-  addCredits(sellPrice(s.mergeExp) + getShopSellBonus());
+  addCredits(calculateSellCredit(s.mergeExp));
   clearSlot(slotIdx);
   notifyChange();
   return true;
