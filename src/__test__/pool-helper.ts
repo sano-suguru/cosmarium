@@ -35,8 +35,10 @@ import type { Team } from '../team.ts';
 import type { UnitIndex, UnitType, UnitTypeIndex } from '../types.ts';
 import { NO_SQUADRON, NO_UNIT } from '../types.ts';
 import { _resetFleetCompose } from '../ui/fleet-compose/FleetCompose.tsx';
+import { _resetRetireButton } from '../ui/fleet-compose/RetireButton.tsx';
 import { _resetGameControlState } from '../ui/game-control.ts';
 import { _resetKeyboardControls } from '../ui/keyboard-controls.ts';
+import { _resetMothershipSelect } from '../ui/mothership-select/MothershipSelect.tsx';
 import { DEFAULT_UNIT_TYPE, unitType } from '../unit-type-accessors.ts';
 
 /** テスト用: UnitType のプロパティを一時的にオーバーライドし、復元関数を返す。try/finally で使用すること */
@@ -158,6 +160,8 @@ export function resetPools() {
   _resetBattleTracker();
   _resetMeleeTracker();
   _resetFleetCompose();
+  _resetRetireButton();
+  _resetMothershipSelect();
   _resetGameControlState();
   _resetKeyboardControls();
   _resetShopListeners();

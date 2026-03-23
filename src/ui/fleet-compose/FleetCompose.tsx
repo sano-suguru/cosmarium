@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { ArrowLeft, BookOpen, RotateCcw, ShieldAlert, Swords } from 'lucide-preact';
+import { BookOpen, ShieldAlert, Swords } from 'lucide-preact';
 import { ASCENSION_MERGE_THRESHOLD, getMothershipDef } from '../../mothership-defs.ts';
 import { getRunInfo } from '../../run.ts';
 import type { BuyTarget } from '../../shop.ts';
@@ -8,13 +8,13 @@ import type { UnitTypeIndex } from '../../types.ts';
 import type { RoundType } from '../../types-fleet.ts';
 import { ASCENSION_TYPE, HIVE_TYPE } from '../../unit-type-accessors.ts';
 import { createAnimSlot } from '../anim-guard.ts';
-import { resetCurrentRoundShop } from '../game-control.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
 import { composeEnemyArchName$, composeEnemySetup$, runMergeCount$, shopOfferings$, shopSlots$ } from '../signals.ts';
 import { FLOAT_CREDIT_MS, MERGE_FLASH_MS, PULSE_IN_MS, REROLL_OUT_MS, SHRINK_OUT_MS } from './anim-timing.ts';
 import { CreditBar } from './CreditBar.tsx';
 import styles from './FleetCompose.module.css';
+import { RetireButton } from './RetireButton.tsx';
 import { ShopPanel } from './ShopPanel.tsx';
 import { SlotPanel } from './SlotPanel.tsx';
 
@@ -140,11 +140,11 @@ function EnemyFleetHeader() {
 
 type FleetComposeProps = {
   readonly onLaunch: (mothershipType: UnitTypeIndex) => void;
-  readonly onBack: () => void;
+  readonly onRetire: () => void;
   readonly onCodexToggle: () => void;
 };
 
-export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposeProps) {
+export function FleetCompose({ onLaunch, onRetire, onCodexToggle }: FleetComposeProps) {
   const runInfo = getRunInfo();
   const hasSlotFilled = shopSlots$.value.some((s) => s !== null);
 
@@ -228,6 +228,7 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
 
   return (
     <>
+      <RetireButton onRetire={onRetire} />
       <div class={styles.compose}>
         {runInfo && <RunInfoBar info={runInfo} class={styles.roundInfo} livesClass={styles.lives} />}
         <CreditBar
@@ -256,18 +257,6 @@ export function FleetCompose({ onLaunch, onBack, onCodexToggle }: FleetComposePr
         />
         <AscensionProgress />
         <div class={styles.actions}>
-          <button type="button" class={btnStyles.btn} onClick={onBack}>
-            <ArrowLeft size={14} /> BACK
-          </button>
-          <button
-            type="button"
-            class={`${btnStyles.btn} ${styles.reset}`}
-            onClick={() => {
-              resetCurrentRoundShop();
-            }}
-          >
-            <RotateCcw size={14} /> RESET
-          </button>
           <button
             type="button"
             class={`${btnStyles.btn} ${styles.launch}`}

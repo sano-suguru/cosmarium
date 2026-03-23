@@ -47,7 +47,7 @@ function App() {
         <MothershipSelect onConfirm={confirmMothership} onBack={goToMenu} />
       )}
       {composePhase$.value === 'fleet' && !codexOpen$.value && (
-        <FleetCompose onLaunch={launchRound} onBack={goToMenu} onCodexToggle={onCodexToggle} />
+        <FleetCompose onLaunch={launchRound} onRetire={goToMenu} onCodexToggle={onCodexToggle} />
       )}
       {resultData && <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />}
       {gameState$.value === 'play' && (

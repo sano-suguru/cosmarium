@@ -90,15 +90,6 @@
 .actions button {
   min-width: 180px;
 }
-.reset {
-  border-color: rgba(255, 100, 100, 0.3);
-  color: #f88;
-}
-.reset:hover {
-  background: rgba(255, 100, 100, 0.07);
-  border-color: #f88;
-  text-shadow: 0 0 10px #f88;
-}
 .launch {
   border-color: rgba(0, 255, 255, 0.4);
 }

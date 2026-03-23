@@ -87,14 +87,6 @@ export function initGameControl(): void {
 function uniqueSeed(): number {
   return ((Date.now() ^ (performance.now() * 1000)) + ++seedCounter) >>> 0;
 }
-export function resetCurrentRoundShop(): void {
-  const info = getRunInfo();
-  if (!info) {
-    throw new Error('resetCurrentRoundShop: run is not active');
-  }
-  initShop();
-  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits, getSelectedMothershipType());
-}
 function resetCam() {
   cam.targetX = 0;
   cam.targetY = 0;
