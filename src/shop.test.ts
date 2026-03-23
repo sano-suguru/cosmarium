@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { makeRng } from './__test__/pool-helper.ts';
 import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
+import { MAX_MERGE_LEVEL, mergeBonusLevel, mergeExpToLevel } from './merge-config.ts';
 import { DEFAULT_SLOT_COUNT } from './production-config.ts';
 import {
   buildFleetFromShop,
@@ -20,9 +21,6 @@ import { _setShopCredits, _setShopRng, _setShopSlot, readOfferings, readSlots } 
 import type { ShopSlot } from './shop-tiers.ts';
 import {
   effectiveCount,
-  MAX_MERGE_LEVEL,
-  mergeBonusLevel,
-  mergeExpToLevel,
   REROLL_COST,
   ROUND_CREDITS,
   SHOP_PRICE,

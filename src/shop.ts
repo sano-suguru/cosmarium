@@ -1,3 +1,4 @@
+import { MAX_MERGE_LEVEL, mergeExpToLevel } from './merge-config.ts';
 import { getMothershipDef } from './mothership-defs.ts';
 import {
   addCredits,
@@ -19,8 +20,6 @@ import {
   toggleOfferingLock,
 } from './shop-state.ts';
 import {
-  MAX_MERGE_LEVEL,
-  mergeExpToLevel,
   type PurchaseCheck,
   REROLL_COST,
   SHOP_PRICE,

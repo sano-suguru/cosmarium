@@ -1,8 +1,9 @@
 import { Layers, Trash2 } from 'lucide-preact';
+import { mergeExpToLevel } from '../../merge-config.ts';
 import { getMothershipDef } from '../../mothership-defs.ts';
 import { getProductionTime } from '../../production-config.ts';
 import type { ShopSlot } from '../../shop-tiers.ts';
-import { mergeExpToLevel, sellPrice, spawnCount } from '../../shop-tiers.ts';
+import { sellPrice, spawnCount } from '../../shop-tiers.ts';
 import type { UnitTypeIndex } from '../../types.ts';
 import { TYPES } from '../../unit-types.ts';
 import { shopSlots$ } from '../signals.ts';

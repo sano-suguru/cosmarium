@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { resetPools, resetState } from '../__test__/pool-helper.ts';
+import { MAX_MERGE_LEVEL, mergeExpToLevel } from '../merge-config.ts';
 import { getMothershipDef, MOTHERSHIP_DEFS } from '../mothership-defs.ts';
 import { DEFAULT_SLOT_COUNT, filledSlots } from '../production-config.ts';
 import type { ShopSlot } from '../shop-tiers.ts';
-import { MAX_MERGE_LEVEL, mergeExpToLevel, ROUND_CREDITS, SHOP_PRICE } from '../shop-tiers.ts';
+import { ROUND_CREDITS, SHOP_PRICE } from '../shop-tiers.ts';
 import { rng } from '../state.ts';
 import type { ProductionSlot } from '../types-fleet.ts';
 import { ASCENSION_TYPE, COLOSSUS_TYPE, unitTypeCost } from '../unit-type-accessors.ts';

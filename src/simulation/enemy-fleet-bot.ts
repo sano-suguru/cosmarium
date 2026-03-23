@@ -1,6 +1,7 @@
+import { MAX_MERGE_LEVEL, mergeExpToLevel } from '../merge-config.ts';
 import { DEFAULT_SLOT_COUNT } from '../production-config.ts';
 import type { ShopSlot, WeightedCandidate } from '../shop-tiers.ts';
-import { buildWeightedCandidates, MAX_MERGE_LEVEL, mergeExpToLevel, SHOP_PRICE } from '../shop-tiers.ts';
+import { buildWeightedCandidates, SHOP_PRICE } from '../shop-tiers.ts';
 import type { UnitTypeIndex } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { weightedPick } from '../weighted-pick.ts';

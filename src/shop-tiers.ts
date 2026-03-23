@@ -1,5 +1,5 @@
 import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
-import { MAX_MERGE_EXP } from './merge-config.ts';
+import { mergeBonusLevel, mergeExpToLevel } from './merge-config.ts';
 import { createProductionSlot } from './production-config.ts';
 import type { UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
@@ -30,7 +30,6 @@ export const ROUND_CREDITS = 10;
 export const REROLL_COST = 1;
 export const SHOP_SIZE = 5;
 export const SHOP_PRICE = 3;
-export const MAX_MERGE_LEVEL = 3;
 
 /** ラウンド依存のティア重み。[low, mid, high] を返す */
 const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
@@ -40,21 +39,6 @@ const TIER_WEIGHTS: Record<TierPhase, readonly [number, number, number]> = {
 };
 
 const TIER_IDX: Record<Tier, 0 | 1 | 2> = { low: 0, mid: 1, high: 2 };
-
-export function mergeExpToLevel(exp: number): number {
-  if (exp >= MAX_MERGE_EXP) {
-    return 3;
-  }
-  if (exp >= 2) {
-    return 2;
-  }
-  return 1;
-}
-
-/** ボーナス段階 (0,1,2)。表示レベル (1,2,3) から 1 を引いた値 */
-export function mergeBonusLevel(exp: number): number {
-  return mergeExpToLevel(exp) - 1;
-}
 
 function mergeBonusCount(baseCount: number): number {
   return Math.max(1, Math.floor(baseCount * 0.5));
@@ -66,10 +50,6 @@ export function effectiveCount(slot: ShopSlot): number {
 
 export function spawnCount(slot: ShopSlot, spawnCountMul: number): number {
   return Math.max(1, Math.round(effectiveCount(slot) * spawnCountMul));
-}
-
-export function sellPrice(mergeExp: number): number {
-  return mergeExpToLevel(mergeExp);
 }
 
 export const COST_LOW_MAX = 3;
@@ -117,4 +97,9 @@ export function slotsToProduction(
     }
     return createProductionSlot(s.type, spawnCount(s, spawnCountMul), s.mergeExp);
   });
+}
+
+/** 売却額 = レベルと同額（GDD §3-D: Lv1=1Cr, Lv2=2Cr, Lv3=3Cr） */
+export function sellPrice(mergeExp: number): number {
+  return mergeExpToLevel(mergeExp);
 }
