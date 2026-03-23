@@ -1,6 +1,7 @@
 import { effect } from '@preact/signals';
 import { render } from 'preact';
 import { useEffect } from 'preact/hooks';
+import { getRunMothershipType } from '../run.ts';
 import { BattleResult } from './battle-result/BattleResult.tsx';
 import { Codex } from './codex/Codex.tsx';
 import { DevOverlay } from './dev-overlay/DevOverlay.tsx';
@@ -37,17 +38,23 @@ function App() {
   }, []);
 
   const resultData = resultData$.value;
+  const compose = composePhase$.value;
 
   return (
     <>
       {gameState$.value === 'menu' && !codexOpen$.value && (
         <Menu onStart={startNewRun} onSpectate={startSpectate} onMelee={startMelee} onCodex={onCodexToggle} />
       )}
-      {composePhase$.value === 'mothership' && !codexOpen$.value && (
+      {compose === 'mothership' && !codexOpen$.value && (
         <MothershipSelect onConfirm={confirmMothership} onBack={goToMenu} />
       )}
-      {composePhase$.value === 'fleet' && !codexOpen$.value && (
-        <FleetCompose onLaunch={launchRound} onRetire={goToMenu} onCodexToggle={onCodexToggle} />
+      {compose === 'fleet' && !codexOpen$.value && (
+        <FleetCompose
+          mothershipType={getRunMothershipType()}
+          onLaunch={launchRound}
+          onRetire={goToMenu}
+          onCodexToggle={onCodexToggle}
+        />
       )}
       {resultData && <BattleResult data={resultData} onMenu={goToMenu} onNextRound={advanceRound} />}
       {gameState$.value === 'play' && (

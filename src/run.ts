@@ -1,4 +1,6 @@
 import { scheduleRound } from './round-schedule.ts';
+import type { UnitTypeIndex } from './types.ts';
+import { NO_TYPE } from './types.ts';
 import type { RoundEndInput, RoundResult, RunResult, RunStatus } from './types-fleet.ts';
 export const RUN_MAX_LIVES = 5;
 export const RUN_WIN_TARGET = 10;
@@ -10,6 +12,7 @@ type RoundOutcome =
 
 type RunState = {
   active: boolean;
+  mothershipType: UnitTypeIndex;
   round: number;
   lives: number;
   wins: number;
@@ -20,6 +23,7 @@ type RunState = {
 
 const run: RunState = {
   active: false,
+  mothershipType: NO_TYPE,
   round: 0,
   lives: 0,
   wins: 0,
@@ -30,6 +34,7 @@ const run: RunState = {
 
 function clearRunFields(active: boolean, round: number, lives: number) {
   run.active = active;
+  run.mothershipType = NO_TYPE;
   run.round = round;
   run.lives = lives;
   run.wins = 0;
@@ -48,6 +53,29 @@ export function endRun() {
 
 export function isRunActive(): boolean {
   return run.active;
+}
+
+export function lockMothership(type: UnitTypeIndex): void {
+  if (!run.active) {
+    throw new Error('lockMothership called without active run');
+  }
+  if (type === NO_TYPE) {
+    throw new Error('lockMothership called with NO_TYPE');
+  }
+  if (run.mothershipType !== NO_TYPE) {
+    throw new Error('Mothership already locked for this run');
+  }
+  run.mothershipType = type;
+}
+
+export function getRunMothershipType(): UnitTypeIndex {
+  if (!run.active) {
+    throw new Error('getRunMothershipType called without active run');
+  }
+  if (run.mothershipType === NO_TYPE) {
+    throw new Error('Mothership not yet locked for this run');
+  }
+  return run.mothershipType;
 }
 
 export function getRunInfo(): RunStatus | null {

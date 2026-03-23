@@ -6,7 +6,7 @@ import type { BuyTarget } from '../../shop.ts';
 import { calculateSellCredit, findBuyTarget, purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
 import type { UnitTypeIndex } from '../../types.ts';
 import type { RoundType } from '../../types-fleet.ts';
-import { ASCENSION_TYPE, HIVE_TYPE } from '../../unit-type-accessors.ts';
+import { ASCENSION_TYPE } from '../../unit-type-accessors.ts';
 import { createAnimSlot } from '../anim-guard.ts';
 import btnStyles from '../shared/button.module.css';
 import { RunInfoBar } from '../shared/RunInfoBar.tsx';
@@ -57,23 +57,9 @@ function launchLabel(rt: RoundType | undefined): string {
 }
 
 const shopGeneration$ = signal(0);
-const mothershipType$ = signal<UnitTypeIndex>(HIVE_TYPE);
-
-export function resetMothershipType() {
-  mothershipType$.value = HIVE_TYPE;
-}
-
-export function getSelectedMothershipType(): UnitTypeIndex {
-  return mothershipType$.value;
-}
-
-export function setMothershipType(type: UnitTypeIndex) {
-  mothershipType$.value = type;
-}
 
 /** テスト専用: モジュールレベル変数をリセット */
 export function _resetFleetCompose() {
-  resetMothershipType();
   buyOutAnim.cancel();
   buyInAnim.cancel();
   sellAnim.cancel();
@@ -83,8 +69,8 @@ export function _resetFleetCompose() {
   shopGeneration$.value = 0;
 }
 
-function AscensionProgress() {
-  if (mothershipType$.value !== ASCENSION_TYPE) {
+function AscensionProgress({ mothershipType }: { readonly mothershipType: UnitTypeIndex }) {
+  if (mothershipType !== ASCENSION_TYPE) {
     return null;
   }
   const merges = runMergeCount$.value;
@@ -139,18 +125,19 @@ function EnemyFleetHeader() {
 }
 
 type FleetComposeProps = {
-  readonly onLaunch: (mothershipType: UnitTypeIndex) => void;
+  readonly mothershipType: UnitTypeIndex;
+  readonly onLaunch: () => void;
   readonly onRetire: () => void;
   readonly onCodexToggle: () => void;
 };
 
-export function FleetCompose({ onLaunch, onRetire, onCodexToggle }: FleetComposeProps) {
+export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle }: FleetComposeProps) {
   const runInfo = getRunInfo();
   const hasSlotFilled = shopSlots$.value.some((s) => s !== null);
 
   const handleLaunch = () => {
     if (hasSlotFilled) {
-      onLaunch(mothershipType$.value);
+      onLaunch();
     }
   };
 
@@ -247,7 +234,7 @@ export function FleetCompose({ onLaunch, onRetire, onCodexToggle }: FleetCompose
           generation={shopGeneration$.value}
         />
         <SlotPanel
-          mothershipType={mothershipType$.value}
+          mothershipType={mothershipType}
           onSell={handleSell}
           buyInSlotIdx={buyInVal ? buyInVal.slotIdx : null}
           buyInIsMerge={buyInVal ? buyInVal.isMerge : false}
@@ -255,7 +242,7 @@ export function FleetCompose({ onLaunch, onRetire, onCodexToggle }: FleetCompose
           floatCreditSlotIdx={floatCreditVal ? floatCreditVal.slotIdx : null}
           floatCreditAmount={floatCreditVal ? floatCreditVal.amount : 0}
         />
-        <AscensionProgress />
+        <AscensionProgress mothershipType={mothershipType} />
         <div class={styles.actions}>
           <button
             type="button"

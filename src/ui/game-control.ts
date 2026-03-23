@@ -2,7 +2,15 @@ import { batch } from '@preact/signals';
 import { cam, setAutoFollow, snapCamera } from '../input/camera.ts';
 import { EMPTY_FLEET_SETUP } from '../mothership-defs.ts';
 import { scheduleRound } from '../round-schedule.ts';
-import { _resetRunState, endRun, getRunInfo, isRunActive, resetRun } from '../run.ts';
+import {
+  _resetRunState,
+  endRun,
+  getRunInfo,
+  getRunMothershipType,
+  isRunActive,
+  lockMothership,
+  resetRun,
+} from '../run.ts';
 import {
   buildFleetFromShop,
   getShopCredits,
@@ -23,7 +31,6 @@ import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale, UnitTypeIndex } from '../types.ts';
 import type { FleetSetup, ProductionState } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
-import { getSelectedMothershipType, resetMothershipType, setMothershipType } from './fleet-compose/FleetCompose.tsx';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
 import { prepareRoundEnemy } from './round-enemy.ts';
 import {
@@ -162,17 +169,18 @@ function startBonus(mothershipType: UnitTypeIndex) {
   onBonusStart(bonusInfo.playerProduction, bonusInfo.totalHp);
 }
 
-export function launchRound(mothershipType: UnitTypeIndex) {
+export function launchRound() {
   const info = getRunInfo();
   if (!info) {
     throw new Error('launchRound called without active run');
   }
+  const msType = getRunMothershipType();
   if (info.roundType === 'ffa') {
-    startFfa(mothershipType);
+    startFfa(msType);
   } else if (info.roundType === 'bonus') {
-    startBonus(mothershipType);
+    startBonus(msType);
   } else {
-    startBattle(mothershipType, info.roundType === 'boss' ? 'boss' : 'battle');
+    startBattle(msType, info.roundType === 'boss' ? 'boss' : 'battle');
   }
 }
 
@@ -189,7 +197,6 @@ export function goToMenu() {
   playUiVisible$.value = false;
   composePhase$.value = null;
   resultData$.value = null;
-  resetMothershipType();
 }
 
 function applyRoundEnemy(round: number) {
@@ -215,14 +222,13 @@ function applyRoundEnemy(round: number) {
 export function startNewRun() {
   resetRun();
   initShop();
-  resetMothershipType();
   seedRng(uniqueSeed());
   state.gameState = 'compose';
   composePhase$.value = 'mothership';
 }
 
 export function confirmMothership(mothershipType: UnitTypeIndex) {
-  setMothershipType(mothershipType);
+  lockMothership(mothershipType);
   initShopRound(createRng(uniqueSeed()), 1, 0, mothershipType);
   applyRoundEnemy(1);
   goToCompose();
@@ -236,7 +242,8 @@ export function advanceRound() {
   if (!info) {
     throw new Error('advanceRound called without active run');
   }
-  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits, getSelectedMothershipType());
+  const msType = getRunMothershipType();
+  initShopRound(createRng(uniqueSeed()), info.round, info.pendingBonusCredits, msType);
   applyRoundEnemy(info.round);
   goToCompose();
 }

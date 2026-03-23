@@ -4,13 +4,17 @@ import {
   _resetRunState,
   endRun,
   getRunInfo,
+  getRunMothershipType,
   isRunActive,
+  lockMothership,
   processRoundEnd,
   RUN_MAX_LIVES,
   RUN_WIN_TARGET,
   resetRun,
 } from './run.ts';
+import { NO_TYPE } from './types.ts';
 import type { BattleResult, BonusReward, RoundEndInput } from './types-fleet.ts';
+import { HIVE_TYPE } from './unit-type-accessors.ts';
 
 function makeBattleResult(overrides: Partial<BattleResult> = {}): BattleResult {
   return {
@@ -223,6 +227,55 @@ describe('run', () => {
       expect(lastOutcome.runResult.cleared).toBe(false);
       expect(lastOutcome.runResult.wins).toBe(1);
       expect(lastOutcome.runResult.roundResults.length).toBeGreaterThanOrEqual(RUN_MAX_LIVES + 1);
+    });
+  });
+
+  describe('lockMothership / getRunMothershipType', () => {
+    it('ラン中に1回だけロック可能', () => {
+      resetRun();
+      lockMothership(HIVE_TYPE);
+      expect(getRunMothershipType()).toBe(HIVE_TYPE);
+    });
+
+    it('NO_TYPE でのロックは throw', () => {
+      resetRun();
+      expect(() => lockMothership(NO_TYPE)).toThrow('NO_TYPE');
+    });
+
+    it('2回目のロックは throw', () => {
+      resetRun();
+      lockMothership(HIVE_TYPE);
+      expect(() => lockMothership(HIVE_TYPE)).toThrow('already locked');
+    });
+
+    it('ラン非アクティブ時のロックは throw', () => {
+      expect(() => lockMothership(HIVE_TYPE)).toThrow('without active run');
+    });
+
+    it('未ロック時の getRunMothershipType は throw', () => {
+      resetRun();
+      expect(() => getRunMothershipType()).toThrow('not yet locked');
+    });
+
+    it('ラン非アクティブ時の getRunMothershipType は throw', () => {
+      expect(() => getRunMothershipType()).toThrow('without active run');
+    });
+
+    it('endRun 後にリセットされる', () => {
+      resetRun();
+      lockMothership(HIVE_TYPE);
+      endRun();
+      expect(isRunActive()).toBe(false);
+    });
+
+    it('resetRun で再ロック可能になる', () => {
+      resetRun();
+      lockMothership(HIVE_TYPE);
+      endRun();
+      resetRun();
+      expect(() => getRunMothershipType()).toThrow('not yet locked');
+      lockMothership(HIVE_TYPE);
+      expect(getRunMothershipType()).toBe(HIVE_TYPE);
     });
   });
 });
