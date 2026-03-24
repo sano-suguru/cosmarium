@@ -29,7 +29,7 @@ import { createRng, rng, seedRng, state } from '../state.ts';
 import type { TeamTuple } from '../team.ts';
 import { MAX_TEAMS } from '../team.ts';
 import type { TimeScale, UnitTypeIndex } from '../types.ts';
-import type { FleetSetup, ProductionState } from '../types-fleet.ts';
+import type { BattleRoundType, FleetSetup, ProductionState } from '../types-fleet.ts';
 import { toggleCodex } from './codex/codex-logic.ts';
 import { updateHudRoundInfo } from './hud/Hud.tsx';
 import { prepareRoundEnemy } from './round-enemy.ts';
@@ -54,7 +54,7 @@ let currentFfaTeamCount = 0;
 
 let seedCounter = 0;
 type GameCallbacks = {
-  battle: (productions: [ProductionState, ProductionState], roundType: 'battle' | 'boss') => void;
+  battle: (productions: [ProductionState, ProductionState], roundType: BattleRoundType) => void;
   spectate: () => void;
   melee: (numTeams: number, productions: TeamTuple<ProductionState>) => void;
   bonus: (production: ProductionState, totalHp: number) => void;
@@ -129,7 +129,7 @@ function enterPlayFromCompose() {
   playUiVisible$.value = true;
   seedRng(uniqueSeed());
 }
-function startBattle(mothershipType: UnitTypeIndex, roundType: 'battle' | 'boss') {
+function startBattle(mothershipType: UnitTypeIndex, roundType: BattleRoundType) {
   const setup = buildFleetFromShop(mothershipType);
   enterPlayFromCompose();
   onBattleStart(initBattleProduction(rng, setup, currentEnemySetup), roundType);
@@ -175,12 +175,22 @@ export function launchRound() {
     throw new Error('launchRound called without active run');
   }
   const msType = getRunMothershipType();
-  if (info.roundType === 'ffa') {
-    startFfa(msType);
-  } else if (info.roundType === 'bonus') {
-    startBonus(msType);
-  } else {
-    startBattle(msType, info.roundType === 'boss' ? 'boss' : 'battle');
+  switch (info.roundType) {
+    case 'battle':
+    case 'boss':
+    case 'pve':
+      startBattle(msType, info.roundType);
+      break;
+    case 'ffa':
+      startFfa(msType);
+      break;
+    case 'bonus':
+      startBonus(msType);
+      break;
+    default: {
+      const _: never = info.roundType;
+      throw new Error(`Unknown roundType: ${_}`);
+    }
   }
 }
 
@@ -208,6 +218,7 @@ function applyRoundEnemy(round: number) {
   switch (s.roundType) {
     case 'battle':
     case 'boss':
+    case 'pve':
       currentEnemySetup = s.enemySetup;
       break;
     case 'ffa':
@@ -216,6 +227,10 @@ function applyRoundEnemy(round: number) {
       break;
     case 'bonus':
       break;
+    default: {
+      const _: never = s;
+      throw new Error(`Unknown roundType: ${(_ as { roundType: string }).roundType}`);
+    }
   }
 }
 

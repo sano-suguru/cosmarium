@@ -13,12 +13,12 @@
  *   - `'spectate'`/`'melee'`/`'meleeEnding'`/`'aftermath'`: advanceBattleTimer は呼ばれない
  */
 import type { Team } from './team.ts';
-import type { BattleResult, BattleSnapshot } from './types-fleet.ts';
+import type { BattleResult, BattleRoundType, BattleSnapshot } from './types-fleet.ts';
 
 /** 全滅検知後の余韻（秒） */
 const BATTLE_END_DELAY = 2;
 
-export type BattleSourcePhase = 'battle' | 'boss' | 'bonus';
+export type BattleSourcePhase = BattleRoundType | 'bonus';
 type FinalizeCb = (result: BattleResult, sourcePhase: BattleSourcePhase) => void;
 const throwUnset: FinalizeCb = () => {
   throw new Error('setOnFinalize() must be called before battle can end');

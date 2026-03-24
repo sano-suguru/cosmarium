@@ -44,16 +44,23 @@ function isAnimBusy(): boolean {
 }
 
 function launchLabel(rt: RoundType | undefined): string {
-  if (rt === 'ffa') {
-    return 'LAUNCH FFA';
+  switch (rt) {
+    case 'ffa':
+      return 'LAUNCH FFA';
+    case 'bonus':
+      return 'LAUNCH BONUS';
+    case 'boss':
+      return 'LAUNCH BOSS';
+    case 'pve':
+      return 'LAUNCH';
+    case 'battle':
+    case undefined:
+      return 'LAUNCH BATTLE';
+    default: {
+      const _: never = rt;
+      throw new Error(`Unknown roundType: ${_ as string}`);
+    }
   }
-  if (rt === 'bonus') {
-    return 'LAUNCH BONUS';
-  }
-  if (rt === 'boss') {
-    return 'LAUNCH BOSS';
-  }
-  return 'LAUNCH BATTLE';
 }
 
 const shopGeneration$ = signal(0);
@@ -95,12 +102,15 @@ function EnemyFleetHeader() {
   const runInfo = getRunInfo();
   const isFfa = runInfo?.roundType === 'ffa';
   const isBonus = runInfo?.roundType === 'bonus';
+  const isPve = runInfo?.roundType === 'pve';
 
   const msDef = !isFfa && !isBonus && setup ? getMothershipDef(setup.mothershipType) : null;
   const slotCount = setup?.slots.filter((s) => s !== null).length ?? 0;
 
   let headerLabel = 'ENEMY FLEET';
-  if (isFfa) {
+  if (isPve) {
+    headerLabel = 'NPC ROUND';
+  } else if (isFfa) {
     headerLabel = 'SPECIAL ROUND';
   } else if (isBonus) {
     headerLabel = 'BONUS ROUND';

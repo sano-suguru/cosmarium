@@ -79,7 +79,7 @@ describe('run', () => {
     expect(info?.lives).toBe(RUN_MAX_LIVES);
     expect(info?.wins).toBe(0);
     expect(info?.winTarget).toBe(RUN_WIN_TARGET);
-    expect(info?.roundType).toBe('battle');
+    expect(info?.roundType).toBe('pve');
   });
 
   it('getRunInfo returns null when run is inactive', () => {
@@ -103,12 +103,12 @@ describe('run', () => {
       expect(outcome.type).toBe('roundComplete');
       if (outcome.type === 'roundComplete') {
         expect(outcome.roundResult.round).toBe(1);
-        expect(outcome.roundResult.roundType).toBe('battle');
+        expect(outcome.roundResult.roundType).toBe('pve');
         if (outcome.roundResult.roundType !== 'bonus') {
           expect(outcome.roundResult.victory).toBe(true);
         }
         expect(outcome.status.round).toBe(2);
-        expect(outcome.status.roundType).toBe('battle');
+        expect(outcome.status.roundType).toBe('pve');
         expect(outcome.status.wins).toBe(1);
         expect(outcome.status.lives).toBe(RUN_MAX_LIVES);
       }

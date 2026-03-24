@@ -3,15 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { BONUS_OFFSET, BOSS_MAX_MUL, BOSS_PERIOD, bossBudgetMul, FFA_PERIOD, scheduleRound } from './round-schedule.ts';
 
 describe('scheduleRound', () => {
-  it('returns battle for rounds 1-2', () => {
+  it('returns pve for rounds 1-2', () => {
     for (let r = 1; r <= 2; r++) {
       const entry = scheduleRound(r);
-      expect(entry.roundType).toBe('battle');
-      expect(entry.preview).toBe(false);
+      expect(entry.roundType).toBe('pve');
     }
   });
 
-  it('returns bonus with preview and bonusIndex for round 3 (FFA_PERIOD*n+BONUS_OFFSET pattern)', () => {
+  it('returns bonus with bonusIndex for round 3 (FFA_PERIOD*n+BONUS_OFFSET pattern)', () => {
     const rounds = [
       BONUS_OFFSET,
       FFA_PERIOD + BONUS_OFFSET,
@@ -22,18 +21,16 @@ describe('scheduleRound', () => {
       const r = rounds[i] as number;
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('bonus');
-      expect(entry.preview).toBe(true);
       if (entry.roundType === 'bonus') {
         expect(entry.bonusIndex).toBe(i);
       }
     }
   });
 
-  it('returns boss with preview for multiples of BOSS_PERIOD', () => {
+  it('returns boss for multiples of BOSS_PERIOD', () => {
     for (const r of [BOSS_PERIOD, BOSS_PERIOD * 2]) {
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('boss');
-      expect(entry.preview).toBe(true);
     }
   });
 
@@ -42,11 +39,10 @@ describe('scheduleRound', () => {
     expect(entry.roundType).toBe('boss');
   });
 
-  it('returns ffa with preview for multiples of FFA_PERIOD (non-boss)', () => {
+  it('returns ffa for multiples of FFA_PERIOD (non-boss)', () => {
     for (const r of [FFA_PERIOD, FFA_PERIOD * 2, FFA_PERIOD * 3, FFA_PERIOD * 4]) {
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('ffa');
-      expect(entry.preview).toBe(true);
     }
   });
 
@@ -67,7 +63,6 @@ describe('scheduleRound', () => {
     for (const r of [4, 6, 9, 11, 12, 16]) {
       const entry = scheduleRound(r);
       expect(entry.roundType).toBe('battle');
-      expect(entry.preview).toBe(false);
     }
   });
 

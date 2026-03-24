@@ -15,17 +15,21 @@ export type BattleResult = {
   readonly enemyKills: number;
 };
 
-export type RoundType = 'battle' | 'boss' | 'ffa' | 'bonus';
+/** battle-tracker が追跡する 1v1 戦闘系ラウンドタイプ */
+export type BattleRoundType = 'battle' | 'boss' | 'pve';
+
+export type RoundType = BattleRoundType | 'ffa' | 'bonus';
 
 export type RoundScheduleEntry =
-  | { readonly roundType: 'battle'; readonly preview: false }
-  | { readonly roundType: 'boss'; readonly preview: true }
-  | { readonly roundType: 'ffa'; readonly preview: true }
-  | { readonly roundType: 'bonus'; readonly preview: true; readonly bonusIndex: number };
+  | { readonly roundType: 'battle' }
+  | { readonly roundType: 'boss' }
+  | { readonly roundType: 'ffa' }
+  | { readonly roundType: 'bonus'; readonly bonusIndex: number }
+  | { readonly roundType: 'pve' };
 
-/** 戦闘系ラウンド結果（battle / boss / ffa 共通） */
+/** 戦闘系ラウンド結果（battle / boss / pve / ffa 共通） */
 export type CombatRoundResult = {
-  readonly roundType: 'battle' | 'boss' | 'ffa';
+  readonly roundType: BattleRoundType | 'ffa';
   readonly round: number;
   readonly victory: boolean;
   readonly elapsed: number;
@@ -45,10 +49,16 @@ export type BonusRoundResult = {
 
 export type RoundResult = CombatRoundResult | BonusRoundResult;
 
-/** processRoundEnd への入力: ラウンドタイプと報酬の対応を型で保証 */
-export type RoundEndInput =
-  | { readonly roundType: 'battle' | 'boss' | 'ffa'; readonly battleResult: BattleResult }
+/** battle-tracker 経由（1v1 戦闘 + ボーナス） */
+export type BattleRoundEndInput =
+  | { readonly roundType: BattleRoundType; readonly battleResult: BattleResult }
   | { readonly roundType: 'bonus'; readonly battleResult: BattleResult; readonly bonusReward: BonusReward };
+
+/** melee-tracker 経由（FFA） */
+export type FfaRoundEndInput = { readonly roundType: 'ffa'; readonly battleResult: BattleResult };
+
+/** processRoundEnd への入力: トラッカー経路別に型で保証 */
+export type RoundEndInput = BattleRoundEndInput | FfaRoundEndInput;
 
 export type RunStatus = {
   readonly round: number;

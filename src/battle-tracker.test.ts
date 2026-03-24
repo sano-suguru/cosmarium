@@ -49,6 +49,34 @@ describe('battle-tracker finalization', () => {
     expect(phases).toEqual(['bonus']);
   });
 
+  it('sourcePhase 束縛: resetBattleTracking("pve") → finalize で sourcePhase === "pve"', () => {
+    _resetBattleTracker();
+    const phases: BattleSourcePhase[] = [];
+    setOnFinalize((_result, sourcePhase) => {
+      phases.push(sourcePhase);
+    });
+
+    resetBattleTracking('pve');
+    onBattleEnd(0 as Team, snap(5, 3));
+    advanceBattleEndTimer(3);
+
+    expect(phases).toEqual(['pve']);
+  });
+
+  it('sourcePhase 束縛: resetBattleTracking("boss") → finalize で sourcePhase === "boss"', () => {
+    _resetBattleTracker();
+    const phases: BattleSourcePhase[] = [];
+    setOnFinalize((_result, sourcePhase) => {
+      phases.push(sourcePhase);
+    });
+
+    resetBattleTracking('boss');
+    onBattleEnd(0 as Team, snap(5, 3));
+    advanceBattleEndTimer(3);
+
+    expect(phases).toEqual(['boss']);
+  });
+
   it('二重 onBattleEnd ガード: 2回目は無視される', () => {
     _resetBattleTracker();
     const calls: BattleResult[] = [];

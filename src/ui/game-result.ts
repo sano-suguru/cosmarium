@@ -1,7 +1,7 @@
 import type { MeleeResult } from '../melee-tracker.ts';
 import { isRunActive, processRoundEnd } from '../run.ts';
 import { state } from '../state.ts';
-import type { RoundEndInput } from '../types-fleet.ts';
+import type { FfaRoundEndInput, RoundEndInput } from '../types-fleet.ts';
 import { meleeResultToBattleResult } from './ffa-round.ts';
 import { playUiVisible$, resultData$ } from './signals.ts';
 
@@ -19,7 +19,8 @@ export function goToResult(input: RoundEndInput) {
 
 export function goToMeleeResult(result: MeleeResult) {
   if (isRunActive()) {
-    goToResult({ roundType: 'ffa', battleResult: meleeResultToBattleResult(result) });
+    const ffaInput: FfaRoundEndInput = { roundType: 'ffa', battleResult: meleeResultToBattleResult(result) };
+    goToResult(ffaInput);
     return;
   }
   state.gameState = 'result';

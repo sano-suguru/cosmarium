@@ -1,6 +1,6 @@
 import { getMothershipDef } from '../mothership-defs.ts';
 import { createProductionSlot, DEFAULT_SLOT_COUNT, filledSlots } from '../production-config.ts';
-import { bossBudgetMul } from '../round-schedule.ts';
+import { bossBudgetMul, NPC_ROUND_LIMIT } from '../round-schedule.ts';
 import type { ShopSlot } from '../shop-tiers.ts';
 import { ROUND_CREDITS, slotsToProduction } from '../shop-tiers.ts';
 import type { UnitTypeIndex } from '../types.ts';
@@ -73,7 +73,7 @@ export function generateEnemySetup(
   readonly archetypeName: string;
   readonly botSlots: readonly (ShopSlot | null)[] | null;
 } {
-  if (round <= 2) {
+  if (round <= NPC_ROUND_LIMIT) {
     return generateFixedNpc(round);
   }
 

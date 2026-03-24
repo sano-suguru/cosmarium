@@ -1,5 +1,6 @@
 import type { RoundScheduleEntry } from './types-fleet.ts';
 
+export const NPC_ROUND_LIMIT = 2;
 export const BOSS_PERIOD = 7;
 export const FFA_PERIOD = 5;
 export const BONUS_OFFSET = 3;
@@ -9,16 +10,19 @@ export function scheduleRound(round: number): RoundScheduleEntry {
   if (round < 1) {
     throw new Error(`scheduleRound: invalid round ${round}`);
   }
+  if (round <= NPC_ROUND_LIMIT) {
+    return { roundType: 'pve' } as const;
+  }
   if (round % BOSS_PERIOD === 0) {
-    return { roundType: 'boss', preview: true } as const;
+    return { roundType: 'boss' } as const;
   }
   if (round % FFA_PERIOD === 0) {
-    return { roundType: 'ffa', preview: true } as const;
+    return { roundType: 'ffa' } as const;
   }
   if (round >= BONUS_OFFSET && round % FFA_PERIOD === BONUS_OFFSET) {
-    return { roundType: 'bonus', preview: true, bonusIndex: Math.floor((round - BONUS_OFFSET) / FFA_PERIOD) };
+    return { roundType: 'bonus', bonusIndex: Math.floor((round - BONUS_OFFSET) / FFA_PERIOD) };
   }
-  return { roundType: 'battle', preview: false } as const;
+  return { roundType: 'battle' } as const;
 }
 
 const BOSS_ESCALATION_EVERY = 2;

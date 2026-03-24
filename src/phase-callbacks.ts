@@ -10,7 +10,7 @@ import { emptyProduction, emptyProductions } from './simulation/production.ts';
 import type { GameLoopState } from './simulation/update.ts';
 import type { Team, TeamTuple } from './team.ts';
 import { copyTeamCounts, TEAM0, TEAM1 } from './team.ts';
-import type { BattleResult, BonusPhaseData, ProductionState, RoundEndInput } from './types-fleet.ts';
+import type { BattleResult, BattleRoundType, BonusPhaseData, ProductionState, RoundEndInput } from './types-fleet.ts';
 import { setCallbacks } from './ui/game-control.ts';
 import { goToMeleeResult, goToResult } from './ui/game-result.ts';
 import {
@@ -49,7 +49,7 @@ function initBattlePhase(
   updateHudRoundInfo();
 }
 
-function buildCombatEndInput(result: BattleResult, roundType: 'battle' | 'boss'): RoundEndInput {
+function buildCombatEndInput(result: BattleResult, roundType: BattleRoundType): RoundEndInput {
   return { roundType, battleResult: result };
 }
 
@@ -62,13 +62,22 @@ export function installPhaseCallbacks(gs: GameLoopState) {
   setOnFinalize((result: BattleResult, sourcePhase: BattleSourcePhase) => {
     gs.battlePhase = 'aftermath';
     hideMothershipHpBar();
-    if (sourcePhase === 'bonus') {
-      if (!gs.bonusData) {
-        throw new Error('bonus phase finalized without bonusData');
+    switch (sourcePhase) {
+      case 'bonus':
+        if (!gs.bonusData) {
+          throw new Error('bonus phase finalized without bonusData');
+        }
+        goToResult(buildBonusEndInput(result, gs.bonusData));
+        break;
+      case 'battle':
+      case 'boss':
+      case 'pve':
+        goToResult(buildCombatEndInput(result, sourcePhase));
+        break;
+      default: {
+        const _: never = sourcePhase;
+        throw new Error(`Unknown sourcePhase: ${_ as string}`);
       }
-      goToResult(buildBonusEndInput(result, gs.bonusData));
-    } else {
-      goToResult(buildCombatEndInput(result, sourcePhase));
     }
   });
 
@@ -80,7 +89,7 @@ export function installPhaseCallbacks(gs: GameLoopState) {
   });
 
   setCallbacks({
-    battle(productions: [ProductionState, ProductionState], roundType: 'battle' | 'boss') {
+    battle(productions: [ProductionState, ProductionState], roundType: BattleRoundType) {
       initBattlePhase(gs, roundType, productions);
       showMothershipHpBar(2);
     },
