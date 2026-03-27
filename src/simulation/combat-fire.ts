@@ -1,4 +1,5 @@
 import { SH_CIRCLE } from '../constants.ts';
+import { getModuleAoe } from '../module-effects.ts';
 import { unit } from '../pools-query.ts';
 import { NO_UNIT } from '../types.ts';
 import { aimAt, swarmDmgMul } from './combat-aim.ts';
@@ -70,6 +71,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
   const pr = c[0] + (1 - c[0]) * wb;
   const pg = c[1] + (1 - c[1]) * wb;
   const pb = c[2] + (1 - c[2]) * wb;
+  const projOpts = { sourceUnit: ctx.ui, aoe: getModuleAoe(u.moduleId) };
   const salvo = t.salvo;
   if (salvo >= 2) {
     const offsets = t.cannonOffsets;
@@ -85,7 +87,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
       cannonWorld(u, localX, localY * sign);
       const mx = _cwBuf[0];
       const my = _cwBuf[1];
-      spawnProjectile(mx, my, vxP, vyP, life, dmg, u.team, pSize, pr, pg, pb, { sourceUnit: ctx.ui });
+      spawnProjectile(mx, my, vxP, vyP, life, dmg, u.team, pSize, pr, pg, pb, projOpts);
       spawnCannonFlash(ctx, ang, mx, my);
     }
   } else {
@@ -101,7 +103,7 @@ function fireShot(ctx: CombatContext, ang: number, d: number, sp: number, dmgMul
       pr,
       pg,
       pb,
-      { sourceUnit: ctx.ui },
+      projOpts,
     );
     spawnMuzzleFlash(ctx, ang);
   }
@@ -138,7 +140,7 @@ function fireHomingBurst(ctx: CombatContext, ang: number, d: number, sp: number)
     c[0],
     c[1],
     c[2],
-    { homing: true, target: u.target, sourceUnit: ctx.ui },
+    { homing: true, target: u.target, sourceUnit: ctx.ui, aoe: getModuleAoe(u.moduleId) },
   );
   u.burstCount--;
   u.cooldown = u.burstCount > 0 ? BURST_INTERVAL : t.fireRate;
@@ -160,7 +162,7 @@ function fireAoe(ctx: CombatContext, ang: number, d: number, sp: number) {
     c[0] * 0.8,
     c[1] * 0.7 + 0.3,
     c[2],
-    { aoe: t.aoe, sourceUnit: ctx.ui },
+    { aoe: t.aoe + getModuleAoe(u.moduleId), sourceUnit: ctx.ui },
   );
   spawnMuzzleFlash(ctx, ang);
 }

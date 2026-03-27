@@ -1,17 +1,30 @@
-import { Coins, Lock, Plus, RefreshCw, Unlock } from 'lucide-preact';
+import { Coins, Lock, Plus, RefreshCw, Unlock, Zap } from 'lucide-preact';
+import { moduleDef } from '../../module-defs.ts';
+import type { ModuleOffering } from '../../shop-state.ts';
 import type { PurchaseBlock, PurchaseCheck, ShopItem } from '../../shop-tiers.ts';
 import { REROLL_COST, SHOP_PRICE } from '../../shop-tiers.ts';
 import { ROLE_LABELS } from '../../unit-type-accessors.ts';
 import { TYPES } from '../../unit-types.ts';
-import { shopCredits$, shopFreeRerolls$, shopOfferings$, shopPurchaseBlocks$ } from '../signals.ts';
+import {
+  shopCredits$,
+  shopFreeRerolls$,
+  shopModuleOfferings$,
+  shopModulePurchaseBlocks$,
+  shopOfferings$,
+  shopPurchaseBlocks$,
+} from '../signals.ts';
 import { REROLL_OUT_MS, SHRINK_OUT_MS } from './anim-timing.ts';
 import styles from './ShopPanel.module.css';
+
+/** モジュールカード用: ドメインの PurchaseCheck + UI 専用の 'locked'（装着モード中） */
+type ModuleBlockReason = PurchaseCheck | 'locked';
 
 const BLOCK_LABELS: Record<PurchaseBlock, string> = {
   no_credits: '不足',
   max_star: '★3到達',
   slots_full: '満杯',
   sold_out: '売切',
+  no_target: '装着先なし',
 };
 
 function buyLabel(check: PurchaseCheck): string {
@@ -22,6 +35,7 @@ function buyLabel(check: PurchaseCheck): string {
     case 'max_star':
     case 'slots_full':
     case 'sold_out':
+    case 'no_target':
       return BLOCK_LABELS[check];
   }
 }
@@ -95,21 +109,84 @@ function resolveCardAnim(
   return null;
 }
 
+type ModuleCardProps = {
+  readonly item: ModuleOffering;
+  readonly index: number;
+  readonly blocked: ModuleBlockReason;
+  readonly onBuyModule: (idx: number) => void;
+  readonly onToggleLock: (idx: number) => void;
+};
+
+function moduleBlockLabel(blocked: ModuleBlockReason): string {
+  if (blocked === 'locked') {
+    return '装着中';
+  }
+  return buyLabel(blocked);
+}
+
+function ModuleCard({ item, index, blocked, onBuyModule, onToggleLock }: ModuleCardProps) {
+  const def = moduleDef(item.moduleId);
+  const canBuy = blocked === 'ok';
+  let cardClass = `${styles.shopCard} ${styles.moduleCard}`;
+  if (!canBuy) {
+    cardClass += ` ${styles.shopCardDisabled}`;
+  }
+  return (
+    <div class={cardClass}>
+      <button
+        type="button"
+        class={styles.lockBtn}
+        onClick={() => onToggleLock(index)}
+        title={item.locked ? '解除' : 'ロック'}
+      >
+        {item.locked ? <Lock size={12} /> : <Unlock size={12} />}
+      </button>
+      <div class={styles.shopName}>
+        <Zap size={11} /> {def.name}
+      </div>
+      <div class={styles.shopRole}>{def.description}</div>
+      <div class={styles.shopPrice}>
+        <Coins size={11} />
+        <span>{SHOP_PRICE}</span>
+      </div>
+      <button type="button" class={styles.buyBtn} disabled={!canBuy} onClick={() => onBuyModule(index)}>
+        <Plus size={12} />
+        {canBuy ? '装着' : moduleBlockLabel(blocked)}
+      </button>
+    </div>
+  );
+}
+
 type ShopPanelProps = {
   readonly onBuy: (idx: number) => void;
   readonly onToggleLock: (idx: number) => void;
+  readonly onBuyModule: (idx: number) => void;
+  readonly onToggleModuleLock: (idx: number) => void;
   readonly onReroll: () => void;
   readonly buyAnimIdx: number | null;
   readonly rerolling: boolean;
   readonly generation: number;
+  readonly locked: boolean;
 };
 
-export function ShopPanel({ onBuy, onToggleLock, onReroll, buyAnimIdx, rerolling, generation }: ShopPanelProps) {
+export function ShopPanel({
+  onBuy,
+  onToggleLock,
+  onBuyModule,
+  onToggleModuleLock,
+  onReroll,
+  buyAnimIdx,
+  rerolling,
+  generation,
+  locked,
+}: ShopPanelProps) {
   const offerings = shopOfferings$.value;
-  const credits = shopCredits$.value;
+  const moduleOfferings = shopModuleOfferings$.value;
   const freeRerolls = shopFreeRerolls$.value;
   const blocks = shopPurchaseBlocks$.value;
-  const canReroll = freeRerolls > 0 || credits >= REROLL_COST;
+  const moduleBlocks = shopModulePurchaseBlocks$.value;
+  const canReroll = !locked && (freeRerolls > 0 || shopCredits$.value >= REROLL_COST);
+  const hasModules = moduleOfferings.some((m) => m !== null);
 
   return (
     <div class={styles.shopSection}>
@@ -145,6 +222,34 @@ export function ShopPanel({ onBuy, onToggleLock, onReroll, buyAnimIdx, rerolling
           );
         })}
       </div>
+      {hasModules && (
+        <>
+          <div class={styles.shopHeader}>
+            <span>MODULES</span>
+          </div>
+          <div class={styles.shopGrid}>
+            {moduleOfferings.map((item, i) => {
+              if (!item) {
+                return (
+                  <div key={`mod-empty-${i}`} class={`${styles.shopCard} ${styles.shopCardEmpty}`}>
+                    <div class={styles.shopEmpty}>—</div>
+                  </div>
+                );
+              }
+              return (
+                <ModuleCard
+                  key={`mod-${generation}-${item.moduleId}-${i}`}
+                  item={item}
+                  index={i}
+                  blocked={locked ? 'locked' : (moduleBlocks[i] ?? 'sold_out')}
+                  onBuyModule={onBuyModule}
+                  onToggleLock={onToggleModuleLock}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

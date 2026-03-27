@@ -1,10 +1,21 @@
 import { signal } from '@preact/signals';
 import { BookOpen, ShieldAlert, Swords } from 'lucide-preact';
+import { useEffect } from 'preact/hooks';
 import { ASCENSION_MERGE_THRESHOLD, getMothershipDef } from '../../mothership-defs.ts';
 import { getRunInfo } from '../../run.ts';
 import type { BuyTarget } from '../../shop.ts';
-import { calculateSellCredit, findBuyTarget, purchaseItem, rerollOfferings, sellSlot, toggleLock } from '../../shop.ts';
+import {
+  calculateSellCredit,
+  findBuyTarget,
+  purchaseItem,
+  purchaseModule,
+  rerollOfferings,
+  sellSlot,
+  toggleLock,
+  toggleModuleLock,
+} from '../../shop.ts';
 import type { UnitTypeIndex } from '../../types.ts';
+import { NO_MODULE } from '../../types.ts';
 import type { RoundType } from '../../types-fleet.ts';
 import { ASCENSION_TYPE } from '../../unit-type-accessors.ts';
 import { createAnimSlot } from '../anim-guard.ts';
@@ -33,14 +44,25 @@ const sellAnim = createAnimSlot<SellAnim | null>(null);
 const floatCreditAnim = createAnimSlot<FloatCredit | null>(null);
 const rerollAnim = createAnimSlot<boolean>(false);
 const creditPulse$ = signal<'spend' | 'gain' | null>(null);
+/** モジュール装着待ち: 選択中のモジュール offering index */
+const equipMode$ = signal<number | null>(null);
 
-function isAnimBusy(): boolean {
+/** アニメーション再生中判定 */
+function isAnimating(): boolean {
   return (
     buyOutAnim.$.value !== null ||
     buyInAnim.$.value !== null ||
     sellAnim.$.value !== null ||
     rerollAnim.$.value !== false
   );
+}
+
+/**
+ * 排他的操作ロック判定 — アニメーション再生中 or モジュール装着選択中。
+ * モジュール選択の切り替え自体はここでブロックせず isAnimating() を使う。
+ */
+function isExclusiveLocked(): boolean {
+  return isAnimating() || equipMode$.value !== null;
 }
 
 function launchLabel(rt: RoundType | undefined): string {
@@ -73,6 +95,7 @@ export function _resetFleetCompose() {
   floatCreditAnim.cancel();
   rerollAnim.cancel();
   creditPulse$.value = null;
+  equipMode$.value = null;
   shopGeneration$.value = 0;
 }
 
@@ -144,6 +167,21 @@ type FleetComposeProps = {
 export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle }: FleetComposeProps) {
   const runInfo = getRunInfo();
   const hasSlotFilled = shopSlots$.value.some((s) => s !== null);
+  const inEquipMode = equipMode$.value !== null;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && equipMode$.value !== null) {
+        equipMode$.value = null;
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const cancelEquip = () => {
+    equipMode$.value = null;
+  };
 
   const handleLaunch = () => {
     if (hasSlotFilled) {
@@ -152,7 +190,7 @@ export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle
   };
 
   const handleBuy = (offeringIdx: number) => {
-    if (isAnimBusy()) {
+    if (isExclusiveLocked()) {
       return;
     }
 
@@ -181,7 +219,7 @@ export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle
   };
 
   const handleSell = (slotIdx: number) => {
-    if (isAnimBusy()) {
+    if (isExclusiveLocked()) {
       return;
     }
 
@@ -191,7 +229,7 @@ export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle
       return;
     }
 
-    const creditGain = calculateSellCredit(slot.mergeExp);
+    const creditGain = calculateSellCredit(slot.mergeExp, slot.moduleId !== NO_MODULE);
     creditPulse$.value = 'gain';
     floatCreditAnim.start({ slotIdx, amount: creditGain }, noop, FLOAT_CREDIT_MS);
     sellAnim.start(
@@ -203,8 +241,27 @@ export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle
     );
   };
 
+  const handleBuyModule = (offeringIdx: number) => {
+    if (isAnimating()) {
+      return;
+    }
+    // 装着先選択モードに入る（equipMode 中の切り替えは意図的に許可）
+    equipMode$.value = offeringIdx;
+  };
+
+  const handleSlotClickForEquip = (slotIdx: number) => {
+    const modIdx = equipMode$.value;
+    if (modIdx === null) {
+      return;
+    }
+    equipMode$.value = null;
+    if (purchaseModule(modIdx, slotIdx)) {
+      creditPulse$.value = 'spend';
+    }
+  };
+
   const handleReroll = () => {
-    if (isAnimBusy()) {
+    if (isExclusiveLocked()) {
       return;
     }
     creditPulse$.value = 'spend';
@@ -238,19 +295,26 @@ export function FleetCompose({ mothershipType, onLaunch, onRetire, onCodexToggle
         <ShopPanel
           onBuy={handleBuy}
           onToggleLock={toggleLock}
+          onBuyModule={handleBuyModule}
+          onToggleModuleLock={toggleModuleLock}
           onReroll={handleReroll}
           buyAnimIdx={buyOutVal ? buyOutVal.offeringIdx : null}
           rerolling={rerollAnim.$.value}
           generation={shopGeneration$.value}
+          locked={inEquipMode}
         />
         <SlotPanel
           mothershipType={mothershipType}
+          getSellCredit={calculateSellCredit}
           onSell={handleSell}
+          onSlotClick={handleSlotClickForEquip}
           buyInSlotIdx={buyInVal ? buyInVal.slotIdx : null}
           buyInIsMerge={buyInVal ? buyInVal.isMerge : false}
           sellAnimSlotIdx={sellAnimVal ? sellAnimVal.slotIdx : null}
           floatCreditSlotIdx={floatCreditVal ? floatCreditVal.slotIdx : null}
           floatCreditAmount={floatCreditVal ? floatCreditVal.amount : 0}
+          equipMode={inEquipMode}
+          onCancelEquip={cancelEquip}
         />
         <AscensionProgress mothershipType={mothershipType} />
         <div class={styles.actions}>

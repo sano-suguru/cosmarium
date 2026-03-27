@@ -3,6 +3,7 @@ import { DEFAULT_SLOT_COUNT } from '../production-config.ts';
 import type { ShopSlot, WeightedCandidate } from '../shop-tiers.ts';
 import { buildWeightedCandidates, SHOP_PRICE } from '../shop-tiers.ts';
 import type { UnitTypeIndex } from '../types.ts';
+import { NO_MODULE } from '../types.ts';
 import { TYPES } from '../unit-types.ts';
 import { weightedPick } from '../weighted-pick.ts';
 
@@ -71,7 +72,7 @@ function tryPlaceNew(
     return 0;
   }
   const baseCount = TYPES[entry.idx]?.clusterSize ?? 1;
-  slots[emptyIdx] = { type: entry.idx, baseCount, mergeExp: 0 };
+  slots[emptyIdx] = { type: entry.idx, baseCount, mergeExp: 0, moduleId: NO_MODULE };
   slotTypes.add(entry.idx);
   return SHOP_PRICE;
 }

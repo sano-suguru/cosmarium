@@ -13,12 +13,14 @@ import {
 } from '../run.ts';
 import {
   buildFleetFromShop,
+  getModulePurchaseBlocks,
   getShopCredits,
   getShopFreeRerolls,
   getShopPurchaseBlocks,
   initShop,
   initShopRound,
   onShopChange,
+  snapshotModuleOfferings,
   snapshotOfferings,
   snapshotSlots,
 } from '../shop.ts';
@@ -42,6 +44,8 @@ import {
   runMergeCount$,
   shopCredits$,
   shopFreeRerolls$,
+  shopModuleOfferings$,
+  shopModulePurchaseBlocks$,
   shopOfferings$,
   shopPurchaseBlocks$,
   shopSlots$,
@@ -81,8 +85,10 @@ function syncShopSignals(): void {
     shopCredits$.value = getShopCredits();
     shopFreeRerolls$.value = getShopFreeRerolls();
     shopOfferings$.value = snapshotOfferings();
+    shopModuleOfferings$.value = snapshotModuleOfferings();
     shopSlots$.value = snapshotSlots();
     shopPurchaseBlocks$.value = getShopPurchaseBlocks();
+    shopModulePurchaseBlocks$.value = getModulePurchaseBlocks();
     runMergeCount$.value = getRunMergeCount();
   });
 }

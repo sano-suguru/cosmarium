@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import type { ModuleOffering } from '../shop-state.ts';
 import type { PurchaseCheck, ShopItem, ShopSlot } from '../shop-tiers.ts';
 import { state } from '../state.ts';
 import type { GameState, TimeScale, UnitTypeIndex } from '../types.ts';
@@ -28,6 +29,8 @@ export const shopOfferings$ = signal<readonly (ShopItem | null)[]>([]);
 export const shopSlots$ = signal<readonly (ShopSlot | null)[]>([]);
 export const shopPurchaseBlocks$ = signal<readonly PurchaseCheck[]>([]);
 export const shopFreeRerolls$ = signal(0);
+export const shopModuleOfferings$ = signal<readonly (ModuleOffering | null)[]>([]);
+export const shopModulePurchaseBlocks$ = signal<readonly PurchaseCheck[]>([]);
 export const runMergeCount$ = signal(0);
 
 /** timeScale$ は state.timeScale の signal ミラー。Object.defineProperty で自動同期。 */

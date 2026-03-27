@@ -56,6 +56,7 @@ function spawnCluster(
       rng,
       slot.mergeExp,
       hpMul,
+      slot.moduleId,
     );
     if (idx === NO_UNIT) {
       throw new Error('spawnCluster: pool exhaustion after capacity pre-check (invariant violation)');

@@ -1,15 +1,25 @@
+import { allModuleIds } from './module-defs.ts';
 import { getMothershipDef } from './mothership-defs.ts';
 import { DEFAULT_SLOT_COUNT } from './production-config.ts';
 import { buildWeightedCandidates, ROUND_CREDITS, SHOP_SIZE, type ShopItem, type ShopSlot } from './shop-tiers.ts';
-import type { UnitTypeIndex } from './types.ts';
+import type { ModuleId, UnitTypeIndex } from './types.ts';
 import { NO_TYPE } from './types.ts';
 import { weightedPick } from './weighted-pick.ts';
+
+export type ModuleOffering = { readonly moduleId: ModuleId; locked: boolean };
+
+/** モジュール枠数 */
+const MODULE_OFFERING_SIZE = 2;
+
+/** モジュールがショップに出始めるラウンド */
+const MODULE_OFFERING_MIN_ROUND = 3;
 
 type ShopState = {
   credits: number;
   freeRerolls: number;
   sellBonus: number;
   readonly offerings: (ShopItem | null)[];
+  readonly moduleOfferings: (ModuleOffering | null)[];
   readonly slots: (ShopSlot | null)[];
 };
 
@@ -19,6 +29,7 @@ function createShopState(): ShopState {
     freeRerolls: 0,
     sellBonus: 0,
     offerings: Array.from({ length: SHOP_SIZE }, () => null),
+    moduleOfferings: Array.from({ length: MODULE_OFFERING_SIZE }, () => null),
     slots: Array.from({ length: DEFAULT_SLOT_COUNT }, () => null),
   };
 }
@@ -54,6 +65,45 @@ function generateOfferings(rng: () => number, round: number): void {
     }
     shop.offerings[i] = { type: entry.idx, locked: false };
   }
+
+  generateModuleOfferings(rng, round);
+}
+
+function generateModuleOfferings(rng: () => number, round: number): void {
+  // locked を収集し、それ以外はクリア
+  const lockedIds = new Set<ModuleId>();
+  for (let i = 0; i < MODULE_OFFERING_SIZE; i++) {
+    const item = shop.moduleOfferings[i];
+    if (item?.locked) {
+      lockedIds.add(item.moduleId);
+    } else {
+      shop.moduleOfferings[i] = null;
+    }
+  }
+  if (round < MODULE_OFFERING_MIN_ROUND) {
+    return;
+  }
+  fillUnlockedOfferings(rng, lockedIds);
+}
+
+/** 候補を1回だけ filter し、splice で消費することで重複排除しながらスロットを埋める */
+function fillUnlockedOfferings(rng: () => number, lockedIds: Set<ModuleId>): void {
+  const candidates = allModuleIds().filter((id) => !lockedIds.has(id));
+  for (let i = 0; i < MODULE_OFFERING_SIZE; i++) {
+    if (shop.moduleOfferings[i]?.locked) {
+      continue;
+    }
+    if (candidates.length === 0) {
+      break;
+    }
+    const picked = Math.floor(rng() * candidates.length);
+    const moduleId = candidates[picked];
+    if (moduleId === undefined) {
+      throw new Error(`fillUnlockedOfferings: candidate index ${picked} out of range (length=${candidates.length})`);
+    }
+    candidates.splice(picked, 1);
+    shop.moduleOfferings[i] = { moduleId, locked: false };
+  }
 }
 
 function resizeSlots(slotCount: number): void {
@@ -81,6 +131,9 @@ export function initShop(slotCount: number = DEFAULT_SLOT_COUNT): void {
   runMergeCount = 0;
   for (let i = 0; i < SHOP_SIZE; i++) {
     shop.offerings[i] = null;
+  }
+  for (let i = 0; i < MODULE_OFFERING_SIZE; i++) {
+    shop.moduleOfferings[i] = null;
   }
   shop.slots.length = 0;
   for (let i = 0; i < slotCount; i++) {
@@ -120,6 +173,11 @@ export function readOfferings(): readonly (ShopItem | null)[] {
 }
 
 /** 内部ロジック用: コピーなしの直接参照（readonly） */
+export function readModuleOfferings(): readonly (ModuleOffering | null)[] {
+  return shop.moduleOfferings;
+}
+
+/** 内部ロジック用: コピーなしの直接参照（readonly） */
 export function readSlots(): readonly (ShopSlot | null)[] {
   return shop.slots;
 }
@@ -127,6 +185,11 @@ export function readSlots(): readonly (ShopSlot | null)[] {
 /** UI signal 同期・テスト値保存用: スプレッドコピー */
 export function snapshotOfferings(): readonly (ShopItem | null)[] {
   return [...shop.offerings];
+}
+
+/** UI signal 同期・テスト値保存用: スプレッドコピー */
+export function snapshotModuleOfferings(): readonly (ModuleOffering | null)[] {
+  return [...shop.moduleOfferings];
 }
 
 /** UI signal 同期・テスト値保存用: スプレッドコピー */
@@ -151,7 +214,17 @@ export function addCredits(amount: number): void {
 }
 
 export function clearOffering(idx: number): void {
+  if (idx < 0 || idx >= shop.offerings.length || shop.offerings[idx] === null) {
+    throw new Error(`clearOffering: invalid or already null at index ${idx}`);
+  }
   shop.offerings[idx] = null;
+}
+
+export function clearModuleOffering(idx: number): void {
+  if (idx < 0 || idx >= shop.moduleOfferings.length || shop.moduleOfferings[idx] === null) {
+    throw new Error(`clearModuleOffering: invalid or already null at index ${idx}`);
+  }
+  shop.moduleOfferings[idx] = null;
 }
 
 export function toggleOfferingLock(idx: number): boolean {
@@ -163,20 +236,47 @@ export function toggleOfferingLock(idx: number): boolean {
   return true;
 }
 
+export function toggleModuleOfferingLock(idx: number): boolean {
+  const item = shop.moduleOfferings[idx];
+  if (!item) {
+    return false;
+  }
+  item.locked = !item.locked;
+  return true;
+}
+
 export function placeSlot(idx: number, slot: ShopSlot): void {
+  if (idx < 0 || idx >= shop.slots.length) {
+    throw new Error(`placeSlot: index ${idx} out of bounds [0, ${shop.slots.length})`);
+  }
   shop.slots[idx] = slot;
 }
 
 export function clearSlot(idx: number): void {
+  if (idx < 0 || idx >= shop.slots.length) {
+    throw new Error(`clearSlot: index ${idx} out of bounds [0, ${shop.slots.length})`);
+  }
+  if (shop.slots[idx] === null) {
+    throw new Error(`clearSlot: slot ${idx} is already null`);
+  }
   shop.slots[idx] = null;
+}
+
+export function setSlotModule(slotIdx: number, moduleId: ModuleId): void {
+  const s = shop.slots[slotIdx];
+  if (!s) {
+    throw new Error(`setSlotModule: slot ${slotIdx} is null`);
+  }
+  s.moduleId = moduleId;
 }
 
 export function incrementMergeExp(slotIdx: number): void {
   const s = shop.slots[slotIdx];
-  if (s) {
-    s.mergeExp += 1;
-    runMergeCount += 1;
+  if (!s) {
+    throw new Error(`incrementMergeExp: slot ${slotIdx} is null`);
   }
+  s.mergeExp += 1;
+  runMergeCount += 1;
 }
 
 export function decrementFreeRerolls(): void {
@@ -190,13 +290,8 @@ export function regenerateOfferings(): void {
   generateOfferings(shopRng, shopRound);
 }
 
-export function _setShopSlot(idx: number, slot: ShopSlot | null): void {
-  shop.slots[idx] = slot;
-}
-
-export function _setShopCredits(credits: number): void {
-  shop.credits = credits;
-}
+/** テスト専用: shop 内部状態への直接アクセス（ガードをバイパスするテストセットアップ用） */
+export const _shopState = shop;
 
 export function _setShopRng(rng: () => number): void {
   shopRng = rng;

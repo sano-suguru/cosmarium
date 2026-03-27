@@ -1,5 +1,6 @@
 import { MAX_MERGE_EXP, MERGE_PRODUCTION_BONUS } from './merge-config.ts';
-import type { UnitTypeIndex } from './types.ts';
+import type { ModuleId, UnitTypeIndex } from './types.ts';
+import { NO_MODULE } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
 
@@ -11,7 +12,12 @@ export const MAX_SLOT_COUNT = 7;
 /** 1ティックあたりのチーム全体の最大クラスタースポーン回数（全スロット共有、バースト防止） */
 export const MAX_CLUSTERS_PER_TICK = 5;
 
-export function createProductionSlot(type: UnitTypeIndex, count: number, mergeExp: number): ProductionSlot {
+export function createProductionSlot(
+  type: UnitTypeIndex,
+  count: number,
+  mergeExp: number,
+  moduleId: ModuleId = NO_MODULE,
+): ProductionSlot {
   const cost = unitTypeCost(type);
   if (cost === 0) {
     throw new RangeError(`Cannot create production slot for zero-cost unit type ${type}`);
@@ -25,7 +31,7 @@ export function createProductionSlot(type: UnitTypeIndex, count: number, mergeEx
   if (mergeExp > MAX_MERGE_EXP) {
     throw new RangeError(`mergeExp ${mergeExp} exceeds MAX_MERGE_EXP ${MAX_MERGE_EXP} for unit type ${type}`);
   }
-  return { type, count, mergeExp };
+  return { type, count, mergeExp, moduleId };
 }
 
 /**

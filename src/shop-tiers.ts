@@ -1,7 +1,7 @@
 import { SORTED_TYPE_INDICES } from './fleet-cost.ts';
 import { mergeBonusLevel, mergeExpToLevel } from './merge-config.ts';
 import { createProductionSlot } from './production-config.ts';
-import type { UnitTypeIndex } from './types.ts';
+import type { ModuleId, UnitTypeIndex } from './types.ts';
 import type { ProductionSlot } from './types-fleet.ts';
 import { unitTypeCost } from './unit-type-accessors.ts';
 
@@ -18,10 +18,11 @@ export type ShopSlot = {
   readonly type: UnitTypeIndex;
   readonly baseCount: number;
   mergeExp: number;
+  moduleId: ModuleId;
 };
 
 /** 購入不可の理由 */
-export type PurchaseBlock = 'no_credits' | 'max_star' | 'slots_full' | 'sold_out';
+export type PurchaseBlock = 'no_credits' | 'max_star' | 'slots_full' | 'sold_out' | 'no_target';
 
 /** 購入可否チェック結果。'ok' = 購入可能 */
 export type PurchaseCheck = PurchaseBlock | 'ok';
@@ -95,7 +96,7 @@ export function slotsToProduction(
     if (!s) {
       return null;
     }
-    return createProductionSlot(s.type, spawnCount(s, spawnCountMul), s.mergeExp);
+    return createProductionSlot(s.type, spawnCount(s, spawnCountMul), s.mergeExp, s.moduleId);
   });
 }
 
@@ -103,3 +104,6 @@ export function slotsToProduction(
 export function sellPrice(mergeExp: number): number {
   return mergeExpToLevel(mergeExp);
 }
+
+/** モジュール喪失時（売却・上書き）の返却クレジット */
+export const MODULE_REFUND = 1;

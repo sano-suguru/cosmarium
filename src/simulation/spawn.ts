@@ -14,8 +14,8 @@ import {
 import { allocParticleSlot, freeParticleSlot } from '../pools-particle.ts';
 import { particle, projectile, unit } from '../pools-query.ts';
 import type { Team } from '../team.ts';
-import type { ParticleIndex, ProjectileIndex, UnitIndex, UnitTypeIndex } from '../types.ts';
-import { NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_TYPE, NO_UNIT } from '../types.ts';
+import type { ModuleId, ParticleIndex, ProjectileIndex, UnitIndex, UnitTypeIndex } from '../types.ts';
+import { NO_MODULE, NO_PARTICLE, NO_PROJECTILE, NO_SQUADRON, NO_TYPE, NO_UNIT } from '../types.ts';
 import { unitType } from '../unit-type-accessors.ts';
 import { dispatchSpawnEvent } from './spawn-hooks.ts';
 
@@ -77,6 +77,7 @@ export function spawnUnit(
   rng: () => number,
   mergeExp = 0,
   hpMul = 1.0,
+  moduleId: ModuleId = NO_MODULE,
 ): UnitIndex {
   for (let i = 0; i < POOL_UNITS; i++) {
     const u = unit(i);
@@ -128,6 +129,7 @@ export function spawnUnit(
       u.ampBoostTimer = 0;
       u.scrambleTimer = 0;
       u.catalystTimer = 0;
+      u.moduleId = moduleId;
       u.squadronIdx = NO_SQUADRON;
       advanceUnitHWM(i);
       incUnits(team);

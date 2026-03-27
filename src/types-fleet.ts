@@ -1,4 +1,4 @@
-import type { UnitTypeIndex } from './types.ts';
+import type { ModuleId, UnitTypeIndex } from './types.ts';
 
 export type FleetEntry = { readonly type: UnitTypeIndex; readonly count: number };
 export type FleetComposition = readonly FleetEntry[];
@@ -84,6 +84,7 @@ export type ProductionSlot = {
   readonly type: UnitTypeIndex;
   readonly count: number;
   readonly mergeExp: number;
+  readonly moduleId: ModuleId;
 };
 
 export interface FleetSetup {

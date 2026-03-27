@@ -53,6 +53,7 @@ export interface Unit {
   scrambleTimer: number;
   catalystTimer: number;
   mergeDmgMul: number;
+  moduleId: ModuleId;
   squadronIdx: SquadronIndex;
 }
 
@@ -280,6 +281,7 @@ export type ParticleIndex = number & { readonly __brand: 'ParticleIndex' };
 export type ProjectileIndex = number & { readonly __brand: 'ProjectileIndex' };
 export type SquadronIndex = number & { readonly __brand: 'SquadronIndex' };
 export type UnitTypeIndex = number & { readonly __brand: 'UnitTypeIndex' };
+export type ModuleId = number & { readonly __brand: 'ModuleId' };
 
 /** ターゲットなし / スロットなしを示すセンチネル値 */
 export const NO_UNIT = -1 as UnitIndex;
@@ -287,6 +289,7 @@ export const NO_PARTICLE = -1 as ParticleIndex;
 export const NO_PROJECTILE = -1 as ProjectileIndex;
 export const NO_SQUADRON = -1 as SquadronIndex;
 export const NO_TYPE = -1 as UnitTypeIndex;
+export const NO_MODULE = -1 as ModuleId;
 
 /** ユニットタイプのロール分類 */
 export type UnitRole = 'attack' | 'support' | 'special' | 'environment' | 'mothership';

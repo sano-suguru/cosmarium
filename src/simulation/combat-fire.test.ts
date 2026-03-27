@@ -3,6 +3,7 @@ import { asType, NEUTRAL_MODS, resetPools, resetState, spawnAt } from '../__test
 import { poolCounts } from '../pools.ts';
 import { projectile, unit } from '../pools-query.ts';
 import { rng } from '../state.ts';
+import type { ModuleId } from '../types.ts';
 import { NO_UNIT } from '../types.ts';
 import {
   BOMBER_TYPE,
@@ -409,5 +410,53 @@ describe('getDominantDemoFlag', () => {
 
   it('フラグなしユニット → null', () => {
     expect(demoFlag(unitType(SNIPER_TYPE))).toBeNull();
+  });
+});
+
+describe('combat — MODULE AOE INTERACTION', () => {
+  it('AoEユニット(Bomber) + モジュール → aoe = t.aoe + moduleAoeRadius', () => {
+    const bomberType = unitType(BOMBER_TYPE);
+    const bomber = spawnAt(0, BOMBER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    unit(bomber).moduleId = 0 as ModuleId; // 拡散弾頭 aoeRadius=40
+    unit(bomber).cooldown = 0;
+    unit(bomber).target = enemy;
+    buildHash();
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
+    expect(projectile(0).aoe).toBe(bomberType.aoe + 40);
+  });
+
+  it('AoEユニット(Bomber) + モジュールなし → aoe = t.aoe（後方互換）', () => {
+    const bomberType = unitType(BOMBER_TYPE);
+    const bomber = spawnAt(0, BOMBER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    unit(bomber).cooldown = 0;
+    unit(bomber).target = enemy;
+    buildHash();
+    combat(unit(bomber), bomber, 0.016, rng, NEUTRAL_MODS, shake);
+    expect(projectile(0).aoe).toBe(bomberType.aoe);
+  });
+
+  it('ホーミングユニット(Launcher) + モジュール → ホーミング弾にAoE付与', () => {
+    const launcher = spawnAt(0, LAUNCHER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    unit(launcher).moduleId = 0 as ModuleId; // 拡散弾頭 aoeRadius=40
+    unit(launcher).cooldown = 0;
+    unit(launcher).target = enemy;
+    buildHash();
+    combat(unit(launcher), launcher, 0.016, rng, NEUTRAL_MODS, shake);
+    expect(projectile(0).homing).toBe(true);
+    expect(projectile(0).aoe).toBe(40);
+  });
+
+  it('ホーミングユニット(Launcher) + モジュールなし → aoe=0（後方互換）', () => {
+    const launcher = spawnAt(0, LAUNCHER_TYPE, 0, 0);
+    const enemy = spawnAt(1, FIGHTER_TYPE, 100, 0);
+    unit(launcher).cooldown = 0;
+    unit(launcher).target = enemy;
+    buildHash();
+    combat(unit(launcher), launcher, 0.016, rng, NEUTRAL_MODS, shake);
+    expect(projectile(0).homing).toBe(true);
+    expect(projectile(0).aoe).toBe(0);
   });
 });
